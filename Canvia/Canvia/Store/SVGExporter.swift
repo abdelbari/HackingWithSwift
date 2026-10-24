@@ -46,14 +46,17 @@ enum SVGExporter {
     /// With `aria`, as a web page holds it (HTMLExporter): each element
     /// with alt text a group a screen reader reads as one picture, by its
     /// words — role="img" and aria-label.
+    /// A link to a page goes to that page's section among `anchors` (by
+    /// page id, "#page-N"); with none — an SVG of its own — nowhere.
     @MainActor
-    static func svg(design: Design, page: Page, aria: Bool = false) -> String {
-        svg(design: design, page: page, aria: aria, standIns: nil)
+    static func svg(design: Design, page: Page, aria: Bool = false, anchors: [String: Int] = [:]) -> String {
+        svg(design: design, page: page, aria: aria, standIns: nil, anchors: anchors)
     }
 
     /// `svg(design:page:aria:)`, drawn with a test's `standIns` when given.
     @MainActor
-    static func svg(design: Design, page: Page, aria: Bool, standIns: StandIns?) -> String {
+    static func svg(design: Design, page: Page, aria: Bool, standIns: StandIns?,
+                    anchors: [String: Int] = [:]) -> String {
         var defs: [String] = []
         var body: [String] = []
 
@@ -66,7 +69,8 @@ enum SVGExporter {
             if ShapeText.carriesWords(el) {
                 resolved.fillPageTokens(number: number, count: design.pages.count)
             }
-            let group = elementGroup(resolved, index: index, aria: aria, standIns: standIns, defs: &defs)
+            let group = elementGroup(resolved, index: index, aria: aria, standIns: standIns, anchors: anchors,
+                                     defs: &defs)
             parts.append((el: el as Element?, part: group))
         }
         // Groups, nested ones too, as <g> round their members (Groups.nested).
@@ -85,7 +89,7 @@ enum SVGExporter {
 
     @MainActor
     private static func elementGroup(_ el: Element, index: Int, aria: Bool = false, standIns: StandIns? = nil,
-                                     defs: inout [String]) -> String {
+                                     anchors: [String: Int] = [:], defs: inout [String]) -> String {
         var transforms: [String] = []
         let cx = el.x + el.w / 2, cy = el.y + el.h / 2
         if el.rotation != 0 {
@@ -130,26 +134,36 @@ enum SVGExporter {
             inner = "<g clip-path=\"url(#\(id))\">\(inner)</g>"
         }
         let group = "<g\(attributes)>\(title)\(cast)\(inner)</g>"
-        let words = wordLinksMarkup(el, transforms: transforms)
+        let words = wordLinksMarkup(el, transforms: transforms, anchors: anchors)
         // A link wraps the element, so a browser follows it on a click —
         // one of the kinds a link is, never a script or a file.
-        guard let link = Links.followable(el.link) else { return group + words }
-        let href = escape(link)
-        return "<a href=\"\(href)\" xlink:href=\"\(href)\">\(group)</a>" + words
+        guard let link = href(el.link, anchors: anchors) else { return group + words }
+        let escaped = escape(link)
+        return "<a href=\"\(escaped)\" xlink:href=\"\(escaped)\">\(group)</a>" + words
+    }
+
+    /// Where a link goes: an address (Links.followable), or — on the web
+    /// page, a page among those it holds (`anchors`, by page id) — that
+    /// page's section, "#page-N". Nil for anything else, a dangling page
+    /// link among them.
+    static func href(_ link: String?, anchors: [String: Int]) -> String? {
+        if let url = Links.followable(link) { return url }
+        guard let id = Links.pageId(link), let n = anchors[id] else { return nil }
+        return "#page-\(n)"
     }
 
     /// Linked words (WordLinks): each word of them a clear rectangle in an
     /// <a>, laid over the element in its turn and flip — beside its group,
     /// not inside its own link, which an <a> cannot hold — so a browser
     /// follows the words' link over them and the element's elsewhere.
-    private static func wordLinksMarkup(_ el: Element, transforms: [String]) -> String {
+    private static func wordLinksMarkup(_ el: Element, transforms: [String], anchors pages: [String: Int]) -> String {
         let anchors = WordLinks.rects(for: el).compactMap { entry -> String? in
-            guard let url = Links.followable(entry.url) else { return nil }
-            let href = escape(url)
+            guard let url = href(entry.url, anchors: pages) else { return nil }
+            let escaped = escape(url)
             let r = entry.rect
             let box = "x=\"\(num(el.x + Double(r.minX)))\" y=\"\(num(el.y + Double(r.minY)))\" " +
                 "width=\"\(num(Double(r.width)))\" height=\"\(num(Double(r.height)))\""
-            return "<a href=\"\(href)\" xlink:href=\"\(href)\"><rect \(box) fill=\"#000000\" fill-opacity=\"0\"/></a>"
+            return "<a href=\"\(escaped)\" xlink:href=\"\(escaped)\"><rect \(box) fill=\"#000000\" fill-opacity=\"0\"/></a>"
         }
         guard !anchors.isEmpty else { return "" }
         let transform = transforms.isEmpty ? "" : " transform=\"\(transforms.joined(separator: " "))\""

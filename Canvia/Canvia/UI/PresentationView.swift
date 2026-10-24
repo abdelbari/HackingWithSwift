@@ -179,7 +179,7 @@ struct PresentationView: View {
                     // A linked element opens its link, as a click on it
                     // does in the PDF — where the page is fitted, so not
                     // while a whiteboard is pinched in.
-                    if !zoomedIn, let url = link(at: location, in: size) { open(url) }
+                    if !zoomedIn, let url = link(at: location, in: size) { follow(url) }
                     else if location.x > size.width * 0.66 { go(1) }
                     else if location.x < size.width * 0.33 { go(-1) }
                     else { withAnimation { showingChrome.toggle() } }
@@ -305,8 +305,8 @@ struct PresentationView: View {
         Button("Next page") { go(1) }
         Button("Previous page") { go(-1) }
         ForEach(Self.links(on: page, in: design), id: \.self) { url in
-            Button("Open \(Links.shown(url))") {
-                if let target = URL(string: url) { open(target) }
+            Button(Links.pageId(url) == nil ? tr("Open %@", Links.shown(url)) : Links.spoken(url, in: design)) {
+                follow(url)
             }
         }
     }
@@ -329,6 +329,18 @@ struct PresentationView: View {
             loopButton
             effectsButton
         }
+    }
+
+    /// Follow a link on the page: to a page of the design, a turn there by
+    /// the page's transition — none to a hidden page, which Present steps
+    /// over — else out to the address (open).
+    private func follow(_ link: String) {
+        if Links.pageId(link) != nil {
+            guard let target = Links.pageIndex(link, in: design), design.pages[target].hidden != true else { return }
+            turn(to: target)
+            return
+        }
+        if let target = URL(string: link) { open(target) }
     }
 
     /// Follow a link — and when nothing on this phone takes it (a phone
@@ -403,15 +415,14 @@ struct PresentationView: View {
     /// The link under `location`, in a view of `size` that fits the page as
     /// PresentStage does; nil where there is none. Not kept to the page, so
     /// an element hanging off it opens its link in the margin too.
-    private func link(at location: CGPoint, in size: CGSize) -> URL? {
+    private func link(at location: CGPoint, in size: CGSize) -> String? {
         let pageSize = design.size(for: page)
         let scale: CGFloat = min(size.width / max(pageSize.width, 1), size.height / max(pageSize.height, 1))
         guard scale > 0 else { return nil }
         let dx: CGFloat = (size.width - pageSize.width * scale) / 2
         let dy: CGFloat = (size.height - pageSize.height * scale) / 2
         let point = CGPoint(x: (location.x - dx) / scale, y: (location.y - dy) / scale)
-        guard let url = Links.at(design: design, page: page, point: point) else { return nil }
-        return URL(string: url)
+        return Links.at(design: design, page: page, point: point)
     }
 
     /// A reading of `clock(at:…)`.

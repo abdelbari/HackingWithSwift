@@ -48,6 +48,10 @@ enum CanvasAccessibility {
         let turn = Int(el.rotation.rounded()) % 360
         if turn != 0 { parts.append(trn("rotated %d degrees|rotated %d degrees", turn)) }
         if el.locked { parts.append(tr("locked")) } else if el.lockPosition == true { parts.append(tr("position locked")) }
+        // Its link, as Links.spoken reads it: "Link to page 3, Pricing".
+        if let link = el.link, !link.trimmingCharacters(in: .whitespaces).isEmpty {
+            parts.append(Links.spoken(link, in: design))
+        }
         return parts.joined(separator: "; ")
     }
 

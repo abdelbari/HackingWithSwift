@@ -395,10 +395,11 @@ enum PptxExporter {
     static func deck(design: Design, indices: [Int], styled: Bool = true, photos: PhotoLookup = .stored) -> [SlideParts] {
         var slides: [SlideParts] = []
         var image = 1
+        let numbers = slideNumbers(design: design, indices: indices)
         for (n, index) in indices.enumerated() {
             let previous = n > 0 ? design.pages[indices[n - 1]] : nil
             let parts = slide(design: design, page: design.pages[index], number: n + 1,
-                              previous: previous, firstImage: image, styled: styled, photos: photos)
+                              previous: previous, firstImage: image, styled: styled, photos: photos, slides: numbers)
             image += parts.media.count
             slides.append(parts)
         }
@@ -408,10 +409,32 @@ enum PptxExporter {
     /// Slide `number` of the deck, showing `page`, after `previous`, as it
     /// is when every picture draws; its pictures numbered from `firstImage`.
     static func slide(design: Design, page: Page, number: Int, previous: Page?, firstImage: Int,
-                      styled: Bool = true, photos: PhotoLookup = .stored) -> SlideParts {
+                      styled: Bool = true, photos: PhotoLookup = .stored, slides: [String: Int] = [:]) -> SlideParts {
         slide(design: design, page: page, number: number, previous: previous,
               drawn: media(design: design, page: page, firstImage: firstImage, styled: styled, photos: photos),
-              styled: styled, photos: photos)
+              styled: styled, photos: photos, slides: slides)
+    }
+
+    /// Which slide of a deck of the pages at `indices` shows each page, by
+    /// page id: what a link to a page jumps to.
+    static func slideNumbers(design: Design, indices: [Int]) -> [String: Int] {
+        var numbers: [String: Int] = [:]
+        for (n, index) in indices.enumerated() where numbers[design.pages[index].id] == nil {
+            numbers[design.pages[index].id] = n + 1
+        }
+        return numbers
+    }
+
+    /// What a shape's or a word's hlinkClick says for `link`, its
+    /// relationship added to `rels`: out to an address, or — a link to a
+    /// page of the deck (`slides`, by page id) — a jump to that page's
+    /// slide, ppaction://hlinksldjump, as PowerPoint writes one. Nil for no
+    /// link, one to a page not in the deck, or one dangling.
+    static func clickAttributes(_ link: String?, design: Design, slides: [String: Int],
+                                rels: inout Relationships) -> String? {
+        if let url = Links.followable(link) { return "r:id=\"\(rels.add("hyperlink", url, external: true))\"" }
+        guard Links.pageIndex(link, in: design) != nil, let id = Links.pageId(link), let number = slides[id] else { return nil }
+        return "r:id=\"\(rels.add("slide", "slide\(number).xml"))\" action=\"ppaction://hlinksldjump\""
     }
 
     /// Slide `number` of the deck, showing `page`, after `previous`, with
@@ -419,9 +442,9 @@ enum PptxExporter {
     /// not among them is left out, and a background that is not is white.
     /// `styled` text goes out editable, as its closest match (the
     /// "pptxStyledText" setting's "editable"); else as the picture of its
-    /// exact look.
+    /// exact look. A link to a page jumps to its slide among `slides`.
     static func slide(design: Design, page: Page, number: Int, previous: Page?, drawn: [MediaPart],
-                      styled: Bool = true, photos: PhotoLookup = .stored) -> SlideParts {
+                      styled: Bool = true, photos: PhotoLookup = .stored, slides: [String: Int] = [:]) -> SlideParts {
         let scale = slideScale(width: design.width, height: design.height)
         let placed = fit(design: design, page: page)
         let frame = Frame(unit: scale * placed.factor, dx: placed.dx * scale, dy: placed.dy * scale)
@@ -475,10 +498,7 @@ enum PptxExporter {
             }
             let id = nextId
             nextId += 1
-            var link: String?
-            if let url = Links.followable(el.link) {
-                link = rels.add("hyperlink", url, external: true)
-            }
+            let link = clickAttributes(el.link, design: design, slides: slides, rels: &rels)
             switch kind {
             case .text:
                 // Letters full of a photo: the picture, cropped to the
@@ -489,7 +509,7 @@ enum PptxExporter {
                     poured = PouredPhoto(embed: rels.add("image", "../media/\(part.name)"), size: size)
                 }
                 let average = el.textFill?.isPhoto == true ? el.textFill?.src.flatMap(photos.average) : nil
-                shapes.append(textXML(el, id: id, link: link, design: design, frame: frame, rels: &rels,
+                shapes.append(textXML(el, id: id, link: link, design: design, slides: slides, frame: frame, rels: &rels,
                                       photo: poured, ink: average))
             case .shape(let preset):
                 shapes.append(shapeXML(el, preset: preset, id: id, link: link, frame: frame))
@@ -599,7 +619,7 @@ enum PptxExporter {
             attributes += " descr=\"\(SVGExporter.escape(alt))\""
         }
         guard let link else { return "<p:cNvPr \(attributes)/>" }
-        return "<p:cNvPr \(attributes)><a:hlinkClick r:id=\"\(link)\"/></p:cNvPr>"
+        return "<p:cNvPr \(attributes)><a:hlinkClick \(link)/></p:cNvPr>"
     }
 
     private static func pictureXML(_ el: Element, id: Int, link: String?, embed: String, box: String) -> String {
@@ -790,7 +810,8 @@ enum PptxExporter {
         var scale: Double?
         /// A font key of its own; nil is the box's face.
         var font: String? = nil
-        /// A link a reader may follow (Links.followable); nil is none.
+        /// A link a reader may follow (Links.followable), or one to a page
+        /// (Links.pageLink), which the slide resolves; nil is none.
         var link: String? = nil
         /// A weight of its own (Spans); nil is the box's.
         var weight: Int? = nil
@@ -850,7 +871,8 @@ enum PptxExporter {
                                        underline: box.underline || own.underline, strike: own.strike)
             let linked = span?.link != nil ? Spans.linkColour : nil
             let run = TextRun(text: piece, style: style, color: span?.color ?? linked, scale: span?.scale,
-                              font: span?.font, link: Links.followable(span?.link), weight: span?.weight)
+                              font: span?.font, link: Links.followable(span?.link) ?? Links.pageId(span?.link).map(Links.pageLink),
+                              weight: span?.weight)
             let last = paragraphs.count - 1
             if var before = paragraphs[last].last, before.style == run.style, before.color == run.color,
                before.scale == run.scale, before.font == run.font, before.link == run.link,
@@ -891,8 +913,9 @@ enum PptxExporter {
     /// A text box, its words' links going into `rels` run by run; its
     /// letters full of `photo`, or in `ink` (the photo's average colour)
     /// where the effect cannot hold it.
-    private static func textXML(_ el: Element, id: Int, link: String?, design: Design, frame: Frame,
-                                rels: inout Relationships, photo: PouredPhoto? = nil, ink: String? = nil) -> String {
+    private static func textXML(_ el: Element, id: Int, link: String?, design: Design, slides: [String: Int],
+                                frame: Frame, rels: inout Relationships, photo: PouredPhoto? = nil,
+                                ink: String? = nil) -> String {
         // The size the canvas draws it at: fitted type at the size that fits.
         let size = FontLibrary.effectiveFontSize(for: el)
         var anchor = ""
@@ -911,8 +934,7 @@ enum PptxExporter {
             var content = runs.isEmpty ? "<a:endParaRPr sz=\"\(typeSize(size * frame.unit))\"/>" : ""
             for (k, run) in runs.enumerated() {
                 let face = typeface(run.font ?? el.fontFamily, in: design, weight: run.weight)
-                var onClick: String?
-                if let url = run.link { onClick = rels.add("hyperlink", url, external: true) }
+                let onClick = clickAttributes(run.link, design: design, slides: slides, rels: &rels)
                 // A drop cap: the first letter a run of its own, three
                 // times the size.
                 if let cap, line == 0, k == 0, let first = run.text.first {
@@ -1125,7 +1147,7 @@ enum PptxExporter {
         let own = ink == nil ? run.color : nil
         let paint = style.fill ?? "<a:solidFill>\(color(own ?? ink ?? el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
         var font = "<a:latin typeface=\"\(SVGExporter.escape(face))\"/>"
-        if let link { font += "<a:hlinkClick r:id=\"\(link)\"/>" }
+        if let link { font += "<a:hlinkClick \(link)/>" }
         let look = style.line + paint + style.effects
         return "<a:r><a:rPr\(attributes)>\(look)\(font)</a:rPr><a:t>\(SVGExporter.escape(run.text))</a:t></a:r>"
     }
@@ -1431,6 +1453,7 @@ enum PptxExporter {
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw DesignExporter.ExportError.renderFailed }
         let pages = indices.map { design.pages[$0] }
+        let numbers = slideNumbers(design: design, indices: indices)
         try? FileManager.default.removeItem(at: url)
         guard FileManager.default.createFile(atPath: url.path, contents: nil),
               let handle = try? FileHandle(forWritingTo: url) else {
@@ -1460,7 +1483,7 @@ enum PptxExporter {
                 }
                 let previous = n > 0 ? pages[n - 1] : nil
                 let parts = slide(design: design, page: page, number: number, previous: previous, drawn: drawn,
-                                  styled: styled)
+                                  styled: styled, slides: numbers)
                 try zip.add("ppt/slides/slide\(number).xml", Data(parts.xml.utf8))
                 try zip.add("ppt/slides/_rels/slide\(number).xml.rels", Data(parts.rels.utf8))
                 if let notes = parts.notes {

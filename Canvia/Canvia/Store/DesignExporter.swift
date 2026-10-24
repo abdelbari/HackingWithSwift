@@ -470,6 +470,12 @@ enum DesignExporter {
         // pages, not the design's.
         var titles: [String?] = []
         var figures: [[PDFUpdate.Picture]] = []
+        // The pages the file holds: a link to one of them goes there; one
+        // to a page left out — hidden, or not chosen — is left out too.
+        var held = Set<String>()
+        for sheet in sheets {
+            if case .page(let index) = sheet { held.insert(design.pages[index].id) }
+        }
         do {
             for (n, sheet) in sheets.enumerated() {
                 try await pacer.breathe()
@@ -484,7 +490,7 @@ enum DesignExporter {
                             drawFlattened(design: design, page: page, fitting: box)
                         } else {
                             draw(design: design, page: page, into: cg, fitting: box)
-                            linkAreas(of: page, in: design, onto: cg, pageHeight: box.height)
+                            linkAreas(of: page, in: design, pages: held, onto: cg, pageHeight: box.height)
                         }
                     }
                     titles.append(bookmarks ? PDFMetadata.bookmarkTitle(page, number: index + 1) : nil)
@@ -629,23 +635,36 @@ enum DesignExporter {
     /// A linked element clickable over its area, as in Canva's PDFs and the
     /// Android twin's. Given in the PDF's own space — points up from the
     /// bottom of the page — with UIKit's flip taken off, so the rectangle
-    /// means the same however the context reads it.
-    private static func linkAreas(of page: Page, in design: Design, onto cg: CGContext, pageHeight: Double) {
-        let areas = Links.areas(design: design, page: page)
-        guard !areas.isEmpty else { return }
+    /// means the same however the context reads it. A link to a page of
+    /// the file (`pages`, by id) is an internal GoTo to that page's named
+    /// destination, which each page sets at its top left — not an outline
+    /// entry, so the bookmarks are as they were; one to a page not in the
+    /// file, or gone, is no link at all (Links.exportAreas).
+    private static func linkAreas(of page: Page, in design: Design, pages: Set<String>,
+                                  onto cg: CGContext, pageHeight: Double) {
+        let areas = Links.exportAreas(design: design, page: page, pages: pages)
         let pxToPt = PrintLayout.pxToPt(design)
         cg.saveGState()
         cg.concatenate(cg.ctm.inverted())
+        cg.addDestination(destination(page.id), at: CGPoint(x: 0, y: pageHeight))
         for area in areas {
-            guard let target = URL(string: area.url) else { continue }
             let rect = CGRect(x: area.rect.minX * pxToPt,
                               y: pageHeight - area.rect.maxY * pxToPt,
                               width: area.rect.width * pxToPt,
                               height: area.rect.height * pxToPt)
-            cg.setURL(target as CFURL, for: rect)
+            switch area.target {
+            case .address(let url):
+                guard let target = URL(string: url) else { continue }
+                cg.setURL(target as CFURL, for: rect)
+            case .page(let id):
+                cg.setDestination(destination(id), for: rect)
+            }
         }
         cg.restoreGState()
     }
+
+    /// The name of the destination a link to page `id` goes to in a PDF.
+    static func destination(_ id: String) -> String { "page-" + id }
 
     /// The page's pictures with alt text (PDFMetadata.figures), each over
     /// its area in the PDF's own space — points up from the bottom of the

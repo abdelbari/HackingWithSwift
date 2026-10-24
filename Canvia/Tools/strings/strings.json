@@ -14822,6 +14822,24 @@
     "ja": "リンクまたはテキスト",
     "pt-BR": "Link ou texto"
   },
+  "Link to %@": {
+    "ar": "رابط إلى %@",
+    "de": "Link zu %@",
+    "es": "Enlace a %@",
+    "fr": "Lien vers %@",
+    "it": "Link a %@",
+    "ja": "%@ へのリンク",
+    "pt-BR": "Link para %@"
+  },
+  "Link to page %d": {
+    "ar": "رابط إلى الصفحة %d",
+    "de": "Link zu Seite %d",
+    "es": "Enlace a la página %d",
+    "fr": "Lien vers la page %d",
+    "it": "Link alla pagina %d",
+    "ja": "%d ページへのリンク",
+    "pt-BR": "Link para a página %d"
+  },
   "Linked": {
     "ar": "مرتبط",
     "de": "Verlinkt",
@@ -18530,6 +18548,15 @@
     "ja": "ページメニュー",
     "pt-BR": "Menu da página"
   },
+  "Page removed": {
+    "ar": "أزيلت الصفحة",
+    "de": "Seite entfernt",
+    "es": "Página eliminada",
+    "fr": "Page supprimée",
+    "it": "Pagina rimossa",
+    "ja": "ページは削除されました",
+    "pt-BR": "Página removida"
+  },
   "Page title": {
     "ar": "عنوان الصفحة",
     "de": "Seitentitel",
@@ -18574,6 +18601,15 @@
     "it": "Le pagine possono avere dimensioni proprie: una storia dopo un post quadrato. Le esportazioni, il video e il PDF mantengono la forma di ogni pagina.",
     "ja": "ページごとに個別のサイズにできます（正方形の投稿の後にストーリーなど）。書き出し、動画、PDF では各ページの形が保たれます。",
     "pt-BR": "As páginas podem ter tamanhos próprios — um story depois de um post quadrado. As exportações, o vídeo e o PDF mantêm o formato de cada página."
+  },
+  "Pages in this design": {
+    "ar": "صفحات هذا التصميم",
+    "de": "Seiten in diesem Design",
+    "es": "Páginas de este diseño",
+    "fr": "Pages de ce design",
+    "it": "Pagine di questo design",
+    "ja": "このデザインのページ",
+    "pt-BR": "Páginas deste design"
   },
   "Pages, page %d of %d": {
     "ar": "الصفحات، الصفحة %d من %d",

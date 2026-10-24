@@ -1527,7 +1527,7 @@ struct ContextToolbar: View {
             toolLabel("link", linked ? "Linked" : "Link", active: linked)
         }
         .buttonStyle(ToolButtonStyle())
-        .linkAlert(isPresented: $editingLink, draft: $linkDraft, linked: linked) { url in
+        .linkAlert(isPresented: $editingLink, draft: $linkDraft, linked: linked, design: store.design) { url in
             store.updateSelected { $0.link = url }
         }
     }

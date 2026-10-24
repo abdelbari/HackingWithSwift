@@ -4,7 +4,8 @@
 //
 //  - one <section id="page-N"> for each page exported, N counting them from
 //    1 in order, labelled by its title or "Page N", holding the page's SVG
-//    (SVGExporter, links and all, alt text as each group's aria-label);
+//    (SVGExporter, links and all — one to a page held here an anchor to
+//    its section — alt text as each group's aria-label);
 //  - a sticky <nav> of the same labels, one link a section, with `nav`;
 //  - each clip — with `embedMedia` — a <video> over its place, its first
 //    frame as the poster and its file beside the page (media/<id>.<ext>),
@@ -107,6 +108,11 @@ enum HTMLExporter {
                      poster: ((Element) -> Data?)? = nil) -> String {
         let shown = pages.filter { design.pages.indices.contains($0) }
         let labels = shown.enumerated().map { label(design, pageIndex: $0.element, number: $0.offset + 1) }
+        // A link to a page held here goes to its section.
+        var anchors: [String: Int] = [:]
+        for (n, index) in shown.enumerated() where anchors[design.pages[index].id] == nil {
+            anchors[design.pages[index].id] = n + 1
+        }
         var out = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n"
         out += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
         out += "<title>\(SVGExporter.escape(design.title))</title>\n"
@@ -125,7 +131,7 @@ enum HTMLExporter {
         for (n, index) in shown.enumerated() {
             let page = design.pages[index]
             out += "<section id=\"page-\(n + 1)\" aria-label=\"\(SVGExporter.escape(labels[n]))\">"
-            out += svg?(page) ?? SVGExporter.svg(design: design, page: page, aria: true)
+            out += svg?(page) ?? SVGExporter.svg(design: design, page: page, aria: true, anchors: anchors)
             if settings.embedMedia {
                 let size = design.size(for: page)
                 for clip in clips(design, pages: [index]) {

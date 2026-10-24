@@ -9,6 +9,13 @@
 // The Android twin reads it the same way (core/content/Links.kt) and keeps
 // the link in the same `link` field, so a linked design keeps its links on
 // either phone.
+//
+// A link can also go to a page of this design: "page:<page id>", by the
+// page's own id, so moving pages about keeps the link on its page. It is
+// followed only while that page is in the design — a page deleted leaves
+// the link dangling, said as "Page removed" and left out of every export —
+// jumping to the page in Present, as a GoTo link in the PDF, a slide jump
+// in PowerPoint and an anchor on the web page.
 
 import CoreGraphics
 import Foundation
@@ -25,8 +32,17 @@ enum Links {
     /// app that capitalised it — is kept in lower case: Android matches a
     /// link's scheme to the app that opens it letter for letter, so there
     /// "Https://canvia.app" opened nothing. The rest is kept as typed.
-    static func normalized(_ input: String) -> String? {
+    ///
+    /// A page link ("page:<id>") is kept when `design` has that page; with
+    /// no design — a file being read — when it names one at all, so it
+    /// comes back to the phone that wrote it unchanged.
+    static func normalized(_ input: String, in design: Design? = nil) -> String? {
         let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if typed.lowercased().hasPrefix(pageScheme) {
+            guard let id = pageId(typed) else { return nil }
+            if let design, !design.pages.contains(where: { page in page.id == id }) { return nil }
+            return pageLink(id)
+        }
         if typed.isEmpty || typed.contains(where: { $0.isWhitespace && $0 != " " }) { return nil }
         let lower = typed.lowercased()
         if let scheme = schemes.first(where: { lower.hasPrefix($0) }) {
@@ -62,15 +78,91 @@ enum Links {
         return schemes.contains(where: { lower.hasPrefix($0) }) ? link : nil
     }
 
+    // MARK: links to pages
+
+    /// What a link to a page of this design starts with.
+    static let pageScheme = "page:"
+
+    /// The link to the page `id`.
+    static func pageLink(_ id: String) -> String { pageScheme + id }
+
+    /// The id of the page a page link names; nil for any other link.
+    static func pageId(_ link: String?) -> String? {
+        guard let link, link.lowercased().hasPrefix(pageScheme) else { return nil }
+        let id = String(link.dropFirst(pageScheme.count))
+        return id.isEmpty || id.contains(where: \.isWhitespace) ? nil : id
+    }
+
+    /// Where in `design` the page a page link names is; nil for another
+    /// link, or a page no longer there.
+    static func pageIndex(_ link: String?, in design: Design) -> Int? {
+        guard let id = pageId(link) else { return nil }
+        return design.pages.firstIndex { $0.id == id }
+    }
+
+    /// Whether `link` is one to follow in `design`: a web address, email
+    /// or phone number (followable), or a page of it still there.
+    static func isFollowable(_ link: String?, in design: Design) -> Bool {
+        followable(link) != nil || pageIndex(link, in: design) != nil
+    }
+
+    /// Whether `link` goes to a page `design` no longer has.
+    static func isDangling(_ link: String?, in design: Design) -> Bool {
+        pageId(link) != nil && pageIndex(link, in: design) == nil
+    }
+
+    /// A link as the link sheet and the toolbar show it: "Page 3 · Pricing"
+    /// for a page, "Page removed" for one gone, else the address (shown).
+    static func label(_ link: String, in design: Design) -> String {
+        guard pageId(link) != nil else { return shown(link) }
+        guard let index = pageIndex(link, in: design) else { return tr("Page removed") }
+        return PageTitles.named(index + 1, title: design.pages[index].title)
+    }
+
+    /// A link as VoiceOver reads it: "Link to page 3, Pricing", "Link to
+    /// page 3" untitled, "Page removed" gone, "Link to canvia.app".
+    static func spoken(_ link: String, in design: Design) -> String {
+        guard pageId(link) != nil else { return tr("Link to %@", shown(link)) }
+        guard let index = pageIndex(link, in: design) else { return tr("Page removed") }
+        let said = tr("Link to page %d", index + 1)
+        guard let title = design.pages[index].title.flatMap(PageTitles.kept) else { return said }
+        return said + ", " + title
+    }
+
+    /// Where an exported link goes: an address, or a page of the file, by
+    /// its id.
+    enum ExportTarget: Equatable {
+        case address(String)
+        case page(String)
+    }
+
+    /// A link as an export writes it, among `pages` — the ids of the pages
+    /// the file holds: an address, or the page, only when that page is in
+    /// the file; nil for anything else, a dangling page link among them.
+    static func target(_ link: String?, in design: Design, pages: Set<String>) -> ExportTarget? {
+        if let url = followable(link) { return .address(url) }
+        guard pageIndex(link, in: design) != nil, let id = pageId(link), pages.contains(id) else { return nil }
+        return .page(id)
+    }
+
+    /// Every link on `page` as an export of `pages` writes it (target), over
+    /// its area — the master's first, each element's linked words after it.
+    static func exportAreas(design: Design, page: Page, pages: Set<String>) -> [(rect: CGRect, target: ExportTarget)] {
+        areas(design: design, page: page).compactMap { area in
+            target(area.url, in: design, pages: pages).map { (rect: area.rect, target: $0) }
+        }
+    }
+
     /// Every linked element on the page as drawn — the master's first — with
     /// its area on the page, and after each one its linked words, a word
-    /// each, which lie over it.
+    /// each, which lie over it: each link one to follow in `design`
+    /// (isFollowable), page links included.
     static func areas(design: Design, page: Page) -> [(rect: CGRect, url: String)] {
         drawn(design: design, page: page).flatMap { el -> [(rect: CGRect, url: String)] in
             var out: [(rect: CGRect, url: String)] = []
-            if let url = followable(el.link) { out.append((rect: Geometry.aabb(el), url: url)) }
-            for words in WordLinks.areas(of: el) {
-                if let url = followable(words.url) { out.append((rect: words.rect, url: url)) }
+            if let url = el.link, isFollowable(url, in: design) { out.append((rect: Geometry.aabb(el), url: url)) }
+            for words in WordLinks.areas(of: el) where isFollowable(words.url, in: design) {
+                out.append((rect: words.rect, url: words.url))
             }
             return out
         }
@@ -81,8 +173,8 @@ enum Links {
     /// rotation and all; nil where there is none.
     static func at(design: Design, page: Page, point: CGPoint) -> String? {
         for el in drawn(design: design, page: page).reversed() {
-            if let url = followable(WordLinks.link(in: el, at: point)) { return url }
-            if let url = followable(el.link), Geometry.hits(el, point: point) { return url }
+            if let url = WordLinks.link(in: el, at: point), isFollowable(url, in: design) { return url }
+            if let url = el.link, isFollowable(url, in: design), Geometry.hits(el, point: point) { return url }
         }
         return nil
     }
