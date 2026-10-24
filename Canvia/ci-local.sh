@@ -50,6 +50,14 @@ static_job() {
   static: Tools/verify.js"
         return 1
     }
+    # The content bundle's budget: Content.json under 3 MB of JSON.
+    size=$(wc -c < Canvia/Content/Content.json)
+    if [ "$size" -ge 3000000 ]; then
+        error "Content.json is $size bytes, over the 3 MB budget."
+        failed="$failed
+  static: Content.json over 3 MB"
+        return 1
+    fi
 }
 
 # ---------------------------------------------------------------------------
