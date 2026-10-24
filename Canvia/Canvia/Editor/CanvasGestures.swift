@@ -108,17 +108,23 @@ enum CanvasGestures {
     /// the fingertip target (Touch.minTarget, twice handleReach, on screen;
     /// the Android twin's 2 × HANDLE_TOUCH_RADIUS) at `zoom`: the target
     /// added to its width and to its height, half on each side, as
-    /// Android's Gestures.onBody. Refused when anything selected is locked
-    /// or holds its place, when the page is locked, and while cropping,
-    /// typing, drawing, erasing or brushing (`busy`).
+    /// Android's Gestures.onBody. A whole group turned as one has its
+    /// turned frame for a body (`turned`, DesignStore.turnedGroupFrame), as
+    /// Android's groupBox at groupAngle. Refused when anything selected is
+    /// locked or holds its place, when the page is locked, and while
+    /// cropping, typing, drawing, erasing or brushing (`busy`).
     static func pinchesSelection(_ a: CGPoint, _ b: CGPoint, selected: [Element], zoom: Double,
-                                 pageLocked: Bool, busy: Bool) -> Bool {
+                                 pageLocked: Bool, busy: Bool, turned: Geometry.GroupFrame?) -> Bool {
         guard !busy, !pageLocked, !selected.isEmpty, !selected.contains(where: \.holdsPlace) else { return false }
         let reach = Touch.pageUnits(Touch.minTarget, zoom: zoom)
         func inside(_ p: CGPoint) -> Bool {
             if selected.count == 1, let el = selected.first {
                 let local = el.rotation == 0 ? p : Geometry.rotate(p, around: el.center, degrees: -el.rotation)
                 return widened(el.frame, by: reach).contains(local)
+            }
+            if let turned {
+                let local = Geometry.rotate(p, around: turned.center, degrees: -turned.angle)
+                return widened(turned.upright, by: reach).contains(local)
             }
             return bodyBox(selected).map { widened($0, by: reach).contains(p) } ?? false
         }
@@ -128,8 +134,8 @@ enum CanvasGestures {
     /// The input two fingers make: on the selection when pinchesSelection
     /// says so, plain two fingers otherwise.
     static func twoFingerInput(_ a: CGPoint, _ b: CGPoint, selected: [Element], zoom: Double,
-                               pageLocked: Bool, busy: Bool) -> Input {
-        pinchesSelection(a, b, selected: selected, zoom: zoom, pageLocked: pageLocked, busy: busy)
+                               pageLocked: Bool, busy: Bool, turned: Geometry.GroupFrame?) -> Input {
+        pinchesSelection(a, b, selected: selected, zoom: zoom, pageLocked: pageLocked, busy: busy, turned: turned)
             ? .twoFingersOnSelection : .twoFingers
     }
 

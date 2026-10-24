@@ -19,10 +19,10 @@ struct TidyGapHandles: View {
     private static let holdNear = 4.0
 
     var body: some View {
-        if store.selection.count >= 2, let layout = store.tidyLayout, layout.mode != .grid {
+        if let layout = store.tidyLayout, layout.mode != .grid {
             let iz = 1 / max(store.zoom, 0.01)
             let row = layout.mode == .row
-            ForEach(Array(Geometry.tidyGapHandles(store.selectedElements).enumerated()), id: \.offset) { index, at in
+            ForEach(Array(Geometry.tidyGapHandles(store.tidyMembers).enumerated()), id: \.offset) { index, at in
                 pill(row: row, iz: iz)
                     .position(at)
                     .gesture(drag(row: row, gap: layout.gap, index: index))

@@ -364,7 +364,8 @@ struct CanvasView: View {
     private func pinchesSelection(_ a: CGPoint, _ b: CGPoint) -> Bool {
         guard pinchSelection else { return false }
         let input = CanvasGestures.twoFingerInput(a, b, selected: store.selectedElements, zoom: store.zoom,
-                                                  pageLocked: store.isPageLocked, busy: store.pinchBusy)
+                                                  pageLocked: store.isPageLocked, busy: store.pinchBusy,
+                                                  turned: store.turnedGroupFrame)
         return CanvasGestures.action(input, on: .selectedBody) == .transformSelection
     }
 
