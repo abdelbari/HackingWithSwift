@@ -1522,22 +1522,9 @@ struct CanvasView: View {
     }
 
     /// Whether a finger at `point` takes `el`, its touch target `target`
-    /// across: an elbowed or curved line within half that of its route,
-    /// anything else in its box grown to the target (reach) — as the
-    /// Android twin's elementAt.
+    /// across (Layers.touches) — as the Android twin's elementAt.
     private static func touches(_ el: Element, _ point: CGPoint, _ target: Double) -> Bool {
-        if LineRoutes.keepsLevel(el) { return !el.isHidden && LineRoutes.near(el, point, reach: target / 2) }
-        return Geometry.hits(reach(el, target), point: point)
-    }
-
-    /// `el` grown about its centre to at least `target` across and down —
-    /// its touch target, as its hit area is drawn.
-    private static func reach(_ el: Element, _ target: Double) -> Element {
-        var grown = el
-        let grow = max(0, target - el.w) / 2, rise = max(0, target - el.h) / 2
-        grown.x -= grow; grown.w += grow * 2
-        grown.y -= rise; grown.h += rise * 2
-        return grown
+        Layers.touches(el, point, touchRadius: target / 2)
     }
 
     private func marqueeView(_ band: CGRect) -> some View {
@@ -1756,6 +1743,7 @@ struct CanvasView: View {
     /// it, the caret where the finger was, as in Canva.
     private func elementTap(_ el: Element, at point: CGPoint) {
         dismissHoldMenu()
+        store.lastTapAt = point
         if store.stylePainting {
             store.paintStyle(onto: el.id)
             return
@@ -1831,6 +1819,17 @@ struct CanvasView: View {
         if showDistances && store.selection.contains(el.id) && store.selectionIsMeasurable {
             store.measureSelection(true)
             store.buzz(.tick)
+            return
+        }
+        // Two or more things under the finger, off the selection: the menu
+        // there, with Select behind (CanvasGestures.holdOnElement).
+        if let at = pagePress,
+           CanvasGestures.holdOnElement(stack: store.hitStack(at: at).count,
+                                        onSelected: store.selection.contains(el.id)) == .menu {
+            guard !store.refusesLockedPage() else { return }
+            commitTextEditIfAny()
+            store.buzz(.tick)
+            store.holdMenuAt = at
             return
         }
         store.select(el.id, additive: true)
@@ -1942,10 +1941,12 @@ struct CanvasView: View {
         }
         if !el.locked {
             Button("Duplicate") { store.select(el.id); store.duplicateSelected() }
-        }
-        // A position lock asks first (DesignStore.askingDelete).
-        if !el.locked {
+            // A position lock asks first (DesignStore.askingDelete).
             Button("Delete") { store.select(el.id); store.deleteSelected() }
+        }
+        // Select behind, from the selected thing's middle (Layers.hitStack).
+        if store.selection.contains(el.id) {
+            Button("Select what is behind") { store.selectWhatIsBehind(el.id) }
         }
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
         Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }

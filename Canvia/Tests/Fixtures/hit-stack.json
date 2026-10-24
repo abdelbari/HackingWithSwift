@@ -1,0 +1,30 @@
+{
+  "about": "Layers.hitStack: what lies under a fingertip touchRadius round at each probe, top-most first, back to front as the page holds them. A hidden element is never listed; a group is one row, \"group:<id>\", where its top-most touched member is; a small element is touched within its box grown to twice the radius; a turned one in its turned frame (with the 4-unit slack Geometry.hits keeps). behind gives Alt+Tab's next row for a selection: the row under the one holding it, round to the top past the bottom, the top when none holds it, null when there is no other.",
+  "touchRadius": 22,
+  "elements": [
+    { "id": "bg", "type": "shape", "shapeId": "rect", "x": 0, "y": 0, "w": 1000, "h": 1000 },
+    { "id": "photo", "type": "shape", "shapeId": "rect", "x": 100, "y": 100, "w": 400, "h": 400 },
+    { "id": "ghost", "type": "shape", "shapeId": "rect", "x": 150, "y": 150, "w": 100, "h": 100, "hidden": true },
+    { "id": "tiny", "type": "shape", "shapeId": "rect", "x": 300, "y": 300, "w": 10, "h": 10 },
+    { "id": "turned", "type": "shape", "shapeId": "rect", "x": 600, "y": 100, "w": 200, "h": 100, "rotation": 45 },
+    { "id": "a", "type": "shape", "shapeId": "circle", "x": 100, "y": 600, "w": 100, "h": 100, "group": "g-card" },
+    { "id": "b", "type": "shape", "shapeId": "rect", "x": 150, "y": 620, "w": 200, "h": 100, "group": "g-card" }
+  ],
+  "probes": [
+    { "x": 120, "y": 120, "stack": ["photo", "bg"] },
+    { "x": 200, "y": 200, "stack": ["photo", "bg"] },
+    { "x": 320, "y": 320, "stack": ["tiny", "photo", "bg"] },
+    { "x": 160, "y": 650, "stack": ["group:g-card", "bg"] },
+    { "x": 700, "y": 150, "stack": ["turned", "bg"] },
+    { "x": 790, "y": 150, "stack": ["bg"] },
+    { "x": 1500, "y": 1500, "stack": [] }
+  ],
+  "behind": [
+    { "x": 320, "y": 320, "selection": ["tiny"], "next": "photo" },
+    { "x": 320, "y": 320, "selection": ["photo"], "next": "bg" },
+    { "x": 320, "y": 320, "selection": ["bg"], "next": "tiny" },
+    { "x": 320, "y": 320, "selection": [], "next": "tiny" },
+    { "x": 160, "y": 650, "selection": ["a"], "next": "bg" },
+    { "x": 790, "y": 150, "selection": ["bg"], "next": null }
+  ]
+}

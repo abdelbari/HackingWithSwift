@@ -1253,6 +1253,10 @@ final class DesignStore {
     /// state only.
     var holdMenuAt: CGPoint?
 
+    /// Where the last tap on an element landed, in page units on the page
+    /// being worked: where Alt+Tab's Select behind looks. View state only.
+    var lastTapAt: CGPoint?
+
     /// The hold menu's Add text here: the default text box — "Your text
     /// here" (HoldMenu.words), 6% of the page's width in type, 72% of it
     /// wide — centred on `point` and kept on the page, typed into at once
