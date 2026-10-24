@@ -2804,9 +2804,12 @@ final class DesignStore {
     /// The selected text in a brand role's face — at the kit's size for
     /// it, scaled to this page, when it sets one — one undo step, each box
     /// measured again, as the Android twin's Text panel sets it.
-    func applyBrandFace(_ face: BrandFont) {
+    /// The face's colour, spacing, capitals and slant too, as a role sets
+    /// them (BrandFonts.typeSettings).
+    func applyBrandFace(_ face: BrandFont, role: BrandFonts.Role? = nil) {
         let width = pageWidth
-        updateSelected { el in BrandFonts.apply(face, to: &el, pageWidth: width) }
+        let palettes = BrandKit.load().palettes
+        updateSelected { el in BrandFonts.apply(face, to: &el, pageWidth: width, role: role, palettes: palettes) }
     }
 
     /// Re-read the style from `element` and re-apply it to every element on

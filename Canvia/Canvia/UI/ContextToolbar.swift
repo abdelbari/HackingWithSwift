@@ -724,7 +724,7 @@ struct ContextToolbar: View {
     private func brandRow(_ role: BrandFonts.Role, face: BrandFont, el: Element) -> some View {
         let chosen = el.fontFamily == face.family && el.fontWeight == face.weight
         return Button {
-            store.applyBrandFace(face)
+            store.applyBrandFace(face, role: role)
             styleVersion += 1
             showingStyles = false
         } label: {

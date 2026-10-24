@@ -136,7 +136,8 @@ enum BrandGuidelines {
             let own = BrandFonts.sized(face, pageWidth: width) ?? role.widthFraction * width
             let size = (min(own, min(220, (row - 100) / leading)) * 10).rounded() / 10
             let y = top + Double(i) * row
-            let label = "\(role.label) · \(family) · \(weight) · \(Int(own.rounded())) px"
+            let label = ([role.label, family, "\(weight)", "\(Int(own.rounded())) px"] + attributes(face, kit))
+                .joined(separator: " · ")
             els.append(text(kit, .caption, label, margin, y, width - 2 * margin, 40, muted))
             var sample = Element.text(tr("The quick brown fox jumps over the lazy dog"), fontSize: size, w: width - 2 * margin)
             sample.x = margin
@@ -147,9 +148,26 @@ enum BrandGuidelines {
             sample.fontWeight = weight
             sample.lineHeight = leading
             sample.color = ink
+            // The rest of the role's type, as Add text sets it.
+            BrandFonts.typeSettings(face, role: role, to: &sample, pageWidth: width, palettes: kit.palettes)
             els.append(sample)
         }
         return page(els)
+    }
+
+    /// What a role's face sets beyond its family, weight and size, in the
+    /// order the brand kit lists them: its colour as hex, its letter
+    /// spacing whole, its line spacing to two places, capitals and italic —
+    /// each only when set.
+    static func attributes(_ face: BrandFont?, _ kit: BrandKit) -> [String] {
+        guard let face else { return [] }
+        var out: [String] = []
+        if let colour = BrandFont.resolved(face.color, palettes: kit.palettes) { out.append(colour) }
+        if let spacing = face.letterSpacing { out.append(tr("Spacing %d", Int(spacing.rounded()))) }
+        if let line = face.lineHeight { out.append(tr("Line %@", String(format: "%.2f", line))) }
+        if face.uppercase == true { out.append(tr("Uppercase")) }
+        if face.italic == true { out.append(tr("Italic")) }
+        return out
     }
 
     private static func logoPage(_ kit: BrandKit, _ logos: [String]) -> Page {
