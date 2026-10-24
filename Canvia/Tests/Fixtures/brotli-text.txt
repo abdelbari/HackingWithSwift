@@ -53,6 +53,15 @@
     "ja": "%@（%@ のバージョン）",
     "pt-BR": "%@ (versão de %@)"
   },
+  "%@ QR code": {
+    "ar": "رمز QR لـ %@",
+    "de": "%@-QR-Code",
+    "es": "Código QR de %@",
+    "fr": "Code QR %@",
+    "it": "Codice QR %@",
+    "ja": "%@ の QR コード",
+    "pt-BR": "Código QR de %@"
+  },
   "%@ across, %@ down": {
     "ar": "%@ عرضًا، %@ طولًا",
     "de": "%@ breit, %@ hoch",
@@ -98,6 +107,15 @@
     "ja": "%@、幅 %@",
     "pt-BR": "%@ e %@ de largura"
   },
+  "%@ area, from %@ to %@": {
+    "ar": "مساحة %@، من %@ إلى %@",
+    "de": "Fläche %@, von %@ bis %@",
+    "es": "Área %@, de %@ a %@",
+    "fr": "Aire %@, de %@ à %@",
+    "it": "Area %@, da %@ a %@",
+    "ja": "%@ の面、%@ から %@",
+    "pt-BR": "Área %@, de %@ a %@"
+  },
   "%@ arrow": {
     "ar": "سهم (%@)",
     "de": "Pfeil (%@)",
@@ -134,6 +152,24 @@
     "ja": "%@の上矢印",
     "pt-BR": "Seta para cima (%@)"
   },
+  "%@ as sections of one index.html.": {
+    "ar": "%@ كأقسام في ملف index.html واحد.",
+    "de": "%@ als Abschnitte einer einzigen index.html.",
+    "es": "%@ como secciones de un solo index.html.",
+    "fr": "%@ en sections d'un seul index.html.",
+    "it": "%@ come sezioni di un unico index.html.",
+    "ja": "%@を1つのindex.htmlのセクションとして。",
+    "pt-BR": "%@ como seções de um único index.html."
+  },
+  "%@ as sections, in a .zip with its videos.": {
+    "ar": "%@ كأقسام، في ملف .zip مع مقاطع الفيديو.",
+    "de": "%@ als Abschnitte, in einer .zip mit den Videos.",
+    "es": "%@ como secciones, en un .zip con sus vídeos.",
+    "fr": "%@ en sections, dans un .zip avec ses vidéos.",
+    "it": "%@ come sezioni, in uno .zip con i video.",
+    "ja": "%@をセクションとして、動画と一緒に.zipで。",
+    "pt-BR": "%@ como seções, em um .zip com os vídeos."
+  },
   "%@ badge": {
     "ar": "شارة (%@)",
     "de": "Abzeichen (%@)",
@@ -151,6 +187,15 @@
     "it": "Banner (%@)",
     "ja": "%@のバナー",
     "pt-BR": "Faixa (%@)"
+  },
+  "%@ barcode": {
+    "ar": "رمز شريطي %@",
+    "de": "%@-Strichcode",
+    "es": "Código de barras %@",
+    "fr": "Code-barres %@",
+    "it": "Codice a barre %@",
+    "ja": "%@ バーコード",
+    "pt-BR": "Código de barras %@"
   },
   "%@ bean blob": {
     "ar": "فقاعة حبة الفول (%@)",
@@ -422,6 +467,24 @@
     "ja": "%@ フレーム",
     "pt-BR": "Moldura %@"
   },
+  "%@ graphic": {
+    "ar": "رسم %@",
+    "de": "Grafik %@",
+    "es": "Gráfico %@",
+    "fr": "Graphisme %@",
+    "it": "Grafica %@",
+    "ja": "%@ のグラフィック",
+    "pt-BR": "Gráfico %@"
+  },
+  "%@ guidelines": {
+    "ar": "إرشادات %@",
+    "de": "%@ Richtlinien",
+    "es": "Guía de %@",
+    "fr": "Charte %@",
+    "it": "Linee guida %@",
+    "ja": "%@ ガイドライン",
+    "pt-BR": "Diretrizes de %@"
+  },
   "%@ heart": {
     "ar": "قلب (%@)",
     "de": "Herz (%@)",
@@ -476,6 +539,15 @@
     "ja": "%@ インク、その他の色",
     "pt-BR": "Tinta %@, mais cores"
   },
+  "%@ is used elsewhere in this design": {
+    "ar": "يُستخدم %@ في مواضع أخرى من هذا التصميم",
+    "de": "%@ wird an anderen Stellen in diesem Design verwendet",
+    "es": "%@ se usa en otras partes de este diseño",
+    "fr": "%@ est utilisée ailleurs dans ce design",
+    "it": "%@ è usato altrove in questo design",
+    "ja": "%@ はこのデザインの他の場所でも使われています",
+    "pt-BR": "%@ é usada em outras partes deste design"
+  },
   "%@ later": {
     "ar": "%@ لاحقًا",
     "de": "%@ später",
@@ -512,6 +584,15 @@
     "ja": "%@ 線",
     "pt-BR": "Linha %@"
   },
+  "%@ line, from %@ to %@": {
+    "ar": "خط %@، من %@ إلى %@",
+    "de": "Linie %@, von %@ bis %@",
+    "es": "Línea %@, de %@ a %@",
+    "fr": "Ligne %@, de %@ à %@",
+    "it": "Linea %@, da %@ a %@",
+    "ja": "%@ の線、%@ から %@",
+    "pt-BR": "Linha %@, de %@ a %@"
+  },
   "%@ long": {
     "ar": "بطول %@",
     "de": "%@ lang",
@@ -520,6 +601,15 @@
     "it": "%@ di durata",
     "ja": "長さ %@",
     "pt-BR": "%@ de duração"
+  },
+  "%@ mockup": {
+    "ar": "نموذج عرض %@",
+    "de": "Mockup von %@",
+    "es": "Maqueta de %@",
+    "fr": "Maquette de %@",
+    "it": "Mockup di %@",
+    "ja": "%@ のモックアップ",
+    "pt-BR": "Mockup de %@"
   },
   "%@ moon": {
     "ar": "قمر (%@)",
@@ -538,6 +628,15 @@
     "it": "Ottagono (%@)",
     "ja": "%@の八角形",
     "pt-BR": "Octógono (%@)"
+  },
+  "%@ of up to 10 icons.": {
+    "ar": "%@ من 10 أيقونات كحد أقصى.",
+    "de": "%@ mit bis zu 10 Symbolen.",
+    "es": "%@ de hasta 10 iconos.",
+    "fr": "%@ de 10 icônes au plus.",
+    "it": "%@ di massimo 10 icone.",
+    "ja": "最大 10 個のアイコンの %@。",
+    "pt-BR": "%@ de até 10 ícones."
   },
   "%@ options": {
     "ar": "خيارات %@",
@@ -807,133 +906,4 @@
     "fr": "Autocollant %@",
     "it": "Sticker %@",
     "ja": "%@ ステッカー",
-    "pt-BR": "Figurinha %@"
-  },
-  "%@ strength": {
-    "ar": "قوة %@",
-    "de": "%@: Intensität",
-    "es": "Intensidad de %@",
-    "fr": "%@ : intensité",
-    "it": "Intensità %@",
-    "ja": "%@ の強さ",
-    "pt-BR": "Intensidade de %@"
-  },
-  "%@ sunburst": {
-    "ar": "أشعة الشمس (%@)",
-    "de": "Sonnenstrahlen (%@)",
-    "es": "Rayos de sol en %@",
-    "fr": "Rayons de soleil (%@)",
-    "it": "Raggiera (%@)",
-    "ja": "%@のサンバースト",
-    "pt-BR": "Raios de sol (%@)"
-  },
-  "%@ tag": {
-    "ar": "وسم (%@)",
-    "de": "Etikett (%@)",
-    "es": "Etiqueta en %@",
-    "fr": "Étiquette (%@)",
-    "it": "Etichetta (%@)",
-    "ja": "%@のタグ",
-    "pt-BR": "Etiqueta (%@)"
-  },
-  "%@ three-lobed blob": {
-    "ar": "فقاعة ثلاثية الفصوص (%@)",
-    "de": "Dreilappiger Klecks (%@)",
-    "es": "Mancha de tres lóbulos en %@",
-    "fr": "Tache à trois lobes (%@)",
-    "it": "Macchia a tre lobi (%@)",
-    "ja": "%@の三つ葉のブロブ",
-    "pt-BR": "Mancha de três lóbulos (%@)"
-  },
-  "%@ to Photos": {
-    "ar": "%@ إلى الصور",
-    "de": "%@ in Fotos",
-    "es": "%@ a Fotos",
-    "fr": "%@ dans Photos",
-    "it": "%@ in Foto",
-    "ja": "%@を写真に",
-    "pt-BR": "%@ em Fotos"
-  },
-  "%@ trapezoid": {
-    "ar": "شبه منحرف (%@)",
-    "de": "Trapez (%@)",
-    "es": "Trapecio en %@",
-    "fr": "Trapèze (%@)",
-    "it": "Trapezio (%@)",
-    "ja": "%@の台形",
-    "pt-BR": "Trapézio (%@)"
-  },
-  "%@ triangle": {
-    "ar": "مثلث (%@)",
-    "de": "Dreieck (%@)",
-    "es": "Triángulo en %@",
-    "fr": "Triangle (%@)",
-    "it": "Triangolo (%@)",
-    "ja": "%@の三角形",
-    "pt-BR": "Triângulo (%@)"
-  },
-  "%@ triangle down": {
-    "ar": "مثلث مقلوب (%@)",
-    "de": "Dreieck nach unten (%@)",
-    "es": "Triángulo hacia abajo en %@",
-    "fr": "Triangle inversé (%@)",
-    "it": "Triangolo in giù (%@)",
-    "ja": "%@の下向き三角形",
-    "pt-BR": "Triângulo para baixo (%@)"
-  },
-  "%@ type": {
-    "ar": "نوع %@",
-    "de": "%@: Art",
-    "es": "Tipografía %@",
-    "fr": "Typographie %@",
-    "it": "Tipo %@",
-    "ja": "%@ の種類",
-    "pt-BR": "Tipo %@"
-  },
-  "%@ wide, %@ tall": {
-    "ar": "بعرض %@ وارتفاع %@",
-    "de": "%@ breit, %@ hoch",
-    "es": "%@ de ancho, %@ de alto",
-    "fr": "%@ de large, %@ de haut",
-    "it": "%@ di larghezza, %@ di altezza",
-    "ja": "幅 %@、高さ %@",
-    "pt-BR": "%@ de largura, %@ de altura"
-  },
-  "%@ · %@": {
-    "ar": "%@ · %@",
-    "de": "%@ · %@",
-    "es": "%@ · %@",
-    "fr": "%@ · %@",
-    "it": "%@ · %@",
-    "ja": "%@ · %@",
-    "pt-BR": "%@ · %@"
-  },
-  "%@ · Page %d of %d": {
-    "ar": "%@ · الصفحة %d من %d",
-    "de": "%@ · Seite %d von %d",
-    "es": "%@ · Página %d de %d",
-    "fr": "%@ · Page %d sur %d",
-    "it": "%@ · Pagina %d di %d",
-    "ja": "%@ · ページ %d / %d",
-    "pt-BR": "%@ · Página %d de %d"
-  },
-  "%@ · holds %@ s": {
-    "ar": "%@ · يثبت %@ ث",
-    "de": "%@ · hält %@ s",
-    "es": "%@ · dura %@ s",
-    "fr": "%@ · dure %@ s",
-    "it": "%@ · resta %@ s",
-    "ja": "%@ · %@ 秒間表示",
-    "pt-BR": "%@ · dura %@ s"
-  },
-  "%@ · page %d": {
-    "ar": "%@ · الصفحة %d",
-    "de": "%@ · Seite %d",
-    "es": "%@ · página %d",
-    "fr": "%@ · page %d",
-    "it": "%@ · pagina %d",
-    "ja": "%@ · ページ %d",
-    "pt-BR": "%@ · página %d"
-  },
-  "%@ × %@, coloured from this page.": {
-    "ar": "%@ × %@، ب�
+    "pt-BR": "F
