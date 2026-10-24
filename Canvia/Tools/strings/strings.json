@@ -6776,6 +6776,15 @@
     "ja": "下",
     "pt-BR": "Inferior"
   },
+  "Bottom %@": {
+    "ar": "الأسفل %@",
+    "de": "Unten %@",
+    "es": "Abajo %@",
+    "fr": "Bas %@",
+    "it": "Sotto %@",
+    "ja": "下 %@",
+    "pt-BR": "Base %@"
+  },
   "Bottom left": {
     "ar": "أسفل اليسار",
     "de": "Unten links",
@@ -9563,6 +9572,15 @@
     "ja": "カスタムパス",
     "pt-BR": "Trajeto personalizado"
   },
+  "Custom ratio": {
+    "ar": "نسبة مخصّصة",
+    "de": "Eigenes Seitenverhältnis",
+    "es": "Proporción personalizada",
+    "fr": "Proportions personnalisées",
+    "it": "Proporzioni personalizzate",
+    "ja": "カスタム比率",
+    "pt-BR": "Proporção personalizada"
+  },
   "Custom shape": {
     "ar": "شكل مخصّص",
     "de": "Eigene Form",
@@ -10594,6 +10612,15 @@
     "it": "Distanza",
     "ja": "距離",
     "pt-BR": "Distância"
+  },
+  "Distances": {
+    "ar": "المسافات",
+    "de": "Abstände",
+    "es": "Distancias",
+    "fr": "Distances",
+    "it": "Distanze",
+    "ja": "距離",
+    "pt-BR": "Distâncias"
   },
   "Distribute columns": {
     "ar": "توزيع الأعمدة",
@@ -13835,6 +13862,15 @@
     "ja": "ガイドには常にスナップします。ドラッグで移動、長押しで位置の入力または削除ができます。",
     "pt-BR": "As guias sempre encaixam. Arraste uma para movê-la; toque e segure para digitar onde ela fica ou para removê-la."
   },
+  "Guides are locked": {
+    "ar": "الخطوط الإرشادية مقفلة",
+    "de": "Hilfslinien sind gesperrt",
+    "es": "Las guías están bloqueadas",
+    "fr": "Les repères sont verrouillés",
+    "it": "Le guide sono bloccate",
+    "ja": "ガイドはロックされています",
+    "pt-BR": "As guias estão bloqueadas"
+  },
   "Gutter": {
     "ar": "الفاصل",
     "de": "Abstand",
@@ -15395,6 +15431,15 @@
     "ja": "左",
     "pt-BR": "Esquerda"
   },
+  "Left %@": {
+    "ar": "اليسار %@",
+    "de": "Links %@",
+    "es": "Izquierda %@",
+    "fr": "Gauche %@",
+    "it": "Sinistra %@",
+    "ja": "左 %@",
+    "pt-BR": "Esquerda %@"
+  },
   "Left only": {
     "ar": "اليسار فقط",
     "de": "Nur links",
@@ -15835,6 +15880,15 @@
     "it": "Blocca %d",
     "ja": "%d 件をロック",
     "pt-BR": "Bloquear %d"
+  },
+  "Lock guides": {
+    "ar": "قفل الخطوط الإرشادية",
+    "de": "Hilfslinien sperren",
+    "es": "Bloquear guías",
+    "fr": "Verrouiller les repères",
+    "it": "Blocca guide",
+    "ja": "ガイドをロック",
+    "pt-BR": "Bloquear guias"
   },
   "Lock or unlock": {
     "ar": "قفل أو إلغاء القفل",
@@ -17051,6 +17105,15 @@
     "ja": "前面へ",
     "pt-BR": "Mover para a frente"
   },
+  "Move into group above": {
+    "ar": "نقل إلى المجموعة أعلاه",
+    "de": "In die Gruppe darüber verschieben",
+    "es": "Mover al grupo de arriba",
+    "fr": "Déplacer dans le groupe au-dessus",
+    "it": "Sposta nel gruppo sopra",
+    "ja": "上のグループに移動",
+    "pt-BR": "Mover para o grupo acima"
+  },
   "Move later": {
     "ar": "نقل لاحقًا",
     "de": "Später verschieben",
@@ -17857,6 +17920,15 @@
     "it": "Nessun tipo di design corrisponde a “%@”.",
     "ja": "「%@」に一致するデザインの種類はありません。",
     "pt-BR": "Nenhum tipo de design corresponde a “%@”."
+  },
+  "No distances to measure": {
+    "ar": "لا توجد مسافات لقياسها",
+    "de": "Keine Abstände zu messen",
+    "es": "No hay distancias que medir",
+    "fr": "Aucune distance à mesurer",
+    "it": "Nessuna distanza da misurare",
+    "ja": "測る距離がありません",
+    "pt-BR": "Nenhuma distância para medir"
   },
   "No duotone": {
     "ar": "بلا ثنائي اللون",
@@ -19388,6 +19460,15 @@
     "ja": "パスに沿って向ける",
     "pt-BR": "Orientar pelo trajeto"
   },
+  "Orientation": {
+    "ar": "الاتجاه",
+    "de": "Ausrichtung",
+    "es": "Orientación",
+    "fr": "Orientation",
+    "it": "Orientamento",
+    "ja": "向き",
+    "pt-BR": "Orientação"
+  },
   "Original": {
     "ar": "الأصلي",
     "de": "Original",
@@ -20897,6 +20978,15 @@
     "ja": "人気",
     "pt-BR": "Populares"
   },
+  "Portrait": {
+    "ar": "عمودي",
+    "de": "Hochformat",
+    "es": "Vertical",
+    "fr": "Portrait",
+    "it": "Verticale",
+    "ja": "縦向き",
+    "pt-BR": "Retrato"
+  },
   "Portuguese (Brazil)": {
     "ar": "البرتغالية (البرازيل)",
     "de": "Portugiesisch (Brasilien)",
@@ -21830,6 +21920,15 @@
     "ja": "フォルダーから削除",
     "pt-BR": "Remover da pasta"
   },
+  "Remove from group": {
+    "ar": "إزالة من المجموعة",
+    "de": "Aus Gruppe entfernen",
+    "es": "Quitar del grupo",
+    "fr": "Retirer du groupe",
+    "it": "Rimuovi dal gruppo",
+    "ja": "グループから外す",
+    "pt-BR": "Remover do grupo"
+  },
   "Remove from page": {
     "ar": "إزالة من الصفحة",
     "de": "Von der Seite entfernen",
@@ -22555,6 +22654,15 @@
     "it": "Destra",
     "ja": "右",
     "pt-BR": "Direita"
+  },
+  "Right %@": {
+    "ar": "اليمين %@",
+    "de": "Rechts %@",
+    "es": "Derecha %@",
+    "fr": "Droite %@",
+    "it": "Destra %@",
+    "ja": "右 %@",
+    "pt-BR": "Direita %@"
   },
   "Right only": {
     "ar": "اليمين فقط",
@@ -24368,6 +24476,15 @@
     "ja": "%d 件すべてを表示",
     "pt-BR": "Mostrar todos os %d"
   },
+  "Show distances": {
+    "ar": "إظهار المسافات",
+    "de": "Abstände anzeigen",
+    "es": "Mostrar distancias",
+    "fr": "Afficher les distances",
+    "it": "Mostra distanze",
+    "ja": "距離を表示",
+    "pt-BR": "Mostrar distâncias"
+  },
   "Show for the whole page": {
     "ar": "إظهار طوال الصفحة",
     "de": "Für die ganze Seite einblenden",
@@ -24394,6 +24511,33 @@
     "it": "Mostra griglia",
     "ja": "グリッドを表示",
     "pt-BR": "Mostrar grade"
+  },
+  "Show guides": {
+    "ar": "إظهار الخطوط الإرشادية",
+    "de": "Hilfslinien anzeigen",
+    "es": "Mostrar guías",
+    "fr": "Afficher les repères",
+    "it": "Mostra guide",
+    "ja": "ガイドを表示",
+    "pt-BR": "Mostrar guias"
+  },
+  "Show hidden": {
+    "ar": "إظهار المخفي",
+    "de": "Ausgeblendete einblenden",
+    "es": "Mostrar ocultos",
+    "fr": "Afficher les masqués",
+    "it": "Mostra nascosti",
+    "ja": "非表示を表示",
+    "pt-BR": "Mostrar ocultos"
+  },
+  "Show hidden (%d)": {
+    "ar": "إظهار المخفي (%d)",
+    "de": "Ausgeblendete einblenden (%d)",
+    "es": "Mostrar ocultos (%d)",
+    "fr": "Afficher les masqués (%d)",
+    "it": "Mostra nascosti (%d)",
+    "ja": "非表示を表示（%d）",
+    "pt-BR": "Mostrar ocultos (%d)"
   },
   "Show margins": {
     "ar": "إظهار الهوامش",
@@ -27800,6 +27944,15 @@
     "ja": "上",
     "pt-BR": "Superior"
   },
+  "Top %@": {
+    "ar": "الأعلى %@",
+    "de": "Oben %@",
+    "es": "Arriba %@",
+    "fr": "Haut %@",
+    "it": "Sopra %@",
+    "ja": "上 %@",
+    "pt-BR": "Topo %@"
+  },
   "Top left": {
     "ar": "أعلى اليسار",
     "de": "Oben links",
@@ -28159,6 +28312,15 @@
     "it": "La rotazione si aggancia ogni 45° con uno scatto; continua a ruotare per uscire dall’aggancio.",
     "ja": "回転は 45° ごとにカチッとスナップします。さらに回すとスナップが外れます。",
     "pt-BR": "Ao girar, encaixa a cada 45° com um clique; continue girando para sair do encaixe."
+  },
+  "Turns the ratio the other way round": {
+    "ar": "يقلب النسبة إلى الاتجاه الآخر",
+    "de": "Dreht das Seitenverhältnis um",
+    "es": "Gira la proporción al otro sentido",
+    "fr": "Inverse le sens des proportions",
+    "it": "Inverte il verso delle proporzioni",
+    "ja": "比率の向きを入れ替えます",
+    "pt-BR": "Inverte o sentido da proporção"
   },
   "Twinkle (loop)": {
     "ar": "وميض (تكرار)",
@@ -28528,6 +28690,24 @@
     "it": "Sblocca %d",
     "ja": "%d 件のロックを解除",
     "pt-BR": "Desbloquear %d"
+  },
+  "Unlock all": {
+    "ar": "إلغاء قفل الكل",
+    "de": "Alle entsperren",
+    "es": "Desbloquear todo",
+    "fr": "Tout déverrouiller",
+    "it": "Sblocca tutto",
+    "ja": "すべてロック解除",
+    "pt-BR": "Desbloquear tudo"
+  },
+  "Unlock all (%d)": {
+    "ar": "إلغاء قفل الكل (%d)",
+    "de": "Alle entsperren (%d)",
+    "es": "Desbloquear todo (%d)",
+    "fr": "Tout déverrouiller (%d)",
+    "it": "Sblocca tutto (%d)",
+    "ja": "すべてロック解除（%d）",
+    "pt-BR": "Desbloquear tudo (%d)"
   },
   "Unlock it to change it": {
     "ar": "ألغِ القفل لتغييره",
@@ -29522,6 +29702,15 @@
     "ja": "デザイン全体",
     "pt-BR": "Design inteiro"
   },
+  "Whole numbers from 1 to %d.": {
+    "ar": "أعداد صحيحة من 1 إلى %d.",
+    "de": "Ganze Zahlen von 1 bis %d.",
+    "es": "Números enteros del 1 al %d.",
+    "fr": "Nombres entiers de 1 à %d.",
+    "it": "Numeri interi da 1 a %d.",
+    "ja": "1 から %d までの整数。",
+    "pt-BR": "Números inteiros de 1 a %d."
+  },
   "Whole page. Tap for actual size.": {
     "ar": "الصفحة كاملة. انقر للحجم الفعلي.",
     "de": "Ganze Seite. Für Originalgröße tippen.",
@@ -29612,14 +29801,14 @@
     "ja": "TalkBack では、すべての素材が読み順に、位置とサイズとともに読み上げられ、選択、移動、拡大・縮小、回転、切り抜き、複製、削除、並べ替え、編集のアクションがあります。スマートフォンでコントラストを上げる設定にすると選択枠が太くなり、アニメーションも端末の設定に従います。",
     "pt-BR": "Com o TalkBack, cada elemento é lido na ordem de leitura, com a posição e o tamanho, e tem ações para selecionar, mover, aumentar ou diminuir, girar, recortar, duplicar, excluir, reordenar e editar. Os contornos de seleção ficam mais grossos quando o celular pede mais contraste, e as animações seguem a configuração dele."
   },
-  "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export. ⌘= and ⌘- zoom in and out, ⌘0 fits the page, ⌘1 is actual size. Page Up and Page Down (or ⌥↑ and ⌥↓) go to the previous and next page. Tab and ⇧Tab select the next and previous element, ⇧H and ⇧V flip, ⌥⇧L, C, R, T, M and B align left, centre, right, top, middle and bottom, and T adds a text box. While typing: ⌘B, ⌘I and ⌘U bold, italic and underline, ⇧⌘X strikethrough, ⇧⌘K capitals, ⇧⌘L, C, R and J align, ⇧⌘7 and ⇧⌘8 numbered and bulleted lists, ⇧⌘, and ⇧⌘. smaller and larger. Hold ⌘ to see them all.": {
-    "ar": "مع لوحة مفاتيح فعلية: ⌘Z للتراجع، و⇧⌘Z أو ⌘Y للإعادة، و⌘C/⌘X/⌘V للنسخ والقص واللصق، و⌘D للتكرار، و⌘A لتحديد الكل، و⌘G للتجميع، و⌘F للبحث، و⌘E للتصدير. ⌘= و⌘- للتكبير والتصغير، و⌘0 لملاءمة الصفحة، و⌘1 للحجم الفعلي. Page Up وPage Down (أو ⌥↑ و⌥↓) للصفحة السابقة والتالية. Tab و⇧Tab لتحديد العنصر التالي والسابق، و⇧H و⇧V للقلب، و⌥⇧L وC وR وT وM وB للمحاذاة لليسار والوسط واليمين والأعلى والمنتصف والأسفل، وT لإضافة مربع نص. أثناء الكتابة: ⌘B و⌘I و⌘U للخط العريض والمائل والمسطّر، و⇧⌘X لليطب، و⇧⌘K للأحرف الكبيرة، و⇧⌘L وC وR وJ للمحاذاة، و⇧⌘7 و⇧⌘8 للقوائم المرقّمة والنقطية، و⇧⌘, و⇧⌘. للتصغير والتكبير. اضغط مطولًا على ⌘ لرؤيتها كلها.",
-    "de": "Mit einer Hardware-Tastatur: ⌘Z Rückgängig, ⇧⌘Z oder ⌘Y Wiederholen, ⌘C/⌘X/⌘V Kopieren, Ausschneiden, Einfügen, ⌘D Duplizieren, ⌘A Alles auswählen, ⌘G Gruppieren, ⌘F Suchen, ⌘E Exportieren. ⌘= und ⌘- vergrößern und verkleinern, ⌘0 passt die Seite ein, ⌘1 ist die tatsächliche Größe. Bild auf und Bild ab (oder ⌥↑ und ⌥↓) gehen zur vorherigen und nächsten Seite. Tab und ⇧Tab wählen das nächste und vorherige Element, ⇧H und ⇧V spiegeln, ⌥⇧L, C, R, T, M und B richten links, mittig, rechts, oben, in der Mitte und unten aus, und T fügt ein Textfeld hinzu. Beim Tippen: ⌘B, ⌘I und ⌘U fett, kursiv und unterstrichen, ⇧⌘X durchgestrichen, ⇧⌘K Großbuchstaben, ⇧⌘L, C, R und J richten aus, ⇧⌘7 und ⇧⌘8 nummerierte Liste und Aufzählung, ⇧⌘, und ⇧⌘. kleiner und größer. Halte ⌘ gedrückt, um alle zu sehen.",
-    "es": "Con un teclado físico: ⌘Z deshacer, ⇧⌘Z o ⌘Y rehacer, ⌘C/⌘X/⌘V copiar, cortar, pegar, ⌘D duplicar, ⌘A seleccionar todo, ⌘G agrupar, ⌘F buscar, ⌘E exportar. ⌘= y ⌘- acercan y alejan, ⌘0 ajusta la página, ⌘1 es el tamaño real. Re Pág y Av Pág (o ⌥↑ y ⌥↓) van a la página anterior y siguiente. Tab y ⇧Tab seleccionan el elemento siguiente y anterior, ⇧H y ⇧V voltean, ⌥⇧L, C, R, T, M y B alinean a la izquierda, al centro, a la derecha, arriba, al medio y abajo, y T añade un cuadro de texto. Al escribir: ⌘B, ⌘I y ⌘U negrita, cursiva y subrayado, ⇧⌘X tachado, ⇧⌘K mayúsculas, ⇧⌘L, C, R y J alinean, ⇧⌘7 y ⇧⌘8 listas numeradas y con viñetas, ⇧⌘, y ⇧⌘. más pequeño y más grande. Mantén ⌘ para verlos todos.",
-    "fr": "Avec un clavier physique : ⌘Z annuler, ⇧⌘Z ou ⌘Y rétablir, ⌘C/⌘X/⌘V copier, couper, coller, ⌘D dupliquer, ⌘A tout sélectionner, ⌘G grouper, ⌘F rechercher, ⌘E exporter. ⌘= et ⌘- zooment en avant et en arrière, ⌘0 ajuste la page, ⌘1 est la taille réelle. Page précédente et Page suivante (ou ⌥↑ et ⌥↓) vont à la page précédente et suivante. Tab et ⇧Tab sélectionnent l’élément suivant et précédent, ⇧H et ⇧V retournent, ⌥⇧L, C, R, T, M et B alignent à gauche, au centre, à droite, en haut, au milieu et en bas, et T ajoute une zone de texte. En tapant : ⌘B, ⌘I et ⌘U gras, italique et souligné, ⇧⌘X barré, ⇧⌘K majuscules, ⇧⌘L, C, R et J alignent, ⇧⌘7 et ⇧⌘8 listes numérotées et à puces, ⇧⌘, et ⇧⌘. plus petit et plus grand. Maintenez ⌘ pour tous les voir.",
-    "it": "Con una tastiera fisica: ⌘Z annulla, ⇧⌘Z o ⌘Y ripeti, ⌘C/⌘X/⌘V copia, taglia, incolla, ⌘D duplica, ⌘A seleziona tutto, ⌘G raggruppa, ⌘F trova, ⌘E esporta. ⌘= e ⌘- ingrandiscono e riducono, ⌘0 adatta la pagina, ⌘1 è la dimensione reale. Pag su e Pag giù (o ⌥↑ e ⌥↓) vanno alla pagina precedente e successiva. Tab e ⇧Tab selezionano l’elemento successivo e precedente, ⇧H e ⇧V capovolgono, ⌥⇧L, C, R, T, M e B allineano a sinistra, al centro, a destra, in alto, al centro verticale e in basso, e T aggiunge una casella di testo. Mentre scrivi: ⌘B, ⌘I e ⌘U grassetto, corsivo e sottolineato, ⇧⌘X barrato, ⇧⌘K maiuscolo, ⇧⌘L, C, R e J allineano, ⇧⌘7 e ⇧⌘8 elenchi numerati e puntati, ⇧⌘, e ⇧⌘. più piccolo e più grande. Tieni premuto ⌘ per vederli tutti.",
-    "ja": "ハードウェアキーボードでは：⌘Z 元に戻す、⇧⌘Z または ⌘Y やり直す、⌘C/⌘X/⌘V コピー・切り取り・貼り付け、⌘D 複製、⌘A すべて選択、⌘G グループ化、⌘F 検索、⌘E 書き出し。⌘= と ⌘- で拡大と縮小、⌘0 でページ全体、⌘1 で実際のサイズ。Page Up と Page Down（または ⌥↑ と ⌥↓）で前後のページへ。Tab と ⇧Tab で次と前の要素を選択、⇧H と ⇧V で反転、⌥⇧L・C・R・T・M・B で左・中央・右・上・中・下に揃え、T でテキストボックスを追加。入力中は：⌘B・⌘I・⌘U で太字・斜体・下線、⇧⌘X で取り消し線、⇧⌘K で大文字、⇧⌘L・C・R・J で揃え、⇧⌘7 と ⇧⌘8 で番号付きリストと箇条書き、⇧⌘, と ⇧⌘. で小さく・大きく。⌘ を長押しするとすべて表示されます。",
-    "pt-BR": "Com um teclado físico: ⌘Z desfaz, ⇧⌘Z ou ⌘Y refaz, ⌘C/⌘X/⌘V copiam, recortam, colam, ⌘D duplica, ⌘A seleciona tudo, ⌘G agrupa, ⌘F localiza, ⌘E exporta. ⌘= e ⌘- aproximam e afastam, ⌘0 ajusta a página, ⌘1 é o tamanho real. Page Up e Page Down (ou ⌥↑ e ⌥↓) vão para a página anterior e a seguinte. Tab e ⇧Tab selecionam o elemento seguinte e o anterior, ⇧H e ⇧V espelham, ⌥⇧L, C, R, T, M e B alinham à esquerda, ao centro, à direita, ao topo, ao meio e à base, e T adiciona uma caixa de texto. Ao digitar: ⌘B, ⌘I e ⌘U negrito, itálico e sublinhado, ⇧⌘X tachado, ⇧⌘K maiúsculas, ⇧⌘L, C, R e J alinham, ⇧⌘7 e ⇧⌘8 listas numeradas e com marcadores, ⇧⌘, e ⇧⌘. menor e maior. Segure ⌘ para ver todos."
+  "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export. ⌘= and ⌘- zoom in and out, ⌘0 fits the page, ⌘1 is actual size and ⌘2 zooms to the selection. Page Up and Page Down (or ⌥↑ and ⌥↓) go to the previous and next page. Tab and ⇧Tab select the next and previous element, ⇧H and ⇧V flip, ⌥⇧L, C, R, T, M and B align left, centre, right, top, middle and bottom, and T adds a text box. While typing: ⌘B, ⌘I and ⌘U bold, italic and underline, ⇧⌘X strikethrough, ⇧⌘K capitals, ⇧⌘L, C, R and J align, ⇧⌘7 and ⇧⌘8 numbered and bulleted lists, ⇧⌘, and ⇧⌘. smaller and larger. Hold ⌘ to see them all.": {
+    "ar": "مع لوحة مفاتيح فعلية: ⌘Z للتراجع، و⇧⌘Z أو ⌘Y للإعادة، و⌘C/⌘X/⌘V للنسخ والقص واللصق، و⌘D للتكرار، و⌘A لتحديد الكل، و⌘G للتجميع، و⌘F للبحث، و⌘E للتصدير. ⌘= و⌘- للتكبير والتصغير، و⌘0 لملاءمة الصفحة، و⌘1 للحجم الفعلي، و⌘2 للتكبير إلى التحديد. Page Up وPage Down (أو ⌥↑ و⌥↓) للصفحة السابقة والتالية. Tab و⇧Tab لتحديد العنصر التالي والسابق، و⇧H و⇧V للقلب، و⌥⇧L وC وR وT وM وB للمحاذاة لليسار والوسط واليمين والأعلى والمنتصف والأسفل، وT لإضافة مربع نص. أثناء الكتابة: ⌘B و⌘I و⌘U للخط العريض والمائل والمسطّر، و⇧⌘X لليطب، و⇧⌘K للأحرف الكبيرة، و⇧⌘L وC وR وJ للمحاذاة، و⇧⌘7 و⇧⌘8 للقوائم المرقّمة والنقطية، و⇧⌘, و⇧⌘. للتصغير والتكبير. اضغط مطولًا على ⌘ لرؤيتها كلها.",
+    "de": "Mit einer Hardware-Tastatur: ⌘Z Rückgängig, ⇧⌘Z oder ⌘Y Wiederholen, ⌘C/⌘X/⌘V Kopieren, Ausschneiden, Einfügen, ⌘D Duplizieren, ⌘A Alles auswählen, ⌘G Gruppieren, ⌘F Suchen, ⌘E Exportieren. ⌘= und ⌘- vergrößern und verkleinern, ⌘0 passt die Seite ein, ⌘1 ist die tatsächliche Größe, ⌘2 zoomt auf die Auswahl. Bild auf und Bild ab (oder ⌥↑ und ⌥↓) gehen zur vorherigen und nächsten Seite. Tab und ⇧Tab wählen das nächste und vorherige Element, ⇧H und ⇧V spiegeln, ⌥⇧L, C, R, T, M und B richten links, mittig, rechts, oben, in der Mitte und unten aus, und T fügt ein Textfeld hinzu. Beim Tippen: ⌘B, ⌘I und ⌘U fett, kursiv und unterstrichen, ⇧⌘X durchgestrichen, ⇧⌘K Großbuchstaben, ⇧⌘L, C, R und J richten aus, ⇧⌘7 und ⇧⌘8 nummerierte Liste und Aufzählung, ⇧⌘, und ⇧⌘. kleiner und größer. Halte ⌘ gedrückt, um alle zu sehen.",
+    "es": "Con un teclado físico: ⌘Z deshacer, ⇧⌘Z o ⌘Y rehacer, ⌘C/⌘X/⌘V copiar, cortar, pegar, ⌘D duplicar, ⌘A seleccionar todo, ⌘G agrupar, ⌘F buscar, ⌘E exportar. ⌘= y ⌘- acercan y alejan, ⌘0 ajusta la página, ⌘1 es el tamaño real y ⌘2 amplía la selección. Re Pág y Av Pág (o ⌥↑ y ⌥↓) van a la página anterior y siguiente. Tab y ⇧Tab seleccionan el elemento siguiente y anterior, ⇧H y ⇧V voltean, ⌥⇧L, C, R, T, M y B alinean a la izquierda, al centro, a la derecha, arriba, al medio y abajo, y T añade un cuadro de texto. Al escribir: ⌘B, ⌘I y ⌘U negrita, cursiva y subrayado, ⇧⌘X tachado, ⇧⌘K mayúsculas, ⇧⌘L, C, R y J alinean, ⇧⌘7 y ⇧⌘8 listas numeradas y con viñetas, ⇧⌘, y ⇧⌘. más pequeño y más grande. Mantén ⌘ para verlos todos.",
+    "fr": "Avec un clavier physique : ⌘Z annuler, ⇧⌘Z ou ⌘Y rétablir, ⌘C/⌘X/⌘V copier, couper, coller, ⌘D dupliquer, ⌘A tout sélectionner, ⌘G grouper, ⌘F rechercher, ⌘E exporter. ⌘= et ⌘- zooment en avant et en arrière, ⌘0 ajuste la page, ⌘1 est la taille réelle et ⌘2 zoome sur la sélection. Page précédente et Page suivante (ou ⌥↑ et ⌥↓) vont à la page précédente et suivante. Tab et ⇧Tab sélectionnent l’élément suivant et précédent, ⇧H et ⇧V retournent, ⌥⇧L, C, R, T, M et B alignent à gauche, au centre, à droite, en haut, au milieu et en bas, et T ajoute une zone de texte. En tapant : ⌘B, ⌘I et ⌘U gras, italique et souligné, ⇧⌘X barré, ⇧⌘K majuscules, ⇧⌘L, C, R et J alignent, ⇧⌘7 et ⇧⌘8 listes numérotées et à puces, ⇧⌘, et ⇧⌘. plus petit et plus grand. Maintenez ⌘ pour tous les voir.",
+    "it": "Con una tastiera fisica: ⌘Z annulla, ⇧⌘Z o ⌘Y ripeti, ⌘C/⌘X/⌘V copia, taglia, incolla, ⌘D duplica, ⌘A seleziona tutto, ⌘G raggruppa, ⌘F trova, ⌘E esporta. ⌘= e ⌘- ingrandiscono e riducono, ⌘0 adatta la pagina, ⌘1 è la dimensione reale e ⌘2 ingrandisce la selezione. Pag su e Pag giù (o ⌥↑ e ⌥↓) vanno alla pagina precedente e successiva. Tab e ⇧Tab selezionano l’elemento successivo e precedente, ⇧H e ⇧V capovolgono, ⌥⇧L, C, R, T, M e B allineano a sinistra, al centro, a destra, in alto, al centro verticale e in basso, e T aggiunge una casella di testo. Mentre scrivi: ⌘B, ⌘I e ⌘U grassetto, corsivo e sottolineato, ⇧⌘X barrato, ⇧⌘K maiuscolo, ⇧⌘L, C, R e J allineano, ⇧⌘7 e ⇧⌘8 elenchi numerati e puntati, ⇧⌘, e ⇧⌘. più piccolo e più grande. Tieni premuto ⌘ per vederli tutti.",
+    "ja": "ハードウェアキーボードでは：⌘Z 元に戻す、⇧⌘Z または ⌘Y やり直す、⌘C/⌘X/⌘V コピー・切り取り・貼り付け、⌘D 複製、⌘A すべて選択、⌘G グループ化、⌘F 検索、⌘E 書き出し。⌘= と ⌘- で拡大と縮小、⌘0 でページ全体、⌘1 で実際のサイズ、⌘2 で選択範囲にズーム。Page Up と Page Down（または ⌥↑ と ⌥↓）で前後のページへ。Tab と ⇧Tab で次と前の要素を選択、⇧H と ⇧V で反転、⌥⇧L・C・R・T・M・B で左・中央・右・上・中・下に揃え、T でテキストボックスを追加。入力中は：⌘B・⌘I・⌘U で太字・斜体・下線、⇧⌘X で取り消し線、⇧⌘K で大文字、⇧⌘L・C・R・J で揃え、⇧⌘7 と ⇧⌘8 で番号付きリストと箇条書き、⇧⌘, と ⇧⌘. で小さく・大きく。⌘ を長押しするとすべて表示されます。",
+    "pt-BR": "Com um teclado físico: ⌘Z desfaz, ⇧⌘Z ou ⌘Y refaz, ⌘C/⌘X/⌘V copiam, recortam, colam, ⌘D duplica, ⌘A seleciona tudo, ⌘G agrupa, ⌘F localiza, ⌘E exporta. ⌘= e ⌘- aproximam e afastam, ⌘0 ajusta a página, ⌘1 é o tamanho real e ⌘2 aproxima a seleção. Page Up e Page Down (ou ⌥↑ e ⌥↓) vão para a página anterior e a seguinte. Tab e ⇧Tab selecionam o elemento seguinte e o anterior, ⇧H e ⇧V espelham, ⌥⇧L, C, R, T, M e B alinham à esquerda, ao centro, à direita, ao topo, ao meio e à base, e T adiciona uma caixa de texto. Ao digitar: ⌘B, ⌘I e ⌘U negrito, itálico e sublinhado, ⇧⌘X tachado, ⇧⌘K maiúsculas, ⇧⌘L, C, R e J alinham, ⇧⌘7 e ⇧⌘8 listas numeradas e com marcadores, ⇧⌘, e ⇧⌘. menor e maior. Segure ⌘ para ver todos."
   },
   "With a keyboard: Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+C, X, V and D copy, cut, paste and duplicate, the arrows nudge, Ctrl+K lists the page, Ctrl+E shares, Ctrl+F finds, and Ctrl+/ opens this help. Ctrl+= and Ctrl+- zoom in and out, Ctrl+0 fits the page and Ctrl+1 shows it at actual size. Page Up and Page Down, or Alt+Up and Alt+Down, go to the previous and next page. Tab and Shift+Tab select the next and previous thing on the page, a group as one. Shift+H and Shift+V flip, and Alt+Shift with L, C, R, T, M or B aligns left, centre, right, top, middle or bottom. T adds a text box. While typing, Ctrl+B, I and U are bold, italic and underline, Ctrl+Shift+X strikes through, Ctrl+Shift+K is uppercase, Ctrl+Shift+L, C, R and J align, Ctrl+Shift+7 and 8 are numbered and bulleted lists, and Ctrl+Shift+, and . make the selected words smaller and larger. On an iPhone the three-finger undo gestures and Shake to Undo step the same history. Hold Meta and / to see them all.": {
     "ar": "مع لوحة مفاتيح: Ctrl+Z وCtrl+Shift+Z للتراجع والإعادة، وCtrl+C وX وV وD للنسخ والقص واللصق والتكرار، والأسهم للتحريك الطفيف، وCtrl+K يسرد محتوى الصفحة، وCtrl+E للمشاركة، وCtrl+F للبحث، وCtrl+/ يفتح هذه المساعدة. Ctrl+= وCtrl+- للتكبير والتصغير، وCtrl+0 يلائم الصفحة، وCtrl+1 يعرضها بالحجم الفعلي. Page Up وPage Down، أو Alt+أعلى وAlt+أسفل، للانتقال إلى الصفحة السابقة والتالية. Tab وShift+Tab يحددان العنصر التالي والسابق في الصفحة، والمجموعة كعنصر واحد. Shift+H وShift+V للقلب، وAlt+Shift مع L أو C أو R أو T أو M أو B للمحاذاة يسارًا أو وسطًا أو يمينًا أو أعلى أو منتصفًا أو أسفل. T يضيف مربع نص. أثناء الكتابة، Ctrl+B وI وU للغامق والمائل والتسطير، وCtrl+Shift+X للشطب، وCtrl+Shift+K للأحرف الكبيرة، وCtrl+Shift+L وC وR وJ للمحاذاة، وCtrl+Shift+7 و8 للقوائم المرقمة والنقطية، وCtrl+Shift+, و. لتصغير الكلمات المحددة وتكبيرها. على iPhone، تمر إيماءات التراجع بثلاثة أصابع وهزّ الجهاز للتراجع عبر السجل نفسه. اضغط مطولًا على Meta و/ لرؤيتها كلها.",
@@ -30008,6 +30197,15 @@
     "ja": "全体を表示",
     "pt-BR": "Ajustar zoom"
   },
+  "Zoom to selection": {
+    "ar": "تكبير إلى التحديد",
+    "de": "Auf Auswahl zoomen",
+    "es": "Ampliar la selección",
+    "fr": "Zoomer sur la sélection",
+    "it": "Zoom sulla selezione",
+    "ja": "選択範囲にズーム",
+    "pt-BR": "Aproximar da seleção"
+  },
   "Zoomed to %d percent. Tap to fit the whole page.": {
     "ar": "تم التكبير إلى %d بالمئة. انقر لملاءمة الصفحة كاملة.",
     "de": "Auf %d Prozent gezoomt. Tippen, um die ganze Seite einzupassen.",
@@ -30016,6 +30214,15 @@
     "it": "Zoom al %d per cento. Tocca per adattare la pagina intera.",
     "ja": "%d パーセントにズーム中。タップするとページ全体を表示します。",
     "pt-BR": "Zoom em %d por cento. Toque para ajustar a página inteira."
+  },
+  "Zoomed to selection, %d percent": {
+    "ar": "تم التكبير إلى التحديد، %d بالمئة",
+    "de": "Auf Auswahl gezoomt, %d Prozent",
+    "es": "Ampliado a la selección, %d por ciento",
+    "fr": "Zoom sur la sélection, %d pour cent",
+    "it": "Zoom sulla selezione, %d percento",
+    "ja": "選択範囲にズームしました、%d パーセント",
+    "pt-BR": "Aproximado da seleção, %d por cento"
   },
   "Zooming and panning": {
     "ar": "التكبير والتحريك",
