@@ -1,0 +1,266 @@
+{
+  "note": "DesignFacts: what the Details sheet says about a design, from the design alone. fontsAvailable are the fonts of your own the phone has; the library's are on every phone. Both phones read this file.",
+  "design": {
+    "id": "d-facts",
+    "title": "Menu",
+    "width": 2480,
+    "height": 3508,
+    "unit": "mm",
+    "dpi": 300,
+    "createdAt": 1700000000000,
+    "updatedAt": 1700086400000,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "holdSeconds": 4,
+        "elements": [
+          {
+            "id": "t1",
+            "type": "text",
+            "text": "Summer menu",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "didone",
+            "color": "#1f2430",
+            "fontWeight": 700
+          },
+          {
+            "id": "t2",
+            "type": "text",
+            "text": "Fresh and local",
+            "x": 100,
+            "y": 300,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430",
+            "spans": [
+              {
+                "start": 0,
+                "end": 5,
+                "font": "custom:abcdef123456",
+                "weight": 300
+              },
+              {
+                "start": 10,
+                "end": 15,
+                "font": "lato",
+                "weight": 900
+              }
+            ],
+            "spansText": "Fresh and local"
+          },
+          {
+            "id": "ph",
+            "type": "image",
+            "src": "media:photo1",
+            "x": 0,
+            "y": 600,
+            "w": 800,
+            "h": 600,
+            "altText": "Food"
+          }
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "holdSeconds": 4,
+        "hidden": true,
+        "elements": [
+          {
+            "id": "t3",
+            "type": "text",
+            "text": "Old prices",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "playfair-display",
+            "color": "#1f2430",
+            "fontWeight": 400
+          }
+        ]
+      },
+      {
+        "id": "p3",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "holdSeconds": 4,
+        "elements": [
+          {
+            "id": "v",
+            "type": "image",
+            "src": "video:clip1",
+            "x": 0,
+            "y": 0,
+            "w": 800,
+            "h": 600,
+            "altText": "Kitchen"
+          },
+          {
+            "id": "t4",
+            "type": "text",
+            "text": "Book now",
+            "x": 100,
+            "y": 800,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "custom:abcdef123456",
+            "color": "#1f2430"
+          }
+        ]
+      }
+    ],
+    "audio": [
+      {
+        "id": "tr1",
+        "src": "audio:song1",
+        "start": 0,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": true,
+        "name": "Song"
+      }
+    ],
+    "fonts": [
+      {
+        "id": "custom:abcdef123456",
+        "name": "Acme Sans",
+        "file": "abcdef123456.ttf",
+        "family": "Acme Sans",
+        "weight": 400,
+        "italic": false
+      }
+    ]
+  },
+  "cases": [
+    {
+      "fontsAvailable": [],
+      "facts": {
+        "typeId": "a4",
+        "typeName": "A4 Document",
+        "size": "210 × 297 mm",
+        "pixels": "2480 × 3508 px",
+        "pages": 2,
+        "hiddenPages": 1,
+        "seconds": 8.0,
+        "createdAt": 1700000000000,
+        "updatedAt": 1700086400000,
+        "fonts": [
+          {
+            "key": "playfair-display",
+            "name": "Playfair Display",
+            "weights": [
+              400,
+              700
+            ],
+            "missing": false
+          },
+          {
+            "key": "lato",
+            "name": "Lato",
+            "weights": [
+              400,
+              900
+            ],
+            "missing": false
+          },
+          {
+            "key": "custom:abcdef123456",
+            "name": "Acme Sans",
+            "weights": [
+              300,
+              400
+            ],
+            "missing": true
+          }
+        ],
+        "photos": 1,
+        "videos": 1,
+        "audio": 1
+      },
+      "missing": [
+        "custom:abcdef123456"
+      ]
+    },
+    {
+      "fontsAvailable": [
+        "custom:abcdef123456"
+      ],
+      "missing": []
+    }
+  ],
+  "pixelDesign": {
+    "design": {
+      "id": "d-px",
+      "title": "Post",
+      "width": 1080,
+      "height": 1080,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "pages": [
+        {
+          "id": "q1",
+          "background": {
+            "type": "color",
+            "value": "#ffffff"
+          },
+          "elements": []
+        }
+      ]
+    },
+    "facts": {
+      "typeId": "insta-post",
+      "typeName": "Instagram Post",
+      "size": "1080 × 1080 px",
+      "pixels": null,
+      "pages": 1,
+      "hiddenPages": 0,
+      "seconds": null,
+      "fonts": []
+    }
+  },
+  "customSize": {
+    "design": {
+      "id": "d-c",
+      "title": "Odd",
+      "width": 1001,
+      "height": 777,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "pages": [
+        {
+          "id": "r1",
+          "background": {
+            "type": "color",
+            "value": "#ffffff"
+          },
+          "elements": []
+        }
+      ]
+    },
+    "facts": {
+      "typeId": null,
+      "typeName": "Custom size",
+      "size": "1001 × 777 px"
+    }
+  }
+}

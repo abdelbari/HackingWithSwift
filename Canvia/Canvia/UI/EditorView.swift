@@ -51,6 +51,9 @@ enum EditorSheet: String, Identifiable {
     case bulk
     /// More's "Turn into a Doc": whether the speaker notes come too.
     case turnIntoDoc
+    /// More's "Details": the design's size, pages, dates, storage and
+    /// fonts (DesignDetailsSheet).
+    case details
     var id: String { rawValue }
 }
 
@@ -80,6 +83,10 @@ struct EditorView: View {
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
+    /// The page Present opens on (PresentFrom).
+    @State private var presentStart = 0
+    /// Details' Show in Uploads: the uploads Add opens on.
+    @State private var insertUploads: Uploads.Kind?
     /// Present and record: the studio over the design, and its talks.
     @State private var talkRecording: Design?
     @State private var talkReviewing: Design?
@@ -308,6 +315,7 @@ struct EditorView: View {
             if sheet != .fontWords, store.wordFontTarget != nil { store.wordFontTarget = nil }
             if sheet != .highlightWords, store.wordHighlightTarget != nil { store.wordHighlightTarget = nil }
             if sheet != .photoInLetters, store.photoAdjustTarget != nil { store.photoAdjustTarget = nil }
+            if sheet != .insert, insertUploads != nil { insertUploads = nil }
         }
         // Crop, typing, the pen or the eraser taking the page ends Select
         // multiple as a panel does, the selection kept — as on the Android
@@ -937,6 +945,10 @@ struct EditorView: View {
                     Button {
                         namingVersion = true
                     } label: { Label("Save a named version…", systemImage: "pin") }
+
+                    Button {
+                        activeSheet = .details
+                    } label: { Label("Details", systemImage: "info.circle") }
                 }
             }
 
@@ -1527,7 +1539,7 @@ struct EditorView: View {
     private func sheetView(_ sheet: EditorSheet) -> some View {
         switch sheet {
         case .insert:
-            InsertSheet(store: store)
+            InsertSheet(store: store, uploads: insertUploads)
         case .colorFill:
             // An SVG's line or outline part takes a colour as its ink.
             ColorPickerSheet(store: store, title: tr("Fill colour"),
@@ -1633,6 +1645,17 @@ struct EditorView: View {
             BulkCreateSheet(store: store) { made in showMade(made) }
         case .turnIntoDoc:
             TurnIntoDocSheet { notes in turnIntoDoc(notes: notes) }
+        case .details:
+            // Show in Uploads: the photos or clips in Add's Photos tab, the
+            // songs in Audio.
+            DesignDetailsSheet(store: store) { kind in
+                if kind == .audio {
+                    activeSheet = .audio
+                } else {
+                    insertUploads = kind
+                    activeSheet = .insert
+                }
+            }
         case .find:
             FindReplaceSheet(store: store)
         case .frame:

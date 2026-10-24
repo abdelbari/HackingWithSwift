@@ -18,6 +18,9 @@ import PhotosUI
 
 struct InsertSheet: View {
     @Bindable var store: DesignStore
+    /// Opened from Details' Show in Uploads: the Photos tab, on these
+    /// uploads.
+    var uploads: Uploads.Kind? = nil
     @Environment(\.dismiss) private var dismiss
     /// A sticker's tile, and the text styles' previews, growing with
     /// Larger Text.
@@ -129,6 +132,10 @@ struct InsertSheet: View {
             }
             // Replacing? Go straight to the picture sources.
             if isReplacing { tab = "Photos" }
+            if let uploads, !isReplacing {
+                tab = "Photos"
+                uploadKind = uploads
+            }
             recent = ElementSearch.recent()
             recentEmoji = EmojiCatalogue.recent()
             brandKit = BrandKit.load()

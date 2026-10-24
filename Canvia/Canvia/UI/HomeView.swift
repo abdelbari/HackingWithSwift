@@ -175,6 +175,8 @@ struct HomeView: View {
     @State private var mockingUp: Design?
     /// The design presented from its card.
     @State private var presenting: Design?
+    /// The design whose card's Details is up, as saved.
+    @State private var detailing: Design?
     /// Present and record from a card: the studio, then the talks.
     @State private var talkRecording: Design?
     @State private var talkReviewing: Design?
@@ -213,6 +215,10 @@ struct HomeView: View {
             .background { designFilePicker }
             .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened,
                                   mockingUp: $mockingUp, open: { create($0) }, changed: { reload() }))
+            .modifier(HomeDetails(detailing: $detailing, showUploads: {
+                uploadsFolder = nil
+                homeSheet = .uploads
+            }, changed: { reload() }))
             .modifier(TalkSheets(recording: $talkRecording, reviewing: $talkReviewing) { next in
                 var saved = next
                 saved.updatedAt = Date().timeIntervalSince1970 * 1000
@@ -1559,8 +1565,8 @@ struct HomeView: View {
         return label + ", " + found.text
     }
 
-    /// Share…, Send a copy, Mockups, Present and Print…, on the design as
-    /// saved, without opening the editor.
+    /// Share…, Send a copy, Mockups, Present, Print… and Details, on the
+    /// design as saved, without opening the editor.
     @ViewBuilder
     private func shareItems(_ recent: RecentDesign) -> some View {
         Button {
@@ -1583,6 +1589,9 @@ struct HomeView: View {
                 HomeExports.printDesign(recent.id, queue: ExportQueue.shared)
             } label: { Label("Print…", systemImage: "printer") }
         }
+        Button {
+            withDesign(recent.id) { detailing = $0 }
+        } label: { Label("Details", systemImage: "info.circle") }
     }
 
     /// Design `id` read from its file off the main thread, then `use`d;

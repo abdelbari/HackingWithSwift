@@ -286,6 +286,8 @@ final class ExportQueue {
             running = task
             do {
                 let result = try await task.value
+                // What it made is the design's last export (Details).
+                Self.noteExport(job.designId, result)
                 if job.batch != nil {
                     collect(job, urls: result.urls, failed: result.failed == nil ? 0 : 1)
                 } else {
@@ -308,6 +310,22 @@ final class ExportQueue {
             endBackground()
         }
         runner = nil
+    }
+
+    /// What an export of design `designId` made, kept as its last export on
+    /// this phone (DesignFacts): "print" for the printer, else the first
+    /// file's type; what was only said, or only put in Photos, is none —
+    /// as the Android twin's HomeExports.noteExport keeps it.
+    private static func noteExport(_ designId: String, _ result: Result) {
+        let type: String
+        if result.print != nil {
+            type = "print"
+        } else if let ext = result.urls.first?.pathExtension.lowercased(), !ext.isEmpty {
+            type = ext
+        } else {
+            return
+        }
+        DesignFacts.rememberExport(designId, type: type)
     }
 
     private func finish(_ id: UUID, label: String, designId: String, result: Result) {

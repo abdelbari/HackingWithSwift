@@ -85,3 +85,68 @@ private struct HomeExportSheet: View {
         store = DesignStore(design: laid)
     }
 }
+
+/// Details from a card (DesignDetailsSheet), on the design as saved: Replace…
+/// swaps a missing font through it and saves it at once, and Show in
+/// Uploads opens Home's Uploads once the sheet has gone.
+struct HomeDetails: ViewModifier {
+    @Binding var detailing: Design?
+    var showUploads: () -> Void
+    /// The design saved from here, changed: Home reads its cards again.
+    var changed: () -> Void
+    @State private var uploadsAsked = false
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $detailing, onDismiss: afterDetails) { design in
+                HomeDetailsSheet(design: design, changed: changed) {
+                    uploadsAsked = true
+                    detailing = nil
+                }
+            }
+    }
+
+    private func afterDetails() {
+        guard uploadsAsked else { return }
+        uploadsAsked = false
+        showUploads()
+    }
+}
+
+/// The Details sheet on a design read from its file: a store of its own,
+/// made once, whose design is saved whenever Replace… changes it.
+private struct HomeDetailsSheet: View {
+    let design: Design
+    var changed: () -> Void
+    var showUploads: () -> Void
+    @State private var store: DesignStore
+    @State private var saveFailed = false
+
+    init(design: Design, changed: @escaping () -> Void, showUploads: @escaping () -> Void) {
+        self.design = design
+        self.changed = changed
+        self.showUploads = showUploads
+        _store = State(initialValue: DesignStore(design: design))
+    }
+
+    var body: some View {
+        DesignDetailsSheet(store: store) { _ in showUploads() }
+            .onChange(of: store.design) { _, now in save(now) }
+            .alert("Couldn't change the font", isPresented: $saveFailed) {
+                Button("OK", role: .cancel) {}
+            }
+    }
+
+    /// The design as Replace… left it, saved with its picture.
+    private func save(_ now: Design) {
+        guard now != design else { return }
+        var saved = now
+        saved.updatedAt = Date().timeIntervalSince1970 * 1000
+        guard DesignLibrary.save(saved) else {
+            saveFailed = true
+            return
+        }
+        DesignLibrary.writeThumbnail(for: saved)
+        changed()
+    }
+}
