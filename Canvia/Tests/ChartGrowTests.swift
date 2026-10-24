@@ -110,6 +110,13 @@ final class ChartGrowTests: XCTestCase {
         for said in [audited(.column, legend: true), audited(.pie, values: true), audited(.progressRing), audited(.funnel)] {
             XCTAssertFalse(AccessibilityAudit.findings(design(said)).contains { $0.kind == .chartColours })
         }
+        // A kind this build does not know (a newer build's) is not judged.
+        let unknown = bare.map { el -> Element in
+            var out = el
+            out.chart?.kind = "hologram"
+            return out
+        }
+        XCTAssertFalse(AccessibilityAudit.findings(design(unknown)).contains { $0.kind == .chartColours })
     }
 
     func testAChartIsOneFigureItsSummaryItsAltText() {

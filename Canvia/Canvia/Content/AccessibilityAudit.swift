@@ -145,9 +145,10 @@ enum AccessibilityAudit {
     static func colourOnlyCharts(_ elements: [Element]) -> [String] {
         var seen: Set<String> = []
         return elements.compactMap { el in
-            guard let spec = el.chart, el.chartPart != nil, seen.insert(spec.id).inserted else { return nil }
-            let kind = DataGraphics.ChartKind(rawValue: spec.kind)
-            let says = spec.legend || spec.values || kind?.isProgress == true || kind == .funnel
+            // A kind this build does not know is skipped, as Android skips it.
+            guard let spec = el.chart, el.chartPart != nil, let kind = DataGraphics.ChartKind(rawValue: spec.kind),
+                  seen.insert(spec.id).inserted else { return nil }
+            let says = spec.legend || spec.values || kind.isProgress || kind == .funnel
             return says ? nil : el.id
         }
     }
