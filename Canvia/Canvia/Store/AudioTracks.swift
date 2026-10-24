@@ -112,11 +112,12 @@ enum AudioTracks {
 
     /// `design` with the track `trackId` cut in two `t` seconds into the
     /// film (to a tenth), as Split at the playhead cuts it — both playing the
-    /// same file, so nothing is heard differently: the first keeps its id,
-    /// start and fade in and plays up to the cut (trimEnd = trimStart + (t −
-    /// start)), once — it no longer loops; the second, a new id, starts at t
-    /// from the cut (trimStart), keeps the first's end, fade out and loop,
-    /// and has no fade in. Nil when the cut is not at least
+    /// same file, with no fade at the cut, so the cut itself is not heard:
+    /// the first keeps its id, start and fade in and plays up to the cut
+    /// (trimEnd = trimStart + (t − start)) with no fade out; the second, a
+    /// new id, starts at t from the cut (trimStart), keeps the first's end
+    /// and fade out, and has no fade in. Neither loops: a looping track
+    /// becomes its first time through, cut in two, each piece played once. Nil when the cut is not at least
     /// AudioTrack.minLength inside the track's first time through — its
     /// trimmed length, when the file is `duration` long or the trim has an
     /// end, else anywhere after its start. The Android twin's split, row for
@@ -134,11 +135,13 @@ enum AudioTracks {
         var first = track
         first.trimEnd = cut
         first.loop = false
+        first.fadeOut = 0
         var second = track
         second.id = UID.make("track")
         second.start = at
         second.trimStart = cut
         second.fadeIn = 0
+        second.loop = false
         tracks[index] = first
         tracks.insert(second, at: index + 1)
         var out = design
