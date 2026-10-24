@@ -628,7 +628,7 @@ struct CanvasView: View {
                 if bleed > 0 { TrimLine(size: store.pageSize, unit: iz) }
                 if store.snapping.showGrid { gridOverlay }
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
-                ForEach(store.design.guides) { guide in guideLine(guide) }
+                ForEach(Guides.shown(store.design)) { guide in guideLine(guide) }
                 if store.showsReadingOrder { readingOrderOverlay }
                 if underlineLinks { LinkUnderlines(design: store.design, page: shownPage) }
                 // Check accessibility's View as, over the page.
@@ -1453,10 +1453,8 @@ struct CanvasView: View {
     private func pansFromPage(at point: CGPoint) -> Bool {
         guard store.drawing == nil, store.erasing == nil, store.cropping == nil, store.graphicCropping == nil,
               store.brushing == nil, store.motionRecording == nil else { return false }
-        let guideReach = Touch.pageUnits(12, zoom: store.zoom)
-        let onGuide = store.design.guides.contains { guide in
-            abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach
-        }
+        // A hidden or locked guide is no guide to a touch (Guides.grabbed).
+        let onGuide = Guides.grabbed(store.design, at: point, reach: Touch.pageUnits(12, zoom: store.zoom)) != nil
         return CanvasGestures.pansFromPage(onElement: holdsWorkedPage(at: point) || onGuide, held: 0)
     }
 
@@ -1587,6 +1585,8 @@ struct CanvasView: View {
                     }
             )
             .onLongPressGesture(minimumDuration: 0.5) { guideMenu = guide }
+            // Locked, a touch on it goes to what is under it.
+            .allowsHitTesting(!store.guidesLocked)
             .position(x: guide.vertical ? guide.position : w / 2, y: guide.vertical ? h / 2 : guide.position)
             .accessibilityLabel(guideTitle(guide))
             .accessibilityHint("Drag to move, press and hold to place or remove; or use the actions to move, place or remove it")
@@ -1610,7 +1610,7 @@ struct CanvasView: View {
         Button(guide.vertical ? tr("Move left") : tr("Move up")) { nudgeGuide(guide, by: -step) }
         Button(guide.vertical ? tr("Move right") : tr("Move down")) { nudgeGuide(guide, by: step) }
         Button("Position…") { askPosition(guide) }
-        Button("Remove guide") { store.removeGuide(guide.id) }
+        Button("Remove guide") { if !store.refusesLockedGuides() { store.removeGuide(guide.id) } }
     }
 
     /// "Vertical guide at 540".
@@ -1622,6 +1622,8 @@ struct CanvasView: View {
 
     /// Position…: the guide's place typed in, starting from where it is.
     private func askPosition(_ guide: Guide) {
+        // A locked guide is refused, with Unlock, as a locked element is.
+        guard !store.refusesLockedGuides() else { return }
         let at = guide.position
         // In the design's unit when it has a physical one.
         guidePositionText = store.design.physicalUnit != nil ? Units.readout(at, store.design)
@@ -1630,6 +1632,7 @@ struct CanvasView: View {
     }
 
     private func nudgeGuide(_ guide: Guide, by step: Double) {
+        guard !store.refusesLockedGuides() else { return }
         store.moveGuideTransient(guide.id, to: guide.position + step)
         store.commit()
     }

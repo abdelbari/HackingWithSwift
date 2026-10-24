@@ -1676,6 +1676,8 @@ final class DesignStore {
     /// The locked page that toast offers to unlock (refusesLockedPage);
     /// nil for any other toast.
     var announcementUnlocks: String?
+    /// Whether that toast offers to unlock the guides (refusesLockedGuides).
+    var announcementUnlocksGuides = false
 
     /// Something just happened that a first-timer might want a word about.
     /// The editor hands it to TipEngine, which decides whether to say it.
@@ -1957,6 +1959,7 @@ final class DesignStore {
 
     func announce(_ text: String, undoable: Bool = true) {
         announcementUnlocks = nil
+        announcementUnlocksGuides = false
         announcementUndoes = undoable
         announcement = text
     }
@@ -3194,8 +3197,13 @@ final class DesignStore {
         addGuide(vertical: vertical, at: (vertical ? pageWidth / 2 : pageHeight / 2).rounded())
     }
 
+    /// A guide placed at `position`; hidden guides are shown again with it,
+    /// in the same step.
     func addGuide(vertical: Bool, at position: Double) {
-        apply { $0.guides.append(Guide(vertical: vertical, position: position)) }
+        apply { d in
+            d.guides.append(Guide(vertical: vertical, position: position))
+            d.guidesHidden = nil
+        }
         buzz(.confirm)
     }
 
@@ -3229,7 +3237,10 @@ final class DesignStore {
         let made = Guides.layout(size: pageSize, columns: columns, rows: rows,
                                  gutter: gutter, margin: margin, existing: kept)
         guard kept + made != design.guides else { return 0 }
-        apply { $0.guides = kept + made }
+        apply { d in
+            d.guides = kept + made
+            d.guidesHidden = nil
+        }
         buzz(.confirm)
         return made.count
     }

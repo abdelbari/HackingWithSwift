@@ -71,6 +71,8 @@ struct EditorView: View {
     /// The locked page the toast offers to unlock, when it says a page is
     /// locked (DesignStore.refusesLockedPage).
     @State private var toastUnlocks: String?
+    /// Whether the toast offers to unlock the guides (refusesLockedGuides).
+    @State private var toastUnlocksGuides = false
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
@@ -239,9 +241,12 @@ struct EditorView: View {
             guard let text else { return }
             store.announcement = nil
             let unlocks = store.announcementUnlocks
+            let unlocksGuides = store.announcementUnlocksGuides
             store.announcementUnlocks = nil
+            store.announcementUnlocksGuides = false
             show(toast: text, undoable: store.announcementUndoes)
             toastUnlocks = unlocks
+            toastUnlocksGuides = unlocksGuides
         }
         .onChange(of: store.tipEvent) { _, event in
             guard let event else { return }
@@ -806,6 +811,11 @@ struct EditorView: View {
         Binding(get: { Bleed.shown(store.design) }, set: { store.setBleed($0) })
     }
 
+    /// Show guides, the design's own: one step each way.
+    private var guidesShown: Binding<Bool> {
+        Binding(get: { store.guidesShown }, set: { store.setGuidesShown($0) })
+    }
+
     private var overflowMenu: some View {
         Menu {
             // Sections rather than a flat list with dividers: a ViewBuilder
@@ -958,6 +968,7 @@ struct EditorView: View {
                 // this phone's.
                 Toggle(isOn: printBleed) { Label("Show print bleed", systemImage: "rectangle.dashed") }
                 Toggle(isOn: $rulers) { Label("Rulers", systemImage: "ruler") }
+                Toggle(isOn: guidesShown) { Label("Guides", systemImage: "squareshape.split.3x3") }
                 Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
                 Toggle(isOn: $quickActions) { Label("Quick actions at the selection", systemImage: "capsule") }
                 Toggle(isOn: $pageScroll) { Label("Scroll through pages", systemImage: "rectangle.stack") }
@@ -1686,6 +1697,13 @@ struct EditorView: View {
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.accent)
+                } else if toastUnlocksGuides {
+                    Button("Unlock") {
+                        dismissToast()
+                        store.setGuidesLocked(false)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
                 } else if !toastOpens.isEmpty {
                     Button("Open") {
                         let ids = toastOpens
@@ -1834,6 +1852,7 @@ struct EditorView: View {
         toastTask?.cancel()
         toastOpens = []
         toastUnlocks = nil
+        toastUnlocksGuides = false
         toastUndoes = undoable
         toastVersion = store.historyVersion
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
