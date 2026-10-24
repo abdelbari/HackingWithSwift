@@ -731,7 +731,7 @@ enum PptxExporter {
                                      colour: bars.style.color, frame: frame))
         }
         if let words = Barcodes.captionElement(el, bars, onPage: true) {
-            out.append(textXML(words, id: nextId, link: nil, design: design, frame: frame, rels: &rels))
+            out.append(textXML(words, id: nextId, link: nil, design: design, slides: [:], frame: frame, rels: &rels))
             nextId += 1
         }
         return out
