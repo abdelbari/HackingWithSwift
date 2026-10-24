@@ -300,6 +300,8 @@ struct TalkStudio: View {
                   let kept = Self.keep(voice: voice, camera: files.camera, spans: spans) else {
                 problem = tr("Nothing was recorded")
                 phase = .setup
+                // The camera back on screen for another take.
+                recorder.startPreview()
                 return
             }
             onDone(kept)

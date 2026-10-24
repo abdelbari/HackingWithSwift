@@ -159,7 +159,7 @@ enum ExportJobs {
     /// clips (HTMLExporter).
     static func html(_ snapshot: ExportSnapshot, settings: HTMLExporter.Settings) -> Work {
         { report in
-            let url = try HTMLExporter.export(snapshot.design, pages: snapshot.pages, settings: settings)
+            let url = try await HTMLExporter.export(snapshot.design, pages: snapshot.pages, settings: settings)
             report(1)
             return ExportQueue.Result(urls: [url])
         }

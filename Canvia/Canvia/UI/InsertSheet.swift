@@ -1882,20 +1882,17 @@ struct InsertSheet: View {
         }
     }
 
-    /// An emoji, read by VoiceOver by its own name, starred as the other
-    /// tiles are.
+    /// An emoji, read by VoiceOver by its own name. Stars are kept by the
+    /// plain glyph in the picker below, as on Android, so these rows offer
+    /// none: Recently used holds toned glyphs.
     private func stickerTile(_ glyph: String) -> some View {
-        let starred = Favorites.isFavorite("sticker", glyph)
-        return Button {
+        Button {
             addSticker(glyph)
         } label: {
             Text(glyph).font(.largeTitle)
                 .frame(width: stickerSide, height: stickerSide)
-                .overlay(alignment: .topTrailing) { if starred { starBadge.scaleEffect(0.8) } }
         }
         .accessibilityLabel(EmojiCatalogue.of(glyph)?.name ?? glyph)
-        .accessibilityValue(starred ? tr("Favourite") : "")
-        .contextMenu { favoriteButton("sticker", glyph) }
     }
 
     /// A text style's weight in its preview.

@@ -26,8 +26,12 @@ struct MockupSheet: View {
     /// From Home: the design was saved with the mockup added to it, so its
     /// card is read again. Nil in the editor, which adds through `store`.
     var onChanged: (() -> Void)? = nil
+    /// The page shown first: the page being edited, from the editor, as on
+    /// the Android twin.
+    var startPage = 0
     @Environment(\.dismiss) private var dismiss
-    @State private var pageIndex = 0
+    /// The page picked here; nil until one is, showing `startPage`.
+    @State private var chosenPage: Int?
     @State private var sceneId = MockupScenes.all.first?.id ?? ""
     @State private var category: String?
     /// The colour each tinted scene was given, by scene id.
@@ -39,6 +43,10 @@ struct MockupSheet: View {
     @State private var busy = false
 
     private var scene: MockupScenes.Scene? { MockupScenes.scene(sceneId) }
+
+    private var pageIndex: Int {
+        chosenPage ?? min(max(startPage, 0), max(design.pages.count - 1, 0))
+    }
 
     var body: some View {
         NavigationStack {
@@ -81,7 +89,7 @@ struct MockupSheet: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(design.pages.indices, id: \.self) { i in
-                    chip(tr("Page %d", i + 1), selected: pageIndex == i) { pageIndex = i }
+                    chip(tr("Page %d", i + 1), selected: pageIndex == i) { chosenPage = i }
                 }
             }
         }
@@ -255,6 +263,8 @@ struct MockupSheet: View {
             guard let src = MediaStore.storeOpaque(image) else { return failed() }
             Uploads.record(source: src)
             guard let store else { return addFromHome(image, src: src) }
+            // Onto the next unlocked page first, so the size is that page's.
+            guard store.landsOnUnlockedPage() else { return }
             let size = Self.placed(image.size, pageWidth: store.pageWidth)
             if store.add(.image(src, w: size.width, h: size.height)) {
                 store.buzz(.confirm)

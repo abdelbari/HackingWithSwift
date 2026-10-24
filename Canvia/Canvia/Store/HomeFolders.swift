@@ -140,7 +140,8 @@ extension DesignLibrary {
 
     /// What the Starred chip shows: the starred folders that still hold a
     /// design, then the starred designs — in every folder — each matching
-    /// the search and in the current sort, as the Android twin's
+    /// the search (a design by its title or size, then by its words) and in
+    /// the current sort, as the Android twin's
     /// Shelf.starred shows them. A folder matches by its name, capitals and
     /// accents aside, and sorts as its designs together do (sortedFolders).
     static func starredShelf(_ designs: [RecentDesign], starredFolders: Set<String>, query: String,
@@ -150,7 +151,11 @@ extension DesignLibrary {
             starredFolders.contains(name)
                 && (needle.isEmpty || name.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) != nil)
         }
-        return (sortedFolders(starred, of: designs, sort: sort), filter(designs.filter(\.starred), query: query, sort: sort))
+        // Designs by title or size first, then by their words, as the main
+        // shelf finds them; Type and Edited are applied by the caller.
+        let found = filter(designs.filter(\.starred), query: query, sort: sort, folder: nil,
+                           type: .all, edited: .any, now: 0, startOfToday: 0)
+        return (sortedFolders(starred, of: designs, sort: sort), found)
     }
 
     /// Folders in a sort, each as its designs together: by its name, by its

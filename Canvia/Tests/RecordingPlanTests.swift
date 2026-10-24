@@ -2,6 +2,8 @@
 // against its pages — the shared fixture recording-plan.json, which the
 // Android twin's RecordingPlanTest reads too.
 
+import CoreGraphics
+import ImageIO
 import XCTest
 @testable import Canvia
 
@@ -72,6 +74,19 @@ final class RecordingPlanTests: XCTestCase {
             let got = [r.minX, r.minY, r.width, r.height].map { (Double($0) * 1000).rounded() / 1000 }
             XCTAssertEqual(got, want)
         }
+    }
+
+    /// A camera clip made on the Android twin is written as the sensor
+    /// sees and turned by its track's transform; the bubble turns it
+    /// upright. This phone's own clips are upright already (identity).
+    func testTheCameraClipIsTurnedUpright() {
+        let turn = { (a: CGFloat, b: CGFloat, c: CGFloat, d: CGFloat) in
+            TalkBubbleCompositor.orientation(of: CGAffineTransform(a: a, b: b, c: c, d: d, tx: 480, ty: 0))
+        }
+        XCTAssertEqual(turn(0, 1, -1, 0), .right)
+        XCTAssertEqual(turn(0, -1, 1, 0), .left)
+        XCTAssertEqual(turn(-1, 0, 0, -1), .down)
+        XCTAssertEqual(TalkBubbleCompositor.orientation(of: .identity), .up)
     }
 
     /// Shared: a circle's corners are half its side, a rounded bubble's

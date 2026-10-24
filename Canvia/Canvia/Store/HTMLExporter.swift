@@ -181,9 +181,12 @@ enum HTMLExporter {
     }
 
     /// The page written for sharing: index.html, or with a clip to embed, a
-    /// .zip of index.html and media/ — named after the design.
+    /// .zip of index.html and media/ — named after the design. The page is
+    /// drawn here, on the main actor; the file is written, each clip read
+    /// through the zip's checksum, away from it, as a large clip took
+    /// seconds — as the Android twin writes it off the main thread.
     @MainActor
-    static func export(_ design: Design, pages: [Int], settings: Settings) throws -> URL {
+    static func export(_ design: Design, pages: [Int], settings: Settings) async throws -> URL {
         let zip = zipped(design, pages: pages, settings: settings)
         var files: [String: URL] = [:]
         let page = html(design, pages: pages, settings: settings, clipFile: { el in
@@ -194,39 +197,53 @@ enum HTMLExporter {
             return path
         })
         let data = Data(page.utf8)
-        guard zip, !files.isEmpty else {
-            let url = DesignExporter.fileURL(for: design, ext: "html")
-            try data.write(to: url, options: .atomic)
+        let clips = zip ? files : [:]
+        let url = DesignExporter.fileURL(for: design, ext: clips.isEmpty ? "html" : "zip")
+        return try await Task.detached(priority: .userInitiated) {
+            try HTMLExporter.writeSite(data, clips: clips, to: url)
+        }.value
+    }
+
+    /// index.html alone at `url`, or with clips, a .zip of it and them.
+    private static func writeSite(_ page: Data, clips: [String: URL], to url: URL) throws -> URL {
+        guard !clips.isEmpty else {
+            try page.write(to: url, options: .atomic)
             return url
         }
-        let url = DesignExporter.fileURL(for: design, ext: "zip")
         try? FileManager.default.removeItem(at: url)
         let writer = try ZipStore.Writer(url: url)
-        try writer.add(index, data)
-        for path in files.keys.sorted() {
-            guard let url = files[path] else { continue }
-            try writer.add(path, try Data(contentsOf: url, options: .mappedIfSafe))
+        try writer.add(index, page)
+        for path in clips.keys.sorted() {
+            guard let clip = clips[path] else { continue }
+            try writer.add(path, try Data(contentsOf: clip, options: .mappedIfSafe))
         }
         try writer.finish()
         return url
     }
 
     /// The page alone, for Preview: index.html in a folder of its own with
-    /// its clips beside it, so the web view can read them from the file.
+    /// its clips beside it, so the web view can read them from the file —
+    /// the clips copied and the page written away from the main actor.
     @MainActor
-    static func preview(_ design: Design, pages: [Int], settings: Settings) throws -> URL {
+    static func preview(_ design: Design, pages: [Int], settings: Settings) async throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("site-preview", isDirectory: true)
         try? FileManager.default.removeItem(at: folder)
         try FileManager.default.createDirectory(at: folder.appendingPathComponent(media), withIntermediateDirectories: true)
+        var copies: [(from: URL, to: URL)] = []
         let page = html(design, pages: pages, settings: settings, clipFile: { el in
             guard settings.embedMedia, let source = clipSource(el) else { return nil }
             let ext = source.url.pathExtension.isEmpty ? "mp4" : source.url.pathExtension.lowercased()
             let path = mediaPath(source.id, ext: ext)
-            try? FileManager.default.copyItem(at: source.url, to: folder.appendingPathComponent(path))
+            copies.append((from: source.url, to: folder.appendingPathComponent(path)))
             return path
         })
         let url = folder.appendingPathComponent(index)
-        try Data(page.utf8).write(to: url, options: .atomic)
+        let data = Data(page.utf8)
+        let pairs = copies
+        try await Task.detached(priority: .userInitiated) {
+            for pair in pairs { try? FileManager.default.copyItem(at: pair.from, to: pair.to) }
+            try data.write(to: url, options: .atomic)
+        }.value
         return url
     }
 }
