@@ -13,6 +13,12 @@
 //    words in the editor and Present only.
 //  - "a11yLargerHandles": false, unless turned on: true makes selection
 //    handles and their hit targets `largerScale` times as big.
+//
+// And one of Settings ▸ Editing kept with them, on this phone only:
+//
+//  - "canvia.showDistances": true, unless turned off: a move, or a hold
+//    still on what is selected, measures the distances to its neighbours
+//    and the page's edges (Geometry.nearestDistances).
 
 import Foundation
 
@@ -23,6 +29,13 @@ enum AccessibilityPrefs {
     static let altTextPromptKey = "a11yAltTextPrompt"
     static let underlineLinksKey = "a11yUnderlineLinks"
     static let largerHandlesKey = "a11yLargerHandles"
+    static let showDistancesKey = "canvia.showDistances"
+
+    /// Whether moving measures the distances round what moves: on unless
+    /// turned off.
+    static func showsDistances(_ defaults: UserDefaults = .standard) -> Bool {
+        defaults.object(forKey: showDistancesKey) as? Bool ?? true
+    }
 
     static let system = "system"
     static let on = "on"

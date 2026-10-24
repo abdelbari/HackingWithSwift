@@ -1698,6 +1698,10 @@ final class DesignStore {
     /// of, marked "=" (Geometry.matchingSize). Nothing of the design.
     var gapMarks: [Geometry.GapPair] = []
     var sizeMarks: [Geometry.SizeMark] = []
+    /// The distances measured from what is moved, or held still on, to its
+    /// neighbours and the page's edges (Geometry.nearestDistances), while
+    /// Show distances is on. Nothing of the design.
+    var distanceMarks: [Geometry.Distance] = []
     /// The pen, while drawing mode is on: strokes become shape elements.
     var drawing: Freehand.Tool? {
         didSet {

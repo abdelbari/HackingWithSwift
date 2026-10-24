@@ -115,6 +115,9 @@ struct CanvasView: View {
     /// Settings ▸ Editing's "Pinch resizes what is selected": on unless
     /// turned off (CanvasGestures.pinchesSelection).
     @AppStorage(CanvasGestures.pinchSelectionKey) private var pinchSelection = true
+    /// Settings ▸ Editing's "Show distances": on unless turned off
+    /// (Geometry.nearestDistances).
+    @AppStorage(AccessibilityPrefs.showDistancesKey) private var showDistances = true
     /// The view zoomed in on the words being typed, in page units, while it
     /// is; and the box last weighed for it, so it is weighed once a box.
     @State private var typingFocus: TypingFocus?
@@ -175,6 +178,9 @@ struct CanvasView: View {
         var dragUnion: CGRect = .zero
         /// Sibling boxes at grab time, for equal-spacing hints.
         var siblingBoxes: [CGRect] = []
+        /// What a move measures its distances to, taken at grab time —
+        /// none when Show distances is off or several apart are moved.
+        var distanceBoxes: [CGRect]?
         /// Their neighbours in rows and columns, worked out once: the
         /// siblings do not move while the drag lasts (Geometry.neighbours).
         var siblingRows: Geometry.Neighbours?
@@ -1801,6 +1807,14 @@ struct CanvasView: View {
             if let at = pagePress, CanvasGestures.action(.hold, on: .backdrop) == .menu { store.holdMenuAt = at }
             return
         }
+        // Hold to measure: held still on the one thing or the one group
+        // selected, its distances show until the finger lifts, rather than
+        // taking it out and leaving nothing selected.
+        if showDistances && store.selection.contains(el.id) && (store.selection.count == 1 || store.selectionIsGrouped) {
+            store.measureSelection(true)
+            store.buzz(.tick)
+            return
+        }
         store.select(el.id, additive: true)
         store.buzz(.tick)
     }
@@ -1861,6 +1875,8 @@ struct CanvasView: View {
             if gesture.backdropHold != nil { gesture.backdropHold = nil }
         } else {
             press.held = press.began.map { Date().timeIntervalSince($0) }
+            // A hold to measure ends as the finger lifts.
+            if !gesture.dragActive && !store.distanceMarks.isEmpty { store.measureSelection(false) }
         }
     }
 
@@ -1892,6 +1908,11 @@ struct CanvasView: View {
             Button("Move right") { nudge(el, dx: step, dy: 0) }
             Button("Move up") { nudge(el, dx: 0, dy: -step) }
             Button("Move down") { nudge(el, dx: 0, dy: step) }
+            // The move handle's Distances, which VoiceOver reaches here: how
+            // far the selection is from its neighbours and the page's edges.
+            if store.selection.contains(el.id) {
+                Button("Distances") { AccessibilityNotification.Announcement(store.spokenDistances).post() }
+            }
             // Each said after, where it is and how big, as its value is.
             Button("Make larger") { if store.resizeForScreenReader(el.id, larger: true) { sayPlacement(el.id) } }
             Button("Make smaller") { if store.resizeForScreenReader(el.id, larger: false) { sayPlacement(el.id) } }
@@ -2061,6 +2082,10 @@ struct CanvasView: View {
                 .map(Geometry.aabb)
             gesture.siblingRows = Geometry.neighbours(gesture.siblingBoxes, alongX: true)
             gesture.siblingColumns = Geometry.neighbours(gesture.siblingBoxes, alongX: false)
+            // One thing or one group moved measures its distances.
+            if showDistances && (store.selection.count == 1 || store.selectionIsGrouped) {
+                gesture.distanceBoxes = store.distanceNeighbours(excluding: Set(gesture.dragOriginals.keys))
+            }
             // One photo on its own may be going into a frame.
             if gesture.dragOriginals.count == 1, let id = gesture.dragOriginals.keys.first,
                let photo = store.element(id), PhotoFrames.canDrop(photo) {
@@ -2126,6 +2151,11 @@ struct CanvasView: View {
         // the finger has really travelled — where it came from.
         if !gesture.dragUnion.isEmpty {
             gesture.movedBox = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+        }
+        // How far it now is from its neighbours and the page's edges.
+        if let others = gesture.distanceBoxes, let moved = gesture.movedBox {
+            let marks = Geometry.nearestDistances(moving: moved, others: others, page: store.pageSize)
+            if store.distanceMarks != marks { store.distanceMarks = marks }
         }
         // The frame under the finger, lit up: let go there, the photo
         // goes into it.
@@ -2618,6 +2648,7 @@ struct CanvasView: View {
         store.spacingSnapped = false
         if !store.gapMarks.isEmpty { store.gapMarks = [] }
         if !store.sizeMarks.isEmpty { store.sizeMarks = [] }
+        if !store.distanceMarks.isEmpty { store.distanceMarks = [] }
         store.canvasTouchActive = false
     }
 

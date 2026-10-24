@@ -108,6 +108,8 @@ struct SettingsSheet: View {
     /// A pinch begun on the selection resizes and turns it
     /// (CanvasGestures.pinchesSelection).
     @AppStorage(CanvasGestures.pinchSelectionKey) private var pinchSelection = true
+    /// A move measures the distances round what moves (Geometry.nearestDistances).
+    @AppStorage(AccessibilityPrefs.showDistancesKey) private var showDistances = true
     /// A typed "- " or "1. " starts a list (TextLists.autoStart).
     @AppStorage(TextLists.autoListsKey) private var autoLists = true
     @AppStorage(ForeignText.keepsFormattingKey) private var keepsFormatting = true
@@ -223,6 +225,7 @@ struct SettingsSheet: View {
             Toggle("Quick actions at the selection", isOn: $quickActions)
             Toggle("Zoom in to type small text", isOn: $typingZoom)
             Toggle("Pinch resizes what is selected", isOn: $pinchSelection)
+            Toggle("Show distances", isOn: $showDistances)
             Toggle("Start lists as you type", isOn: $autoLists)
             Toggle("Keep formatting when pasting", isOn: $keepsFormatting)
             Picker("Custom sizes start in", selection: $unit) {
