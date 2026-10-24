@@ -181,8 +181,14 @@ enum AudioMix {
     /// The clips on `page` that are heard while it plays — its own photos
     /// and the master's behind it showing a clip, in drawing order, each
     /// with its timing.
+    /// A clip playing behind the page (BackgroundClip) is heard first, for
+    /// the whole page, as the Android twin's mix hears it.
     static func clips(design: Design, page: Page) -> [Clip] {
-        design.drawnElements(on: page).compactMap { el -> Clip? in
+        var behind: [Clip] = []
+        if let bg = page.backgroundClip, bg.playback.sounds, let parts = VideoStore.split(bg.src) {
+            behind.append(Clip(source: parts.id, playback: bg.playback))
+        }
+        return behind + design.drawnElements(on: page).compactMap { el -> Clip? in
             guard el.type == .image, let src = el.src, let parts = VideoStore.split(src) else { return nil }
             let playback = el.clip ?? ClipPlayback()
             let timing = el.timing.flatMap { ElementTiming.kept($0) }

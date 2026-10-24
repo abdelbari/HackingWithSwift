@@ -477,8 +477,16 @@ struct ContextToolbar: View {
             Button { store.animateSelected(nil) } label: {
                 Label("No animation", systemImage: el.animation == nil ? "checkmark" : "circle")
             }
-            Divider()
-            entranceButtons(el)
+            Group {
+                // Create: the element dragged round the page, recorded as its path.
+                if store.selection.count == 1 {
+                    Button { store.beginMotionRecord() } label: {
+                        Label("Create", systemImage: el.animation?.kind == ElementAnimation.pathKind ? "checkmark" : "hand.draw")
+                    }
+                }
+                Divider()
+                entranceButtons(el)
+            }
             Divider()
             ForEach(ElementAnimation.kinds.filter { ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
                 Button { store.animateSelected(kind); store.playPreview() } label: {
@@ -538,10 +546,24 @@ struct ContextToolbar: View {
                       systemImage: el.animation?.kind == ElementAnimation.grow ? "checkmark" : "circle")
             }
         }
-        ForEach(ElementAnimation.kinds.filter { $0 != ElementAnimation.grow && !ElementAnimation.textKinds.contains($0) && !ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
+        ForEach(entranceKinds, id: \.self) { kind in
             Button { store.animateSelected(kind); store.playPreview() } label: {
                 Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
             }
+        }
+    }
+
+    /// The entrances offered besides Grow and a text's own: a photo's motion
+    /// only when a photo or a clip is selected. Tumble, a text kind that
+    /// moves anything else whole (anyElementKinds), is here when no text is
+    /// selected, and in the text menu when one is.
+    private var entranceKinds: [String] {
+        let photos = store.selectedElements.contains { $0.type == .image }
+        let text = store.selectedElements.contains { $0.type == .text }
+        return ElementAnimation.kinds.filter { kind in
+            kind != ElementAnimation.grow
+                && !(ElementAnimation.textKinds.contains(kind) && (text || ElementAnimation.textOnly(kind)))
+                && !ElementAnimation.loopKinds.contains(kind) && (photos || !ElementAnimation.forPhotos(kind))
         }
     }
 
@@ -600,7 +622,8 @@ struct ContextToolbar: View {
                 }
             }
         } label: {
-            Label("Exit", systemImage: "rectangle.portrait.and.arrow.right")
+            // An animation's Exit, not a key's or a menu's.
+            Label(tr("Exit", context: "animation"), systemImage: "rectangle.portrait.and.arrow.right")
         }
         .disabled(store.unlockedSelectionCount == 0)
     }
@@ -1232,9 +1255,11 @@ struct ContextToolbar: View {
             if store.canDetachImage {
                 toolButton("photo.on.rectangle", "Detach image") { store.detachImage() }
             }
-            // The photo behind the whole page instead, as it shows here.
+            // The photo behind the whole page instead, as it shows here; a
+            // clip says so, as the Android twin's does.
             if DesignStore.canBecomeBackground(el) {
-                toolButton("rectangle.inset.filled", "Use as background") {
+                let label = VideoStore.isVideo(el.src) ? "Set video as background" : "Use as background"
+                toolButton("rectangle.inset.filled", label) {
                     store.useAsBackground(el.id)
                 }
             }

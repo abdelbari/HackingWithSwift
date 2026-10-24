@@ -74,6 +74,67 @@ enum AudioTracks {
 
     /// Seconds kept to the tenth the sheet shows.
     static func tenths(_ seconds: Double) -> Double { (seconds * 10).rounded() / 10 }
+
+    /// `design` with the track `trackId` cut in two `t` seconds into the
+    /// film (to a tenth), as Split at the playhead cuts it — both playing the
+    /// same file, so nothing is heard differently: the first keeps its id,
+    /// start and fade in and plays up to the cut (trimEnd = trimStart + (t −
+    /// start)), once — it no longer loops; the second, a new id, starts at t
+    /// from the cut (trimStart), keeps the first's end, fade out and loop,
+    /// and has no fade in. Nil when the cut is not at least
+    /// AudioTrack.minLength inside the track's first time through — its
+    /// trimmed length, when the file is `duration` long or the trim has an
+    /// end, else anywhere after its start. The Android twin's split, row for
+    /// row (motion.json).
+    static func split(_ design: Design, trackId: String, at t: Double, duration: Double? = nil) -> Design? {
+        var tracks = design.audioTracks
+        guard let index = tracks.firstIndex(where: { $0.id == trackId }) else { return nil }
+        let track = tracks[index]
+        let at = Timeline.halfUp(t, 10)
+        let into = at - track.start
+        let cut = Timeline.halfUp(track.trimStart + into, 100)
+        let end = track.trimEnd ?? duration
+        guard into >= AudioTrack.minLength - 1e-9 else { return nil }
+        if let end, cut > end - AudioTrack.minLength + 1e-9 { return nil }
+        var first = track
+        first.trimEnd = cut
+        first.loop = false
+        var second = track
+        second.id = UID.make("track")
+        second.start = at
+        second.trimStart = cut
+        second.fadeIn = 0
+        tracks[index] = first
+        tracks.insert(second, at: index + 1)
+        var out = design
+        out.audioTracks = tracks
+        return out
+    }
+
+    /// `design` with a copy of the track `trackId` after it, a new id, laid
+    /// the same; nil when there is no such track.
+    static func duplicating(_ design: Design, trackId: String) -> Design? {
+        var tracks = design.audioTracks
+        guard let index = tracks.firstIndex(where: { $0.id == trackId }) else { return nil }
+        var copy = tracks[index]
+        copy.id = UID.make("track")
+        tracks.insert(copy, at: index + 1)
+        var out = design
+        out.audioTracks = tracks
+        return out
+    }
+
+    /// How a lane is read aloud: its name, and from when to when it plays in
+    /// the film — "Song, 0:03 to 0:18".
+    static func spoken(_ name: String, from: Double, to: Double) -> String {
+        tr("%@, %@ to %@", name, wholeClock(from), wholeClock(to))
+    }
+
+    /// Whole seconds as "m:ss", halves up.
+    static func wholeClock(_ seconds: Double) -> String {
+        let s = Int((max(0, seconds) + 0.5).rounded(.down))
+        return String(format: "%d:%02d", s / 60, s % 60)
+    }
 }
 
 extension DesignStore {

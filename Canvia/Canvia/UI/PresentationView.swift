@@ -462,11 +462,16 @@ struct PresentationView: View {
     /// which plays while the page is up. An element with a timing comes and
     /// goes on the page's clock, so it plays until the last of those.
     private func motionEnd(_ page: Page) -> Double {
-        let elements = design.drawnElements(on: page)
+        // The page's own animation plays in its elements; a clip behind the
+        // page plays while it is up.
+        let elements = design.drawnElements(on: PageAnimation.playing(page))
+        if page.backgroundClip != nil { return .infinity }
         if elements.contains(where: { VideoStore.isVideo($0.src) || AnimStore.isAnim($0.src) }) { return .infinity }
         var end = elements.compactMap { el in el.animation.map { (el.timing?.start ?? 0) + $0.end } }.max() ?? 0
-        // A caption box's words change through the page's whole hold.
-        if elements.contains(where: { $0.kenBurns != nil || $0.exitAnimation != nil || Captions.plays($0) }) {
+        // A caption box's words change through the page's whole hold, and a
+        // photo's motion moves through it.
+        if elements.contains(where: { $0.kenBurns != nil || $0.exitAnimation != nil || Captions.plays($0)
+            || $0.animation?.drifts == true }) {
             end = max(end, session.holdSeconds(page))
         }
         end = max(end, elements.compactMap { $0.timing.map { $0.end ?? $0.start } }.max() ?? 0)

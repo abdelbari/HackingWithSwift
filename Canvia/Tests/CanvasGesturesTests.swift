@@ -107,10 +107,10 @@ final class CanvasGesturesTests: XCTestCase {
 
     func testTheHoldMenuItemsAndWhereAPasteLands() {
         XCTAssertEqual(HoldMenu.items(canPaste: true, canPastePage: true).map(\.title),
-                       ["Paste", "Paste page", "Select all", "Add text here", "Background"])
+                       ["Paste", "Paste page", "Select all", "Add text here", "Background", "Animate"])
         XCTAssertEqual(HoldMenu.items(canPaste: false, canPastePage: false).map(\.title),
-                       ["Select all", "Add text here", "Background"])
-        XCTAssertEqual(HoldMenu.items(canPaste: true, canPastePage: false), [.paste, .selectAll, .addText, .background])
+                       ["Select all", "Add text here", "Background", "Animate"])
+        XCTAssertEqual(HoldMenu.items(canPaste: true, canPastePage: false), [.paste, .selectAll, .addText, .background, .animate])
         let page = CGSize(width: 1080, height: 1080)
         let size = CGSize(width: 100, height: 50)
         XCTAssertEqual(HoldMenu.placed(size, at: CGPoint(x: 500, y: 500), page: page), CGPoint(x: 450, y: 475))

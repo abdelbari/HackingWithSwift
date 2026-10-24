@@ -29,7 +29,7 @@ final class PageBackgroundTests: XCTestCase {
 
     func testOnlyAnUnlockedStillPhotoCanBecomeTheBackground() {
         XCTAssertTrue(DesignStore.canBecomeBackground(Element.image("asset:mesh-sunset")))
-        XCTAssertFalse(DesignStore.canBecomeBackground(Element.image("video:vid_1")), "a clip")
+        XCTAssertTrue(DesignStore.canBecomeBackground(Element.image("video:vid_1")), "a clip plays behind the page")
         XCTAssertFalse(DesignStore.canBecomeBackground(Element.image(CodeGenerator.source(for: "hi"))), "a code")
         var empty = Element.image("")
         empty.src = nil

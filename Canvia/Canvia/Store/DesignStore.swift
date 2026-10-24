@@ -31,6 +31,8 @@ final class DesignStore {
             if let crop = graphicCropping, selection != Set(crop.ids) { finishGraphicCrop() }
             // So does a brush's, kept as its one step.
             if let brush = brushing, selection != [brush.id] { finishBrush() }
+            // And recording a motion path, which belongs to its element.
+            if let recording = motionRecording, selection != [recording.id] { motionRecording = nil }
             // Typing in place ends however the box stops being the one thing
             // selected — a Layers row, a page change, a lock, its group taken
             // whole — as its own step, and an emptied box goes with it. The
@@ -1690,6 +1692,11 @@ final class DesignStore {
     /// The photo being brushed — erased and restored, or blurred or
     /// pixelated in part — and how (see BrushMode.swift).
     var brushing: BrushSession?
+    /// The element whose motion path Animate's Create is recording, and
+    /// whether a path has been recorded yet (see MotionEditing.swift).
+    var motionRecording: MotionRecording?
+    /// The hold menu's Animate, asking the editor for Page animations.
+    var asksPageAnimation = false
 
     func beginErasing(_ id: String) {
         if element(id)?.locked == true {
@@ -2908,7 +2915,7 @@ final class DesignStore {
     /// Where a preview of the page's exits starts: half a second before the
     /// first of them begins, never before the page does.
     var exitPreviewStart: Double {
-        let span = ElementAnimation.exitSpan(design.masterElements(behind: page) + page.elements)
+        let span = ElementAnimation.exitSpan(design.masterElements(behind: page) + PageAnimation.playing(page).elements)
         return max(0, pageHold - span - 0.5)
     }
 

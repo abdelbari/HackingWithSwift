@@ -158,7 +158,8 @@ enum ElementSearch {
         }
         for graphic in GraphicsLibrary.graphics {
             out.append(Entry(hit: Hit(kind: .graphic, id: graphic.id, name: graphic.name),
-                             words: graphic.tags + ["graphic"], category: graphic.category))
+                             words: graphic.tags + ["graphic"] + (graphic.motion == nil ? [] : ["animated"]),
+                             category: graphic.category))
         }
         for glyph in stickerGlyphs {
             let words = Stickers.words(for: glyph)

@@ -71,8 +71,9 @@ final class PresentSession {
     }
 
     /// How long before the page's end its exits begin; 0 when nothing leaves.
+    /// The page's own animation leaves with its elements (PageAnimation).
     func exitSpan(_ page: Page) -> Double {
-        ElementAnimation.exitSpan(design.masterElements(behind: page) + page.elements)
+        ElementAnimation.exitSpan(design.masterElements(behind: page) + PageAnimation.playing(page).elements)
     }
 
     /// Where the page's clock waits for the person to go on: where its exits
@@ -87,7 +88,7 @@ final class PresentSession {
     /// drift, a clip playing, an animated picture, an element shown for
     /// part of the page, a caption box whose words change.
     static func moves(_ page: Page, in design: Design) -> Bool {
-        design.drawnElements(on: page).contains {
+        MovieExporter.isAnimated(page, in: design) || design.drawnElements(on: page).contains {
             if Captions.plays($0) { return true }
             return $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
                 || AnimStore.isAnim($0.src) || $0.timing != nil

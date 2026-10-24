@@ -348,10 +348,11 @@ enum PptxExporter {
     }
 
     /// What a page draws, bottom up — the master's elements behind its
-    /// own, the hidden ones left out — with its page numbers filled in.
+    /// own, the hidden ones left out — with its page numbers filled in, each
+    /// arriving as the page's own animation has it, as Present plays it.
     static func drawnElements(design: Design, page: Page) -> [Element] {
         let pageNumber = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
-        return design.drawnElements(on: page).map { el in
+        return design.drawnElements(on: PageAnimation.playing(page)).map { el in
             var resolved = el
             if ShapeText.carriesWords(el) {
                 resolved.fillPageTokens(number: pageNumber, count: design.pages.count)
@@ -501,6 +502,8 @@ enum PptxExporter {
         // Whose each shape is, so groups go out as grpSp (Groups.nested).
         var owners: [Element?] = []
         var nextId = 2
+        // Each element's shape id, for its entrance in the slide's timing.
+        var timed: [(id: Int, el: Element)] = []
         if let backdrop {
             let size = design.size(for: page)
             let box = xfrm(x: 0, y: 0, w: Double(size.width), h: Double(size.height), rotation: 0, frame: frame)
@@ -520,6 +523,7 @@ enum PptxExporter {
             }
             let id = nextId
             nextId += 1
+            timed.append((id: id, el: el))
             let link = clickAttributes(el.link, design: design, slides: slides, rels: &rels)
             switch kind {
             case .text:
@@ -588,8 +592,12 @@ enum PptxExporter {
             return groupXML(group, id: id, members: members, frame: frame) + inner.joined() + "</p:grpSp>"
         }
         let tree = "<p:spTree>\(groupHeader)\(grouped.joined())</p:spTree>"
+        // A motion path's moves are shares of the slide, in the page's units
+        // as it is fitted onto the slide.
+        let timing = PptxAnimations.timing(timed, slideW: design.width / placed.factor,
+                                           slideH: design.height / placed.factor)
         let xml = [declaration, "<p:sld \(namespaces)>", "<p:cSld>", background, tree, "</p:cSld>",
-                   masterColours, transitionXML(after: previous, in: design), "</p:sld>"].joined()
+                   masterColours, transitionXML(after: previous, in: design), timing, "</p:sld>"].joined()
         return SlideParts(xml: xml, rels: rels.xml, media: drawn, notes: notes)
     }
 

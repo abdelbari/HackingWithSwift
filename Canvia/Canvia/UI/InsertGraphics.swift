@@ -1,10 +1,12 @@
 // Add's Graphics: the illustrated pack (GraphicsLibrary), a chip for each
-// of its twelve categories over a row of tiles, each drawn by the page's own
+// of its thirteen categories over a row of tiles, each drawn by the page's own
 // renderer as it goes on a page (GraphicThumb). A tap puts the graphic on
 // the page as an SVG graphic goes on — its shapes in their own colours, one
 // group, selected — and into Recently used, as the Android twin's Add panel
 // does. The search above the tabs finds the graphics by their tags
-// (ElementSearch).
+// (ElementSearch). The Animated category's chip holds every graphic that
+// moves, each tile marked, and one goes on already animated
+// (GraphicsLibrary.elements).
 
 import SwiftUI
 import UIKit
@@ -59,10 +61,23 @@ struct GraphicsSection: View {
                 .padding(6)
                 .frame(width: 64, height: 64)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+                .overlay(alignment: .bottomTrailing) { motionBadge(graphic) }
         }
         .buttonStyle(.plain)
         .modifier(LibraryDragTile(item: drag.map { carry -> () -> LibraryDrag.Carried in { carry(graphic) } }))
-        .accessibilityLabel(tr("%@ graphic", graphic.name))
+        .accessibilityLabel(graphic.motion == nil ? tr("%@ graphic", graphic.name) : tr("%@ graphic, animated", graphic.name))
+    }
+
+    /// A graphic that moves is marked so on its tile.
+    @ViewBuilder
+    private func motionBadge(_ graphic: GraphicDef) -> some View {
+        if graphic.motion != nil {
+            Image(systemName: "sparkles")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.accent)
+                .padding(4)
+                .accessibilityHidden(true)
+        }
     }
 }
 

@@ -42,6 +42,11 @@ struct CanvasView: View {
     /// cancels never ends, so a new touch — a new start — begins a stroke
     /// afresh rather than joining the one cut short with a straight jump.
     @State private var strokeStart: CGPoint?
+    /// Animate's Create: the drag being recorded — the element's centre on
+    /// the page and when — and how far it has gone so far.
+    @State private var motionSamples: [MotionPath.Sample] = []
+    @State private var motionBegan: Date?
+    @State private var motionShift: CGSize = .zero
     /// Shape assist: the shape the stroke under way snapped to as the
     /// finger rested at its end, where the finger came to rest, and the
     /// wait for it to rest long enough.
@@ -662,6 +667,7 @@ struct CanvasView: View {
                 if let brush = store.brushing, let photo = store.brushElement { brushLayer(brush, photo) }
                 if let crop = store.cropping, let photo = store.cropElement { cropLayer(photo, crop) }
                 if let crop = store.graphicCropping { GraphicCropLayer(store: store, crop: crop) }
+                if let recording = store.motionRecording, let el = store.motionElement { motionLayer(recording, el) }
             }
         }
         // The print bleed round the page, when the design shows one: behind
@@ -1061,6 +1067,76 @@ struct CanvasView: View {
         .onDisappear { strokePoints = []; strokeStart = nil }
     }
 
+    // MARK: Create an animation
+
+    /// Recording a motion path: everything but the element dimmed, and the
+    /// element dragged round the page under the finger, its centre sampled
+    /// as it goes; on lift the path is kept (recordMotion). Once one is
+    /// recorded, it shows as a dotted line from where it starts to where the
+    /// element rests. Over the whole page, so a drag never selects or moves
+    /// anything else.
+    private func motionLayer(_ recording: MotionRecording, _ el: Element) -> some View {
+        ZStack(alignment: .topLeading) {
+            Color.black.opacity(0.35).contentShape(Rectangle())
+            if recording.recorded && motionSamples.isEmpty, let anim = el.animation {
+                Self.motionTrail(anim, el)
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 2.5 * iz, lineCap: .round,
+                                                             dash: [CGFloat(2 * iz), CGFloat(6 * iz)]))
+            }
+            ElementView(element: el)
+                .offset(motionShift)
+                .allowsHitTesting(false)
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .gesture(motionGesture(recording, el))
+        .accessibilityElement()
+        .accessibilityLabel("Create an animation")
+        .accessibilityHint("Hold the element and drag it along the path it should take")
+        .onDisappear {
+            motionSamples = []
+            motionBegan = nil
+            motionShift = .zero
+        }
+    }
+
+    /// The drag recorded, from the element's centre wherever on the page it
+    /// begins; only before a path is recorded, or after Re-record.
+    private func motionGesture(_ recording: MotionRecording, _ el: Element) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
+            .onChanged { value in
+                guard !recording.recorded else { return }
+                let now = Date()
+                if motionBegan == nil {
+                    motionBegan = now
+                    motionSamples = []
+                }
+                motionShift = value.translation
+                let centre = CGPoint(x: el.x + el.w / 2 + Double(value.translation.width),
+                                     y: el.y + el.h / 2 + Double(value.translation.height))
+                motionSamples.append(MotionPath.Sample(x: Double(centre.x), y: Double(centre.y),
+                                                       time: now.timeIntervalSince(motionBegan ?? now)))
+            }
+            .onEnded { _ in
+                let samples = motionSamples
+                motionSamples = []
+                motionBegan = nil
+                motionShift = .zero
+                if !recording.recorded { store.recordMotion(samples) }
+            }
+    }
+
+    /// A recorded path as a line on the page, from where it starts to where
+    /// the element rests.
+    static func motionTrail(_ anim: ElementAnimation, _ el: Element) -> Path {
+        var line = Path()
+        let cx = el.x + el.w / 2, cy = el.y + el.h / 2
+        for (i, p) in (anim.path ?? []).enumerated() {
+            let at = CGPoint(x: cx + p.dx, y: cy + p.dy)
+            if i == 0 { line.move(to: at) } else { line.addLine(to: at) }
+        }
+        return line
+    }
+
     // MARK: brushes
 
     /// Painting a photo with a brush: the stroke under the finger, as wide
@@ -1346,7 +1422,7 @@ struct CanvasView: View {
     /// while the pen, the eraser or crop mode has the page's touches.
     private func pansFromPage(at point: CGPoint) -> Bool {
         guard store.drawing == nil, store.erasing == nil, store.cropping == nil, store.graphicCropping == nil,
-              store.brushing == nil else { return false }
+              store.brushing == nil, store.motionRecording == nil else { return false }
         let guideReach = Touch.pageUnits(12, zoom: store.zoom)
         let onGuide = store.design.guides.contains { guide in
             abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach
@@ -1371,6 +1447,7 @@ struct CanvasView: View {
         Button(HoldMenu.HoldItem.selectAll.title) { chooseFromHoldMenu(.selectAll, at: centre) }
         Button(HoldMenu.HoldItem.addText.title) { chooseFromHoldMenu(.addText, at: centre) }
         Button(HoldMenu.HoldItem.background.title) { chooseFromHoldMenu(.background, at: centre) }
+        Button(HoldMenu.HoldItem.animate.title) { chooseFromHoldMenu(.animate, at: centre) }
     }
 
     private func chooseFromHoldMenu(_ item: HoldMenu.HoldItem, at point: CGPoint) {
@@ -1694,6 +1771,12 @@ struct CanvasView: View {
         if store.stylePainting { store.stylePainting = false }
         // A locked page's own tap says so, with Unlock.
         if store.refusesLockedPage() { return }
+        // With nothing selected, a tap on a clip playing behind the page
+        // opens its Clip controls.
+        if store.selection.isEmpty && !store.selectingMultiple && store.page.backgroundClip != nil {
+            onBackground()
+            return
+        }
         if !store.selectingMultiple { store.select(nil) }
     }
 
@@ -2651,6 +2734,7 @@ struct CanvasView: View {
     private var pagePinned: Bool {
         store.cropping != nil || store.graphicCropping != nil || store.editingTextId != nil || store.drawing != nil
             || store.erasing != nil || store.brushing != nil || store.previewTime != nil
+            || store.motionRecording != nil
     }
 
     // MARK: the view

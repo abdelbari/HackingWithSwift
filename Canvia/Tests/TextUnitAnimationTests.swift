@@ -18,9 +18,11 @@ final class TextUnitAnimationTests: XCTestCase {
 
     func testTheKindsAreInTheSameOrderOnBothPhones() {
         XCTAssertEqual(ElementAnimation.textKindOrder,
-                       ["typewriter", "words", "letterPop", "lineRise", "ascend", "shift", "merge", "block", "burst",
-                        "bounceIn", "roll", "skate", "spread", "clarify", "tumble", "writeOn"])
+                       ["typewriter", "words", "letterPop", "lineRise", "baseline", "ascend", "shift", "merge", "block",
+                        "burst", "bounceIn", "roll", "skate", "spread", "clarify", "tumble", "writeOn"])
         XCTAssertTrue(ElementAnimation.kinds.contains("writeOn"))
+        // No kind is offered twice.
+        XCTAssertEqual(Set(ElementAnimation.kinds).count, ElementAnimation.kinds.count)
         XCTAssertEqual(ElementAnimation.unitKinds.count, 12)
     }
 
@@ -115,5 +117,22 @@ final class TextUnitAnimationTests: XCTestCase {
         XCTAssertEqual(typed.state(at: 0.5, text: text).visibleCharacters, 7)
         XCTAssertEqual(ElementAnimation(kind: "words", delay: 0, duration: 1).state(at: 0.5, text: text).visibleCharacters,
                        ElementAnimation.revealed(text, by: "word", share: 0.5), "as Word by word always has")
+    }
+
+    /// Tumble on text moves its units; on anything else the whole element,
+    /// as on the Android twin.
+    func testTumbleMovesTextAUnitAtATimeAndAnythingElseWhole() {
+        let shape = Element.shape("rect")
+        let text = Element.text("Hi", fontSize: 40)
+        let given = ElementAnimation.applied([text, shape], kind: "tumble")
+        XCTAssertEqual(given[1].animation?.kind, "tumble")
+        let tumble = ElementAnimation(kind: "tumble", delay: 0, duration: 1)
+        XCTAssertNotNil(tumble.state(at: 0, text: "Hi", size: 100, el: text).unitClock)
+        let whole = tumble.state(at: 0, size: 100, el: shape)
+        XCTAssertNil(whole.unitClock)
+        XCTAssertEqual(whole.rotation, -90, accuracy: 1e-9)
+        XCTAssertEqual(whole.scale, 0.5, accuracy: 1e-9)
+        XCTAssertTrue(ElementAnimation.textOnly("ascend"))
+        XCTAssertFalse(ElementAnimation.textOnly("tumble"))
     }
 }

@@ -78,9 +78,10 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   `Content/Icons.json` is the Android twin's resource byte for byte,
   written by its `tools/generate_icons.py`; the icons are Apache-2.0 and
   their licence ships beside them as `Content/MaterialIcons-LICENSE.txt`
-- Graphics: two hundred multi-colour illustrations in twelve categories —
-  doodle arrows, underlines, sparkles, badges, ribbons, blobs, confetti,
-  dividers, speech bubbles, hand-drawn frames, scribbles, patterns — in
+- Graphics: some two hundred and sixty multi-colour illustrations in
+  thirteen categories — doodle arrows, underlines, sparkles, badges,
+  ribbons, blobs, confetti, dividers, speech bubbles, hand-drawn frames,
+  scribbles, patterns and the Animated ones — in
   Add ▸ Elements under category chips, and found by Add's search by their
   tags. Each goes on as an SVG graphic does: its shapes in their own
   colours, grouped, each naming it (`graphicId`), so Colour swap and Change
@@ -873,10 +874,39 @@ picks up where the first left off. An element can show for part of its
 page — Show from playhead and Hide from playhead in its Animate menu while
 the timeline is on (Hide not at the page's very start), Show for the whole
 page to undo it, the `timing` key in the file — and the selection's
-timings and the audio
-tracks are thin bars under the blocks. Present, Play, MP4 and GIF honour
+timings and the audio tracks are lanes under the blocks, 28 points tall
+and touched 44 tall. A track's lane drags along the film (to a tenth, onto
+a beat with Beat Sync on), its ends trim it, one Undo each — "Move audio",
+"Trim audio" — and tapped it offers Edit (volume, fades, Beat Sync), Split
+at the playhead (two tracks of the same file, the second with no fade in),
+Duplicate and Delete; an element's bar drags and trims its timing the same
+way, and VoiceOver reads each lane as "Song, 0:03 to 0:18" with adjust and
+trim actions. A pinch zooms the strip up to 200 points a second, the
+playhead held in place. Present, Play, MP4 and GIF honour
 timings, an exit over at the timing's end or the page's, whichever comes
 first; still exports and the editor at rest show every element.
+
+**Motion** — Animate's Create records a motion path: the selected element
+dragged round the dimmed page, thinned to points at least 2 units apart (at
+most 200) and timed by the drag, kept as `animation` `{kind: "path",
+path: [[dx, dy, t], ...], smooth, orient, speed}` from where it rests; on lift
+it shows as a dotted line, with Smooth, Orient to path, Speed (0.25x to 4x)
+and Re-record. More entrances — Wipe, Breathe, Drift, Tumble, Baseline for
+text — and, for photos and clips, Photo zoom and Photo pan, which move the
+crop over the page's hold rather than the frame. Page animations (More, or
+Animate in the page's hold menu) give every element on the page Rise, Fade,
+Pan, Breathe, Tumble or Stomp, as it enters, exits or both, 0.08 s apart in
+layer order, its own animation kept over the page's (`pageAnimation`
+`{kind, mode}`). Graphics that move — the Animated category's stroked
+arrows, underlines, circles and scribbles that draw themselves on, sparkles
+and stars that twinkle, shapes that float (`motion` in Graphics.json) — go
+on animated; the web page plays them in CSS, a still
+shows them finished. PowerPoint gets each entrance's nearest effect and a
+path as its own motion path. A clip or an animated picture can be the page's
+background (`clip` in the background, its first frame the picture any
+reader shows): it plays behind every element in Play, Present, the video and
+GIF, with its sound in the mix, and tapping the page opens its Clip controls
+(Trim, Speed, Volume, Detach from background).
 
 SVG keeps shapes and lines as paths and strokes, and converts text to
 glyph outlines rather than `<text>` — the fonts are files inside the app,

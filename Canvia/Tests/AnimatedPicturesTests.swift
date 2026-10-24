@@ -62,7 +62,8 @@ final class AnimatedPicturesTests: XCTestCase {
         design.pages[0].elements = [Element.image("anim:a")]
         XCTAssertTrue(MovieExporter.isAnimated(design.pages[0], in: design))
         XCTAssertEqual(AnimStore.ids(in: design), ["a"])
-        XCTAssertFalse(DesignStore.canBecomeBackground(design.pages[0].elements[0]))
+        // It plays behind the page as a background too (BackgroundClip).
+        XCTAssertTrue(DesignStore.canBecomeBackground(design.pages[0].elements[0]))
     }
 
     func testADesignFileCarriesTenMegabytesEachAndFiftyInAllInIdOrder() {

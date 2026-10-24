@@ -662,7 +662,15 @@ enum DesignPackage {
             pageIds[design.pages[p].id] = fresh
             design.pages[p].id = fresh
             if case .image(let src) = design.pages[p].background, let moved = rewrite(src) {
+                // A clip behind the page moves with its picture, which is its
+                // own source, so it still plays from where it was stored.
+                let clip = design.pages[p].backgroundClip.map { was -> BackgroundClip in
+                    var next = was
+                    next.src = rewrite(was.src) ?? was.src
+                    return next
+                }
                 design.pages[p].background = .image(moved)
+                design.pages[p].backgroundClip = clip
             }
             for i in design.pages[p].elements.indices {
                 design.pages[p].elements[i].src = rewrite(design.pages[p].elements[i].src)
