@@ -736,7 +736,8 @@ struct ExportSheet: View {
             let format = fileType == "jpg" ? DesignExporter.RasterFormat.jpeg : .png
             run(tr("Saving to your photos"), format: fileType == "jpg" ? "jpg" : "png") {
                 ExportJobs.picturesToPhotos(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
-                                            quality: jpegQuality, transparent: transparent)
+                                            quality: jpegQuality, transparent: transparent,
+                                            compress: pngCompress && format == .png)
             }
         }
     }

@@ -34,13 +34,15 @@ extension DesignStore {
 
     /// One copy of the page on screen for each row of `data`, filled in,
     /// after the last page, and the rows kept on the design — one step,
-    /// "Bulk create". Nothing when there are no rows.
+    /// "Bulk create". Nothing when there are no rows. The pages are made
+    /// and measured off the main actor, as the Android twin makes them:
+    /// there may be 500.
+    @MainActor
     @discardableResult
-    func bulkCreatePages(_ data: BulkData, pictures: [BulkCreate.Picture] = DesignStore.bulkPictures()) -> BulkOutcome {
+    func bulkCreatePages(_ data: BulkData, pictures: [BulkCreate.Picture] = DesignStore.bulkPictures()) async -> BulkOutcome {
         let template = page
-        let made = BulkCreate.pages(design, pageId: template.id, data: data, pictures: pictures)
+        let (made, overflows) = await bulkPages(data, template: template, pictures: pictures)
         guard !made.isEmpty else { return BulkOutcome(made: 0, overflows: []) }
-        let overflows = BulkCreate.overflows(made, template: template, data: data, heightFor: measure)
         if hasPendingChanges && (editingTextId != nil || dictationTarget != nil) { commit() }
         namedStep = tr("Bulk create")
         apply { design in
@@ -54,21 +56,27 @@ extension DesignStore {
     /// Each row of `data` a design of its own on the shelf — the page on
     /// screen filled in from it, titled by its first cell, as no design
     /// there is titled — and the rows kept on this design, as one step.
+    /// Made and saved off the main actor; each card's picture is rendered
+    /// on it, a turn given back between them.
     @MainActor
-    func bulkCreateDesigns(_ data: BulkData, pictures: [BulkCreate.Picture] = DesignStore.bulkPictures()) -> BulkOutcome {
-        let template = page
-        let pages = BulkCreate.pages(design, pageId: template.id, data: data, pictures: pictures)
+    func bulkCreateDesigns(_ data: BulkData, pictures: [BulkCreate.Picture] = DesignStore.bulkPictures()) async -> BulkOutcome {
+        let source = design
+        let (pages, overflows) = await bulkPages(data, template: page, pictures: pictures)
         guard !pages.isEmpty else { return BulkOutcome(made: 0, overflows: []) }
-        let overflows = BulkCreate.overflows(pages, template: template, data: data, heightFor: measure)
-        let titles = BulkCreate.titles(of: data.rows, fallback: design.title,
+        let titles = BulkCreate.titles(of: data.rows, fallback: source.title,
                                        taken: DesignLibrary.recents().map(\.title))
-        var made: [Design] = []
         let now = Date().timeIntervalSince1970 * 1000
-        for (title, page) in zip(titles, pages) {
-            let one = BulkCreate.separate(design, page: page, title: title, now: now)
-            guard DesignLibrary.save(one) else { continue }
+        let saved = await Task.detached(priority: .userInitiated) { () -> [Design] in
+            zip(titles, pages).compactMap { pair -> Design? in
+                let one = BulkCreate.separate(source, page: pair.1, title: pair.0, now: now)
+                return DesignLibrary.save(one) ? one : nil
+            }
+        }.value
+        var made: [Design] = []
+        for one in saved {
             DesignLibrary.writeThumbnail(for: one)
             made.append(one)
+            await Task.yield()
         }
         if design.bulk != data {
             namedStep = tr("Bulk create")
@@ -76,5 +84,19 @@ extension DesignStore {
         }
         buzz(made.isEmpty ? .reject : .confirm)
         return BulkOutcome(made: made.count, overflows: overflows, designs: made)
+    }
+
+    /// The pages `data` fills from `template`, and what no longer fits on
+    /// them, worked out off the main actor.
+    @MainActor
+    private func bulkPages(_ data: BulkData, template: Page,
+                           pictures: [BulkCreate.Picture]) async -> ([Page], [String]) {
+        let source = design
+        let measure = self.measure
+        return await Task.detached(priority: .userInitiated) { () -> ([Page], [String]) in
+            let made = BulkCreate.pages(source, pageId: template.id, data: data, pictures: pictures)
+            guard !made.isEmpty else { return ([], []) }
+            return (made, BulkCreate.overflows(made, template: template, data: data, heightFor: measure))
+        }.value
     }
 }

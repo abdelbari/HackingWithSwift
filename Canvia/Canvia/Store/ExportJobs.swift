@@ -40,7 +40,12 @@ enum ExportJobs {
             var made = try await work(report)
             guard made.urls.count > 1 else { return made }
             let url = FileManager.default.temporaryDirectory.appendingPathComponent(ExportPlan.zipName(design.title))
-            try writeZip(made.urls, to: url)
+            // Read and written off the main actor: thirty print-size pages
+            // are hundreds of MB.
+            let files = made.urls
+            try await Task.detached(priority: .userInitiated) {
+                try ExportJobs.writeZip(files, to: url)
+            }.value
             for file in made.urls { try? FileManager.default.removeItem(at: file) }
             made.urls = [url]
             return made
@@ -68,16 +73,21 @@ enum ExportJobs {
         }
     }
 
-    /// The pictures into Photos rather than the share sheet. Each is counted
-    /// as it goes in, and what went in is said even after a Cancel.
+    /// The pictures into Photos rather than the share sheet, each PNG
+    /// compressed as `pictures` does with `compress`. Each is counted as it
+    /// goes in, and what went in is said even after a Cancel — then, as the
+    /// Android twin says it, a PNG that went in uncompressed.
     static func picturesToPhotos(_ snapshot: ExportSnapshot, format: DesignExporter.RasterFormat, scale: Double,
-                                 longEdge: Double, quality: Double, transparent: Bool) -> Work {
+                                 longEdge: Double, quality: Double, transparent: Bool,
+                                 compress: Bool = false) -> Work {
         let render = pictures(snapshot, format: format, scale: scale, longEdge: longEdge,
-                              quality: quality, transparent: transparent)
+                              quality: quality, transparent: transparent, compress: compress)
         return { report in
-            let urls = try await render(report).urls
-            let outcome = try await PhotoSaver.save(urls)
-            return ExportQueue.Result(photosNote: outcome.message, photosSaved: outcome.anySaved)
+            let made = try await render(report)
+            let outcome = try await PhotoSaver.save(made.urls)
+            let fellBack = made.note
+            let said: String? = outcome.message.map { text in fellBack.map { text + " " + $0 } ?? text }
+            return ExportQueue.Result(photosNote: said, photosSaved: outcome.anySaved)
         }
     }
 

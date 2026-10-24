@@ -26,6 +26,8 @@ struct BulkCreateSheet: View {
     /// How many rows the file brought in had under its names, past what
     /// the grid holds.
     @State private var fileRows = 0
+    /// While Generate makes the pages or designs, off the main thread.
+    @State private var busy = false
 
     init(store: DesignStore, onDesigns: @escaping ([Design]) -> Void = { _ in }) {
         self.store = store
@@ -131,7 +133,7 @@ struct BulkCreateSheet: View {
             Toggle("As separate designs", isOn: $separate)
             Button(separate ? trn("Make %d design|Make %d designs", count)
                    : trn("Generate %d page|Generate %d pages", count)) { generate() }
-                .disabled(count == 0 || !connected)
+                .disabled(count == 0 || !connected || busy)
             if count > 0 && !connected {
                 Text("Connect a column to something on the page first.")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -181,18 +183,21 @@ struct BulkCreateSheet: View {
 
     private func generate() {
         let rows = data
-        let found: [String]
-        if separate {
-            let outcome = store.bulkCreateDesigns(rows)
-            found = outcome.overflows
-            onDesigns(outcome.designs)
-        } else {
-            let outcome = store.bulkCreatePages(rows)
-            found = outcome.overflows
-            if outcome.made > 0 {
-                store.announce(trn("Added %d page|Added %d pages", outcome.made))
+        let makeDesigns = separate
+        busy = true
+        Task { @MainActor in
+            if makeDesigns {
+                let outcome = await store.bulkCreateDesigns(rows)
+                overflows = outcome.overflows
+                onDesigns(outcome.designs)
+            } else {
+                let outcome = await store.bulkCreatePages(rows)
+                overflows = outcome.overflows
+                if outcome.made > 0 {
+                    store.announce(trn("Added %d page|Added %d pages", outcome.made))
+                }
             }
+            busy = false
         }
-        overflows = found
     }
 }

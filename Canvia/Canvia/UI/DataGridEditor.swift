@@ -41,14 +41,17 @@ struct DataGridEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Rows made as they scroll into view, as the Android twin's:
+            // Bulk create's may be 500 rows of 50 cells. Every place is a
+            // fixed width, so the columns still line up.
             ScrollView([.horizontal, .vertical]) {
-                Grid(horizontalSpacing: 2, verticalSpacing: 2) {
-                    GridRow {
+                LazyVStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 2) {
                         Color.clear.frame(width: 30, height: 24)
                         ForEach(0..<width, id: \.self) { c in columnMenu(c) }
                     }
                     ForEach(0..<shown.count, id: \.self) { r in
-                        GridRow {
+                        HStack(spacing: 2) {
                             rowMenu(r)
                             ForEach(0..<width, id: \.self) { c in cell(r, c) }
                         }
