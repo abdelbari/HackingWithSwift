@@ -627,6 +627,10 @@ final class DesignStore {
             selection = ids
         }
         if selection.count >= 2 { tipEvent = .multiSelected }
+        // One thing small on screen: its handles are hard to take, and a
+        // pinch on it resizes it (CanvasGestures.pinchesSelection).
+        if let el = singleSelection, !el.holdsPlace,
+           min(el.w, el.h) * max(zoom, 0.05) < Touch.moveHandleBelow { tipEvent = .smallSelected }
     }
 
     /// A tap on one member of a group that is already selected goes inside
@@ -1384,11 +1388,12 @@ final class DesignStore {
     }
 
     /// Tidy the unlocked selection into a row, column or grid, one undo step.
-    /// The gap is a fiftieth of the page's shorter side: visible, not loose.
-    func tidySelected(_ mode: Geometry.TidyMode) {
+    /// The gap is `gap`, or with none a fiftieth of the page's shorter side
+    /// (Geometry.defaultTidyGap): visible, not loose.
+    func tidySelected(_ mode: Geometry.TidyMode, gap: Double? = .none) {
         let members = selectedElements.filter { !$0.holdsPlace }
         guard members.count >= 2 else { return }
-        let gap = (min(pageWidth, pageHeight) / 50).rounded()
+        let gap = max(0, gap ?? Geometry.defaultTidyGap(page: pageSize))
         let tidied = Geometry.tidy(members, mode: mode, gap: gap)
         applyToPage { page in
             let byId = Dictionary(uniqueKeysWithValues: tidied.map { ($0.id, $0) })

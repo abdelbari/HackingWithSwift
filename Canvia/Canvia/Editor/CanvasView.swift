@@ -94,6 +94,9 @@ struct CanvasView: View {
     /// Settings ▸ Editing's "Zoom in to type small text": on unless turned
     /// off (Viewport.typingZoom).
     @AppStorage(Viewport.typingZoomKey) private var typingZoomOn = true
+    /// Settings ▸ Editing's "Pinch resizes what is selected": on unless
+    /// turned off (CanvasGestures.pinchesSelection).
+    @AppStorage(CanvasGestures.pinchSelectionKey) private var pinchSelection = true
     /// The view zoomed in on the words being typed, in page units, while it
     /// is; and the box last weighed for it, so it is weighed once a box.
     @State private var typingFocus: TypingFocus?
@@ -212,6 +215,8 @@ struct CanvasView: View {
         /// What a drag from another page of the column is moving, once it
         /// has made that page the one worked.
         var columnDrag: String?
+        /// A pinch on the selection under way (SelectionPinch).
+        var pinch: DesignStore.PinchSession?
     }
 
     /// What a touch in crop mode landed on: one of the frame's brackets (the
@@ -307,6 +312,8 @@ struct CanvasView: View {
             onFling: { velocity, travel, onPage in
                 swipePage(velocity: velocity, travel: travel, onPage: onPage, alone: slot == nil && board == nil)
             },
+            pinchesSelection: { a, b in pinchesSelection(a, b) },
+            onSelectionPinch: { phase, scale, turn in selectionPinch(phase, scale: scale, turn: turn) },
             board: board
         ) {
             // Left to right in any language (ReadingDirection): the page's
@@ -329,6 +336,37 @@ struct CanvasView: View {
             .designDirection()
         }
         .background { if board != nil { whiteboardGround } }
+    }
+
+    // MARK: a pinch on the selection
+
+    /// Whether two fingers landing at `a` and `b` on the page scale and turn
+    /// the selection (CanvasGestures): with the setting on, both on its
+    /// body, as the gesture table has it.
+    private func pinchesSelection(_ a: CGPoint, _ b: CGPoint) -> Bool {
+        guard pinchSelection else { return false }
+        let input = CanvasGestures.twoFingerInput(a, b, selected: store.selectedElements, zoom: store.zoom,
+                                                  pageLocked: store.isPageLocked, busy: store.pinchBusy)
+        return CanvasGestures.action(input, on: .selectedBody) == .transformSelection
+    }
+
+    /// The pinch on the selection: begun — a move the second finger cut
+    /// short let go of first, its step kept open for the pinch to join —
+    /// moved, and let go as one step (DesignStore.endPinch).
+    private func selectionPinch(_ phase: CanvasDrag, scale: Double, turn: Double) {
+        switch phase {
+        case .began:
+            clearTransient()
+            gesture.pinch = store.beginPinch()
+            if gesture.pinch == nil { store.commit() }
+        case .moved:
+            guard var session = gesture.pinch else { return }
+            store.pinchSelection(&session, scale: scale, turn: turn)
+            gesture.pinch = session
+        case .ended:
+            if let session = gesture.pinch { store.endPinch(session) }
+            clearTransient()
+        }
     }
 
     // MARK: a swipe to the next page
@@ -608,6 +646,12 @@ struct CanvasView: View {
 
             if let id = store.editingTextId, let el = store.element(id) {
                 if el.type == .shape { shapeTextEditor(el) } else { inlineTextEditor(el) }
+            }
+
+            // A tidied row or column: a handle in each gap, while nothing
+            // else has the selection's touches.
+            if store.cropping == nil && store.graphicCropping == nil && !gesture.dragActive {
+                TidyGapHandles(store: store)
             }
 
             // The modes that take the whole page's touches, over everything.

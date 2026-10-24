@@ -32,6 +32,9 @@ enum CanvasGestures {
         case hold
         /// Two fingers, pinched or dragged.
         case twoFingers
+        /// Two fingers whose first touches both fell on the selection's
+        /// body, which may be scaled and turned (pinchesSelection).
+        case twoFingersOnSelection
     }
 
     enum Target: CaseIterable {
@@ -59,11 +62,17 @@ enum CanvasGestures {
         /// The next page, or the one before (flingAction). The Android
         /// twin's STEP_PAGE.
         case stepPage
+        /// The selection scaled and turned with the fingers
+        /// (Geometry.pinched). The Android twin's TRANSFORM_SELECTION.
+        case transformSelection
     }
 
     static func action(_ input: Input, on target: Target) -> Action {
         switch (input, target) {
-        case (.twoFingers, _): return .panAndZoom
+        // A pinch that starts on the selection works the selection; every
+        // other two-finger touch moves the view.
+        case (.twoFingersOnSelection, .selectedBody): return .transformSelection
+        case (.twoFingers, _), (.twoFingersOnSelection, _): return .panAndZoom
         // A tap is the same everywhere: what is on top there, or nothing.
         // Inside the selection it still picks the topmost thing, so the
         // element covering it can be tapped as before.
@@ -84,6 +93,48 @@ enum CanvasGestures {
         // finger.
         case (.hold, .emptyPage), (.hold, .backdrop), (.hold, .workspace): return .menu
         }
+    }
+
+    // MARK: a pinch on the selection
+
+    /// Settings ▸ Editing's "Pinch resizes what is selected": on unless
+    /// turned off, as on the Android twin.
+    static let pinchSelectionKey = "canvia.pinchSelection"
+
+    /// Whether two fingers first touching at `a` and `b`, in page units,
+    /// scale and turn the selection rather than the view: both inside its
+    /// body — one thing's turned frame, several things' box — grown about
+    /// its middle to at least the fingertip target across (Touch.minTarget,
+    /// twice handleReach, on screen; the Android twin's 2 ×
+    /// HANDLE_TOUCH_RADIUS) at `zoom`. Refused when anything selected is
+    /// locked or holds its place, when the page is locked, and while
+    /// cropping, typing, drawing, erasing or brushing (`busy`).
+    static func pinchesSelection(_ a: CGPoint, _ b: CGPoint, selected: [Element], zoom: Double,
+                                 pageLocked: Bool, busy: Bool) -> Bool {
+        guard !busy, !pageLocked, !selected.isEmpty,
+              !selected.contains(where: { $0.holdsPlace || $0.isHidden }) else { return false }
+        let target = Touch.pageUnits(Touch.minTarget, zoom: zoom)
+        func inside(_ p: CGPoint) -> Bool {
+            if selected.count == 1, let el = selected.first {
+                let local = el.rotation == 0 ? p : Geometry.rotate(p, around: el.center, degrees: -el.rotation)
+                return grown(el.frame, to: target).contains(local)
+            }
+            return bodyBox(selected).map { grown($0, to: target).contains(p) } ?? false
+        }
+        return inside(a) && inside(b)
+    }
+
+    /// The input two fingers make: on the selection when pinchesSelection
+    /// says so, plain two fingers otherwise.
+    static func twoFingerInput(_ a: CGPoint, _ b: CGPoint, selected: [Element], zoom: Double,
+                               pageLocked: Bool, busy: Bool) -> Input {
+        pinchesSelection(a, b, selected: selected, zoom: zoom, pageLocked: pageLocked, busy: busy)
+            ? .twoFingersOnSelection : .twoFingers
+    }
+
+    /// `box` grown about its middle to at least `target` across and down.
+    private static func grown(_ box: CGRect, to target: Double) -> CGRect {
+        box.insetBy(dx: -max(0, target - box.width) / 2, dy: -max(0, target - box.height) / 2)
     }
 
     // MARK: a swipe to the next page

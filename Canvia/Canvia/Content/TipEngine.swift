@@ -9,7 +9,7 @@ import Foundation
 
 enum TipEvent: String, Equatable {
     case firstElementAdded, textAdded, photoAdded, multiSelected, manyElements, curvedText
-    case rotated, pageAdded, drewStroke, dropped
+    case rotated, pageAdded, drewStroke, dropped, smallSelected
 }
 
 struct Tip: Equatable, Identifiable {
@@ -57,6 +57,8 @@ final class TipEngine {
                          systemImage: "pencil.tip"),
         .dropped: Tip(id: "drop", text: tr("Dropped in place. Pictures, text and links from other apps can be dragged straight onto the page."),
                       systemImage: "square.and.arrow.down.on.square"),
+        .smallSelected: Tip(id: "pinch", text: tr("Pinch on what is selected to resize it, and twist two fingers to turn it. Pinch on the empty page to zoom."),
+                            systemImage: "arrow.up.left.and.arrow.down.right"),
     ]
 
     private var shown: Set<String> {

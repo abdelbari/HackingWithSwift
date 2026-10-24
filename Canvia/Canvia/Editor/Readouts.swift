@@ -2,6 +2,7 @@
 // turned — in the Android twin's words, part by part, so a snapped axis or
 // an equal gap can be picked out in the guide colour.
 
+import CoreGraphics
 import Foundation
 
 /// One stretch of a readout; `accent` ones are drawn in the guide colour.
@@ -52,6 +53,14 @@ enum Readouts {
     /// "45°", in the guide colour while the angle is held on a snap.
     static func angle(_ degrees: Double, snapped: Bool) -> [BadgeRun] {
         [BadgeRun(text: "\(Int(degrees) % 360)°", accent: snapped)]
+    }
+
+    /// A pinch on the selection: "120 × 48 · 45°" — its size as the size
+    /// badge reads it (Units.readout), then its angle, in the guide colour
+    /// while it is held on a snap.
+    static func pinch(size: CGSize, degrees: Double, snapped: Bool, in design: Design) -> [BadgeRun] {
+        [BadgeRun(text: Units.readout(width: size.width, height: size.height, design) + " · ")]
+            + angle(degrees, snapped: snapped)
     }
 
     /// The runs as one line, for the plain badge and for VoiceOver.

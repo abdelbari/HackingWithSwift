@@ -19,6 +19,7 @@
 //   hold, then drag, empty page   draw the band       (SwiftUI, inside)
 //   two fingers anywhere          pan the canvas      (scroll view)
 //   pinch anywhere                zoom the canvas     (scroll view)
+//   pinch begun on the selection  scale and turn it   (SelectionPinch)
 //   double tap                    toggle fit / 2x     (scroll view)
 //
 // Scrolling through pages (PageColumn), the content is the column of every
@@ -48,6 +49,7 @@
 
 import SwiftUI
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 
 /// A change of view asked of the canvas. Counted, so asking for the same
 /// thing twice does it twice, and a canvas made afresh does not act on a
@@ -222,6 +224,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// it turned the page (CanvasGestures.flingAction), and the view stays
     /// where it was rather than gliding on.
     var onFling: (CGPoint, CGPoint, Bool) -> Bool = { _, _, _ in false }
+    /// Whether two fingers first landing at these points, in the page
+    /// worked's units, scale and turn the selection rather than the view
+    /// (CanvasGestures.pinchesSelection): asked as the second one lands.
+    var pinchesSelection: (CGPoint, CGPoint) -> Bool = { _, _ in false }
+    /// That pinch: begun, moved — the fingers this many times as far apart
+    /// as they landed and their line turned this many degrees — and let go.
+    var onSelectionPinch: (CanvasDrag, Double, Double) -> Void = { _, _, _ in }
     /// The page worked expanded to a whiteboard; nil for a page alone or
     /// the column. Two fingers tapped twice on its empty space fit it to its
     /// content.
@@ -299,6 +308,18 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         boardFit.numberOfTapsRequired = 2
         boardFit.delegate = context.coordinator
         scroll.addGestureRecognizer(boardFit)
+
+        // Two fingers landing on the selection scale and turn it: decided
+        // as the second lands, and until then the view's own pinch and pan
+        // wait, so neither starts on a pinch that is the selection's.
+        let selectionPinch = SelectionPinch(
+            target: context.coordinator, action: #selector(Coordinator.handleSelectionPinch(_:)))
+        selectionPinch.decides = { [weak coordinator = context.coordinator] a, b in
+            coordinator?.pinchesSelection(a, b) ?? false
+        }
+        scroll.addGestureRecognizer(selectionPinch)
+        scroll.pinchGestureRecognizer?.require(toFail: selectionPinch)
+        scroll.panGestureRecognizer.require(toFail: selectionPinch)
 
         context.coordinator.scrollView = scroll
         context.coordinator.boardFit = boardFit
@@ -916,6 +937,36 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             }
         }
 
+        /// Whether two fingers landing as `a` and `b` are the selection's to
+        /// pinch: asked in the page worked's units.
+        func pinchesSelection(_ a: UITouch, _ b: UITouch) -> Bool {
+            parent.pinchesSelection(pagePoint(a.location(in: host.view)), pagePoint(b.location(in: host.view)))
+        }
+
+        /// A point of the host view in the page worked's units: on a
+        /// whiteboard, as the canvas tells it; in the column, taken off the
+        /// page's place and scale.
+        private func pagePoint(_ point: CGPoint) -> CGPoint {
+            let content = outward(point)
+            guard let column = parent.column else { return content }
+            return CGPoint(x: (content.x - column.page.minX) / column.scale,
+                           y: (content.y - column.page.minY) / column.scale)
+        }
+
+        @objc func handleSelectionPinch(_ pinch: SelectionPinch) {
+            switch pinch.state {
+            case .began:
+                stopEdgeScroll()
+                parent.onSelectionPinch(.began, 1, 0)
+            case .changed:
+                parent.onSelectionPinch(.moved, pinch.scale, pinch.turn)
+            case .ended, .cancelled:
+                parent.onSelectionPinch(.ended, pinch.scale, pinch.turn)
+            default:
+                break
+            }
+        }
+
         @objc func handleBackgroundTap(_ tap: UITapGestureRecognizer) {
             parent.onBackgroundTap(outward(tap.location(in: host.view)))
         }
@@ -1054,5 +1105,83 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             let held = ProcessInfo.processInfo.systemUptime - panTouchStart
             return CanvasGestures.pansFromPage(onElement: false, held: held)
         }
+    }
+}
+
+/// Two fingers on the selection: decided the moment the second finger lands
+/// — `decides`, given both touches — and
+/// failed at once when they are not, so the scroll view's pinch and pan,
+/// which wait for it, start as they always did. While it lasts it tells
+/// how many times as far apart the fingers are as they landed (`scale`),
+/// and how many degrees their line has turned since (`turn`), clockwise
+/// on screen as a turn on the page is. A third finger ends it.
+final class SelectionPinch: UIGestureRecognizer {
+    var decides: (UITouch, UITouch) -> Bool = { _, _ in false }
+    private(set) var scale = 1.0
+    private(set) var turn = 0.0
+    private var fingers: [UITouch] = []
+    private var startDistance = 1.0
+    private var startAngle = 0.0
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesBegan(touches, with: event)
+        fingers.append(contentsOf: touches)
+        guard fingers.count == 2 else {
+            if fingers.count > 2 { state = state == .possible ? .failed : .ended }
+            return
+        }
+        guard state == .possible else { return }
+        let (a, b) = (fingers[0].location(in: view), fingers[1].location(in: view))
+        guard decides(fingers[0], fingers[1]) else {
+            state = .failed
+            return
+        }
+        startDistance = max(Double(hypot(b.x - a.x, b.y - a.y)), 1)
+        startAngle = Double(atan2(b.y - a.y, b.x - a.x))
+        scale = 1
+        turn = 0
+        state = .began
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesMoved(touches, with: event)
+        guard fingers.count == 2, state == .began || state == .changed else { return }
+        let (a, b) = (fingers[0].location(in: view), fingers[1].location(in: view))
+        scale = max(Double(hypot(b.x - a.x, b.y - a.y)), 1) / startDistance
+        var degrees = (Double(atan2(b.y - a.y, b.x - a.x)) - startAngle) * 180 / .pi
+        // The shorter way round, so a line turned past the half turn does
+        // not read as turned the long way.
+        degrees = degrees.truncatingRemainder(dividingBy: 360)
+        if degrees > 180 { degrees -= 360 } else if degrees < -180 { degrees += 360 }
+        turn = degrees
+        state = .changed
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesEnded(touches, with: event)
+        lift(touches, ending: .ended)
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesCancelled(touches, with: event)
+        lift(touches, ending: .cancelled)
+    }
+
+    /// Fingers lifted: a pinch under way ends with the first; one never
+    /// begun fails once no finger is left.
+    private func lift(_ touches: Set<UITouch>, ending: UIGestureRecognizer.State) {
+        fingers.removeAll { touches.contains($0) }
+        if state == .began || state == .changed {
+            state = ending
+        } else if state == .possible && fingers.isEmpty {
+            state = .failed
+        }
+    }
+
+    override func reset() {
+        super.reset()
+        fingers = []
+        scale = 1
+        turn = 0
     }
 }

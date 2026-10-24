@@ -914,6 +914,60 @@ enum Geometry {
         }
     }
 
+    /// The smallest type a pinch scales text down to: the Android twin's
+    /// Resize.MIN_FONT_SIZE.
+    static let minFontSize = 4.0
+
+    /// `elements` pinched with two fingers about `centre`: scaled `scale`
+    /// times — the ratio of the fingers' distances — and turned `turnDeg`,
+    /// the change in the angle between them, each as a corner scales it
+    /// (the Android twin's Resize.Kind.SCALE). Text scales its type and
+    /// letter spacing; photos, stickers and shapes scale evenly, a photo's
+    /// crop being all proportions; a straight line changes its length and
+    /// keeps its thickness; a group scales and turns about its middle, its
+    /// members keeping their groupTurn turned with them. One factor for
+    /// them all, never so small that a side goes under `minSize` or type
+    /// under minFontSize (nor forced up for what is already smaller). What
+    /// holds its place stays as it is. The Android twin's Geometry.pinched.
+    static func pinched(_ elements: [Element], centre: CGPoint, scale: Double, turnDeg: Double,
+                        minSize: Double = 8) -> [Element] {
+        let free = elements.filter { !$0.holdsPlace }
+        guard !free.isEmpty, scale.isFinite, scale > 0, turnDeg.isFinite else { return elements }
+        let floor = free.map { pinchFloor($0, minSize: minSize) }.max() ?? 0
+        let s = max(scale, min(floor, 1))
+        return elements.map { el in
+            guard !el.holdsPlace else { return el }
+            var e = el
+            let straight = el.type == .line && !LineRoutes.keepsLevel(el)
+            e.w = el.w * s
+            e.h = straight ? el.h : el.h * s
+            let spread = CGPoint(x: Double(centre.x) + Double(el.center.x - centre.x) * s,
+                                 y: Double(centre.y) + Double(el.center.y - centre.y) * s)
+            let c = rotate(spread, around: centre, degrees: turnDeg)
+            e.x = Double(c.x) - e.w / 2
+            e.y = Double(c.y) - e.h / 2
+            e.table = TableCell.scaledPad(el.table, by: s)
+            if el.type == .text {
+                e.fontSize = max(minFontSize, TypeReadouts.tenth((el.fontSize ?? 42) * s))
+                e.letterSpacing = el.letterSpacing.map { $0 * s }
+            }
+            if turnDeg != 0 {
+                e.rotation = Groups.normalisedTurn(el.rotation + turnDeg)
+                if el.group != nil { e.groupTurn = Groups.keptTurn(Groups.normalisedTurn((el.groupTurn ?? 0) + turnDeg)) }
+            }
+            return e
+        }
+    }
+
+    /// The least a pinch may scale `el` by: its shorter side — a straight
+    /// line's length — kept at `minSize`, and its type at minFontSize.
+    private static func pinchFloor(_ el: Element, minSize: Double) -> Double {
+        let side = el.type == .line && !LineRoutes.keepsLevel(el) ? el.w : min(el.w, el.h)
+        var least = side > 0 ? minSize / side : 0
+        if el.type == .text { least = max(least, minFontSize / max(el.fontSize ?? 42, 0.01)) }
+        return least
+    }
+
     /// A group or a multi-selection flipped as one unit about `box`, the
     /// selection's box: each member's frame (x, y, w, h, before its turn)
     /// mirrored across the box — horizontally x' = box.minX + box.maxX −

@@ -69,6 +69,13 @@ final class CanvasGesturesAndMoveTests: XCTestCase {
             (.hold, .workspace, .menu),
             (.tap, .workspace, .select),
             (.twoFingers, .workspace, .panAndZoom),
+            // Round 32: a pinch begun on the selection scales and turns it;
+            // anywhere else two fingers still move the view.
+            (.twoFingersOnSelection, .selectedBody, .transformSelection),
+            (.twoFingersOnSelection, .element, .panAndZoom),
+            (.twoFingersOnSelection, .emptyPage, .panAndZoom),
+            (.twoFingersOnSelection, .backdrop, .panAndZoom),
+            (.twoFingersOnSelection, .workspace, .panAndZoom),
         ]
         for (input, target, action) in rows {
             XCTAssertEqual(CanvasGestures.action(input, on: target), action, "\(input) on \(target)")

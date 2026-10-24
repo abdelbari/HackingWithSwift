@@ -1425,6 +1425,7 @@ struct PositionSheet: View {
                             orderButton(tr("Grid"), "rectangle.split.3x3") { store.tidySelected(.grid) }
                         }
                         .disabled(store.movableSelectionCount < 2)
+                        if let layout = store.tidyLayout { spacingRows(layout) }
                     }
                 }
                 nudgeSection
@@ -1717,6 +1718,28 @@ struct PositionSheet: View {
         nudgeHeld = nil
         store.commit()
         announceNudge()
+    }
+
+    /// Spacing after Tidy up: every gap of the tidied row, column or grid
+    /// at once, by the slider — live, one Spacing step as it lets go — or
+    /// typed in the design's unit. VoiceOver adjusts it a unit at a time.
+    @ViewBuilder
+    private func spacingRows(_ layout: Geometry.TidyLayout) -> some View {
+        let range = Geometry.tidySpacingRange(page: store.pageSize)
+        let unitStep = Units.stepPixels(1, store.design)
+        let readout = Units.readout(layout.gap, store.design) + Units.suffix(store.design)
+        lengthRow(tr("Spacing"), px: layout.gap) { typed in
+            store.setTidySpacing(min(max(typed, range.lowerBound), range.upperBound))
+        }
+        Slider(value: Binding(get: { min(max(layout.gap, range.lowerBound), range.upperBound) },
+                              set: { store.setTidySpacingLive($0) }),
+               in: range, onEditingChanged: { editing in if !editing { store.commitSpacing() } })
+            .accessibilityLabel(Text("Spacing"))
+            .accessibilityValue(readout)
+            .accessibilityAdjustableAction { direction in
+                let next = layout.gap + (direction == .increment ? unitStep : -unitStep)
+                store.setTidySpacing(min(max(next, range.lowerBound), range.upperBound))
+            }
     }
 
     private func orderButton(_ label: String, _ system: String, action: @escaping () -> Void) -> some View {

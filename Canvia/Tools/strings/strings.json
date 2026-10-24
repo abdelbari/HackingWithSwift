@@ -12650,6 +12650,15 @@
     "ja": "ファネル",
     "pt-BR": "Funil"
   },
+  "Gap %@": {
+    "ar": "الفجوة %@",
+    "de": "Abstand %@",
+    "es": "Separación %@",
+    "fr": "Espace %@",
+    "it": "Spazio %@",
+    "ja": "間隔 %@",
+    "pt-BR": "Espaço %@"
+  },
   "Generate": {
     "ar": "إنشاء",
     "de": "Erzeugen",
@@ -19240,6 +19249,33 @@
     "it": "Pizzica ovunque per lo zoom, anche sopra gli elementi. Scorri con due dita, o con un dito sulla pagina vuota o sull’area di lavoro grigia. Tocca due volte l’area di lavoro per ingrandire un punto, e di nuovo per adattare la pagina. L’indicatore in alto a destra mostra il livello di zoom; toccalo per passare dalla pagina intera alle dimensioni reali. Se ciò che hai selezionato esce dalla vista, Ripristinalo lo ritrova.",
     "ja": "素材の上でも、どこでもピンチでズームできます。2 本指、またはページの空いている所やグレーの作業領域を 1 本指でドラッグしてパンします。作業領域をダブルタップするとその場所を拡大し、もう一度ダブルタップするとページ全体を表示します。右上の表示が現在の倍率で、タップするとページ全体と実際のサイズを切り替えます。選択中のものが画面外にスクロールした場合は、「表示に戻す」で見つけられます。",
     "pt-BR": "Faça o gesto de pinça em qualquer lugar para ampliar, até sobre elementos. Mova a tela com dois dedos, ou com um dedo na página vazia ou na área cinza. Toque duas vezes na área de trabalho para ampliar um ponto, e de novo para ajustar a página. O indicador no canto superior direito mostra o zoom; toque nele para alternar entre a página inteira e o tamanho real. Se o que você selecionou sair da tela, Trazer de volta o encontra."
+  },
+  "Pinch on what is selected to resize it, and twist two fingers to turn it. Pinch on the empty page to zoom.": {
+    "ar": "اقرص على المحدد لتغيير حجمه، وأدر إصبعين لتدويره. اقرص على الصفحة الفارغة للتكبير.",
+    "de": "Ziehe die Auswahl mit zwei Fingern auf oder zu, um ihre Größe zu ändern, und drehe zwei Finger, um sie zu drehen. Auf der leeren Seite zoomt die Geste.",
+    "es": "Pellizca sobre lo seleccionado para cambiar su tamaño y gira dos dedos para girarlo. Pellizca en la página vacía para hacer zoom.",
+    "fr": "Pincez la sélection pour la redimensionner, et faites pivoter deux doigts pour la faire tourner. Pincez la page vide pour zoomer.",
+    "it": "Pizzica la selezione per ridimensionarla e ruota due dita per girarla. Pizzica la pagina vuota per lo zoom.",
+    "ja": "選択中のものをピンチしてサイズを変え、2本指をひねって回転します。何もないページでピンチするとズームします。",
+    "pt-BR": "Faça o gesto de pinça sobre o que está selecionado para redimensionar e gire dois dedos para girar. Faça a pinça na página vazia para dar zoom."
+  },
+  "Pinch resizes what is selected": {
+    "ar": "القرص يغيّر حجم المحدد",
+    "de": "Aufziehen ändert die Größe der Auswahl",
+    "es": "Pellizcar cambia el tamaño de lo seleccionado",
+    "fr": "Pincer redimensionne la sélection",
+    "it": "Pizzicare ridimensiona la selezione",
+    "ja": "ピンチで選択中のものをサイズ変更",
+    "pt-BR": "Pinçar redimensiona o que está selecionado"
+  },
+  "Pinching to resize and turn": {
+    "ar": "القرص لتغيير الحجم والتدوير",
+    "de": "Aufziehen zum Skalieren und Drehen",
+    "es": "Pellizcar para cambiar el tamaño y girar",
+    "fr": "Pincer pour redimensionner et faire pivoter",
+    "it": "Pizzicare per ridimensionare e ruotare",
+    "ja": "ピンチでサイズ変更と回転",
+    "pt-BR": "Pinça para redimensionar e girar"
   },
   "Pink": {
     "ar": "وردي",
@@ -27730,6 +27766,15 @@
     "it": "Con foto",
     "ja": "写真あり",
     "pt-BR": "Com fotos"
+  },
+  "With something selected, pinch on it to make it bigger or smaller, and twist two fingers to turn it; the turn snaps at every 45°. Pinch on the empty page or the grey workspace to zoom instead. Turn off Pinch resizes what is selected in Settings to make every pinch zoom.": {
+    "ar": "عند تحديد شيء، اقرص عليه لتكبيره أو تصغيره، وأدر إصبعين لتدويره؛ يلتقط التدوير كل 45°. اقرص على الصفحة الفارغة أو المساحة الرمادية للتكبير. أوقف «القرص يغيّر حجم المحدد» في الإعدادات ليكبّر كل قرص.",
+    "de": "Ist etwas ausgewählt, ziehe es mit zwei Fingern auf oder zu, um es zu vergrößern oder zu verkleinern, und drehe zwei Finger, um es zu drehen; die Drehung rastet alle 45° ein. Auf der leeren Seite oder der grauen Fläche zoomt die Geste. Schalte „Aufziehen ändert die Größe der Auswahl“ in den Einstellungen aus, damit jede Geste zoomt.",
+    "es": "Con algo seleccionado, pellizca sobre ello para hacerlo más grande o más pequeño y gira dos dedos para girarlo; el giro se ajusta cada 45°. Pellizca en la página vacía o en el área gris para hacer zoom. Desactiva Pellizcar cambia el tamaño de lo seleccionado en Ajustes para que todo pellizco haga zoom.",
+    "fr": "Avec un élément sélectionné, pincez-le pour l’agrandir ou le réduire, et faites pivoter deux doigts pour le faire tourner ; la rotation s’aimante tous les 45°. Pincez la page vide ou la zone grise pour zoomer. Désactivez Pincer redimensionne la sélection dans Réglages pour que chaque pincement zoome.",
+    "it": "Con qualcosa selezionato, pizzicalo per ingrandirlo o rimpicciolirlo e ruota due dita per girarlo; la rotazione scatta ogni 45°. Pizzica la pagina vuota o l’area grigia per lo zoom. Disattiva Pizzicare ridimensiona la selezione nelle Impostazioni perché ogni pizzico faccia zoom.",
+    "ja": "何かを選択しているときは、それをピンチして拡大・縮小し、2本指をひねって回転します。回転は45°ごとにスナップします。何もないページやグレーの作業領域でピンチするとズームします。すべてのピンチでズームするには、設定の「ピンチで選択中のものをサイズ変更」をオフにします。",
+    "pt-BR": "Com algo selecionado, faça a pinça sobre ele para aumentar ou diminuir e gire dois dedos para girá-lo; o giro se encaixa a cada 45°. Faça a pinça na página vazia ou na área cinza para dar zoom. Desative Pinçar redimensiona o que está selecionado em Ajustes para que toda pinça dê zoom."
   },
   "Without photos": {
     "ar": "بدون صور",
