@@ -11,9 +11,11 @@ enum FindReplace {
 
     /// Where a match or a misspelling is: in a box's words, or in a page's
     /// speaker notes — searched and checked as plain text after the page's
-    /// boxes. The Android twin's kinds, by the same names.
+    /// boxes — or in a Doc's block (Docs): a text block's words as a box's,
+    /// a table's cell as plain text. The Android twin's kinds, by the same
+    /// names.
     enum Kind: String {
-        case element, notes
+        case element, notes, doc
     }
 
     /// Where `needle` is in `body`, as UTF-16 ranges, left to right and never

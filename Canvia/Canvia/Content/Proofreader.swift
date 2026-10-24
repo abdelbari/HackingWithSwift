@@ -10,13 +10,21 @@
 // dictionary has kept on this phone (dictionary.json, see
 // SpellingDictionary). The Android twin's Proofing keeps the same keys and
 // file, by the same rules.
+//
+// Beside the dictionary's words, the writing rules (Proofing) are checked
+// in the same pass over the same words — each finding a Misspelling with
+// its `rule` and its one fix — and fixed the same way, spans and markers
+// kept. A Doc is checked as its blocks: each text block's words as a box's,
+// each table cell's as plain text, a finding in one of kind `doc`.
 
 import UIKit
 
 enum Proofreader {
 
     struct Misspelling: Identifiable, Equatable {
-        var id: String { "\(kind.rawValue)|\(pageIndex)|\(elementId)|\(range.location)" }
+        var id: String {
+            "\(kind.rawValue)|\(pageIndex)|\(elementId)|\(blockId ?? "")|\(row ?? -1)|\(col ?? -1)|\(range.location)|\(rule ?? "")"
+        }
         var pageIndex: Int
         var elementId: String
         var range: NSRange
@@ -26,8 +34,90 @@ enum Proofreader {
         /// shown (DesignStore.TextMatch.plain).
         var plain = NSRange(location: 0, length: 0)
         /// In a box's words, or in the page's speaker notes — then
-        /// `elementId` is empty and `range` is `plain`, of the notes.
+        /// `elementId` is empty and `range` is `plain`, of the notes — or in
+        /// a Doc's block, `blockId`, and a table's cell, `row` and `col`.
         var kind: FindReplace.Kind = .element
+        var blockId: String?
+        var row: Int?
+        var col: Int?
+        /// A writing finding's kind (Proofing.rules); nil for a word the
+        /// dictionary does not know. Its one fix, if it has one, is its
+        /// only suggestion.
+        var rule: String?
+
+        /// Whether it is a writing finding rather than a misspelling.
+        var isWriting: Bool { rule != nil }
+
+        /// Whether it is in a Doc table's cell.
+        var inCell: Bool { kind == .doc && row != nil && col != nil }
+    }
+
+    /// Words to check: a box's — or a page's notes, of kind notes with no
+    /// element, or a Doc's block or table cell, of kind doc — the words as
+    /// they read, and for each of their characters where it is stored in
+    /// `text`, as character offsets (RichText.mapped).
+    struct Checkable {
+        var pageIndex: Int
+        var elementId: String
+        var text: String
+        var plain: String
+        var rawAt: [Int]
+        var kind: FindReplace.Kind = .element
+        var blockId: String?
+        var row: Int?
+        var col: Int?
+
+        /// Words stored as they read: notes and a table's cells.
+        static func plainly(_ words: String, pageIndex: Int, elementId: String = "", kind: FindReplace.Kind,
+                            blockId: String? = nil, row: Int? = nil, col: Int? = nil) -> Checkable {
+            Checkable(pageIndex: pageIndex, elementId: elementId, text: words, plain: words,
+                      rawAt: Array(0..<words.count), kind: kind, blockId: blockId, row: row, col: col)
+        }
+    }
+
+    /// Everything a check reads, in reading order: page by page, element by
+    /// element — text boxes and the words in shapes, not a hidden one or a
+    /// caption box's cues — then the page's speaker notes; a locked page
+    /// not at all, as no fix may change its words. A Doc is its blocks
+    /// instead, in order (docCheckables).
+    static func checkables(in design: Design) -> [Checkable] {
+        if Docs.isDoc(design) { return docCheckables(design) }
+        var out: [Checkable] = []
+        for (p, page) in design.pages.enumerated() where !PageLocks.isLocked(page) {
+            for el in page.elements where ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil {
+                guard let text = el.text, !text.isEmpty else { continue }
+                let (plain, rawAt) = RichText.mapped(text)
+                out.append(Checkable(pageIndex: p, elementId: el.id, text: text, plain: plain, rawAt: rawAt))
+            }
+            out.append(.plainly(page.notes ?? "", pageIndex: p, kind: .notes))
+        }
+        return out
+    }
+
+    /// A Doc's words to check: each text block's as a box's, and each
+    /// table cell's, row by row, as plain text.
+    static func docCheckables(_ design: Design) -> [Checkable] {
+        Docs.blocks(design).flatMap { block -> [Checkable] in
+            if Docs.textTypes.contains(block.type) {
+                guard !block.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
+                let (plain, rawAt) = RichText.mapped(block.text)
+                return [Checkable(pageIndex: 0, elementId: "", text: block.text, plain: plain, rawAt: rawAt,
+                                  kind: .doc, blockId: block.id)]
+            }
+            guard block.type == Docs.table else { return [] }
+            return Docs.tableRows(block).rows.enumerated().flatMap { r, row in
+                row.enumerated().compactMap { c, cell -> Checkable? in
+                    cell.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil
+                        : .plainly(cell, pageIndex: 0, kind: .doc, blockId: block.id, row: r, col: c)
+                }
+            }
+        }
+    }
+
+    /// Where a Doc's word is, as Check spelling says it: the block's place
+    /// among the Doc's blocks, from 1 — "Doc, paragraph N".
+    static func docPlace(_ design: Design, blockId: String?) -> Int {
+        (Docs.blocks(design).firstIndex { $0.id == blockId } ?? -1) + 1
     }
 
     /// Every word the checker does not know, in reading order: page by page,
@@ -47,28 +137,42 @@ enum Proofreader {
         let checker = UITextChecker()
         let lang = checkerLanguage(language ?? design.language)
         var found: [Misspelling] = []
-        // A locked page is not read: no fix may change its words.
-        for (p, page) in design.pages.enumerated() where !PageLocks.isLocked(page) {
-            // A hidden element is not read: nobody sees its words.
-            // A caption box's words are its cues, changed in Edit captions.
-            for el in page.elements where ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil {
-                guard let text = el.text, !text.isEmpty else { continue }
-                let (plain, rawAt) = RichText.mapped(text)
-                for miss in unknownWords(in: plain, checker: checker, language: lang, skip: skip,
-                                         maxSuggestions: maxSuggestions) {
-                    guard let stored = storedRange(miss.range, plain: plain, rawAt: rawAt, in: text) else { continue }
-                    found.append(Misspelling(pageIndex: p, elementId: el.id, range: stored, word: miss.word,
-                                             suggestions: miss.suggestions, plain: miss.range))
-                }
-            }
-            // The speaker notes, after the page's boxes, as plain text.
-            for miss in unknownWords(in: page.notes ?? "", checker: checker, language: lang, skip: skip,
+        for item in checkables(in: design) {
+            for miss in unknownWords(in: item.plain, checker: checker, language: lang, skip: skip,
                                      maxSuggestions: maxSuggestions) {
-                found.append(Misspelling(pageIndex: p, elementId: "", range: miss.range, word: miss.word,
-                                         suggestions: miss.suggestions, plain: miss.range, kind: .notes))
+                guard let stored = storedRange(miss.range, plain: item.plain, rawAt: item.rawAt, in: item.text) else { continue }
+                found.append(misspelling(item, range: stored, word: miss.word, suggestions: miss.suggestions,
+                                         plain: miss.range))
             }
         }
         return found
+    }
+
+    /// A finding in `item`: stored at `range`, reading `word`.
+    private static func misspelling(_ item: Checkable, range: NSRange, word: String, suggestions: [String],
+                                    plain: NSRange, rule: String? = nil) -> Misspelling {
+        Misspelling(pageIndex: item.pageIndex, elementId: item.elementId, range: range, word: word,
+                    suggestions: suggestions, plain: plain, kind: item.kind, blockId: item.blockId,
+                    row: item.row, col: item.col, rule: rule)
+    }
+
+    /// Every writing finding (Proofing.findings) across `design`, in the
+    /// order its words are checked (checkables), in `language` — the
+    /// design's own when nil — each placed in its stored words, its one fix
+    /// its only suggestion. The typographic kinds only with `typography`.
+    static func writing(in design: Design, language: String? = nil,
+                        typography: Bool = Proofing.typographyOn) -> [Misspelling] {
+        let lang = language ?? design.language
+        return checkables(in: design).flatMap { item -> [Misspelling] in
+            let plain = item.plain as NSString
+            return Proofing.findings(item.plain, language: lang, typography: typography).compactMap { f in
+                let range = NSRange(location: f.start, length: f.end - f.start)
+                guard f.start >= 0, f.end <= plain.length, f.start < f.end,
+                      let stored = storedRange(range, plain: item.plain, rawAt: item.rawAt, in: item.text) else { return nil }
+                return misspelling(item, range: stored, word: plain.substring(with: range),
+                                   suggestions: f.replacement.map { [$0] } ?? [], plain: range, rule: f.kind)
+            }
+        }
     }
 
     /// The words of `plain` worth flagging that the checker does not know,
@@ -205,6 +309,7 @@ enum Proofreader {
     /// reads where it was found, so a stale row never rewrites the wrong
     /// letters, or its page has been locked since.
     static func fixed(_ design: Design, _ m: Misspelling, with replacement: String) -> Design? {
+        if m.kind == .doc { return fixedInDoc(design, m, with: replacement) }
         guard design.pages.indices.contains(m.pageIndex),
               !PageLocks.isLocked(design.pages[m.pageIndex]) else { return nil }
         if m.kind == .notes {
@@ -231,6 +336,57 @@ enum Proofreader {
         // A chart's label keeps its new word through the chart's Update.
         DataGraphics.keepingLabel(&out.pages[m.pageIndex], was: before, now: out.pages[m.pageIndex].elements[i])
         return out
+    }
+
+    /// A Doc's word fixed: in a cell as plain text, in a text block as a
+    /// box's (`replacing`), its spans moved with it (Docs.withText).
+    private static func fixedInDoc(_ design: Design, _ m: Misspelling, with replacement: String) -> Design? {
+        guard Docs.isDoc(design), let block = Docs.blocks(design).first(where: { $0.id == m.blockId }) else { return nil }
+        var next = block
+        if let row = m.row, let col = m.col {
+            var rows = Docs.tableRows(block).rows
+            let header = Docs.tableRows(block).header
+            guard rows.indices.contains(row), rows[row].indices.contains(col) else { return nil }
+            let cell = rows[row][col] as NSString
+            guard NSMaxRange(m.range) <= cell.length, cell.substring(with: m.range) == m.word else { return nil }
+            rows[row][col] = cell.replacingCharacters(in: m.range, with: replacement)
+            next.table = DocTable(rows: rows, header: header)
+        } else {
+            let text = block.text
+            guard Docs.textTypes.contains(block.type), let r = Range(m.range, in: text) else { return nil }
+            let start = text.distance(from: text.startIndex, to: r.lowerBound)
+            let end = text.distance(from: text.startIndex, to: r.upperBound)
+            let (plain, rawAt) = RichText.mapped(text)
+            let letters = Array(plain)
+            let reads = String(rawAt.indices.filter { (start..<end).contains(rawAt[$0]) }.map { letters[$0] })
+            guard reads == m.word else { return nil }
+            next = Docs.withText(block, replacing(m, in: text, with: replacement))
+        }
+        return Docs.withBlocks(design, Docs.blocks(design).map { $0.id == block.id ? next : $0 })
+    }
+
+    /// Every finding in `found` fixed — Fix all of a writing rule's kind —
+    /// each by its one fix, the last in each box first so the ones before
+    /// it still stand where they were found; one with no fix, or no longer
+    /// where it was found, is passed over. Nil when nothing changed. The
+    /// caller makes it one undo step.
+    static func fixedAll(_ design: Design, _ found: [Misspelling]) -> Design? {
+        func place(_ m: Misspelling) -> String {
+            "\(m.kind.rawValue)|\(m.elementId)|\(m.blockId ?? "")|\(m.row ?? -1)|\(m.col ?? -1)"
+        }
+        let ordered = found.sorted { a, b in
+            if a.pageIndex != b.pageIndex { return a.pageIndex < b.pageIndex }
+            if place(a) != place(b) { return place(a) < place(b) }
+            return a.range.location > b.range.location
+        }
+        var next = design
+        var changed = false
+        for m in ordered {
+            guard let fix = m.suggestions.first, let made = fixed(next, m, with: fix) else { continue }
+            next = made
+            changed = true
+        }
+        return changed ? next : nil
     }
 
     // MARK: ignored words, the dictionary and the language

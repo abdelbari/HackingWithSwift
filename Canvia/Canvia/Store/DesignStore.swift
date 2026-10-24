@@ -1975,7 +1975,7 @@ final class DesignStore {
 
     /// Where one match lives, so a caller can jump to it.
     struct TextMatch: Equatable, Identifiable {
-        var id: String { "\(kind.rawValue)|\(pageIndex)|\(elementId)|\(range.location)" }
+        var id: String { "\(place)|\(pageIndex)|\(range.location)" }
         var pageIndex: Int
         /// The box it is in; empty for the page's notes.
         var elementId: String
@@ -1987,8 +1987,18 @@ final class DesignStore {
         /// The line the match sits on, as it reads, for showing it in a list.
         var preview: String
         /// In a box, or in the page's speaker notes — whose words are plain,
-        /// `range` and `plain` alike.
+        /// `range` and `plain` alike — or in a Doc's block `blockId`, a
+        /// table's cell at `row` and `col` as plain text.
         var kind: FindReplace.Kind = .element
+        var blockId: String?
+        var row: Int?
+        var col: Int?
+
+        /// Whether it is in a Doc table's cell.
+        var inCell: Bool { kind == .doc && row != nil && col != nil }
+
+        /// What it is in: its box, its page's notes, its block or its cell.
+        var place: String { "\(kind.rawValue)|\(elementId)|\(blockId ?? "")|\(row ?? -1)|\(col ?? -1)" }
     }
 
     /// The match Find and replace is showing, its letters marked on the
@@ -2015,6 +2025,7 @@ final class DesignStore {
     static func matches(in design: Design, for needle: String, caseSensitive: Bool,
                         wholeWord: Bool) -> [TextMatch] {
         guard !needle.isEmpty else { return [] }
+        if Docs.isDoc(design) { return docMatches(design, for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord) }
         var found: [TextMatch] = []
         for (index, page) in design.pages.enumerated() where !PageLocks.isLocked(page) {
             for element in page.elements where FindReplace.searches(element) {
@@ -2029,6 +2040,34 @@ final class DesignStore {
             for hit in FindReplace.ranges(of: needle, in: notes, caseSensitive: caseSensitive, wholeWord: wholeWord) {
                 found.append(TextMatch(pageIndex: index, elementId: "", range: hit, plain: hit,
                                        preview: line(of: notes, containing: hit), kind: .notes))
+            }
+        }
+        return found
+    }
+
+    /// A Doc's matches: each block in order, a text block's words as a
+    /// box's are searched, a table's cells row by row as plain text. Its
+    /// pages are not searched; each match is on page 0.
+    private static func docMatches(_ design: Design, for needle: String, caseSensitive: Bool,
+                                   wholeWord: Bool) -> [TextMatch] {
+        var found: [TextMatch] = []
+        for block in Docs.blocks(design) {
+            if Docs.textTypes.contains(block.type) {
+                let plain = RichText.strip(block.text)
+                for hit in FindReplace.matches(of: needle, in: block.text, caseSensitive: caseSensitive, wholeWord: wholeWord) {
+                    found.append(TextMatch(pageIndex: 0, elementId: "", range: hit.stored, plain: hit.plain,
+                                           preview: line(of: plain, containing: hit.plain), kind: .doc, blockId: block.id))
+                }
+            } else if block.type == Docs.table {
+                for (r, row) in Docs.tableRows(block).rows.enumerated() {
+                    for (c, cell) in row.enumerated() {
+                        for hit in FindReplace.ranges(of: needle, in: cell, caseSensitive: caseSensitive, wholeWord: wholeWord) {
+                            found.append(TextMatch(pageIndex: 0, elementId: "", range: hit, plain: hit,
+                                                   preview: line(of: cell, containing: hit), kind: .doc,
+                                                   blockId: block.id, row: r, col: c))
+                        }
+                    }
+                }
             }
         }
         return found
@@ -2053,6 +2092,11 @@ final class DesignStore {
         }.count
         guard total > 0 else { return 0 }
         apply { design in
+            if Docs.isDoc(design) {
+                design = Self.replacingAllInDoc(design, needle, with: replacement, caseSensitive: caseSensitive,
+                                                wholeWord: wholeWord)
+                return
+            }
             for p in design.pages.indices where !PageLocks.isLocked(design.pages[p]) {
                 for i in design.pages[p].elements.indices
                 where FindReplace.replaces(design.pages[p].elements[i]) {
@@ -2090,7 +2134,7 @@ final class DesignStore {
     /// a box FindReplace.replaces — never a chart's value label or axis
     /// number, which are found all the same.
     static func replaceable(_ design: Design, _ match: TextMatch) -> Bool {
-        if match.kind == .notes { return true }
+        if match.kind == .notes || match.kind == .doc { return true }
         guard design.pages.indices.contains(match.pageIndex),
               let el = design.pages[match.pageIndex].elements.first(where: { $0.id == match.elementId }) else { return false }
         return FindReplace.replaces(el)
@@ -2102,6 +2146,7 @@ final class DesignStore {
     /// when the match is no longer in the design to replace, or its page
     /// has been locked since.
     static func replacingOne(_ design: Design, _ match: TextMatch, with replacement: String) -> Design? {
+        if match.kind == .doc { return replacingInDoc(design, match, with: replacement) }
         guard design.pages.indices.contains(match.pageIndex),
               !PageLocks.isLocked(design.pages[match.pageIndex]) else { return nil }
         if match.kind == .notes {
@@ -2143,6 +2188,57 @@ final class DesignStore {
         ShapeText.fitWords(&el)
     }
 
+    /// A Doc's match replaced: a cell's words as plain text, a text block's
+    /// as a box's (FindReplace.replacing), its spans moved along — or nil
+    /// when it is no longer there.
+    private static func replacingInDoc(_ design: Design, _ match: TextMatch, with replacement: String) -> Design? {
+        guard Docs.isDoc(design), let block = Docs.blocks(design).first(where: { $0.id == match.blockId }) else { return nil }
+        var next = block
+        if let row = match.row, let col = match.col {
+            guard block.type == Docs.table else { return nil }
+            var rows = Docs.tableRows(block).rows
+            guard rows.indices.contains(row), rows[row].indices.contains(col) else { return nil }
+            let cell = rows[row][col] as NSString
+            guard match.range.length > 0, NSMaxRange(match.range) <= cell.length else { return nil }
+            rows[row][col] = cell.replacingCharacters(in: match.range, with: replacement)
+            next.table = DocTable(rows: rows, header: Docs.tableRows(block).header)
+        } else {
+            let body = block.text
+            let length = (RichText.strip(body) as NSString).length
+            guard Docs.textTypes.contains(block.type), match.plain.length > 0, NSMaxRange(match.plain) <= length,
+                  RichText.storedRange(of: match.plain, in: body) == match.range else { return nil }
+            next = Docs.withText(block, FindReplace.replacing(match.plain, in: body, with: replacement))
+        }
+        return Docs.withBlocks(design, Docs.blocks(design).map { $0.id == block.id ? next : $0 })
+    }
+
+    /// Every occurrence in a Doc replaced: each text block's as a box's,
+    /// the last first so the spans between stay on their words, and each
+    /// cell's as plain text.
+    private static func replacingAllInDoc(_ design: Design, _ needle: String, with replacement: String,
+                                          caseSensitive: Bool, wholeWord: Bool) -> Design {
+        let blocks = Docs.blocks(design).map { block -> DocBlock in
+            if Docs.textTypes.contains(block.type) {
+                let found = FindReplace.ranges(of: needle, in: RichText.strip(block.text),
+                                               caseSensitive: caseSensitive, wholeWord: wholeWord)
+                return found.reversed().reduce(block) { b, hit in
+                    Docs.withText(b, FindReplace.replacing(hit, in: b.text, with: replacement))
+                }
+            }
+            guard block.type == Docs.table else { return block }
+            var out = block
+            let rows = Docs.tableRows(block).rows.map { row in
+                row.map { cell -> String in
+                    FindReplace.ranges(of: needle, in: cell, caseSensitive: caseSensitive, wholeWord: wholeWord)
+                        .reversed().reduce(cell) { ($0 as NSString).replacingCharacters(in: $1, with: replacement) }
+                }
+            }
+            out.table = DocTable(rows: rows, header: Docs.tableRows(block).header)
+            return out
+        }
+        return Docs.withBlocks(design, blocks)
+    }
+
     /// After Replace, the match the sheet moves on to in `matches`, the
     /// design's matches now: the one that took the replaced one's place in
     /// reading order, past any the replacement itself holds — round to the
@@ -2153,7 +2249,7 @@ final class DesignStore {
         let end = replaced.plain.location + length
         var i = min(max(current, 0), matches.count)
         while i < matches.count, matches[i].pageIndex == replaced.pageIndex,
-              matches[i].elementId == replaced.elementId, matches[i].plain.location < end {
+              matches[i].place == replaced.place, matches[i].plain.location < end {
             i += 1
         }
         return i < matches.count ? i : 0
@@ -2163,6 +2259,11 @@ final class DesignStore {
     /// letters there (findHighlight); the editor keeps it in sight. A match
     /// in the notes opens the page's notes instead (notesAsked).
     func reveal(_ match: TextMatch) {
+        // A Doc's block: the Doc editor brings it into sight.
+        if match.kind == .doc {
+            findHighlight = match
+            return
+        }
         if match.kind == .notes {
             reveal(elementId: nil, onPage: match.pageIndex)
             findHighlight = nil

@@ -111,6 +111,9 @@ struct SettingsSheet: View {
     /// A typed "- " or "1. " starts a list (TextLists.autoStart).
     @AppStorage(TextLists.autoListsKey) private var autoLists = true
     @AppStorage(ForeignText.keepsFormattingKey) private var keepsFormatting = true
+    /// Check spelling's typographic rules: curly quotes, ellipses and
+    /// dashes in ranges (Proofing.typography).
+    @AppStorage(Proofing.typographySetting) private var proofTypography = true
     @AppStorage(AppDefaults.exportFormatKey) private var exportFormat = "png"
     /// The Export sheet's row of accessibility suggestions (ExportPlan).
     @AppStorage(ExportPlan.a11yNudgeKey) private var remindA11y = true
@@ -153,7 +156,10 @@ struct SettingsSheet: View {
                 appearanceSection
                 languageSection
                 brandSection
-                editingSection
+                Group {
+                    editingSection
+                    proofingSection
+                }
                 accessibilitySection
                 exportSection
                 helpSection
@@ -235,6 +241,18 @@ struct SettingsSheet: View {
             store?.snapping = next
         }
         .onAppear { if let store { snapping = store.snapping } }
+    }
+
+    /// Settings ▸ Proofing: whether Check spelling's Writing section
+    /// suggests curly quotes, ellipses and dashes in ranges.
+    private var proofingSection: some View {
+        Section {
+            Toggle("Typography", isOn: $proofTypography)
+        } header: {
+            Text("Proofing")
+        } footer: {
+            Text("Check spelling also suggests curly quotes, an ellipsis for three full stops and a dash between numbers.")
+        }
     }
 
     /// Each row with what it does in a line, read with it as one.

@@ -5,9 +5,13 @@
 // (`paginated`). The Android twin's Docs, rule for rule.
 //
 // Kept in the design as both phones write it: "kind": "doc", "blocks":
-// [{"id", "type", "text", "src", "alt", "table", "chart", "checked"}] — a
-// block writes only the keys it has, `text` in RichText markup as a text box
-// keeps it, `table` as {"rows": [[…]], "header": true}, `chart` the ChartSpec
+// [{"id", "type", "text", "spans", "spansText", "align", "src", "alt",
+// "table", "chart", "checked"}] — a block writes only the keys it has, `text`
+// in RichText markup as a text box keeps it, `spans` and `spansText` its
+// words' colours, highlights and links as a text box's (Spans: [{start, end,
+// color?, link?, highlight?}] over the words as they read), `align` one of
+// center, right or justify — never written for left — `table` as {"rows":
+// [[…]], "header": true}, `chart` the ChartSpec
 // JSON a chart's elements keep under "chart" — and "docPage": {"size": "a4"
 // | "letter", "margins": 72}, the margins in points. The design's own size is
 // its page's, in pixels at 96 dpi.
@@ -47,9 +51,16 @@ struct DocBlock: Codable, Equatable, Identifiable {
     var table: DocTable?
     var chart: ChartSpec?
     var checked: Bool?
+    /// Its words' colours, highlights and links, and the words they were
+    /// made for, as a text box keeps them (Spans); nil for none.
+    var spans: [TextSpan]?
+    var spansText: String?
+    /// center, right or justify; nil for left.
+    var align: String?
 
     init(id: String = Docs.newId(), type: String, text: String = "", src: String? = nil, alt: String? = nil,
-         table: DocTable? = nil, chart: ChartSpec? = nil, checked: Bool? = nil) {
+         table: DocTable? = nil, chart: ChartSpec? = nil, checked: Bool? = nil,
+         spans: [TextSpan]? = nil, spansText: String? = nil, align: String? = nil) {
         self.id = id
         self.type = type
         self.text = text
@@ -58,9 +69,14 @@ struct DocBlock: Codable, Equatable, Identifiable {
         self.table = table
         self.chart = chart
         self.checked = checked
+        self.spans = spans
+        self.spansText = spansText
+        self.align = align
     }
 
-    private enum CodingKeys: String, CodingKey { case id, type, text, src, alt, table, chart, checked }
+    private enum CodingKeys: String, CodingKey {
+        case id, type, text, spans, spansText, align, src, alt, table, chart, checked
+    }
 
     /// A type this build does not know is no block; one with no id is given
     /// one, as the twin gives it.
@@ -78,6 +94,10 @@ struct DocBlock: Codable, Equatable, Identifiable {
         table = try? c.decode(DocTable.self, forKey: .table)
         chart = try? c.decode(ChartSpec.self, forKey: .chart)
         checked = try? c.decode(Bool.self, forKey: .checked)
+        spans = (try? c.decode([Lossy<TextSpan>].self, forKey: .spans))?.compactMap(\.value)
+        spansText = try? c.decode(String.self, forKey: .spansText)
+        let aligned = try? c.decode(String.self, forKey: .align)
+        align = Docs.keptAlign(aligned)
     }
 
     /// Id, type, then only the keys it has: words for a block that is typed
@@ -87,6 +107,11 @@ struct DocBlock: Codable, Equatable, Identifiable {
         try c.encode(id, forKey: .id)
         try c.encode(type, forKey: .type)
         if Docs.textTypes.contains(type) || !text.isEmpty { try c.encode(text, forKey: .text) }
+        if let spans, let spansText {
+            try c.encode(spans, forKey: .spans)
+            try c.encode(spansText, forKey: .spansText)
+        }
+        try c.encodeIfPresent(Docs.keptAlign(align), forKey: .align)
         try c.encodeIfPresent(src, forKey: .src)
         try c.encodeIfPresent(alt, forKey: .alt)
         try c.encodeIfPresent(table, forKey: .table)
@@ -168,6 +193,17 @@ enum Docs {
     static let a4 = "a4"
     static let letter = "letter"
 
+    /// A block's alignments; `left` is no key at all.
+    static let left = "left"
+    static let aligns = [left, "center", "right", "justify"]
+
+    /// An alignment as a block keeps it: nil for left or one it does not
+    /// know.
+    static func keptAlign(_ align: String?) -> String? {
+        guard let align, aligns.contains(align), align != left else { return nil }
+        return align
+    }
+
     static func newId() -> String {
         "blk_" + String(UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased().prefix(12))
     }
@@ -227,6 +263,93 @@ enum Docs {
             return b
         }
         return withBlocks(started(tr(template.name), setup: template.docPage), blocks)
+    }
+
+    // MARK: rich text
+
+    /// `block`'s words as a text box holds them — its markup, spans and
+    /// alignment — what every span and style rule (Spans, RichText) reads
+    /// and changes, so a block's words behave as a text box's do.
+    static func asElement(_ block: DocBlock) -> Element {
+        var el = Element.text(block.text)
+        el.align = block.align ?? left
+        if let spans = block.spans, let spansText = block.spansText {
+            el.spans = spans
+            el.spansText = spansText
+        }
+        return el
+    }
+
+    /// `block` with the words, spans and alignment of `el` (as asElement
+    /// made it, then changed). Spans made for other words are left out.
+    static func withElement(_ block: DocBlock, _ el: Element) -> DocBlock {
+        var out = block
+        out.text = el.text ?? ""
+        let spans = Spans.normalised(el.liveSpans)
+        out.spans = spans.isEmpty ? nil : spans
+        out.spansText = spans.isEmpty ? nil : RichText.strip(out.text)
+        out.align = keptAlign(el.align)
+        return out
+    }
+
+    /// `block`'s words changed to `text` (markup and all), its spans moved
+    /// with them (Element.setText) — what typing in a block goes through.
+    static func withText(_ block: DocBlock, _ text: String) -> DocBlock {
+        var el = asElement(block)
+        el.setText(text)
+        return withElement(block, el)
+    }
+
+    /// `block`'s spans, when made for the words it has now.
+    static func spansOf(_ block: DocBlock) -> [TextSpan] {
+        asElement(block).liveSpans
+    }
+
+    /// `spans` moved `by` UTF-16 units along: past what is put before the
+    /// words they were made for.
+    static func moved(_ spans: [TextSpan], by: Int) -> [TextSpan] {
+        spans.map { $0.over($0.start + by, $0.end + by) }
+    }
+
+    // MARK: the word count
+
+    /// Reading speed: words a minute.
+    static let wordsAMinute = 200
+
+    /// How many words the Doc holds — its text blocks' and its tables'
+    /// cells', each run between spaces with a letter or a digit in it one.
+    static func wordCount(_ design: Design) -> Int {
+        func count(_ text: String) -> Int {
+            text.components(separatedBy: .whitespacesAndNewlines)
+                .filter { word in word.contains { $0.isLetter || $0.isNumber } }.count
+        }
+        return blocks(design).reduce(0) { n, b in
+            if textTypes.contains(b.type) { return n + count(RichText.strip(b.text)) }
+            guard b.type == table else { return n }
+            return n + tableRows(b).rows.joined().reduce(0) { $0 + count($1) }
+        }
+    }
+
+    /// Minutes to read `words`: at wordsAMinute, to the nearest whole
+    /// minute (a half up), and never under 1.
+    static func readingMinutes(_ words: Int) -> Int {
+        max(1, (words + wordsAMinute / 2) / wordsAMinute)
+    }
+
+    /// The More menu's count: "1,234 words · 6 min read" — the count grouped
+    /// in threes as the language groups them (DataGraphics.grouping).
+    static func wordCountLine(_ words: Int) -> String {
+        let digits = String(words)
+        var grouped = ""
+        for (i, digit) in digits.enumerated() {
+            if i > 0 && (digits.count - i) % 3 == 0 { grouped += DataGraphics.grouping() }
+            grouped.append(digit)
+        }
+        // trn picks the form by the count, which it writes ungrouped: the
+        // grouped count put in its place.
+        let counted = trn("%d word|%d words", words)
+        let said = counted.range(of: digits).map { counted.replacingCharacters(in: $0, with: grouped) } ?? counted
+        return said + " · " + trn("%d min read|%d min read", readingMinutes(words))
     }
 
     // MARK: words
@@ -308,18 +431,20 @@ enum Docs {
     /// A text box for a block's words, set in its role (TextRoles) and its
     /// face, measured by `heightFor`.
     private static func textBox(_ words: String, type: String, x: Double, y: Double, width: Double, styles: Styles,
+                                align: String? = nil, spans: [TextSpan] = [],
                                 heightFor: (Element) -> Double) -> Element {
         let heading = type == h1 || type == h2 || type == h3
         let face = heading ? (styles.heading ?? styles.body) : (styles.body ?? styles.heading)
         var el = Element.text(words, fontSize: fontSize(type), w: width)
         el.x = x
         el.y = y
-        el.align = "left"
+        el.align = align ?? left
         el.lineHeight = 1.35
         el.fontFamily = face?.family ?? "sans"
         el.fontWeight = face?.weight ?? (heading ? 700 : 400)
         if type == quote { el.italic = true }
         el = TextRoles.with(el, heading ? type : (type == quote ? TextRoles.quote : TextRoles.body))
+        if !spans.isEmpty { el.setSpans(spans) }
         el.h = heightFor(el)
         return el
     }
@@ -331,16 +456,27 @@ enum Docs {
     static func elements(_ blocks: [DocBlock], unit: ClosedRange<Int>, x: Double, y: Double, width: Double,
                          styles: Styles, heightFor: @escaping (Element) -> Double) -> [Element] {
         let first = blocks[unit.lowerBound]
-        func text(_ words: String, _ type: String) -> Element {
-            textBox(words, type: type, x: x, y: y, width: width, styles: styles, heightFor: heightFor)
+        func text(_ words: String, _ type: String, _ spans: [TextSpan] = []) -> Element {
+            textBox(words, type: type, x: x, y: y, width: width, styles: styles, align: first.align, spans: spans,
+                    heightFor: heightFor)
         }
         switch first.type {
         case h1, h2, h3, p, quote:
-            return [text(first.text, first.type)]
+            return [text(first.text, first.type, spansOf(first))]
         case checklist:
-            return [text(checklistText(first), p)]
+            // Its spans moved past the box before its words.
+            let box = (checklistText(first) as NSString).length - (first.text as NSString).length
+            return [text(checklistText(first), p, moved(spansOf(first), by: box))]
         case bullet, number:
-            var listed = text(unit.map { blocks[$0].text }.joined(separator: "\n"), p)
+            // Each item's spans moved along by the words before it, and the
+            // line break after each.
+            var at = 0
+            var spans: [TextSpan] = []
+            for i in unit {
+                spans += moved(spansOf(blocks[i]), by: at)
+                at += (RichText.strip(blocks[i].text) as NSString).length + 1
+            }
+            var listed = text(unit.map { blocks[$0].text }.joined(separator: "\n"), p, spans)
             listed.setListStyle(first.type == bullet ? "bullet" : "number")
             listed.h = heightFor(listed)
             return [listed]

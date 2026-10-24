@@ -8,6 +8,10 @@ import SwiftUI
 
 struct HighlightSheet: View {
     @Bindable var store: DesignStore
+    /// For words other than the box typed in — a Doc block's: the marker
+    /// they share, and what a pick does. Nil for the store's own.
+    var marked: (highlight: String?, shared: Bool)?
+    var onPick: ((String?) -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
@@ -16,7 +20,7 @@ struct HighlightSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    if !store.wordHighlight.shared {
+                    if !marker.shared {
                         Text("Mixed").font(.subheadline).foregroundStyle(.secondary)
                     }
                     noneButton
@@ -40,16 +44,25 @@ struct HighlightSheet: View {
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
+    /// The marker the words share, and whether they share one.
+    private var marker: (highlight: String?, shared: Bool) {
+        marked ?? store.wordHighlight
+    }
+
+    /// A marker picked, or None.
+    private func pick(_ hex: String?) {
+        if let onPick { onPick(hex) } else { store.highlightWords(hex) }
+    }
+
     /// The marker the words share now, for the ring.
     private var current: String? {
-        let shared = store.wordHighlight
-        return shared.shared ? shared.highlight : nil
+        marker.shared ? marker.highlight : nil
     }
 
     private var noneButton: some View {
-        let chosen = store.wordHighlight.shared && store.wordHighlight.highlight == nil
+        let chosen = marker.shared && marker.highlight == nil
         return Button {
-            store.highlightWords(nil)
+            pick(nil)
         } label: {
             Label("None", systemImage: chosen ? "checkmark.circle.fill" : "circle.slash")
                 .padding(.horizontal, 12)
@@ -70,7 +83,7 @@ struct HighlightSheet: View {
     private func swatch(_ hex: String) -> some View {
         let chosen = current?.lowercased() == hex.lowercased()
         return Button {
-            store.highlightWords(hex)
+            pick(hex)
             RecentColors.record(hex)
         } label: {
             Circle()
