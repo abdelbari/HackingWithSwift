@@ -22,12 +22,10 @@ struct PlanPostSheet: View {
         return hour
     }
 
-    /// The post kept with the design, as one step, its reminder set — and
-    /// notifications asked for the first time, as the reminder is one.
+    /// The post kept with the design, as one step, its reminder set.
     private func plan(_ post: PlannedPost) {
         let before = store.design
         store.apply { $0 = PostPlanner.saved($0, post) }
-        ExportNotifications.askPermission()
         PostReminders.reschedule(store.design, before: before)
     }
 
@@ -160,7 +158,11 @@ struct PlanPostForm: View {
         .accessibilityElement(children: .contain)
     }
 
+    /// Notifications asked for the first time, as the reminder is one —
+    /// here, so the editor and Home's Planned calendar both ask, as the
+    /// Android twin's sheet does.
     private func plan() {
+        ExportNotifications.askPermission()
         onPlan(PlannedPost(id: PostPlanner.newId(), at: PostPlanner.iso(at), caption: caption, format: format,
                            pages: pages))
         dismiss()

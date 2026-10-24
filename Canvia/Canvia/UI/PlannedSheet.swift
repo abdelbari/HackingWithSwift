@@ -24,6 +24,9 @@ struct PlannedSheet: View {
     @State private var targetDay: Int?
     /// What a move said, and the post as it was, while Undo is offered.
     @State private var undo: MoveUndo?
+    /// Set while "Open in another window" is said: a change refused to a
+    /// design another window is editing.
+    @State private var heldNote: UUID?
     /// Plan a post…: the day, while its design is chosen; then the design
     /// and the time its sheet opens on.
     @State private var choosingFor: DayKey?
@@ -116,7 +119,7 @@ struct PlannedSheet: View {
     private func move(_ item: PostPlanner.Planned, year: Int, month: Int, day: Int) {
         let moved = PostPlanner.movedTo(item.post, year: year, month: month, day: day, zone: .current)
         guard moved != item.post, let at = PostPlanner.date(moved.at) else { return }
-        change(item.designId) { PostPlanner.saved($0, moved) }
+        guard changed(item.designId, { PostPlanner.saved($0, moved) }) else { return }
         let said = tr("Moved to %@", at.formatted(date: .abbreviated, time: .omitted))
         undo = MoveUndo(said: said, designId: item.designId, post: item.post)
         AccessibilityNotification.Announcement(said).post()
@@ -144,7 +147,23 @@ struct PlannedSheet: View {
                 try? await Task.sleep(for: .seconds(Self.undoSeconds))
                 if self.undo?.id == undo.id { self.undo = nil }
             }
+        } else if let heldNote {
+            heldBar(heldNote)
         }
+    }
+
+    /// "Open in another window", for a few seconds.
+    private func heldBar(_ note: UUID) -> some View {
+        Text("Open in another window")
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(Color.black.opacity(0.85), in: RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 16)
+            .task(id: note) {
+                try? await Task.sleep(for: .seconds(Self.undoSeconds))
+                if heldNote == note { heldNote = nil }
+            }
     }
 
     // MARK: reading and saving
@@ -175,11 +194,25 @@ struct PlannedSheet: View {
     /// Design `designId` changed by `change` and saved, its reminders set
     /// as its posts now stand, and the posts read again.
     private func change(_ designId: String, _ change: (Design) -> Design) {
-        guard let before = DesignLibrary.load(id: designId) else { return }
+        changed(designId, change)
+    }
+
+    /// change, and whether it was saved. One another window is editing is
+    /// left to it, its only writer, and "Open in another window" said
+    /// (DesignWindows), as on the Android twin.
+    @discardableResult
+    private func changed(_ designId: String, _ change: (Design) -> Design) -> Bool {
+        guard !DesignWindows.shared.isHeld(designId) else {
+            heldNote = UUID()
+            AccessibilityNotification.Announcement(tr("Open in another window")).post()
+            return false
+        }
+        guard let before = DesignLibrary.load(id: designId) else { return false }
         let after = change(before)
-        guard DesignLibrary.save(after) else { return }
+        guard DesignLibrary.save(after) else { return false }
         PostReminders.reschedule(after, before: before)
         version += 1
+        return true
     }
 
     /// The designs to choose from for Plan a post…, edited last first.
@@ -193,8 +226,10 @@ extension PlannedSheet {
         var year: Int
         var month: Int
 
+        /// This month, reckoned by PostPlanner's Gregorian calendar whatever
+        /// calendar the phone is set to, as its days are.
         static func current(_ now: Date = Date()) -> Month {
-            let parts = Calendar.current.dateComponents([.year, .month], from: now)
+            let parts = PostPlanner.calendar(.current).dateComponents([.year, .month], from: now)
             return Month(year: parts.year ?? 2026, month: parts.month ?? 1)
         }
 
@@ -206,7 +241,8 @@ extension PlannedSheet {
 
         /// Noon on `day` of it, on this phone's clock.
         func date(_ day: Int) -> Date {
-            Calendar.current.date(from: DateComponents(year: year, month: month, day: day, hour: 12)) ?? Date()
+            PostPlanner.calendar(.current).date(from: DateComponents(year: year, month: month, day: day, hour: 12))
+                ?? Date()
         }
 
         /// "November 2026", as the locale writes a month.
@@ -570,7 +606,9 @@ private struct MoveToDateSheet: View {
     }
 
     private func move() {
-        let parts = Calendar.current.dateComponents([.year, .month, .day], from: day)
+        // A Gregorian year, month and day, as PostPlanner.movedTo reads them,
+        // on a phone set to a Buddhist or Japanese calendar too.
+        let parts = PostPlanner.calendar(.current).dateComponents([.year, .month, .day], from: day)
         if let year = parts.year, let month = parts.month, let date = parts.day { onMove(year, month, date) }
         dismiss()
     }
