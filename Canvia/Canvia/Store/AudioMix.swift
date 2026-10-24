@@ -277,7 +277,7 @@ enum AudioMix {
         for track in tracks {
             let duration = track.audioId.flatMap { trackDurations[$0] }
             guard let laid = span(of: track, duration: duration, film: film) else { continue }
-            out += laid.segments.map { segment in
+            out += laid.segments.map { segment -> Segment in
                 var heard = segment
                 if track.enhance { heard.source = enhancedSource(segment.source) }
                 return heard

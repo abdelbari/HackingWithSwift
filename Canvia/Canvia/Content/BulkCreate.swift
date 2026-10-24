@@ -166,7 +166,7 @@ enum BulkCreate {
     static func pages(_ design: Design, pageId: String, data: BulkData,
                       pictures: [String: String] = [:]) -> [Page] {
         guard let page = design.pages.first(where: { $0.id == pageId }) else { return [] }
-        return data.rows.map { row in
+        return data.rows.map { row -> Page in
             var copy = Copies.of(page)
             copy.elements = copy.elements.map { filled($0, columns: data.columns, row: row, pictures: pictures) }
             return copy
