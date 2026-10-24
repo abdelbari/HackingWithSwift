@@ -1,0 +1,54 @@
+{
+  "note": "The golden slide player: HtmlWriter.html(design, its shown pages, the renderer of website.json — letters always the path M0 0L1 1Z, pictures the bytes 1 2 3 — and the settings below), each clip at media/<id>.mp4. It must equal slides.html once every base64 picture is emptied. Both phones read these files.",
+  "settings": {"nav": true, "mobileStack": true, "embedMedia": true, "layout": "slides", "autoplay": 5, "loop": true},
+  "design": {
+    "id": "d-deck",
+    "title": "Launch <Plan>",
+    "width": 1920,
+    "height": 1080,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "pages": [
+      {
+        "id": "p1",
+        "title": "Intro",
+        "transition": "push",
+        "background": {"type": "color", "value": "#101828"},
+        "elements": [
+          {"id": "e1", "type": "text", "text": "Launch plan", "x": 160, "y": 380, "w": 1200, "h": 160, "fontSize": 140, "fontWeight": 800, "color": "#ffffff", "animation": {"kind": "rise", "delay": 0.2, "duration": 0.6}},
+          {"id": "e2", "type": "shape", "shapeId": "rect", "x": 160, "y": 640, "w": 360, "h": 96, "fill": {"kind": "solid", "color": "#5a31f4"}, "link": "page:p4", "altText": "Skip to the dates", "animation": {"kind": "pop", "delay": 0.5, "duration": 0.4}},
+          {"id": "e3", "type": "line", "x": 160, "y": 340, "w": 300, "h": 8, "thickness": 6, "color": "#5a31f4", "animation": {"kind": "wipe", "delay": 0, "duration": 0.8}}
+        ]
+      },
+      {
+        "id": "p2",
+        "title": "Draft",
+        "hidden": true,
+        "background": {"type": "color", "value": "#000000"},
+        "elements": []
+      },
+      {
+        "id": "p3",
+        "transition": "zoom",
+        "transitionSeconds": 0.8,
+        "pageAnimation": {"kind": "fade", "mode": "enter"},
+        "background": {"type": "color", "value": "#ffffff"},
+        "elements": [
+          {"id": "e4", "type": "text", "text": "Why now", "x": 160, "y": 160, "w": 900, "h": 100, "fontSize": 88, "fontWeight": 700, "color": "#101828"},
+          {"id": "e5", "type": "shape", "shapeId": "circle", "x": 1300, "y": 300, "w": 400, "h": 400, "fill": {"kind": "solid", "color": "#16c79a"}, "animation": {"kind": "slideLeft", "delay": 0.3, "duration": 0.6}},
+          {"id": "e6", "type": "text", "text": "Typed in", "x": 160, "y": 600, "w": 900, "h": 80, "fontSize": 60, "color": "#101828", "animation": {"kind": "typewriter", "delay": 0, "duration": 1.2}}
+        ]
+      },
+      {
+        "id": "p4",
+        "title": "Dates",
+        "transition": "wipe",
+        "background": {"type": "color", "value": "#f4f1ff"},
+        "elements": [
+          {"id": "e7", "type": "text", "text": "May 1", "x": 160, "y": 160, "w": 900, "h": 100, "fontSize": 88, "fontWeight": 700, "color": "#101828", "animation": {"kind": "fade", "delay": 0, "duration": 0.5}},
+          {"id": "e8", "type": "image", "src": "video:clip-9", "x": 1100, "y": 200, "w": 640, "h": 360, "altText": "The teaser"}
+        ]
+      }
+    ]
+  }
+}

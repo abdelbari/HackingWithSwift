@@ -170,6 +170,15 @@
     "ja": "%@をセクションとして、動画と一緒に.zipで。",
     "pt-BR": "%@ como seções, em um .zip com os vídeos."
   },
+  "%@ as slides, one at a time: arrow keys, swipes and clicks go on and back.": {
+    "ar": "%@ كشرائح، واحدة في كل مرة: مفاتيح الأسهم والسحب والنقر للتقدم والرجوع.",
+    "de": "%@ als Folien, eine nach der anderen: Pfeiltasten, Wischen und Klicks blättern vor und zurück.",
+    "es": "%@ como diapositivas, de una en una: las flechas, los deslizamientos y los clics avanzan y retroceden.",
+    "fr": "%@ en diapositives, une à la fois : les flèches, les balayages et les clics avancent et reculent.",
+    "it": "%@ come diapositive, una alla volta: frecce, scorrimenti e clic vanno avanti e indietro.",
+    "ja": "%@ を 1 枚ずつのスライドに：矢印キー、スワイプ、クリックで進んだり戻ったりできます。",
+    "pt-BR": "%@ como slides, um de cada vez: setas, deslizes e cliques avançam e voltam."
+  },
   "%@ badge": {
     "ar": "شارة (%@)",
     "de": "Abzeichen (%@)",
@@ -3327,6 +3336,39 @@
     "pt-BR": {
       "one": "%d linha",
       "other": "%d linhas"
+    }
+  },
+  "%d second|%d seconds": {
+    "ar": {
+      "few": "%d ثوانٍ",
+      "many": "%d ثانية",
+      "one": "%d ثانية",
+      "other": "%d ثانية",
+      "two": "%d ثانيتان",
+      "zero": "%d ثانية"
+    },
+    "de": {
+      "one": "%d Sekunde",
+      "other": "%d Sekunden"
+    },
+    "es": {
+      "one": "%d segundo",
+      "other": "%d segundos"
+    },
+    "fr": {
+      "one": "%d seconde",
+      "other": "%d secondes"
+    },
+    "it": {
+      "one": "%d secondo",
+      "other": "%d secondi"
+    },
+    "ja": {
+      "other": "%d 秒"
+    },
+    "pt-BR": {
+      "one": "%d segundo",
+      "other": "%d segundos"
     }
   },
   "%d selected|%d selected": {
@@ -13502,6 +13544,15 @@
     "ja": "フル HD（1920）",
     "pt-BR": "Full HD (1920)"
   },
+  "Full screen": {
+    "ar": "ملء الشاشة",
+    "de": "Vollbild",
+    "es": "Pantalla completa",
+    "fr": "Plein écran",
+    "it": "Schermo intero",
+    "ja": "全画面",
+    "pt-BR": "Tela cheia"
+  },
   "Funnel": {
     "ar": "قمع",
     "de": "Trichter",
@@ -23393,6 +23444,15 @@
     "ja": "筆記体",
     "pt-BR": "Cursiva"
   },
+  "Scroll": {
+    "ar": "تمرير",
+    "de": "Scrollen",
+    "es": "Desplazamiento",
+    "fr": "Défilement",
+    "it": "Scorrimento",
+    "ja": "スクロール",
+    "pt-BR": "Rolagem"
+  },
   "Scroll through pages": {
     "ar": "التمرير عبر الصفحات",
     "de": "Durch die Seiten scrollen",
@@ -24871,6 +24931,15 @@
     "it": "Scorri a destra",
     "ja": "右へスライド",
     "pt-BR": "Deslizar para a direita"
+  },
+  "Slides": {
+    "ar": "شرائح",
+    "de": "Folien",
+    "es": "Diapositivas",
+    "fr": "Diapositives",
+    "it": "Diapositive",
+    "ja": "スライド",
+    "pt-BR": "Slides"
   },
   "Slow": {
     "ar": "بطيء",

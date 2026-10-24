@@ -70,6 +70,12 @@ struct ExportSheet: View {
     @State private var htmlNav = true
     @State private var htmlStack = true
     @State private var htmlMedia = true
+    /// Scroll or Slides: always the one suggested for the design to begin
+    /// with (ExportSuggestion.htmlLayout) — Slides for a presentation — and
+    /// the slides' autoplay and loop as the last export left them.
+    @State private var htmlLayout = HTMLExporter.scroll
+    @State private var htmlAutoplay = 0.0
+    @State private var htmlLoop = false
     /// The web page as Preview shows it, and as Save to Files moves it.
     @State private var previewURL: URL?
     @State private var movingURL: URL?
@@ -882,9 +888,14 @@ struct ExportSheet: View {
     /// will be made as.
     private var htmlSection: some View {
         Section {
-            Toggle("Menu from page titles", isOn: $htmlNav)
-            Toggle("Fit the menu to phones", isOn: $htmlStack)
-                .disabled(!htmlNav)
+            htmlLayoutPicker
+            if htmlLayout == HTMLExporter.slides {
+                slidesRows
+            } else {
+                Toggle("Menu from page titles", isOn: $htmlNav)
+                Toggle("Fit the menu to phones", isOn: $htmlStack)
+                    .disabled(!htmlNav)
+            }
             Toggle("Include videos", isOn: $htmlMedia)
             Button("Preview") { previewHTML() }
                 .disabled(leftOut(pdfIndices) != nil || makingHTML)
@@ -901,14 +912,42 @@ struct ExportSheet: View {
                    file: movingURL) { _ in movingURL = nil }
     }
 
+    /// Scroll, the website, or Slides, a page at a time: Suggested badged
+    /// on the one for the design.
+    private var htmlLayoutPicker: some View {
+        let suggestedLayout = ExportSuggestion.htmlLayout(store.design)
+        return Picker("Layout", selection: $htmlLayout) {
+            ForEach(HTMLExporter.layouts, id: \.self) { layout in
+                let name = layout == HTMLExporter.slides ? tr("Slides") : tr("Scroll")
+                Text(layout == suggestedLayout ? tr("%@, suggested", name) : name).tag(layout)
+            }
+        }
+    }
+
+    /// The slides' Autoplay and Loop.
+    private var slidesRows: some View {
+        Group {
+            Picker("Autoplay", selection: $htmlAutoplay) {
+                ForEach(HTMLExporter.autoplayChoices, id: \.self) { seconds in
+                    Text(seconds == 0 ? tr("Off") : trn("%d second|%d seconds", Int(seconds))).tag(seconds)
+                }
+            }
+            Toggle("Loop", isOn: $htmlLoop)
+        }
+    }
+
     private var htmlSettings: HTMLExporter.Settings {
-        HTMLExporter.Settings(nav: htmlNav, mobileStack: htmlStack, embedMedia: htmlMedia)
+        HTMLExporter.Settings(nav: htmlNav, mobileStack: htmlStack, embedMedia: htmlMedia,
+                              layout: htmlLayout, autoplay: htmlAutoplay, loop: htmlLoop)
     }
 
     /// "3 pages as sections of one index.html", or in a .zip with its
-    /// clips.
+    /// clips — or, as slides, how they go.
     private var htmlNote: String {
         let pages = pagesWord(pdfIndices.count)
+        if htmlLayout == HTMLExporter.slides {
+            return tr("%@ as slides, one at a time: arrow keys, swipes and clicks go on and back.", pages)
+        }
         return HTMLExporter.zipped(store.design, pages: pdfIndices, settings: htmlSettings)
             ? tr("%@ as sections, in a .zip with its videos.", pages)
             : tr("%@ as sections of one index.html.", pages)
@@ -1116,6 +1155,7 @@ struct ExportSheet: View {
         let read = ExportSuggestion.suggest(doc ?? store.design)
         suggested = read != "png" ? read : (defaultFormat == "jpg" ? "jpg" : "png")
         fileType = suggested
+        htmlLayout = ExportSuggestion.htmlLayout(store.design)
         guard let last = ExportLast.read(exportLast) else { return }
         remember = true
         // A Word document is a Doc's alone.
@@ -1131,6 +1171,8 @@ struct ExportSheet: View {
         htmlNav = last.html.nav
         htmlStack = last.html.mobileStack
         htmlMedia = last.html.embedMedia
+        htmlAutoplay = HTMLExporter.autoplayChoices.contains(last.html.autoplay) ? last.html.autoplay : 0
+        htmlLoop = last.html.loop
         zip = last.zip
         pngCompress = last.pngCompress
         paper.colourProfile = PrintLayout.ColourProfile.of(last.colourProfile)

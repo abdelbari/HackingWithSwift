@@ -91,7 +91,7 @@ final class WebsiteExportTests: XCTestCase {
         XCTAssertEqual(ExportSuggestion.suggest(Design(width: 1080, height: 1080)), "png")
         let settings = ExportLast(format: "html", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
                                   pages: "all", html: HTMLExporter.Settings(nav: false))
-        XCTAssertTrue(settings.json.contains(#""html":{"nav":false,"mobileStack":true,"embedMedia":true}"#))
+        XCTAssertTrue(settings.json.contains(#""html":{"nav":false,"mobileStack":true,"embedMedia":true,"layout":"scroll","autoplay":0.0,"loop":false}"#))
         XCTAssertEqual(ExportLast.read(settings.json), settings)
         XCTAssertEqual(ExportLast.read(#"{"format":"html"}"#)?.html, HTMLExporter.Settings())
         XCTAssertEqual(ExportLast.fileTypes.suffix(2), ["html", "docx"])
