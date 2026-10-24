@@ -57,7 +57,7 @@ struct PlannedSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
-            .safeAreaInset(edge: .bottom) { undoBar }
+            .safeAreaInset(edge: .bottom) { bottomBars }
         }
         .task(id: version) { await load() }
         .modifier(PlannedSheetDialogs(choosingFor: $choosingFor, pendingPlan: $pendingPlan, planning: $planning,
@@ -127,6 +127,16 @@ struct PlannedSheet: View {
 
     // MARK: undo
 
+    /// The held-design note and the Undo bar each show as soon as they are
+    /// due, one above the other, as Android's Toast does not wait on its
+    /// Undo bar.
+    private var bottomBars: some View {
+        VStack(spacing: 8) {
+            if let heldNote { heldBar(heldNote) }
+            undoBar
+        }
+    }
+
     @ViewBuilder
     private var undoBar: some View {
         if let undo {
@@ -147,8 +157,6 @@ struct PlannedSheet: View {
                 try? await Task.sleep(for: .seconds(Self.undoSeconds))
                 if self.undo?.id == undo.id { self.undo = nil }
             }
-        } else if let heldNote {
-            heldBar(heldNote)
         }
     }
 
