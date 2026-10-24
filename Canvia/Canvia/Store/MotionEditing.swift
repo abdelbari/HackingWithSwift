@@ -26,8 +26,8 @@ extension DesignStore {
     }
 
     /// Create: record mode for the one selected element. Refused, with a
-    /// word, without one element selected, on a locked page or for a locked
-    /// element, as the Android twin's is. One with a path
+    /// word, without one element selected, on a locked page or for an element
+    /// locked in place, as the Android twin's is. One with a path
     /// already opens on its options, to change them or record again.
     func beginMotionRecord() {
         guard let el = singleSelection else {
@@ -36,7 +36,7 @@ extension DesignStore {
             return
         }
         guard !refusesLockedPage() else { return }
-        if el.locked {
+        if el.holdsPlace {
             buzz(.reject)
             announce(tr("This element is locked"), undoable: false)
             return
@@ -69,7 +69,7 @@ extension DesignStore {
     /// A drag that went nowhere changes nothing. A path recorded again keeps
     /// its Smooth, Orient to path, Speed and delay.
     func recordMotion(_ samples: [MotionPath.Sample]) {
-        guard let recording = motionRecording, let el = element(recording.id), !el.locked,
+        guard let recording = motionRecording, let el = element(recording.id), !el.holdsPlace,
               let end = samples.last, !refusesLockedPage() else { return }
         let points = MotionPath.recorded(samples)
         guard MotionPath.travels(points) else {
