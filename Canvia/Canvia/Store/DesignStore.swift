@@ -3025,6 +3025,25 @@ final class DesignStore {
         }
     }
 
+    /// Animate by: what the selected texts' text animations move as one —
+    /// "letter", "word" or "line" — as one undo step; their kind's own
+    /// (ElementAnimation.defaultBy) is no key. Their exits of a text kind
+    /// go by it too.
+    func animateSelected(by unit: String) {
+        guard ElementAnimation.unitChoices.contains(unit) else { return }
+        updateSelected { el in
+            guard el.type == .text else { return }
+            if var entrance = el.animation, ElementAnimation.textKinds.contains(entrance.kind) {
+                entrance.by = unit == ElementAnimation.defaultBy(entrance.kind) ? nil : unit
+                el.animation = entrance
+            }
+            if var exit = el.exitAnimation, ElementAnimation.unitKinds.contains(exit.kind) {
+                exit.by = unit == ElementAnimation.defaultBy(exit.kind) ? nil : unit
+                el.exitAnimation = exit
+            }
+        }
+    }
+
     /// Give every unlocked selected element a way out as the page ends, as
     /// one undo step, staggered in layer order so the first in is the last
     /// out; nil takes the exits away.
@@ -3034,8 +3053,11 @@ final class DesignStore {
             var n = 0
             for i in page.elements.indices
             where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
+                // A text's own way out leaves anything but text as a fade.
+                let isText = page.elements[i].type == .text
                 page.elements[i].exitAnimation = kind.map {
-                    ElementAnimation(kind: $0, delay: Double(n) * ElementAnimation.exitStagger,
+                    ElementAnimation(kind: ElementAnimation.unitKinds.contains($0) && !isText ? "fade" : $0,
+                                     delay: Double(n) * ElementAnimation.exitStagger,
                                      duration: ElementAnimation.exitDuration)
                 }
                 n += 1

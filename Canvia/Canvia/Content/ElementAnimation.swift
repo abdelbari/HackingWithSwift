@@ -18,25 +18,49 @@
 // in at the end — the same maths as the Android twin's, from the part's
 // chartPart. Any other element given it fades in, as a build without it
 // plays it.
+//
+// Text can also move a unit at a time — by letter, word or line, as its
+// `by` says ("letter", "word" or "line"; when it says none, a typewriter
+// goes by letter and word by word by word, as they always have) — in
+// Canva's text-only styles: ascend, shift, merge, block, burst, bounceIn,
+// roll, skate, spread, clarify, tumble and writeOn. `unitFrames` gives each
+// unit's place, size, turn, opacity, blur and the share of it shown at a
+// moment, and the canvas draws each unit of the laid-out words so; leaving,
+// the same frames play backwards (exitState). The Android twin's
+// ElementAnimation.unitFrames, frame for frame.
 
 import Foundation
 
 struct ElementAnimation: Codable, Equatable {
-    /// "grow" | "fade" | "rise" | "pop" | "slideLeft" | "slideRight" | "typewriter" | "words" | "letterPop" | "lineRise"
+    /// "grow" | "fade" | "rise" | "pop" | "slideLeft" | "slideRight" | a text kind (textKindOrder) | a loop
     var kind: String = "fade"
     /// Seconds after the page starts.
     var delay: Double = 0
     var duration: Double = 0.6
+    /// For text: "letter", "word" or "line" — what moves as one; nil is the
+    /// kind's own (defaultBy).
+    var by: String?
 
-    static let kinds = [grow, "fade", "rise", "pop", "slideLeft", "slideRight", "typewriter", "words", "letterPop", "lineRise",
-                        "pulse", "wiggle", "bounce", "spin"]
+    static let kinds: [String] = [grow, "fade", "rise", "pop", "slideLeft", "slideRight"] + textKindOrder
+        + ["pulse", "wiggle", "bounce", "spin"]
     /// A chart's entrance, its parts growing from their baseline.
     static let grow = "grow"
     /// How long after each other a chart's series start to grow, and how
     /// long a chart takes, delay aside, when Grow is picked.
     static let growStagger = 0.08
     static let growDuration = 1.0
-    static let textKinds: Set<String> = ["typewriter", "words", "letterPop", "lineRise"]
+    /// The text-only kinds, in the order both phones offer them.
+    static let textKindOrder: [String] = ["typewriter", "words", "letterPop", "lineRise",
+                                "ascend", "shift", "merge", "block", "burst", "bounceIn", "roll", "skate",
+                                "spread", "clarify", "tumble", "writeOn"]
+    static let textKinds = Set(textKindOrder)
+    /// The kinds that move each unit of the words on its own (unitFrames),
+    /// rather than cut the words to those shown so far.
+    static let unitKinds: Set<String> = ["ascend", "shift", "merge", "block", "burst", "bounceIn", "roll", "skate",
+                                         "spread", "clarify", "tumble", "writeOn"]
+    /// What a text kind can move as one, in the order the Animate by row
+    /// lists them.
+    static let unitChoices = ["letter", "word", "line"]
     /// Loops never settle: a sticker that keeps moving for as long as the
     /// page is shown.
     static let loopKinds: Set<String> = ["pulse", "wiggle", "bounce", "spin"]
@@ -65,6 +89,7 @@ struct ElementAnimation: Codable, Equatable {
         case "pop": return tr("Pop")
         case "slideLeft": return tr("Slide left")
         case "slideRight": return tr("Slide right")
+        case let kind? where unitKinds.contains(kind): return name(kind)
         default: return tr("Fade")
         }
     }
@@ -81,6 +106,18 @@ struct ElementAnimation: Codable, Equatable {
         case "words": return tr("Word by word")
         case "letterPop": return tr("Letter pop")
         case "lineRise": return tr("Line rise")
+        case "ascend": return tr("Ascend")
+        case "shift": return tr("Shift")
+        case "merge": return tr("Merge")
+        case "block": return tr("Block")
+        case "burst": return tr("Burst")
+        case "bounceIn": return tr("Bounce in")
+        case "roll": return tr("Roll")
+        case "skate": return tr("Skate")
+        case "spread": return tr("Spread")
+        case "clarify": return tr("Clarify")
+        case "tumble": return tr("Tumble")
+        case "writeOn": return tr("Write on")
         case "pulse": return tr("Pulse (loop)")
         case "wiggle": return tr("Wiggle (loop)")
         case "bounce": return tr("Bounce (loop)")
@@ -111,6 +148,9 @@ struct ElementAnimation: Codable, Equatable {
         /// The share of its sweep a slice or ring is drawn to
         /// (DataGraphics.swept).
         var sweep: Double = 1
+        /// Text moving a unit at a time (unitKinds): the move, and the
+        /// moment of it the units are drawn at; nil draws the words whole.
+        var unitClock: UnitClock?
         static let settled = State()
 
         /// Whether nothing of the element shows: grown from nothing, or
@@ -134,6 +174,7 @@ struct ElementAnimation: Codable, Equatable {
             }
             s.reveal *= exit.reveal
             s.sweep *= exit.sweep
+            s.unitClock = exit.unitClock ?? unitClock
             return s
         }
     }
@@ -169,26 +210,34 @@ struct ElementAnimation: Codable, Equatable {
             s.opacity = min(1, p * 2)
             s.offset = CGSize(width: -(1 - p) * size, height: 0)
         case "typewriter", "words", "letterPop", "lineRise":
-            let count = text?.count ?? 0
             let linear = min(max((t - delay) / max(duration, 0.001), 0), 1)
-            switch kind {
-            case "words":
-                // Whole words appear at a time.
-                let words = (text ?? "").split(separator: " ", omittingEmptySubsequences: false)
-                let shown = Int((Double(words.count) * linear).rounded(.up))
-                let prefix = words.prefix(shown).joined(separator: " ")
-                s.visibleCharacters = prefix.count
-            default:
-                s.visibleCharacters = Int((Double(count) * linear).rounded(.up))
-            }
+            s.visibleCharacters = Self.revealed(text ?? "", by: unit, share: linear)
             if kind == "lineRise" {
                 s.offset = CGSize(width: 0, height: (1 - p) * size * 0.15)
                 s.opacity = p
             }
+        case _ where Self.unitKinds.contains(kind):
+            // Each unit moves on its own, drawn so by the canvas.
+            s.unitClock = UnitClock(animation: self, time: t)
         default: // fade
             s.opacity = p
         }
         return s
+    }
+
+    /// How many characters of `text` a reveal by `by` shows `share` of the
+    /// way through: whole words at a time (split at spaces) by "word",
+    /// whole lines by "line", else letters — rounded up, so the first
+    /// shows as soon as it starts.
+    static func revealed(_ text: String, by: String, share: Double) -> Int {
+        switch by {
+        case "word", "line":
+            let parts = text.split(separator: by == "line" ? "\n" : " ", omittingEmptySubsequences: false)
+            let shown = Int((Double(parts.count) * share).rounded(.up))
+            return parts.prefix(shown).joined(separator: by == "line" ? "\n" : " ").count
+        default:
+            return Int((Double(text.count) * share).rounded(.up))
+        }
     }
 
     /// A chart part `el` `t` seconds into its page as grow has it, the same
@@ -305,6 +354,17 @@ struct ElementAnimation: Codable, Equatable {
         let q = duration > 0 ? min(max((t - begin) / duration, 0), 1) : 1
         let e = t >= end ? 1 : q * q * q
         var s = State()
+        if Self.unitKinds.contains(kind) {
+            // The entrance's frames played backwards: the moment as far
+            // from the end of an entrance as this is into the exit.
+            if t >= end {
+                s.opacity = 0
+            } else {
+                let entrance = ElementAnimation(kind: kind, delay: 0, duration: duration, by: by)
+                s.unitClock = UnitClock(animation: entrance, time: duration * (1 - q))
+            }
+            return s
+        }
         switch kind {
         case "rise":
             s.opacity = 1 - e
@@ -333,6 +393,187 @@ struct ElementAnimation: Codable, Equatable {
         let leaving = elements.filter { !$0.isHidden && $0.timing?.end == nil }
         let span = leaving.compactMap { $0.exitAnimation.map { max(0, $0.delay + $0.duration) } }.max() ?? 0
         return min(span, maxExitSpan)
+    }
+
+    // MARK: text a unit at a time
+
+    /// What moves as one when `by` says nothing: a word for Word by word, a
+    /// line for Block, a letter for every other kind — so files from before
+    /// `by` play as they did.
+    static func defaultBy(_ kind: String) -> String {
+        switch kind {
+        case "words": return "word"
+        case "block": return "line"
+        default: return "letter"
+        }
+    }
+
+    /// What this moves as one: its `by` when it is one of unitChoices, else
+    /// the kind's own.
+    var unit: String {
+        if let by, Self.unitChoices.contains(by) { return by }
+        return Self.defaultBy(kind)
+    }
+
+    /// The move a text is drawn at, and the moment of it, in seconds from
+    /// its own start: what State carries to the canvas.
+    struct UnitClock: Equatable {
+        var animation: ElementAnimation
+        var time: Double
+    }
+
+    /// One unit's look at a moment: when it starts and ends moving (seconds
+    /// from the page's start, delay in), how far it is moved across and
+    /// down, its scale about its centre, its turn in degrees, its opacity,
+    /// its blur, and the share of it shown from its left (a Block's bar, a
+    /// Write on's stroke) — all in design units.
+    struct UnitFrame: Equatable {
+        var start: Double
+        var end: Double
+        var dx: Double = 0
+        var dy: Double = 0
+        var scale: Double = 1
+        var rotation: Double = 0
+        var alpha: Double = 1
+        var blur: Double = 0
+        var clip: Double = 1
+    }
+
+    /// The units of `plain`, as UTF-16 ranges: each letter that is not a
+    /// space by "letter"; each run of letters between spaces and line
+    /// breaks by "word"; each line with letters in it — its spaces at
+    /// either end left out — by "line", a line being what a line break
+    /// ends, so both phones count the same lines whatever the box's width.
+    static func units(_ plain: String, by: String) -> [NSRange] {
+        var out: [NSRange] = []
+        var offset = 0
+        var run: (start: Int, end: Int)?
+        let breaks: (Character) -> Bool = by == "line" ? { $0 == "\n" } : { $0.isWhitespace }
+        for c in plain {
+            let length = c.utf16.count
+            if breaks(c) {
+                if let r = run { out.append(NSRange(location: r.start, length: r.end - r.start)) }
+                run = nil
+            } else if by == "word" || by == "line" {
+                if !c.isWhitespace {
+                    run = (run?.start ?? offset, offset + length)
+                }
+            } else {
+                out.append(NSRange(location: offset, length: length))
+            }
+            offset += length
+        }
+        if let r = run { out.append(NSRange(location: r.start, length: r.end - r.start)) }
+        return out
+    }
+
+    /// Each unit of `el`'s words — RichText.strip(text), by its animation's
+    /// unit — `t` seconds into its page, by `frames`; none for an element
+    /// with no unit move.
+    static func unitFrames(_ el: Element, at t: Double) -> [UnitFrame] {
+        guard let animation = el.animation, unitKinds.contains(animation.kind) else { return [] }
+        let count = units(RichText.strip(el.text ?? ""), by: animation.unit).count
+        return animation.frames(count: count, at: t, size: el.fontSize ?? 42)
+    }
+
+    /// `count` units `t` seconds into the page, for type `size` high. Each
+    /// starts stagger = duration × 0.6 / count after the one before, from
+    /// the delay, and moves for duration × 0.4, so the last is in by the
+    /// end; its progress q is 0…1 over that, and e = 1 − (1 − q)³ eases it
+    /// out. With i the unit's place and n the count:
+    ///  - ascend: up from 0.5 size below, alpha e;
+    ///  - shift: in from 0.5 size to the right, alpha e;
+    ///  - merge: in from a size to the left (even i) or right (odd i), alpha e;
+    ///  - block: a bar in the text's colour wipes across it, clip min(1, 2q),
+    ///    and the words show once it covers them, alpha 1 from q = 0.5;
+    ///  - burst: from twice its size, scale 2 − e, alpha e;
+    ///  - bounceIn: falls from a size above and bounces (easeOutBounce b),
+    ///    dy −(1 − b) × size, alpha min(1, 2q);
+    ///  - roll: in from 0.5 size to the right turning from 90°, alpha e;
+    ///  - skate: in from a size to the right leaning −15°, alpha e;
+    ///  - spread: from (i − (n − 1) / 2) × 0.5 size further from the middle
+    ///    than its place, alpha e;
+    ///  - clarify: from a blur of 0.25 size, alpha e;
+    ///  - tumble: from 0.5 size above, turned −180° at half size, alpha e;
+    ///  - writeOn: drawn on from its left, clip q, alpha 1 once begun;
+    ///  - typewriter and words appear whole once begun; letterPop pops,
+    ///    scale 0.4 + 0.6e, alpha min(1, 2q); lineRise rises from 0.5 size
+    ///    below, alpha e.
+    func frames(count n: Int, at t: Double, size: Double) -> [UnitFrame] {
+        guard n > 0 else { return [] }
+        let stagger = duration * 0.6 / Double(n)
+        let span = duration * 0.4
+        return (0..<n).map { i in
+            let start = delay + Double(i) * stagger
+            var f = UnitFrame(start: start, end: start + span)
+            let q = span > 0 ? min(max((t - start) / span, 0), 1) : (t >= start ? 1 : 0)
+            let e = 1 - pow(1 - q, 3)
+            let rest = 1 - e
+            switch kind {
+            case "ascend", "lineRise":
+                f.dy = rest * size * 0.5
+                f.alpha = e
+            case "shift":
+                f.dx = rest * size * 0.5
+                f.alpha = e
+            case "merge":
+                f.dx = (i % 2 == 0 ? -1 : 1) * rest * size
+                f.alpha = e
+            case "block":
+                f.clip = min(1, 2 * q)
+                f.alpha = q >= 0.5 ? 1 : 0
+            case "burst":
+                f.scale = 2 - e
+                f.alpha = e
+            case "bounceIn":
+                f.dy = -(1 - Self.bounce(q)) * size
+                f.alpha = min(1, 2 * q)
+            case "roll":
+                f.dx = rest * size * 0.5
+                f.rotation = rest * 90
+                f.alpha = e
+            case "skate":
+                f.dx = rest * size
+                f.rotation = -rest * 15
+                f.alpha = e
+            case "spread":
+                f.dx = (Double(i) - Double(n - 1) / 2) * rest * size * 0.5
+                f.alpha = e
+            case "clarify":
+                f.blur = rest * size * 0.25
+                f.alpha = e
+            case "tumble":
+                f.dy = -rest * size * 0.5
+                f.rotation = -rest * 180
+                f.scale = 0.5 + 0.5 * e
+                f.alpha = e
+            case "writeOn":
+                f.clip = q
+                f.alpha = q > 0 ? 1 : 0
+            case "letterPop":
+                f.scale = 0.4 + 0.6 * e
+                f.alpha = min(1, 2 * q)
+            default: // typewriter, words
+                f.alpha = q > 0 ? 1 : 0
+            }
+            return f
+        }
+    }
+
+    /// The standard ease-out bounce, 0 at 0 and 1 at 1.
+    static func bounce(_ x: Double) -> Double {
+        let n1 = 7.5625, d1 = 2.75
+        if x < 1 / d1 { return n1 * x * x }
+        if x < 2 / d1 {
+            let y = x - 1.5 / d1
+            return n1 * y * y + 0.75
+        }
+        if x < 2.5 / d1 {
+            let y = x - 2.25 / d1
+            return n1 * y * y + 0.9375
+        }
+        let y = x - 2.625 / d1
+        return n1 * y * y + 0.984375
     }
 
     /// One cycle every `loopPeriod` seconds from the delay, at rest before it.

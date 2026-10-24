@@ -487,11 +487,7 @@ struct ContextToolbar: View {
             }
             if store.selectedElements.contains(where: { $0.type == .text }) {
                 Divider()
-                ForEach(ElementAnimation.kinds.filter { ElementAnimation.textKinds.contains($0) }, id: \.self) { kind in
-                    Button { store.animateSelected(kind); store.playPreview() } label: {
-                        Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
-                    }
-                }
+                textAnimationButtons(el)
             }
             Divider()
             exitMenu(el)
@@ -503,6 +499,31 @@ struct ContextToolbar: View {
             }
         } label: {
             toolLabel("sparkles.rectangle.stack", "Animate", active: el.animation != nil || el.exitAnimation != nil)
+        }
+    }
+
+    /// The text-only entrances, a menu of their own, and Animate by for
+    /// the one on: letter, word or line.
+    @ViewBuilder
+    private func textAnimationButtons(_ el: Element) -> some View {
+        Menu {
+            ForEach(ElementAnimation.textKindOrder, id: \.self) { kind in
+                Button { store.animateSelected(kind); store.playPreview() } label: {
+                    Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
+                }
+            }
+        } label: {
+            Label("Text animations", systemImage: "textformat")
+        }
+        if let animation = el.animation, ElementAnimation.textKinds.contains(animation.kind) {
+            Picker("Animate by", selection: Binding(
+                get: { animation.unit },
+                set: { store.animateSelected(by: $0); store.playPreview() })) {
+                Text("Letter").tag("letter")
+                Text("Word").tag("word")
+                Text("Line").tag("line")
+            }
+            .pickerStyle(.menu)
         }
     }
 
@@ -560,24 +581,37 @@ struct ContextToolbar: View {
     /// last moments to show it.
     private func exitMenu(_ el: Element) -> some View {
         // A kind from a newer build leaves as a fade, so it is ticked as one.
-        let current = el.exitAnimation.map { ElementAnimation.exitKinds.contains($0.kind) ? $0.kind : "fade" }
+        let known = ElementAnimation.exitKinds + Array(ElementAnimation.textKindOrder.dropFirst(4))
+        let current = el.exitAnimation.map { known.contains($0.kind) ? $0.kind : "fade" }
+        let texts = store.selectedElements.contains { $0.type == .text }
         return Menu {
             Button { store.exitSelected(nil) } label: {
                 Label(ElementAnimation.exitName(nil), systemImage: current == nil ? "checkmark" : "circle")
             }
             Divider()
             ForEach(ElementAnimation.exitKinds, id: \.self) { kind in
-                Button {
-                    store.exitSelected(kind)
-                    store.playPreview(from: store.exitPreviewStart)
-                } label: {
-                    Label(ElementAnimation.exitName(kind), systemImage: current == kind ? "checkmark" : "circle")
+                exitButton(kind, current: current)
+            }
+            // Text leaves a unit at a time too: the entrances played back.
+            if texts {
+                Divider()
+                ForEach(Array(ElementAnimation.textKindOrder.dropFirst(4)), id: \.self) { kind in
+                    exitButton(kind, current: current)
                 }
             }
         } label: {
             Label("Exit", systemImage: "rectangle.portrait.and.arrow.right")
         }
         .disabled(store.unlockedSelectionCount == 0)
+    }
+
+    private func exitButton(_ kind: String, current: String?) -> some View {
+        Button {
+            store.exitSelected(kind)
+            store.playPreview(from: store.exitPreviewStart)
+        } label: {
+            Label(ElementAnimation.exitName(kind), systemImage: current == kind ? "checkmark" : "circle")
+        }
     }
 
     private func blendMenu(_ el: Element) -> some View {
