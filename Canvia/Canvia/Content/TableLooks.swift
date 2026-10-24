@@ -274,7 +274,8 @@ enum Tables {
 
     /// `cells` — a table's members — in `design`'s look, its "accent" and
     /// "accent2" colours `accent` and `accent2`: row 0 the header (filled
-    /// headerFill, its words headerInk at headerWeight), the rows below it
+    /// headerFill, its words headerInk at headerWeight) while the table has
+    /// one (headed), else a body row like the rest; the rows below it
     /// bodyFill, or bandFill in even rows when the design bands them (as
     /// tableBodyFill bands), their words ink at 400; every rectangle
     /// stroked border, borderWidth wide, with the design's corner radius;
@@ -294,6 +295,7 @@ enum Tables {
         let body = c(design.bodyFill)
         let band = design.bandFill.map(c)
         let bands: String? = body == "#ffffff" ? band : nil
+        let headed = Tables.headed(cells)
         let styled = cells.map { el -> Element in
             guard var cell = el.table else { return el }
             cell.design = design.id
@@ -302,7 +304,7 @@ enum Tables {
             cell.pad = pad
             var out = el
             out.table = cell
-            let header = cell.row == 0
+            let header = headed && cell.row == 0
             switch el.type {
             case .shape:
                 let fill = header ? c(design.headerFill) : (band != nil && cell.row % 2 == 0 ? band ?? body : body)
@@ -320,6 +322,16 @@ enum Tables {
             return out
         }
         return withSides(styled)
+    }
+
+    /// Whether a table's `cells` have a header row: every word in row 0
+    /// bold (DataGraphics.tableHasHeader), or at the header weight of the
+    /// design they keep, which may be lighter than bold — so a design given
+    /// again leaves a header the user turned off off.
+    static func headed(_ cells: [Element]) -> Bool {
+        let heads = cells.filter { $0.type == .text && $0.table?.row == 0 }
+        let least = min(700, TableDesigns.design(designOf(cells))?.headerWeight ?? 700)
+        return !heads.isEmpty && heads.allSatisfy { ($0.fontWeight ?? 400) >= least }
     }
 
     /// Table `id` in `design` (restyled) and laid out again; nil when

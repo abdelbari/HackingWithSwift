@@ -50,14 +50,14 @@ final class DocxReaderTests: XCTestCase {
     }
 
     /// The same blocks as the Android twin's round trip: every kind
-    /// DocxWriter writes as words, with levels, spans and both kinds of
-    /// table.
+    /// DocxWriter writes as words, with levels, spans, alignments and both
+    /// kinds of table.
     func testADocWrittenToWordReadsBackAsTheSameBlocks() throws {
         let blocks = [
             DocBlock(id: "a", type: Docs.title, text: "Annual report"),
-            DocBlock(id: "b", type: Docs.h1, text: "Summary"),
+            DocBlock(id: "b", type: Docs.h1, text: "Summary", align: "center"),
             DocBlock(id: "c", type: Docs.h2, text: "Numbers"),
-            DocBlock(id: "d", type: Docs.h3, text: "Small print"),
+            DocBlock(id: "d", type: Docs.h3, text: "Small print", align: "right"),
             Docs.withSpans(DocBlock(id: "e", type: Docs.p, text: "We **grew** *fast* and __far__, ~~not~~ slow."), [
                 TextSpan(start: 0, end: 2, color: "#c00000"),
                 TextSpan(start: 15, end: 18, highlight: "#ffff00"),
@@ -65,11 +65,11 @@ final class DocxReaderTests: XCTestCase {
             ]),
             DocBlock(id: "f", type: Docs.bullet, text: "Toast"),
             DocBlock(id: "g", type: Docs.bullet, text: "Butter", level: 1),
-            DocBlock(id: "h", type: Docs.number, text: "First"),
+            DocBlock(id: "h", type: Docs.number, text: "First", align: "center"),
             DocBlock(id: "i", type: Docs.number, text: "Inner", level: 2),
-            DocBlock(id: "j", type: Docs.checklist, text: "Done", checked: true),
+            DocBlock(id: "j", type: Docs.checklist, text: "Done", checked: true, align: "right"),
             DocBlock(id: "k", type: Docs.checklist, text: "To do", checked: false),
-            DocBlock(id: "l", type: Docs.quote, text: "Good food, good mood."),
+            DocBlock(id: "l", type: Docs.quote, text: "Good food, good mood.", align: "justify"),
             DocBlock(id: "m", type: Docs.divider),
             DocBlock(id: "n", type: Docs.pagebreak),
             DocBlock(id: "o", type: Docs.table, table: DocTable(rows: [["Item", "Price"], ["Tea, hot", "2 * 3"]], header: true)),

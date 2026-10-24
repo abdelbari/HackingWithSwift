@@ -27,10 +27,20 @@ enum WordDocs {
         }
     }
 
-    /// Whether the file at `url` is named as a Word document — which is a
-    /// ZIP as a deck is, so it is asked before a deck.
+    /// Whether the file at `url` is a Word document — which is a ZIP as a
+    /// deck is, so it is asked before a deck: called .docx, or, for one
+    /// that arrived as any file (picked as a design file, or sent with a
+    /// bare name), a ZIP holding word/document.xml, as on Android.
     static func isWordDocument(_ url: URL) -> Bool {
-        url.pathExtension.lowercased() == DocxReader.fileExtension
+        if url.pathExtension.lowercased() == DocxReader.fileExtension { return true }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        let head = (try? handle.read(upToCount: 4)) ?? Data()
+        try? handle.close()
+        guard PptxReader.isZip(head),
+              let zip = try? ZipStore.Reader(url: url, inflating: true) else { return false }
+        return zip.entries["word/document.xml"] != nil
     }
 
     /// The document at `url` read as a Doc named by its file, its pictures

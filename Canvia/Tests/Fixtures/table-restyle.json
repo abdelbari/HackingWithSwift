@@ -14,5 +14,7 @@
     [2, 0, 1, 1, "Bagel"],
     [2, 2, 1, 1, "2.25"]
   ],
-  "headerFill": {"classic": "#7c3aed", "second-colour": "#0ea5e9", "night": "#0f172a"}
+  "headerFill": {"classic": "#7c3aed", "second-colour": "#0ea5e9", "night": "#0f172a"},
+  "headerOff": "With the header turned off first, a design keeps it off: row 0's words regular, its cell filled as a body row (headerOffFill), and the table reads as having no header. With it on, the header stays on after another design (classic) is given, even from a design whose header is lighter than bold.",
+  "headerOffFill": {"classic": "#f3f4f6", "striped": "#eef2f7", "night": "#1e293b", "light-header": "#ffffff"}
 }

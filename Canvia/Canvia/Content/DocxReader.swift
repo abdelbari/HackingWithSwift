@@ -15,7 +15,9 @@
 //    numbered unless numbering.xml gives its level the "bullet" format (a
 //    level it does not know is a bullet), its w:ilvl its level, held to 0
 //    to TextLists.maxLevel; a paragraph that starts "☐ " or "☑ " a
-//    checklist item, ticked for ☑;
+//    checklist item, ticked for ☑; its w:jc its alignment — center
+//    centred, right or end right, both or distribute justified, anything
+//    else left;
 //  - runs: w:b, w:i, w:u (but "none") and w:strike — each but a w:val of
 //    "0", "false" or "off" — as RichText's markers; w:color (but "auto") a
 //    span's colour, w:highlight's named colour or w:shd's fill (but "auto")
@@ -138,6 +140,16 @@ enum DocxReader {
         guard let v, v.count == 6, v.allSatisfy({ $0.isLetter || $0.isNumber }), v.lowercased() != "auto" else { return nil }
         let out = "#" + v.lowercased()
         return ColorTools.rgb255(out) == nil ? nil : out
+    }
+
+    /// A paragraph's w:jc as a block's alignment: nil for left.
+    fileprivate static func alignOf(_ jc: String?) -> String? {
+        switch jc ?? "" {
+        case "center": return "center"
+        case "right", "end": return "right"
+        case "both", "distribute": return "justify"
+        default: return nil
+        }
     }
 
     /// A style's id or name as a block type, or nil for none.
@@ -292,10 +304,11 @@ private final class WordReader {
             level = held > 0 ? held : nil
         }
         if let before = DocxReader.child(props, "pageBreakBefore"), DocxReader.on(before) { pageBreak() }
+        let align = DocxReader.alignOf(DocxReader.attr(DocxReader.child(props, "jc"), "val"))
         var words = GatheredWords()
         func flush() {
             guard !words.isEmpty else { return }
-            emit(type, level, words)
+            emit(type, level, align, words)
             words = GatheredWords()
         }
         func run(_ r: SvgImport.Node, link: String?) {
@@ -363,7 +376,7 @@ private final class WordReader {
         flush()
     }
 
-    func emit(_ type: String, _ level: Int?, _ words: GatheredWords) {
+    func emit(_ type: String, _ level: Int?, _ align: String?, _ words: GatheredWords) {
         var plain = words.plain
         var styles = words.styles
         var spans = words.spans
@@ -381,7 +394,7 @@ private final class WordReader {
         }
         let listed = kind == Docs.bullet || kind == Docs.number
         let block = DocBlock(type: kind, text: RichText.written(plain, styles: styles), checked: checked,
-                             level: listed ? level : nil)
+                             align: align, level: listed ? level : nil)
         blocks.append(Docs.withSpans(block, Spans.normalised(spans)))
     }
 
