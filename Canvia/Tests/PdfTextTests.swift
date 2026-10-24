@@ -108,6 +108,22 @@ final class PdfTextTests: XCTestCase {
         XCTAssertEqual(PdfText.ringMedian(px, width: w, height: h, left: 4, top: 4, right: 6, bottom: 6), 0xffffffff)
     }
 
+    /// Shared with the Android twin's PdfTextTest: a cross-reference
+    /// subsection numbered past what a whole number holds is not read (it
+    /// once overflowed), and the objects are found by looking through the
+    /// file instead.
+    func testAnXrefSubsectionNumberedOutOfRangeIsPassedOver() {
+        let body = "%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
+            + "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
+            + "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >> endobj\n"
+        let xref = "xref\n9223372036854775807 2\n0000000009 00000 n \n0000000009 00000 n \n"
+        let tail = "trailer << /Root 1 0 R /Size 4 >>\nstartxref\n\(body.utf8.count)\n%%EOF"
+        guard case .document(let pages, _) = PdfText.read(Data((body + xref + tail).utf8)) else {
+            return XCTFail("not read")
+        }
+        XCTAssertEqual(pages.count, 1)
+    }
+
     func testAnEncryptedOrBrokenFileReadsAsSuch() {
         let pdf = "%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\ntrailer << /Root 1 0 R /Encrypt 5 0 R >>\n%%EOF"
         guard case .encrypted = PdfText.read(Data(pdf.utf8)) else { return XCTFail("not read as encrypted") }

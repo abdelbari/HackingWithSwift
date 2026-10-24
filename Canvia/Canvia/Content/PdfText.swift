@@ -928,9 +928,12 @@ private final class PdfDoc {
                 if case .dict(let d)? = lex.next() { return d }
                 return [:]
             }
-            guard let start = Int(w) else { return [:] }
+            // Held to 32 bits, as the Android twin reads them, so start + i
+            // cannot overflow on a malformed header.
+            guard let start32 = Int32(w) else { return [:] }
             lex.skip()
-            guard let count = Int(lex.word()) else { return [:] }
+            guard let count32 = Int32(lex.word()) else { return [:] }
+            let start = Int(start32), count = Int(count32)
             var i = 0
             while i < count {
                 lex.skip()
