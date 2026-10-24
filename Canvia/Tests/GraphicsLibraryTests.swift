@@ -13,7 +13,7 @@ final class GraphicsLibraryTests: XCTestCase {
         // The Android twin's GraphicsLibraryTest hashes its copy to the same.
         let url = try XCTUnwrap(Bundle.main.url(forResource: "Graphics", withExtension: "json"))
         let hash = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(hash, "cf8329b2e37fc2d59a00f7858ed8fe5171300669e45f66323e72d5af6559675d")
+        XCTAssertEqual(hash, "17661151750fcd40e804e560e453ccbf5d7877919a6ddc92da2c6695df01bb28")
     }
 
     func testAboutTwoHundredGraphicsInTwelveCategoriesEachIdOnce() {

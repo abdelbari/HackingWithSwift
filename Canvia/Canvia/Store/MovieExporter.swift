@@ -267,8 +267,12 @@ enum MovieExporter {
     /// looping clip or pulsing logo plays through every page that shows it,
     /// in Present and on the Android twin's video alike, so it has to here
     /// too rather than sit on its first frame.
+    /// A page that animates its elements (PageAnimation), or plays a clip
+    /// behind them (BackgroundClip), moves too.
     static func isAnimated(_ page: Page, in design: Design) -> Bool {
-        design.drawnElements(on: page).contains {
+        if page.backgroundClip != nil { return true }
+        if page.pageAnimation != nil && page.elements.contains(where: { !$0.isHidden }) { return true }
+        return design.drawnElements(on: page).contains {
             if Captions.plays($0) { return true }
             return $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
                 || AnimStore.isAnim($0.src) || $0.timing != nil

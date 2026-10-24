@@ -20,6 +20,12 @@ The file is one object:
                 colour. "colours" are its fills in the order they are first
                 used, at most four, lower-case "#rrggbb", as Colour swap
                 lists them.
+                A graphic that moves also has "motion": "draw" (its
+                lines draw themselves on, path after path), "twinkle"
+                (its paths pulse in turn) or "float" (it bobs gently).
+                Every arrow, underline and circle, and scribble draws on
+                and every sparkle twinkles, by kind (MOTIONS); "float" is
+                read by both phones but no graphic here has it yet.
 
 Paths are absolute M, L, C and Z, numbers to a tenth. A hand-drawn line is a
 filled ribbon round its centre line, tapering at its ends, so it scales with
@@ -581,6 +587,15 @@ KINDS = [
     ('Patterns', 'pattern', pattern, 17, 'Pattern', ['pattern', 'texture', 'background', 'tile']),
 ]
 
+# How each kind of graphic moves when it is put on a page; a kind not
+# here stays still.
+MOTIONS = {
+    'arrow': 'draw',
+    'underline': 'draw',
+    'scribble': 'draw',
+    'sparkle': 'twinkle',
+}
+
 # A word for each variant's look, so names and searches tell them apart.
 LOOKS = {
     'arrow': ['curved', 'looped', 'zigzag', 'straight', 'hooked', 'spiral'],
@@ -623,14 +638,17 @@ def build():
             assert len(colours) <= 4, (key, v, colours)
             look = looks[v % len(looks)]
             name = '%s %s %d' % (look.capitalize(), noun.lower(), v // len(looks) + 1) if v >= len(looks) else '%s %s' % (look.capitalize(), noun.lower())
-            graphics.append({
+            graphic = {
                 'id': '%s-%02d' % (key, v + 1),
                 'name': name,
                 'category': category,
                 'tags': words + [w for w in look.split(' ') if w not in words],
                 'svg': svg_of(width, height, parts),
                 'colours': colours,
-            })
+            }
+            if key in MOTIONS:
+                graphic['motion'] = MOTIONS[key]
+            graphics.append(graphic)
     return graphics
 
 

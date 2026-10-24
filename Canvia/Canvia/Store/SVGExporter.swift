@@ -47,13 +47,16 @@ enum SVGExporter {
     /// with alt text a group a screen reader reads as one picture, by its
     /// words — role="img" and aria-label.
     @MainActor
-    static func svg(design: Design, page: Page, aria: Bool = false) -> String {
-        svg(design: design, page: page, aria: aria, standIns: nil)
+    static func svg(design: Design, page: Page, aria: Bool = false, moving: Bool = false) -> String {
+        svg(design: design, page: page, aria: aria, standIns: nil, moving: moving)
     }
 
     /// `svg(design:page:aria:)`, drawn with a test's `standIns` when given.
     @MainActor
-    static func svg(design: Design, page: Page, aria: Bool, standIns: StandIns?) -> String {
+    /// With `moving`, for the web page: a graphic drawing itself on or
+    /// twinkling plays as CSS (`moving(_:_:)`); anywhere else it is still,
+    /// its drawing finished.
+    static func svg(design: Design, page: Page, aria: Bool, standIns: StandIns?, moving: Bool = false) -> String {
         var defs: [String] = []
         var body: [String] = []
 
@@ -67,7 +70,7 @@ enum SVGExporter {
                 resolved.fillPageTokens(number: number, count: design.pages.count)
             }
             let group = elementGroup(resolved, index: index, aria: aria, standIns: standIns, defs: &defs)
-            parts.append((el: el as Element?, part: group))
+            parts.append((el: el as Element?, part: moving ? Self.moving(group, el) : group))
         }
         // Groups, nested ones too, as <g> round their members (Groups.nested).
         body += Groups.nested(parts) { _, _, inner in "<g>" + inner.joined() + "</g>" }
@@ -689,6 +692,32 @@ enum SVGExporter {
 
     /// Five decimals: enough that a coordinate on a 4000px page is exact to
     /// well under a pixel, without writing 1.0000000000000002 into the file.
+    /// An element's markup that draws itself on or twinkles on a web page:
+    /// a draw-on revealed from its left over its time, after its delay
+    /// (cv-draw), a twinkle pulsing round from its delay (cv-twinkle); any
+    /// other as it is. The keyframes are HTMLExporter.motionCSS.
+    static func moving(_ group: String, _ el: Element) -> String {
+        guard let anim = el.animation else { return group }
+        let delay = num(anim.delay)
+        switch anim.kind {
+        case ElementAnimation.draw:
+            return "<g style=\"animation:cv-draw \(num(max(anim.duration, 0.01)))s linear \(delay)s both\">" + group + "</g>"
+        case ElementAnimation.twinkle:
+            let style = "transform-box:fill-box;transform-origin:center;"
+                + "animation:cv-twinkle \(num(ElementAnimation.loopPeriod))s ease-in-out \(delay)s infinite"
+            return "<g style=\"" + style + "\">" + group + "</g>"
+        default:
+            return group
+        }
+    }
+
+    /// Whether `page` has a graphic that moves on a web page.
+    static func moves(_ design: Design, page: Page) -> Bool {
+        design.drawnElements(on: page).contains {
+            $0.animation?.kind == ElementAnimation.draw || $0.animation?.kind == ElementAnimation.twinkle
+        }
+    }
+
     static func num(_ value: Double) -> String {
         guard value.isFinite else { return "0" }
         let rounded = (value * 100_000).rounded() / 100_000

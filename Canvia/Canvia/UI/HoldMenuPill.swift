@@ -1,6 +1,6 @@
 // The menu a still hold on the empty page brings up, at the finger: Paste —
-// put down where you pressed — Paste page, Select all, Add text here and
-// Background (HoldMenu). A pill like the quick actions at the selection,
+// put down where you pressed — Paste page, Select all, Add text here,
+// Background and Animate (HoldMenu). A pill like the quick actions at the selection,
 // placed as they are placed (Geometry.bubbleAnchor). A tap anywhere else on
 // the canvas puts it away, as does the view moving; VoiceOver has the same
 // items as actions on the page (CanvasView).
@@ -16,9 +16,10 @@ struct HoldMenuPill: View {
     var openBackground: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// The pill's height, and one item's width, in points.
+    /// The pill's height, and one item's width, in points: six items fit
+    /// across the narrowest phone.
     private static let height = 52.0
-    private static let slot = 66.0
+    private static let slot = 60.0
 
     var body: some View {
         GeometryReader { proxy in
@@ -46,6 +47,7 @@ struct HoldMenuPill: View {
         case .selectAll: store.selectAll()
         case .addText: store.addText(at: point)
         case .background: openBackground()
+        case .animate: store.asksPageAnimation = true
         }
     }
 

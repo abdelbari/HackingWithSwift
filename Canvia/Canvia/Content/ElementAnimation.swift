@@ -18,31 +18,78 @@
 // in at the end — the same maths as the Android twin's, from the part's
 // chartPart. Any other element given it fades in, as a build without it
 // plays it.
+//
+// Round 32 adds, at parity with the Android twin: a recorded motion path
+// ("path", Animate's Create) — its points, `path` as [dx, dy, t] each, page
+// units from the element's resting centre, played along a Catmull-Rom curve
+// when `smooth`, turned to face the way it goes when `orient`, at `speed`;
+// a photo's motion over its page (photoZoom, photoPan), which moves its
+// crop rather than its frame; more ways in (wipe, breathe, drift, tumble,
+// and baseline for text); and a graphic drawing itself on (draw) or
+// twinkling (twinkle). A build that does not know a kind fades it in.
 
 import Foundation
 
 struct ElementAnimation: Codable, Equatable {
     /// "grow" | "fade" | "rise" | "pop" | "slideLeft" | "slideRight" | "typewriter" | "words" | "letterPop" | "lineRise"
+    /// and the rest of `kinds`, or "path"
     var kind: String = "fade"
     /// Seconds after the page starts.
     var delay: Double = 0
     var duration: Double = 0.6
+    /// A path's points, in the order they were recorded; written only on a
+    /// path, with the three below.
+    var path: [MotionPath.Point]?
+    /// A path played as a smooth curve through its points, else straight
+    /// from one to the next.
+    var smooth: Bool = true
+    /// Turned to face the way the path goes.
+    var orient: Bool = false
+    /// How much faster than recorded a path plays, MotionPath.speeds.
+    var speed: Double = 1
 
-    static let kinds = [grow, "fade", "rise", "pop", "slideLeft", "slideRight", "typewriter", "words", "letterPop", "lineRise",
-                        "pulse", "wiggle", "bounce", "spin"]
+    /// The kinds Animate offers, in its order; a path is recorded instead,
+    /// by Create.
+    static let kinds = [grow, "fade", "rise", "pop", "slideLeft", "slideRight", "wipe", "breathe", "drift", "tumble",
+                        "typewriter", "words", "letterPop", "lineRise", baseline,
+                        photoZoom, photoPan, draw,
+                        "pulse", "wiggle", "bounce", "spin", twinkle]
+    /// A recorded motion path (Animate's Create).
+    static let pathKind = "path"
+    /// A graphic's line drawing itself on, and its sparkles twinkling.
+    static let draw = "draw"
+    static let twinkle = "twinkle"
+    /// How long a graphic takes to draw itself on, all its paths.
+    static let drawDuration = 1.2
+    /// How far apart a twinkling graphic's paths start.
+    static let twinkleStagger = 0.15
+    /// Type rising into its box from its baseline.
+    static let baseline = "baseline"
+    /// A photo's slow zoom and pan over its page.
+    static let photoZoom = "photoZoom"
+    static let photoPan = "photoPan"
+    static let photoKinds: Set<String> = [photoZoom, photoPan]
     /// A chart's entrance, its parts growing from their baseline.
     static let grow = "grow"
     /// How long after each other a chart's series start to grow, and how
     /// long a chart takes, delay aside, when Grow is picked.
     static let growStagger = 0.08
     static let growDuration = 1.0
-    static let textKinds: Set<String> = ["typewriter", "words", "letterPop", "lineRise"]
+    static let textKinds: Set<String> = ["typewriter", "words", "letterPop", "lineRise", baseline]
     /// Loops never settle: a sticker that keeps moving for as long as the
     /// page is shown.
-    static let loopKinds: Set<String> = ["pulse", "wiggle", "bounce", "spin"]
+    static let loopKinds: Set<String> = ["pulse", "wiggle", "bounce", "spin", twinkle]
     static let loopPeriod = 1.2
 
     var loops: Bool { Self.loopKinds.contains(kind) }
+
+    /// How long it takes, delay aside: a path as fast as its speed.
+    var playedFor: Double {
+        kind == Self.pathKind ? duration / min(max(speed, MotionPath.minSpeed), MotionPath.maxSpeed) : duration
+    }
+
+    /// Whether it moves for its page's whole hold: a photo's motion.
+    var drifts: Bool { Self.photoKinds.contains(kind) }
 
     /// How long one cycle of a loop takes, in seconds; nil for a move that
     /// settles. What Check accessibility measures for flashing.
@@ -85,6 +132,16 @@ struct ElementAnimation: Codable, Equatable {
         case "wiggle": return tr("Wiggle (loop)")
         case "bounce": return tr("Bounce (loop)")
         case "spin": return tr("Spin (loop)")
+        case "wipe": return tr("Wipe")
+        case "breathe": return tr("Breathe")
+        case "drift": return tr("Drift")
+        case "tumble": return tr("Tumble")
+        case "baseline": return tr("Baseline")
+        case "photoZoom": return tr("Photo zoom")
+        case "photoPan": return tr("Photo pan")
+        case "draw": return tr("Draw")
+        case "twinkle": return tr("Twinkle (loop)")
+        case "path": return tr("Custom path")
         default: return kind
         }
     }
@@ -111,6 +168,16 @@ struct ElementAnimation: Codable, Equatable {
         /// The share of its sweep a slice or ring is drawn to
         /// (DataGraphics.swept).
         var sweep: Double = 1
+        /// Drawn only within its resting box, as a line of type rising from
+        /// its baseline is.
+        var clipped = false
+        /// The share of its outline drawn on (draw): each of its paths in
+        /// turn, by `drawn`.
+        var draw: Double = 1
+        /// A photo's picture enlarged this much more inside its frame, and
+        /// its crop's across share (photoZoom, photoPan); nil keeps its own.
+        var cropZoom: Double = 1
+        var cropX: Double?
         static let settled = State()
 
         /// Whether nothing of the element shows: grown from nothing, or
@@ -134,6 +201,10 @@ struct ElementAnimation: Codable, Equatable {
             }
             s.reveal *= exit.reveal
             s.sweep *= exit.sweep
+            s.clipped = clipped || exit.clipped
+            s.draw *= exit.draw
+            s.cropZoom *= exit.cropZoom
+            s.cropX = cropX ?? exit.cropX
             return s
         }
     }
@@ -148,14 +219,49 @@ struct ElementAnimation: Codable, Equatable {
     }
 
     /// `el` is the element moving: a grow needs it, the chart part it
-    /// grows; anything else that grows fades in.
-    func state(at t: Double, text: String? = nil, size: Double = 100, el: Element? = nil) -> State {
+    /// grows; anything else that grows fades in. A photo's motion runs over
+    /// the page's `hold`, from the delay to the page's end, and moves only a
+    /// photo or a clip. A path plays at its speed, straight through rather
+    /// than eased, as it was recorded; a draw-on at an even pace, as a pen
+    /// moves.
+    func state(at t: Double, text: String? = nil, size: Double = 100, el: Element? = nil,
+               hold: Double? = nil) -> State {
         if loops { return loopState(at: t) }
+        if Self.photoKinds.contains(kind) { return photoState(at: t, el: el, hold: hold) }
+        if kind == Self.pathKind, let points = path, points.count >= 2 {
+            let q = Self.linear(t, delay: delay, duration: playedFor)
+            if q >= 1 { return .settled }
+            let moved = Self.pathState(self, q)
+            return el.map { Self.inOwnSpace(moved, $0) } ?? moved
+        }
+        if kind == Self.draw {
+            let q = Self.linear(t, delay: delay, duration: duration)
+            if q >= 1 { return .settled }
+            var s = State()
+            s.draw = q
+            return s
+        }
         let p = progress(at: t)
         if p >= 1 { return .settled }
         if kind == Self.grow, let el { return growState(at: t, el) }
         var s = State()
         switch kind {
+        case "wipe":
+            s.reveal = p
+        case "breathe":
+            s.opacity = p
+            s.scale = 0.9 + 0.1 * p
+        case "drift":
+            s.opacity = p
+            s.offset = CGSize(width: (1 - p) * size * 0.2, height: 0)
+        case "tumble":
+            s.opacity = min(1, p * 2)
+            s.rotation = -90 * (1 - p)
+            s.scale = 0.5 + 0.5 * p
+        case "baseline":
+            // Up from below its own baseline, seen only within its box.
+            s.offset = CGSize(width: 0, height: (1 - p) * (el?.h ?? size))
+            s.clipped = true
         case "rise":
             s.opacity = p
             s.offset = CGSize(width: 0, height: (1 - p) * size * 0.3)
@@ -262,7 +368,10 @@ struct ElementAnimation: Codable, Equatable {
     /// Grow gives every part of a chart one delay and one duration
     /// (growDuration), its series staggered by the grow itself, each chart
     /// and each other thing 0.15 s after the one before.
+    /// A draw-on or a twinkle goes on as Add puts a moving graphic on
+    /// (`motioned`); a photo's motion passes over all but photos and clips.
     static func applied(_ elements: [Element], kind: String?) -> [Element] {
+        if let kind, kind == draw || kind == twinkle { return motioned(elements, kind: kind) }
         var n = 0
         var charts: [String: Double] = [:]
         return elements.map { el in
@@ -272,6 +381,7 @@ struct ElementAnimation: Codable, Equatable {
                 return out
             }
             if textKinds.contains(kind) && el.type != .text { return el }
+            if photoKinds.contains(kind) && el.type != .image { return el }
             if kind == grow {
                 var delay = Double(n) * 0.15
                 if let chart = el.chart?.id, let shared = charts[chart] {
@@ -289,8 +399,181 @@ struct ElementAnimation: Codable, Equatable {
         }
     }
 
+    /// `elements` — a graphic's paths, in their order — given `kind`
+    /// together: draw draws them on one after another over drawDuration,
+    /// each for its share of their whole length (`lengthOf`, `drawSpans`);
+    /// twinkle starts each twinkleStagger after the one before; any other
+    /// kind is given to each with no delay, so they move as one. Times to a
+    /// hundredth of a second, as on the Android twin.
+    static func motioned(_ elements: [Element], kind: String) -> [Element] {
+        switch kind {
+        case draw:
+            let spans = drawSpans(elements.map(lengthOf), total: drawDuration)
+            return elements.enumerated().map { i, el in
+                var out = el
+                out.animation = ElementAnimation(kind: draw, delay: spans[i].delay, duration: spans[i].duration)
+                return out
+            }
+        case twinkle:
+            return elements.enumerated().map { i, el in
+                var out = el
+                out.animation = ElementAnimation(kind: twinkle, delay: hundredth(Double(i) * twinkleStagger), duration: 0.6)
+                return out
+            }
+        default:
+            return elements.map { el in
+                var out = el
+                out.animation = ElementAnimation(kind: kind, delay: 0, duration: 0.6)
+                return out
+            }
+        }
+    }
+
+    /// Each of paths `lengths` long as a delay and a duration within
+    /// `total` seconds, drawn in order, each for its share of their whole
+    /// length — to a hundredth; all of nothing long share it evenly.
+    static func drawSpans(_ lengths: [Double], total: Double) -> [(delay: Double, duration: Double)] {
+        let sum = lengths.reduce(0) { $0 + max(0, $1) }
+        var before = 0.0
+        return lengths.enumerated().map { i, raw in
+            let len = max(0, raw)
+            let start = sum > 0 ? before / sum : Double(i) / Double(lengths.count)
+            let share = sum > 0 ? len / sum : 1 / Double(lengths.count)
+            before += len
+            return (delay: hundredth(start * total), duration: hundredth(share * total))
+        }
+    }
+
+    /// How much of each of paths `lengths` long is drawn `p` (0…1) of the
+    /// way through a draw-on: in order, each for its share of the whole, so
+    /// the pen moves at one pace — 0 before its turn, 1 after. The same rule
+    /// draws an element's own subpaths in turn. All of nothing long: none
+    /// until the end, then all.
+    static func drawn(_ lengths: [Double], p: Double) -> [Double] {
+        let sum = lengths.reduce(0) { $0 + max(0, $1) }
+        guard sum > 0 else { return lengths.map { _ in p >= 1 ? 1 : 0 } }
+        let reach = min(max(p, 0), 1) * sum
+        var before = 0.0
+        return lengths.map { raw in
+            let len = max(0, raw)
+            let f = len <= 0 ? (reach >= before ? 1.0 : 0.0) : min(max((reach - before) / len, 0), 1)
+            before += len
+            return f
+        }
+    }
+
+    /// How long an element's outline is on the page: its own path's
+    /// (`pathData`, each curve as 16 straight steps) stretched to its box,
+    /// else its box's edge.
+    static func lengthOf(_ el: Element) -> Double {
+        guard let d = el.pathData else { return 2 * (el.w + el.h) }
+        return SVGPath.subpathLengths(d, sx: el.w / 100, sy: el.h / 100).reduce(0, +)
+    }
+
+    /// Where a path has the element `p` (0…1) of the way through, from its
+    /// resting centre, page units: on a Catmull-Rom curve through its points
+    /// when smooth, else straight from one to the next — the two points
+    /// round p by their t, and how far between. Turned to face the way it
+    /// goes when it orients, in degrees (0 rightwards, clockwise as the
+    /// page's y runs down); not turned while it stands still. The Android
+    /// twin's pathState, row for row (motion.json).
+    static func pathState(_ anim: ElementAnimation, _ p: Double) -> State {
+        let pts = anim.path ?? []
+        var s = State()
+        guard let first = pts.first else { return s }
+        guard pts.count >= 2 else {
+            s.offset = CGSize(width: first.dx, height: first.dy)
+            return s
+        }
+        let q = min(max(p, 0), 1)
+        var i = 0
+        while i < pts.count - 2 && q >= pts[i + 1].t { i += 1 }
+        let a = pts[i], b = pts[i + 1]
+        let span = b.t - a.t
+        let u = span <= 0 ? 1 : min(max((q - a.t) / span, 0), 1)
+        let x: Double, y: Double, tx: Double, ty: Double
+        if anim.smooth {
+            let p0 = pts[max(0, i - 1)], p3 = pts[min(pts.count - 1, i + 2)]
+            x = catmullRom(p0.dx, a.dx, b.dx, p3.dx, u)
+            y = catmullRom(p0.dy, a.dy, b.dy, p3.dy, u)
+            tx = catmullRomSlope(p0.dx, a.dx, b.dx, p3.dx, u)
+            ty = catmullRomSlope(p0.dy, a.dy, b.dy, p3.dy, u)
+        } else {
+            x = a.dx + (b.dx - a.dx) * u
+            y = a.dy + (b.dy - a.dy) * u
+            tx = b.dx - a.dx
+            ty = b.dy - a.dy
+        }
+        s.offset = CGSize(width: x, height: y)
+        if anim.orient && (abs(tx) > 1e-9 || abs(ty) > 1e-9) {
+            s.rotation = atan2(ty, tx) * 180 / .pi
+        }
+        return s
+    }
+
+    /// A Catmull-Rom curve's value between v1 and v2, `u` of the way.
+    private static func catmullRom(_ v0: Double, _ v1: Double, _ v2: Double, _ v3: Double, _ u: Double) -> Double {
+        let c1 = -v0 + v2
+        let c2 = 2 * v0 - 5 * v1 + 4 * v2 - v3
+        let c3 = -v0 + 3 * v1 - 3 * v2 + v3
+        return 0.5 * (2 * v1 + c1 * u + c2 * u * u + c3 * u * u * u)
+    }
+
+    /// Its slope there.
+    private static func catmullRomSlope(_ v0: Double, _ v1: Double, _ v2: Double, _ v3: Double, _ u: Double) -> Double {
+        let c1 = -v0 + v2
+        let c2 = 2 * v0 - 5 * v1 + 4 * v2 - v3
+        let c3 = -v0 + 3 * v1 - 3 * v2 + v3
+        return 0.5 * (c1 + 2 * c2 * u + 3 * c3 * u * u)
+    }
+
+    /// A move on the page as `el`'s own: its flips and turn undone, as the
+    /// canvas moves an element along itself before turning it — so a path
+    /// goes where it was drawn, whatever the element's turn.
+    static func inOwnSpace(_ state: State, _ el: Element) -> State {
+        let turn = el.rotation * .pi / 180
+        let dx = Double(state.offset.width), dy = Double(state.offset.height)
+        let x = dx * cos(turn) + dy * sin(turn)
+        let y = -dx * sin(turn) + dy * cos(turn)
+        var s = state
+        s.offset = CGSize(width: el.flipH ? -x : x, height: el.flipV ? -y : y)
+        return s
+    }
+
+    /// A photo's motion `t` seconds into a page of `hold` seconds, straight
+    /// through from its delay to the page's end (its own duration for a page
+    /// of no known hold): photoZoom enlarges the picture in its frame from 1
+    /// to 1.15 times; photoPan enlarges it 1.1 times and slides the view
+    /// across it from its left edge to its right (cropX 0 to 1). The frame
+    /// stays where it is. Anything but a photo or a clip stays still.
+    private func photoState(at t: Double, el: Element?, hold: Double?) -> State {
+        guard let el, el.type == .image else { return .settled }
+        let span = hold.map { $0 - delay } ?? duration
+        let f = Self.linear(t, delay: delay, duration: span > 0 ? span : 0)
+        var s = State()
+        if kind == Self.photoZoom {
+            s.cropZoom = 1 + 0.15 * f
+        } else {
+            s.cropZoom = 1.1
+            s.cropX = f
+        }
+        return s
+    }
+
+    /// 0 before `delay`, 1 from `duration` after it, straight between; with
+    /// no duration, 1 from the delay.
+    private static func linear(_ t: Double, delay: Double, duration: Double) -> Double {
+        guard duration > 0 else { return t >= delay ? 1 : 0 }
+        return min(max((t - delay) / duration, 0), 1)
+    }
+
+    /// Whether `kind` moves only a photo or a clip.
+    static func forPhotos(_ kind: String) -> Bool { photoKinds.contains(kind) }
+
+    static func hundredth(_ v: Double) -> Double { (v * 100 + 0.5).rounded(.down) / 100 }
+
     /// When the element is fully in; a loop is never in.
-    var end: Double { loops ? .infinity : delay + duration }
+    var end: Double { loops ? .infinity : delay + playedFor }
 
     /// As an exit: what the element looks like `t` seconds into a page held
     /// `hold` seconds. It is gone by `delay` seconds before the end, having
@@ -346,6 +629,9 @@ struct ElementAnimation: Codable, Equatable {
         case "wiggle": s.rotation = 8 * wave
         case "bounce": s.offset = CGSize(width: 0, height: -abs(wave) * 12)
         case "spin": s.rotation = phase * 360
+        case "twinkle":
+            s.scale = 1 + 0.15 * wave
+            s.opacity = 0.7 + 0.3 * wave
         default: break
         }
         return s
@@ -368,5 +654,38 @@ struct KenBurns: Codable, Equatable {
         return (base * (1 + (zoom - 1) * p),
                 x0 + ((toX ?? x0) - x0) * p,
                 y0 + ((toY ?? y0) - y0) * p)
+    }
+}
+
+extension ElementAnimation {
+
+    private enum CodingKeys: String, CodingKey { case kind, delay, duration, path, smooth, orient, speed }
+
+    /// Leniently, as the Android twin reads it: a missing kind is a fade, a
+    /// missing delay none, a missing duration 0.6 s; a path's point that is
+    /// not three numbers is passed over.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        kind = (try? c.decodeIfPresent(String.self, forKey: .kind)) ?? "fade"
+        delay = (try? c.decodeIfPresent(Double.self, forKey: .delay)) ?? 0
+        duration = (try? c.decodeIfPresent(Double.self, forKey: .duration)) ?? 0.6
+        guard kind == Self.pathKind else { return }
+        path = (try? c.decodeIfPresent([MotionPath.Reading].self, forKey: .path))?.compactMap(\.point)
+        smooth = (try? c.decodeIfPresent(Bool.self, forKey: .smooth)) ?? true
+        orient = (try? c.decodeIfPresent(Bool.self, forKey: .orient)) ?? false
+        speed = (try? c.decodeIfPresent(Double.self, forKey: .speed)) ?? 1
+    }
+
+    /// Every field, a path's own only on a path — all of them there.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(delay, forKey: .delay)
+        try c.encode(duration, forKey: .duration)
+        guard kind == Self.pathKind else { return }
+        try c.encode((path ?? []).map { [$0.dx, $0.dy, $0.t] }, forKey: .path)
+        try c.encode(smooth, forKey: .smooth)
+        try c.encode(orient, forKey: .orient)
+        try c.encode(speed, forKey: .speed)
     }
 }

@@ -2,9 +2,58 @@
 // on the page made the background, and a background picture detached as a
 // photo to move, crop and frame like any other. As the Android twin does
 // both.
+//
+// A clip or an animated picture becomes one too: it plays behind the page
+// (BackgroundClip) with its trim, speed, loop and sound, its first frame the
+// background's picture, which a build that cannot play it shows; tapped, the
+// background offers its Clip controls, and Detach from background brings it
+// back as the clip it was.
 
 import SwiftUI
 import UIKit
+
+/// What becomes of a clip or an animated picture made the background:
+/// pure, so the renderers and the tests reach it as the store does.
+enum PageBackgrounds {
+
+    /// Whether `el` plays — a clip or an animated picture — and so goes
+    /// behind its page as a BackgroundClip (`usedClip`).
+    static func plays(_ el: Element) -> Bool {
+        VideoStore.isVideo(el.src) || AnimStore.isAnim(el.src)
+    }
+
+    /// `page` with the clip or animated picture `el` behind everything and
+    /// taken off it: its playback moved over, and its crop, so it plays and
+    /// frames as it did; its first frame the background's picture. Nil for
+    /// anything else.
+    static func usedClip(_ page: Page, _ el: Element) -> Page? {
+        guard let src = BackgroundClip.bare(el.src) else { return nil }
+        var out = page
+        out.elements.removeAll { $0.id == el.id }
+        out.background = .image(src)
+        out.backgroundClip = BackgroundClip(src: src, playback: el.clip ?? ClipPlayback(), cropX: el.cropX,
+                                            cropY: el.cropY, cropScale: el.cropScale)
+        return out
+    }
+
+    /// The clip behind a page as the photo that plays it, `size` plus
+    /// `cover` all round, as the background lays a picture: its crop and
+    /// its playback, by an id of its own for the page, so a live player
+    /// keeps to it (VideoStore.peek). What the renderers draw behind every
+    /// element, and what Detach gives back.
+    static func clipElement(_ page: Page, size: CGSize, cover: Double) -> Element? {
+        guard let clip = page.backgroundClip else { return nil }
+        var el = Element.image(clip.src, w: Double(size.width) + 2 * cover, h: Double(size.height) + 2 * cover)
+        el.id = "bgclip_" + page.id
+        el.x = -cover
+        el.y = -cover
+        el.cropX = clip.cropX ?? 0.5
+        el.cropY = clip.cropY ?? 0.5
+        el.cropScale = clip.cropScale ?? 1
+        el.clip = clip.playback.isDefault ? nil : clip.playback
+        return el
+    }
+}
 
 extension DesignStore {
 
@@ -25,12 +74,23 @@ extension DesignStore {
     }
 
     /// Whether photo `el` can become the page's background: unlocked, with a
-    /// picture in it — not an empty frame — and a still. A clip or an
-    /// animated picture would stop moving, and a code would be cropped to
-    /// the page and stop scanning.
+    /// picture in it — not an empty frame — a still, a clip or an animated
+    /// picture; not a code, which would be cropped to the page and stop
+    /// scanning.
     static func canBecomeBackground(_ el: Element) -> Bool {
         guard el.type == .image, !el.locked, let src = el.src, !src.isEmpty else { return false }
-        return !VideoStore.isVideo(src) && !AnimStore.isAnim(src) && !CodeGenerator.isCode(src)
+        return !CodeGenerator.isCode(src)
+    }
+
+    /// The clip behind the page on screen changed by `change`, as one step:
+    /// the Clip controls' Trim, Speed and Volume. None without a clip, or
+    /// when nothing changes.
+    func updateBackgroundClip(_ change: (inout ClipPlayback) -> Void) {
+        guard var clip = page.backgroundClip else { return }
+        let before = clip
+        change(&clip.playback)
+        guard clip != before else { return }
+        applyToPage { $0.backgroundClip = clip }
     }
 
     /// Whether a photo shows its picture other than plain: a filter,
@@ -54,6 +114,15 @@ extension DesignStore {
     func useAsBackground(_ id: String) -> Task<Void, Never>? {
         guard let photo = element(id), Self.canBecomeBackground(photo), let src = photo.src else {
             buzz(.reject)
+            return nil
+        }
+        // A clip goes behind as it plays, its look left with the photo.
+        if PageBackgrounds.plays(photo) {
+            applyToPage { page in
+                if let used = PageBackgrounds.usedClip(page, photo) { page = used }
+            }
+            selection.remove(id)
+            buzz(.confirm)
             return nil
         }
         guard Self.hasLook(photo) else {
@@ -93,12 +162,17 @@ extension DesignStore {
     /// page and its print bleed, filling them as the background did — so the
     /// crop holds still and the band stays filled — behind everything else
     /// and selected; the page is left white. One step, as on the Android twin.
+    /// A clip behind the page comes back as one, playing as it did.
     func detachBackground() {
         guard case .image(let src) = page.background else { return }
         let b = Bleed.of(design)
         var photo = Element.image(src, w: pageWidth + 2 * b, h: pageHeight + 2 * b)
         photo.x = -b
         photo.y = -b
+        if var clipped = PageBackgrounds.clipElement(page, size: CGSize(width: pageWidth, height: pageHeight), cover: b) {
+            clipped.id = photo.id
+            photo = clipped
+        }
         applyToPage { page in
             page.elements.insert(photo, at: 0)
             page.background = .color("#ffffff")

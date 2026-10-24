@@ -1,7 +1,8 @@
 // The menu a still hold on the empty page brings up at the finger, as
 // Canva's does: Paste — what was copied, put where you pressed — Paste page,
-// Select all, Add text here and Background. The Android twin's HoldMenu,
-// with the same items in the same order, and the same words.
+// Select all, Add text here, Background and Animate, the page's own
+// animations. The Android twin's HoldMenu, with the same items in the same
+// order, and the same words.
 
 import CoreGraphics
 import Foundation
@@ -9,7 +10,7 @@ import Foundation
 enum HoldMenu {
 
     enum HoldItem: String, CaseIterable, Identifiable {
-        case paste, pastePage, selectAll, addText, background
+        case paste, pastePage, selectAll, addText, background, animate
 
         var id: String { rawValue }
 
@@ -20,6 +21,7 @@ enum HoldMenu {
             case .selectAll: return tr("Select all")
             case .addText: return tr("Add text here")
             case .background: return tr("Background")
+            case .animate: return tr("Animate")
             }
         }
 
@@ -30,6 +32,7 @@ enum HoldMenu {
             case .selectAll: return "checkmark.circle"
             case .addText: return "textformat"
             case .background: return "photo.artframe"
+            case .animate: return "sparkles.rectangle.stack"
             }
         }
     }

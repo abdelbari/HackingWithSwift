@@ -57,7 +57,28 @@ enum History {
         if turned { return tr("Rotate") }
         if resized { return tr("Resize") }
         if moved { return tr("Move") }
-        return tr("Edit")
+        return audioLabel(before, after) ?? tr("Edit")
+    }
+
+    /// Move audio or Trim audio, when the same tracks differ only in where
+    /// they start — and for a trim, what of their file they play — as a lane
+    /// dragged on the timeline leaves them. The Android twin's audioLabel.
+    private static func audioLabel(_ before: Design, _ after: Design) -> String? {
+        let was = before.audioTracks, now = after.audioTracks
+        guard was != now, was.map(\.id) == now.map(\.id) else { return nil }
+        let pairs = zip(was, now).filter { $0.0 != $0.1 }
+        func same(_ a: AudioTrack, _ b: AudioTrack, trim: Bool) -> Bool {
+            var a = a
+            a.start = b.start
+            if trim {
+                a.trimStart = b.trimStart
+                a.trimEnd = b.trimEnd
+            }
+            return a == b
+        }
+        if pairs.allSatisfy({ same($0.0, $0.1, trim: false) }) { return tr("Move audio") }
+        if pairs.allSatisfy({ same($0.0, $0.1, trim: true) }) { return tr("Trim audio") }
+        return nil
     }
 
     /// What Undo is called, by VoiceOver and the toolbar: "Undo Move" for

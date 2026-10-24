@@ -253,7 +253,7 @@ enum Timeline {
         }
         let size = max(el.w, el.h)
         let start = el.timing?.start ?? 0
-        let entrance = el.animation?.state(at: time - start, text: text, size: size, el: el) ?? .settled
+        let entrance = el.animation?.state(at: time - start, text: text, size: size, el: el, hold: hold) ?? .settled
         guard let exit = el.exitAnimation else { return entrance }
         if let end = el.timing?.end {
             // exitState is over `delay` before the hold it is given.
@@ -261,5 +261,136 @@ enum Timeline {
             return entrance.combined(with: exit.exitState(at: time, hold: over, size: size))
         }
         return entrance.combined(with: exit.exitState(at: exitTime ?? time, hold: hold, size: size))
+    }
+
+    // MARK: lanes
+
+    /// `v` to the nearest 1/`per`, halves up, as the Android twin rounds the
+    /// lanes (floor(v × per + 0.5) / per).
+    static func halfUp(_ v: Double, _ per: Double) -> Double {
+        (v * per + 0.5).rounded(.down) / per
+    }
+
+    /// The lanes' widest scale, in points a second; the narrowest is the one
+    /// that fits the film in the strip.
+    static let maxScale = 200.0
+
+    /// The shortest an element's bar is dragged to, in seconds.
+    static let minTiming = 0.1
+
+    /// Which end of a bar is pulled.
+    enum Edge { case start, end }
+
+    /// A pinch's scale: `scale` times `factor`, within minScale…maxScale.
+    static func pinched(_ scale: Double, factor: Double, minScale: Double) -> Double {
+        min(max(scale * factor, minScale), max(minScale, maxScale))
+    }
+
+    /// Where the strip scrolls to so the playhead at `playhead` seconds
+    /// stays where it was on screen as the scale goes from `from` to `to`,
+    /// the strip scrolled `scroll` — never before its start.
+    static func anchoredScroll(playhead: Double, scroll: Double, from: Double, to: Double) -> Double {
+        max(0, playhead * to - (playhead * from - scroll))
+    }
+
+    /// An audio track's lane dragged `dx` (at `scale` a second) along a film
+    /// `film` seconds long: its start moved as far, to a tenth of a second,
+    /// within the film; with Beat Sync on for it, then onto the nearest of
+    /// `beats` (film seconds) within BeatSync.snapSeconds, to the
+    /// thousandth. The Android twin's movedTrack, row for row (motion.json).
+    static func movedTrack(_ track: AudioTrack, dx: Double, scale: Double, film: Double,
+                           beats: [Double] = []) -> AudioTrack {
+        guard scale > 0 else { return track }
+        var out = track
+        let start = halfUp(min(max(track.start + dx / scale, 0), max(0, film)), 10)
+        guard track.beatSync, !beats.isEmpty else {
+            out.start = start
+            return out
+        }
+        let snapped = min(max(Beats.snapped(start, beats: beats), 0), max(0, film))
+        out.start = halfUp(snapped, 1000)
+        return out
+    }
+
+    /// An audio track's lane with its `edge` pulled `dx` (at `scale` a
+    /// second), for a file `duration` seconds long. Its end: the trim's end
+    /// moves as far, the start staying put. Its start: the trim's start
+    /// moves as far and the lane's start with it, so the rest stays where it
+    /// plays — never before the film's start, nor the file's. Each to a
+    /// tenth, at least AudioTrack.minLength played; an end at the file's own
+    /// end is none (`trimmed`).
+    static func trimmedTrack(_ track: AudioTrack, edge: Edge, dx: Double, scale: Double,
+                             duration: Double) -> AudioTrack {
+        guard scale > 0, duration > 0 else { return track }
+        let shift = dx / scale
+        let end = min(track.trimEnd ?? duration, duration)
+        var out = track
+        switch edge {
+        case .end:
+            let kept = trimmed(from: track.trimStart, to: end + shift, duration: duration)
+            out.trimStart = kept.start
+            out.trimEnd = kept.end
+        case .start:
+            let move = max(shift, max(-track.trimStart, -track.start))
+            let kept = trimmed(from: track.trimStart + move, to: end, duration: duration)
+            out.trimStart = kept.start
+            out.trimEnd = kept.end
+            out.start = halfUp(max(0, track.start + (kept.start - track.trimStart)), 10)
+        }
+        return out
+    }
+
+    /// A trim of `from`…`to` seconds of a file `duration` long as the trim
+    /// handles leave it: to a tenth of a second, at least minLength apart,
+    /// and no end of its own where it reaches the file's — the Android
+    /// twin's ClipPlayback.trimmed.
+    static func trimmed(from: Double, to: Double, duration: Double) -> (start: Double, end: Double?) {
+        func tenth(_ v: Double) -> Double { min(duration, halfUp(min(max(v, 0), duration), 10)) }
+        let s = tenth(from), e = tenth(to)
+        let least = AudioTrack.minLength
+        var start = s, end = e
+        if e - s < least - 1e-9 {
+            if s + least <= duration {
+                end = tenth(s + least)
+            } else {
+                start = tenth(e - least)
+            }
+        }
+        return (start > 0 ? start : 0, end < duration - 0.05 ? end : nil)
+    }
+
+    /// An element's timing bar on a page holding `hold` seconds dragged
+    /// `dx` (at `scale` a second): the whole bar moved, keeping its length,
+    /// within the page — its start and end to a tenth; nil once it covers
+    /// the whole page again.
+    static func movedTiming(_ timing: ElementTiming?, dx: Double, scale: Double, hold: Double) -> ElementTiming? {
+        guard scale > 0 else { return timing }
+        let from = timing?.start ?? 0
+        let to = min(timing?.end ?? hold, hold)
+        let length = max(0, to - from)
+        let start = halfUp(min(max(from + dx / scale, 0), max(0, hold - length)), 10)
+        let end = halfUp(start + length, 10)
+        return ElementTiming.kept(ElementTiming(start: start, end: end < hold - 1e-9 ? end : nil))
+    }
+
+    /// An element's timing bar with its `edge` pulled `dx` (at `scale` a
+    /// second) on a page holding `hold`: that end moved, to a tenth, within
+    /// the page and at least minTiming from the other; an end pulled to the
+    /// page's end is the page's end (no end of its own). Nil for the whole
+    /// page.
+    static func trimmedTiming(_ timing: ElementTiming?, edge: Edge, dx: Double, scale: Double,
+                              hold: Double) -> ElementTiming? {
+        guard scale > 0 else { return timing }
+        let from = timing?.start ?? 0
+        let to = min(timing?.end ?? hold, hold)
+        let shift = dx / scale
+        switch edge {
+        case .start:
+            let start = halfUp(min(max(from + shift, 0), max(0, to - minTiming)), 10)
+            return ElementTiming.kept(ElementTiming(start: start, end: timing?.end))
+        case .end:
+            let end = halfUp(min(max(to + shift, min(hold, from + minTiming)), hold), 10)
+            return ElementTiming.kept(ElementTiming(start: from, end: end < hold - 1e-9 ? end : nil))
+        }
     }
 }

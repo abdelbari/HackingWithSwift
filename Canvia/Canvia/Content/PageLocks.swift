@@ -21,7 +21,9 @@ enum PageLocks {
     /// change. What every edit made to one page is held to.
     static func allows(_ before: Page, becoming after: Page) -> Bool {
         guard isLocked(before) else { return true }
+        // The clip behind it and its own animation are part of it too.
         return after.elements == before.elements && after.background == before.background
+            && after.backgroundClip == before.backgroundClip && after.pageAnimation == before.pageAnimation
     }
 
     /// Where something added while page `index` is on screen goes: that

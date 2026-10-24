@@ -177,11 +177,133 @@ enum Background: Codable, Equatable {
     }
 }
 
+/// A clip or an animated picture playing behind a page: its source
+/// ("video:<id>" or "anim:<id>", never stamped with a moment), how it plays
+/// — trimmed, at its speed, looping, how loud, fading — and its crop over
+/// the page, as a photo's. Written inside the page's background as `clip`,
+/// `{src, playback: {start, end, speed, loop, volume, muted, fadeIn,
+/// fadeOut}, cropX, cropY, cropScale}` — every playback field (`end` only
+/// when the clip has an end of its own), each crop only when it has one —
+/// beside the background's picture, which is the clip's own source: its
+/// first frame, what a build that cannot play it shows. The Android twin's
+/// BackgroundClip.
+struct BackgroundClip: Codable, Equatable {
+    var src: String
+    var playback = ClipPlayback()
+    var cropX: Double?
+    var cropY: Double?
+    var cropScale: Double?
+
+    init(src: String, playback: ClipPlayback = ClipPlayback(), cropX: Double? = nil, cropY: Double? = nil,
+         cropScale: Double? = nil) {
+        self.src = src
+        self.playback = playback
+        self.cropX = cropX
+        self.cropY = cropY
+        self.cropScale = cropScale
+    }
+
+    /// Whether it is a clip, with a sound of its own, rather than an
+    /// animated picture.
+    var isVideo: Bool { VideoStore.isVideo(src) }
+
+    /// A clip's or an animated picture's source, unstamped; nil for any
+    /// other.
+    static func bare(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        if let parts = VideoStore.split(raw) { return VideoStore.src(parts.id, at: nil) }
+        if let parts = AnimStore.split(raw) { return AnimStore.src(parts.id, at: nil) }
+        return nil
+    }
+
+    /// Its source as it shows `t` seconds into its page, for a clip
+    /// `duration` long when that is known: a clip at the moment its playback
+    /// gives (VideoStore.clipTime), an animated picture at that moment,
+    /// looping.
+    func src(at t: Double, duration: Double?) -> String {
+        if let parts = VideoStore.split(src) {
+            return VideoStore.src(parts.id, at: VideoStore.clipTime(t, clip: playback, duration: duration))
+        }
+        return AnimStore.playing(src, at: t) ?? src
+    }
+
+    private enum CodingKeys: String, CodingKey { case src, playback, cropX, cropY, cropScale }
+    private enum PlaybackKeys: String, CodingKey { case start, end, speed, loop, volume, muted, fadeIn, fadeOut }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        guard let src = Self.bare(try c.decode(String.self, forKey: .src)) else {
+            throw DecodingError.dataCorruptedError(forKey: .src, in: c, debugDescription: "Not a clip")
+        }
+        self.src = src
+        playback = (try? c.decodeIfPresent(ClipPlayback.self, forKey: .playback)) ?? ClipPlayback()
+        cropX = try? c.decodeIfPresent(Double.self, forKey: .cropX)
+        cropY = try? c.decodeIfPresent(Double.self, forKey: .cropY)
+        cropScale = try? c.decodeIfPresent(Double.self, forKey: .cropScale)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(src, forKey: .src)
+        var p = c.nestedContainer(keyedBy: PlaybackKeys.self, forKey: .playback)
+        try p.encode(playback.start, forKey: .start)
+        try p.encodeIfPresent(playback.end, forKey: .end)
+        try p.encode(playback.speed, forKey: .speed)
+        try p.encode(playback.loop, forKey: .loop)
+        try p.encode(playback.volume, forKey: .volume)
+        try p.encode(playback.muted, forKey: .muted)
+        try p.encode(playback.fadeIn, forKey: .fadeIn)
+        try p.encode(playback.fadeOut, forKey: .fadeOut)
+        try c.encodeIfPresent(cropX, forKey: .cropX)
+        try c.encodeIfPresent(cropY, forKey: .cropY)
+        try c.encodeIfPresent(cropScale, forKey: .cropScale)
+    }
+
+    /// The clip a page's background object carries, read beside the
+    /// background itself; none for one that does not read.
+    fileprivate struct Holder: Decodable {
+        var clip: BackgroundClip?
+        private enum Keys: String, CodingKey { case clip }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: Keys.self)
+            clip = try? c.decodeIfPresent(BackgroundClip.self, forKey: .clip)
+        }
+    }
+
+    /// A picture background with its clip, as the page writes it.
+    fileprivate struct Written: Encodable {
+        var value: String
+        var clip: BackgroundClip
+        private enum Keys: String, CodingKey { case type, value, clip }
+
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: Keys.self)
+            try c.encode("image", forKey: .type)
+            try c.encode(value, forKey: .value)
+            try c.encode(clip, forKey: .clip)
+        }
+    }
+}
+
 // MARK: - Page / Design
 
 struct Page: Codable, Equatable, Identifiable {
     var id: String = UID.make("page")
-    var background: Background = .color("#ffffff")
+    /// A background changed to anything but the clip's own picture leaves
+    /// the clip behind (`backgroundClip`).
+    var background: Background = .color("#ffffff") {
+        didSet {
+            if let clip = backgroundClip, background != .image(clip.src) { backgroundClip = nil }
+        }
+    }
+    /// A clip or an animated picture playing behind the page, kept in the
+    /// background's own object as `clip`; only ever with a picture
+    /// background that is its source — its first frame (BackgroundClip).
+    var backgroundClip: BackgroundClip?
+    /// Every element on the page arriving, leaving or both, one after
+    /// another (PageAnimation); nil is none, and no key.
+    var pageAnimation: PageAnimation?
     var elements: [Element] = []
     /// Speaker or production notes. Never drawn on the page — they are about
     /// the page, not on it — so nothing that renders reads this.
@@ -237,6 +359,11 @@ struct Page: Codable, Equatable, Identifiable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = (try? c.decode(String.self, forKey: .id)) ?? UID.make("page")
         background = (try? c.decode(Background.self, forKey: .background)) ?? .color("#ffffff")
+        if case .image(let src) = background,
+           let clip = (try? c.decode(BackgroundClip.Holder.self, forKey: .background))?.clip, clip.src == src {
+            backgroundClip = clip
+        }
+        pageAnimation = try? c.decode(PageAnimation.self, forKey: .pageAnimation)
         elements = (try? c.decode([Element].self, forKey: .elements)) ?? []
         notes = try? c.decode(String.self, forKey: .notes)
         holdSeconds = try? c.decode(Double.self, forKey: .holdSeconds)
@@ -258,7 +385,11 @@ struct Page: Codable, Equatable, Identifiable {
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
-        try c.encode(background, forKey: .background)
+        if let clip = backgroundClip, case .image(let src) = background {
+            try c.encode(BackgroundClip.Written(value: src, clip: clip), forKey: .background)
+        } else {
+            try c.encode(background, forKey: .background)
+        }
         try c.encode(elements, forKey: .elements)
         try c.encodeIfPresent(notes, forKey: .notes)
         try c.encodeIfPresent(holdSeconds, forKey: .holdSeconds)
@@ -271,11 +402,12 @@ struct Page: Codable, Equatable, Identifiable {
         if let title = title.flatMap(PageTitles.kept) { try c.encode(title, forKey: .title) }
         if locked == true { try c.encode(true, forKey: .locked) }
         try c.encodeIfPresent(whiteboard, forKey: .whiteboard)
+        try c.encodeIfPresent(pageAnimation, forKey: .pageAnimation)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
-        case hidden, title, transitionSeconds, locked, whiteboard
+        case hidden, title, transitionSeconds, locked, whiteboard, pageAnimation
     }
 }
 

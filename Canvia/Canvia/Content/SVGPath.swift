@@ -190,6 +190,89 @@ enum SVGPath {
         return path(d).copy(using: &transform) ?? path(d)
     }
 
+    /// How long each subpath of path data `d` is, its x times `sx` and its y
+    /// times `sy` — a part's 0…100 path on its box — each curve walked as 16
+    /// straight steps, a close back to where the subpath began counted. What
+    /// a draw-on shares its time out by (ElementAnimation.drawSpans), as the
+    /// Android twin's SvgImport.subpathLengths.
+    static func subpathLengths(_ d: String, sx: Double = 1, sy: Double = 1) -> [Double] {
+        subpathLengths(of: path(d), sx: sx, sy: sy)
+    }
+
+    static func subpathLengths(of path: CGPath, sx: Double = 1, sy: Double = 1) -> [Double] {
+        var out: [Double] = []
+        var length = 0.0
+        var current = CGPoint.zero, start = CGPoint.zero
+        var inside = false
+        func step(_ to: CGPoint) {
+            length += hypot(Double(to.x - current.x) * sx, Double(to.y - current.y) * sy)
+            current = to
+        }
+        path.applyWithBlock { pointer in
+            let e = pointer.pointee
+            switch e.type {
+            case .moveToPoint:
+                if inside { out.append(length) }
+                length = 0
+                inside = true
+                current = e.points[0]
+                start = current
+            case .addLineToPoint:
+                step(e.points[0])
+            case .addQuadCurveToPoint:
+                let from = current, c = e.points[0], p = e.points[1]
+                for k in 1...16 {
+                    let t = CGFloat(k) / 16, m = 1 - t
+                    step(CGPoint(x: m * m * from.x + 2 * m * t * c.x + t * t * p.x,
+                                 y: m * m * from.y + 2 * m * t * c.y + t * t * p.y))
+                }
+            case .addCurveToPoint:
+                let from = current, c1 = e.points[0], c2 = e.points[1], p = e.points[2]
+                for k in 1...16 {
+                    let t = CGFloat(k) / 16, m = 1 - t
+                    let a = m * m * m, b = 3 * m * m * t, c = 3 * m * t * t, d = t * t * t
+                    step(CGPoint(x: a * from.x + b * c1.x + c * c2.x + d * p.x,
+                                 y: a * from.y + b * c1.y + c * c2.y + d * p.y))
+                }
+            case .closeSubpath:
+                step(start)
+            @unknown default:
+                break
+            }
+        }
+        if inside { out.append(length) }
+        return out
+    }
+
+    /// `path` cut into its subpaths, each from a move, in order: what a
+    /// draw-on traces one after another.
+    static func subpaths(_ path: CGPath) -> [CGPath] {
+        var out: [CGPath] = []
+        var current: CGMutablePath?
+        path.applyWithBlock { pointer in
+            let e = pointer.pointee
+            switch e.type {
+            case .moveToPoint:
+                if let current { out.append(current) }
+                let next = CGMutablePath()
+                next.move(to: e.points[0])
+                current = next
+            case .addLineToPoint:
+                current?.addLine(to: e.points[0])
+            case .addQuadCurveToPoint:
+                current?.addQuadCurve(to: e.points[1], control: e.points[0])
+            case .addCurveToPoint:
+                current?.addCurve(to: e.points[2], control1: e.points[0], control2: e.points[1])
+            case .closeSubpath:
+                current?.closeSubpath()
+            @unknown default:
+                break
+            }
+        }
+        if let current { out.append(current) }
+        return out
+    }
+
     // MARK: arc conversion (SVG spec F.6.5 / F.6.6)
 
     private static func addArc(to path: CGMutablePath, from p0: CGPoint, to p1: CGPoint,

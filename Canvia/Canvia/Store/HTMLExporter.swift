@@ -61,6 +61,12 @@ enum HTMLExporter {
         + "section>svg{display:block;width:100%;height:auto}"
         + "section>video{position:absolute;object-fit:cover}"
 
+    /// A graphic drawing itself on, and one twinkling (SVGExporter.moving):
+    /// written only on a web page that has one.
+    static let motionCSS = "@keyframes cv-draw{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}"
+        + "@keyframes cv-twinkle{0%,100%{transform:scale(1);opacity:1}25%{transform:scale(1.15)}"
+        + "75%{transform:scale(0.85);opacity:0.4}}"
+
     static let navCSS = "nav{position:sticky;top:0;z-index:10;display:flex;gap:4px;padding:8px 16px;"
         + "background:rgba(255,255,255,0.94);border-bottom:1px solid #e3e5ea;overflow-x:auto}"
         + "nav a{padding:8px 12px;border-radius:8px;color:#16181d;text-decoration:none;white-space:nowrap}"
@@ -113,6 +119,7 @@ enum HTMLExporter {
         out += "<style>" + css
         if settings.nav { out += navCSS }
         if settings.nav && settings.mobileStack { out += stackCSS }
+        if shown.contains(where: { SVGExporter.moves(design, page: design.pages[$0]) }) { out += motionCSS }
         out += "</style>\n</head>\n<body>\n"
         if settings.nav && !shown.isEmpty {
             out += "<nav aria-label=\"\(SVGExporter.escape(tr("Pages")))\">"
@@ -125,7 +132,7 @@ enum HTMLExporter {
         for (n, index) in shown.enumerated() {
             let page = design.pages[index]
             out += "<section id=\"page-\(n + 1)\" aria-label=\"\(SVGExporter.escape(labels[n]))\">"
-            out += svg?(page) ?? SVGExporter.svg(design: design, page: page, aria: true)
+            out += svg?(page) ?? SVGExporter.svg(design: design, page: page, aria: true, moving: true)
             if settings.embedMedia {
                 let size = design.size(for: page)
                 for clip in clips(design, pages: [index]) {

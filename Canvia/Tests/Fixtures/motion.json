@@ -1,0 +1,1444 @@
+{
+  "note": "Round 32 motion: timeline lanes (Timeline.movedTrack, AudioTracks.split), motion paths (ElementAnimation.pathState: dx, dy, rotation) and draw-on reveal fractions (ElementAnimation.drawn). Both phones read this file.",
+  "moveTrack": [
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "dx": 30,
+      "scale": 10,
+      "film": 20,
+      "beats": [],
+      "start": 5.0
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "dx": -50,
+      "scale": 10,
+      "film": 20,
+      "beats": [],
+      "start": 0.0
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "dx": 500,
+      "scale": 10,
+      "film": 20,
+      "beats": [],
+      "start": 20.0
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "dx": 12.4,
+      "scale": 8,
+      "film": 20,
+      "beats": [],
+      "start": 3.6
+    },
+    {
+      "track": {
+        "id": "synced",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song",
+        "beatSync": true
+      },
+      "dx": 9,
+      "scale": 10,
+      "film": 20,
+      "beats": [
+        2.95,
+        4.0
+      ],
+      "start": 2.95
+    },
+    {
+      "track": {
+        "id": "synced",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song",
+        "beatSync": true
+      },
+      "dx": 9,
+      "scale": 10,
+      "film": 20,
+      "beats": [
+        3.5
+      ],
+      "start": 2.9
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "dx": 9,
+      "scale": 10,
+      "film": 20,
+      "beats": [
+        2.95
+      ],
+      "start": 2.9
+    }
+  ],
+  "splitTrack": [
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "t": 5.0,
+      "duration": null,
+      "tracks": [
+        {
+          "id": "song",
+          "src": "audio:song-1.mp3",
+          "start": 2.0,
+          "trimStart": 1.0,
+          "trimEnd": 4.0,
+          "volume": 0.8,
+          "fadeIn": 1.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
+        },
+        {
+          "src": "audio:song-1.mp3",
+          "start": 5.0,
+          "trimStart": 4.0,
+          "trimEnd": 9.0,
+          "volume": 0.8,
+          "fadeIn": 0.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
+        }
+      ]
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "t": 5.04,
+      "duration": null,
+      "tracks": [
+        {
+          "id": "song",
+          "src": "audio:song-1.mp3",
+          "start": 2.0,
+          "trimStart": 1.0,
+          "trimEnd": 4.0,
+          "volume": 0.8,
+          "fadeIn": 1.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
+        },
+        {
+          "src": "audio:song-1.mp3",
+          "start": 5.0,
+          "trimStart": 4.0,
+          "trimEnd": 9.0,
+          "volume": 0.8,
+          "fadeIn": 0.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
+        }
+      ]
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "t": 2.05,
+      "duration": null,
+      "tracks": [
+        {
+          "id": "song",
+          "src": "audio:song-1.mp3",
+          "start": 2.0,
+          "trimStart": 1.0,
+          "trimEnd": 1.1,
+          "volume": 0.8,
+          "fadeIn": 1.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
+        },
+        {
+          "src": "audio:song-1.mp3",
+          "start": 2.1,
+          "trimStart": 1.1,
+          "trimEnd": 9.0,
+          "volume": 0.8,
+          "fadeIn": 0.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
+        }
+      ]
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "t": 9.95,
+      "duration": null,
+      "tracks": null
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 2.0,
+        "trimStart": 1.0,
+        "trimEnd": 9.0,
+        "volume": 0.8,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": false,
+        "name": "Song"
+      },
+      "t": 9.85,
+      "duration": null,
+      "tracks": [
+        {
+          "id": "song",
+          "src": "audio:song-1.mp3",
+          "start": 2.0,
+          "trimStart": 1.0,
+          "trimEnd": 8.9,
+          "volume": 0.8,
+          "fadeIn": 1.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
+        },
+        {
+          "src": "audio:song-1.mp3",
+          "start": 9.9,
+          "trimStart": 8.9,
+          "trimEnd": 9.0,
+          "volume": 0.8,
+          "fadeIn": 0.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
+        }
+      ]
+    },
+    {
+      "track": {
+        "id": "loop",
+        "src": "audio:loop-1.mp3",
+        "start": 0.0,
+        "trimStart": 0.0,
+        "volume": 1.0,
+        "fadeIn": 0.5,
+        "fadeOut": 0.0,
+        "loop": true,
+        "name": "Loop"
+      },
+      "t": 3.0,
+      "duration": null,
+      "tracks": [
+        {
+          "id": "loop",
+          "src": "audio:loop-1.mp3",
+          "start": 0.0,
+          "trimStart": 0.0,
+          "volume": 1.0,
+          "fadeIn": 0.5,
+          "fadeOut": 0.0,
+          "loop": false,
+          "name": "Loop",
+          "trimEnd": 3.0
+        },
+        {
+          "src": "audio:loop-1.mp3",
+          "start": 3.0,
+          "trimStart": 3.0,
+          "volume": 1.0,
+          "fadeIn": 0.0,
+          "fadeOut": 0.0,
+          "loop": true,
+          "name": "Loop"
+        }
+      ]
+    },
+    {
+      "track": {
+        "id": "loop",
+        "src": "audio:loop-1.mp3",
+        "start": 0.0,
+        "trimStart": 0.0,
+        "volume": 1.0,
+        "fadeIn": 0.5,
+        "fadeOut": 0.0,
+        "loop": true,
+        "name": "Loop"
+      },
+      "t": 3.0,
+      "duration": 2.0,
+      "tracks": null
+    },
+    {
+      "track": {
+        "id": "loop",
+        "src": "audio:loop-1.mp3",
+        "start": 0.0,
+        "trimStart": 0.0,
+        "volume": 1.0,
+        "fadeIn": 0.5,
+        "fadeOut": 0.0,
+        "loop": true,
+        "name": "Loop"
+      },
+      "t": 1.9,
+      "duration": 2.0,
+      "tracks": [
+        {
+          "id": "loop",
+          "src": "audio:loop-1.mp3",
+          "start": 0.0,
+          "trimStart": 0.0,
+          "volume": 1.0,
+          "fadeIn": 0.5,
+          "fadeOut": 0.0,
+          "loop": false,
+          "name": "Loop",
+          "trimEnd": 1.9
+        },
+        {
+          "src": "audio:loop-1.mp3",
+          "start": 1.9,
+          "trimStart": 1.9,
+          "volume": 1.0,
+          "fadeIn": 0.0,
+          "fadeOut": 0.0,
+          "loop": true,
+          "name": "Loop"
+        }
+      ]
+    }
+  ],
+  "pathState": [
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": true,
+      "p": 0,
+      "state": [
+        -100.0,
+        0.0,
+        -45.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": true,
+      "p": 0.1,
+      "state": [
+        -86.88,
+        -16.0,
+        -50.806727
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": true,
+      "p": 0.25,
+      "state": [
+        -60.0,
+        -40.0,
+        -14.036243
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": true,
+      "p": 0.4,
+      "state": [
+        -41.80758,
+        -35.626822,
+        30.03646
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": true,
+      "p": 0.6,
+      "state": [
+        -20.0,
+        -20.0,
+        33.690068
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": true,
+      "p": 0.8,
+      "state": [
+        -7.5,
+        -8.75,
+        48.366461
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": true,
+      "p": 1.0,
+      "state": [
+        0.0,
+        0.0,
+        45.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": false,
+      "p": 0,
+      "state": [
+        -100.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": false,
+      "p": 0.1,
+      "state": [
+        -86.88,
+        -16.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": false,
+      "p": 0.25,
+      "state": [
+        -60.0,
+        -40.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": false,
+      "p": 0.4,
+      "state": [
+        -41.80758,
+        -35.626822,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": false,
+      "p": 0.6,
+      "state": [
+        -20.0,
+        -20.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": false,
+      "p": 0.8,
+      "state": [
+        -7.5,
+        -8.75,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": true,
+      "orient": false,
+      "p": 1.0,
+      "state": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": true,
+      "p": 0,
+      "state": [
+        -100.0,
+        0.0,
+        -45.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": true,
+      "p": 0.1,
+      "state": [
+        -84.0,
+        -16.0,
+        -45.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": true,
+      "p": 0.25,
+      "state": [
+        -60.0,
+        -40.0,
+        26.565051
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": true,
+      "p": 0.4,
+      "state": [
+        -42.857143,
+        -31.428571,
+        26.565051
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": true,
+      "p": 0.6,
+      "state": [
+        -20.0,
+        -20.0,
+        45.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": true,
+      "p": 0.8,
+      "state": [
+        -10.0,
+        -10.0,
+        45.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": true,
+      "p": 1.0,
+      "state": [
+        0.0,
+        0.0,
+        45.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": false,
+      "p": 0,
+      "state": [
+        -100.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": false,
+      "p": 0.1,
+      "state": [
+        -84.0,
+        -16.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": false,
+      "p": 0.25,
+      "state": [
+        -60.0,
+        -40.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": false,
+      "p": 0.4,
+      "state": [
+        -42.857143,
+        -31.428571,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": false,
+      "p": 0.6,
+      "state": [
+        -20.0,
+        -20.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": false,
+      "p": 0.8,
+      "state": [
+        -10.0,
+        -10.0,
+        0.0
+      ]
+    },
+    {
+      "path": [
+        [
+          -100,
+          0,
+          0
+        ],
+        [
+          -60,
+          -40,
+          0.25
+        ],
+        [
+          -20,
+          -20,
+          0.6
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "smooth": false,
+      "orient": false,
+      "p": 1.0,
+      "state": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "drawn": [
+    {
+      "lengths": [
+        100,
+        50,
+        50
+      ],
+      "p": 0,
+      "drawn": [
+        0.0,
+        0,
+        0
+      ]
+    },
+    {
+      "lengths": [
+        100,
+        50,
+        50
+      ],
+      "p": 0.25,
+      "drawn": [
+        0.5,
+        0,
+        0
+      ]
+    },
+    {
+      "lengths": [
+        100,
+        50,
+        50
+      ],
+      "p": 0.5,
+      "drawn": [
+        1.0,
+        0.0,
+        0
+      ]
+    },
+    {
+      "lengths": [
+        100,
+        50,
+        50
+      ],
+      "p": 0.6,
+      "drawn": [
+        1,
+        0.4,
+        0
+      ]
+    },
+    {
+      "lengths": [
+        100,
+        50,
+        50
+      ],
+      "p": 0.9,
+      "drawn": [
+        1,
+        1,
+        0.6
+      ]
+    },
+    {
+      "lengths": [
+        100,
+        50,
+        50
+      ],
+      "p": 1,
+      "drawn": [
+        1,
+        1,
+        1.0
+      ]
+    },
+    {
+      "lengths": [
+        0,
+        10
+      ],
+      "p": 0,
+      "drawn": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "lengths": [
+        0,
+        0
+      ],
+      "p": 0.5,
+      "drawn": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "lengths": [
+        0,
+        0
+      ],
+      "p": 1,
+      "drawn": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "lengths": [
+        30
+      ],
+      "p": 0.5,
+      "drawn": [
+        0.5
+      ]
+    }
+  ]
+}

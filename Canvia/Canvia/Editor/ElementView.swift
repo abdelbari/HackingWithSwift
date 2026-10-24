@@ -76,6 +76,7 @@ struct ElementView: View {
     /// photo's crop drifted along its Ken Burns.
     private var shown: Element {
         var el = resolved
+        let motion = self.motion
         // A chart's slice or ring sweeping round as it grows.
         let sweep = motion.sweep
         if sweep < 1 { el = DataGraphics.swept(el, share: sweep) }
@@ -93,6 +94,11 @@ struct ElementView: View {
         if let clock = animationTime, let drift = el.kenBurns, el.type == .image {
             let crop = drift.crop(from: el, fraction: clock.hold > 0 ? clock.time / clock.hold : 0)
             el.cropScale = crop.scale; el.cropX = crop.x; el.cropY = crop.y
+        }
+        // A photo's motion: its picture enlarged and slid inside its frame.
+        if el.type == .image && (motion.cropZoom != 1 || motion.cropX != nil) {
+            el.cropScale = (el.cropScale ?? 1) * motion.cropZoom
+            if let x = motion.cropX { el.cropX = x }
         }
         // A clip shows the frame its trim, speed and loop put at this moment
         // while the page plays, timed by the length already known when it
@@ -123,8 +129,20 @@ struct ElementView: View {
         return out
     }
 
+    /// The motion as drawn: a drawing on of anything but a shape's outline
+    /// shows it from its left, as a reveal does.
+    private var drawnMotion: ElementAnimation.State {
+        var state = motion
+        if state.draw < 1 && element.type != .shape {
+            state.reveal *= state.draw
+            state.draw = 1
+        }
+        return state
+    }
+
     var body: some View {
-        content
+        let motion = drawnMotion
+        return content(drawing: motion.draw)
             .frame(width: element.w, height: element.h)
             // A styled shadow (ShadowShapes) is a silhouette of its own,
             // drawn behind the element in the element's space, where the
@@ -135,6 +153,8 @@ struct ElementView: View {
             .modifier(GrowReveal(state: motion, w: element.w, h: element.h, reach: (element.strokeWidth ?? 0) + 1))
             .scaleEffect(motion.scale)
             .offset(motion.offset)
+            // Type rising from its baseline is seen only within its box.
+            .modifier(RestingClip(on: motion.clipped, w: element.w, h: element.h))
             // Before the flip and rotation, so the shadow is cast in the
             // element's own space and turns with it — a shadow applied after
             // rotation would always fall straight down whatever the element
@@ -183,18 +203,25 @@ struct ElementView: View {
             Rectangle()
                 .fill(Color(hex: shadow.color).opacity(shadow.opacity))
                 .frame(width: element.w, height: element.h)
-                .mask { content.frame(width: element.w, height: element.h) }
+                .mask { content().frame(width: element.w, height: element.h) }
                 .blur(radius: ShadowShapes.blur(of: shadow))
                 .projectionEffect(ShadowSilhouette.projection(cast.matrix))
                 .offset(x: shadow.offsetX, y: shadow.offsetY)
         }
     }
 
+    /// What the element draws; a shape drawing itself on shows `drawing` of
+    /// its outline.
     @ViewBuilder
-    private var content: some View {
+    private func content(drawing: Double = 1) -> some View {
         let el = shown
         switch el.type {
-        case .shape: ShapeElementView(element: el)
+        case .shape:
+            if drawing < 1 {
+                DrawingOn(element: el, share: drawing)
+            } else {
+                ShapeElementView(element: el)
+            }
         case .text: TextElementView(element: el)
         case .image:
             if playsPictures && animationTime == nil && AnimStore.isAnim(el.src) {
@@ -212,6 +239,57 @@ struct ElementView: View {
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
         }
+    }
+}
+
+/// Seen only within the element's resting box, `w` by `h`, while `on`: a
+/// line of type rising from its baseline. No effect at all otherwise.
+private struct RestingClip: ViewModifier {
+    let on: Bool
+    let w: Double
+    let h: Double
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if on {
+            content.frame(width: w, height: h).clipped()
+        } else {
+            content
+        }
+    }
+}
+
+/// A shape drawing itself on (ElementAnimation's draw), `share` of the way:
+/// its outline's subpaths in turn, each for its share of their whole length
+/// (ElementAnimation.drawn), traced along with trimmedPath in its border's
+/// colour — or its fill's, with no border; its fill, if it has one, fading
+/// in as it goes. As the Android twin measures and draws it.
+struct DrawingOn: View {
+    let element: Element
+    let share: Double
+
+    var body: some View {
+        Canvas { context, size in
+            guard share > 0 else { return }
+            let shape = LibraryShape(definition: ContentLibrary.shape(for: element), cornerRadius: element.radius ?? 0,
+                                     corners: element.corners)
+            let outline = shape.path(in: CGRect(origin: .zero, size: size))
+            let fill = element.fill
+            if let fill, fill.kind == "solid" || fill.kind == "gradient" {
+                context.fill(outline, with: .color(Color(hex: fill.primaryColor).opacity(share)),
+                             style: FillStyle(eoFill: element.fillRule == "evenodd"))
+            }
+            let stroked = element.stroke != nil && (element.strokeWidth ?? 0) > 0
+            let ink = Color(hex: (stroked ? element.stroke : fill?.primaryColor) ?? "#222222")
+            let style = StrokeStyle(lineWidth: stroked ? element.strokeWidth ?? 2 : 2, lineCap: .round, lineJoin: .round)
+            let parts = SVGPath.subpaths(outline.cgPath)
+            let lengths = parts.map { SVGPath.subpathLengths(of: $0).reduce(0, +) }
+            let shares = ElementAnimation.drawn(lengths, p: share)
+            for (part, f) in zip(parts, shares) where f > 0 {
+                context.stroke(Path(part).trimmedPath(from: 0, to: CGFloat(f)), with: .color(ink), style: style)
+            }
+        }
+        .frame(width: element.w, height: element.h)
     }
 }
 
@@ -1195,17 +1273,50 @@ struct PageRenderView: View {
     /// frame, and what is on the page drawn wherever it is, past the frame
     /// too. Everything that leaves the app draws the flattened page instead.
     var board = false
+    @Environment(\.animationTime) private var animationTime
+    @Environment(\.captionTime) private var captionTime
 
     var body: some View {
         if board { boardView } else if bleed > 0 { bled } else { trimmed }
     }
 
+    /// A clip or an animated picture playing behind the page
+    /// (BackgroundClip): the photo that plays it, over the background's
+    /// white, behind every element — playing as the page plays, at rest its
+    /// first frame, as any clip shows — or, in a still export made with the
+    /// timeline open, the frame at its playhead (`captionTime`).
+    @ViewBuilder
+    private var clipBehind: some View {
+        if let el = clipBackdrop {
+            ElementView(element: el).equatable()
+        }
+    }
+
+    private var clipBackdrop: Element? {
+        guard var el = PageBackgrounds.clipElement(page, size: design.size(for: page), cover: Bleed.of(design)),
+              let clip = page.backgroundClip else { return nil }
+        if animationTime == nil, let at = captionTime {
+            let length = VideoStore.split(clip.src).flatMap { VideoStore.duration(of: $0.id) }
+            el.src = clip.src(at: at, duration: length)
+        }
+        return el
+    }
+
+    /// The page's own elements as drawn: while it plays, with its own
+    /// animation played into them (PageAnimation).
+    private var ownElements: [Element] {
+        animationTime == nil ? page.elements : PageAnimation.playing(page).elements
+    }
+
     private var boardView: some View {
         let size = design.size(for: page)
         return ZStack {
-            PageBackgroundFill(background: page.background, size: size, cover: Bleed.of(design))
-                .frame(width: size.width, height: size.height)
-                .clipped()
+            ZStack(alignment: .topLeading) {
+                PageBackgroundFill(background: page.background, size: size, cover: Bleed.of(design))
+                clipBehind
+            }
+            .frame(width: size.width, height: size.height)
+            .clipped()
             drawn
         }
         .frame(width: size.width, height: size.height)
@@ -1216,6 +1327,7 @@ struct PageRenderView: View {
     private var trimmed: some View {
         ZStack {
             PageBackgroundFill(background: page.background, size: design.size(for: page), cover: Bleed.of(design))
+            clipBehind
             drawn
         }
         .frame(width: design.size(for: page).width, height: design.size(for: page).height)
@@ -1232,8 +1344,11 @@ struct PageRenderView: View {
         let whole = CGSize(width: size.width + 2 * bleed, height: size.height + 2 * bleed)
         return ZStack {
             PageBackgroundFill(background: page.background, size: size, reach: bleed, cover: Bleed.of(design))
-            ZStack { drawn }
-                .frame(width: size.width, height: size.height)
+            ZStack {
+                clipBehind
+                drawn
+            }
+            .frame(width: size.width, height: size.height)
         }
         .frame(width: whole.width, height: whole.height)
         .clipped()
@@ -1250,7 +1365,7 @@ struct PageRenderView: View {
         }
         // A hidden element is never drawn, here or in anything that
         // renders through this view: exports, thumbnails, Present, video.
-        ForEach(page.elements.filter { !$0.isHidden }) { el in
+        ForEach(ownElements.filter { !$0.isHidden }) { el in
             // .equatable() so a drag re-renders the element that moved
             // rather than every element on the page. The store is
             // @Observable and a gesture mutates the document each frame,

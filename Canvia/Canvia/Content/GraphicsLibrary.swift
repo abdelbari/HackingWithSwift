@@ -11,6 +11,11 @@
 // across the design (Change all) as an imported SVG is, and a build that
 // knows nothing of the pack still draws it. Each of its shapes keeps the
 // graphic's id (`graphicId`), to be named by and for More like this.
+//
+// A graphic that moves (`motion`) — an arrow, an underline or a scribble
+// drawing itself on, a sparkle twinkling — goes on with that animation set
+// (ElementAnimation.motioned), is found under the Animated chip and by the
+// word "animated", and plays in Present and the video, GIF and web page.
 
 import Foundation
 
@@ -24,16 +29,20 @@ struct GraphicDef: Codable, Identifiable, Equatable {
     var tags: [String] = []
     var svg: String
     var colours: [String] = []
+    /// "draw" | "twinkle" | "float"; nil for a graphic that stays still.
+    var motion: String?
 
-    private enum CodingKeys: String, CodingKey { case id, name, category, tags, svg, colours }
+    private enum CodingKeys: String, CodingKey { case id, name, category, tags, svg, colours, motion }
 
-    init(id: String, name: String, category: String, tags: [String] = [], svg: String, colours: [String] = []) {
+    init(id: String, name: String, category: String, tags: [String] = [], svg: String, colours: [String] = [],
+         motion: String? = nil) {
         self.id = id
         self.name = name
         self.category = category
         self.tags = tags
         self.svg = svg
         self.colours = colours
+        self.motion = motion
     }
 
     init(from decoder: Decoder) throws {
@@ -44,6 +53,19 @@ struct GraphicDef: Codable, Identifiable, Equatable {
         tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? []
         svg = try c.decode(String.self, forKey: .svg)
         colours = (try? c.decodeIfPresent([String].self, forKey: .colours)) ?? []
+        motion = try? c.decodeIfPresent(String.self, forKey: .motion)
+    }
+
+    /// The element animation a graphic that moves goes on with: draw draws
+    /// on, twinkle twinkles, float bobs (bounce); nil for one that is still
+    /// or moves in a way this build does not know.
+    var animationKind: String? {
+        switch motion {
+        case "draw": return ElementAnimation.draw
+        case "twinkle": return ElementAnimation.twinkle
+        case "float": return "bounce"
+        default: return nil
+        }
     }
 }
 
@@ -72,6 +94,13 @@ enum GraphicsLibrary {
     /// The categories, in the order Add's chips show them.
     static var categories: [String] { file.categories }
 
+    /// The chip, and the word, for every graphic that moves, whatever its
+    /// category: shown first among Add's chips.
+    static let animated = "Animated"
+
+    /// Every graphic that moves, in the pack's order.
+    static var moving: [GraphicDef] { file.graphics.filter { $0.motion != nil } }
+
     // A duplicate id would be a content bug: keep the first, as the icons do.
     private static let byId: [String: GraphicDef] = Dictionary(
         file.graphics.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -80,9 +109,11 @@ enum GraphicsLibrary {
         id.flatMap { byId[$0] }
     }
 
-    /// The graphics in `category`, or all of them for nil.
+    /// The graphics in `category`, or all of them for nil; Animated is every
+    /// graphic that moves.
     static func inCategory(_ category: String?) -> [GraphicDef] {
         guard let category else { return graphics }
+        if category == animated { return moving }
         return graphics.filter { $0.category == category }
     }
 
@@ -95,6 +126,7 @@ enum GraphicsLibrary {
         guard !needle.isEmpty else { return from }
         return from.filter { g in
             g.name.lowercased().contains(needle) || g.id.contains(needle) || g.tags.contains { $0.contains(needle) }
+                || (g.motion != nil && "animated".contains(needle))
         }
     }
 
@@ -105,13 +137,16 @@ enum GraphicsLibrary {
 
     /// `graphic` as it goes on a page this size: its shapes as
     /// SvgImport.graphic places any SVG — fitted to 0.4 of the page's
-    /// shorter side, centred, one group — each naming the graphic.
+    /// shorter side, centred, one group — each naming the graphic; one that
+    /// moves with its animation set, its paths in turn (motioned).
     static func elements(_ graphic: GraphicDef, pageWidth: Double, pageHeight: Double) -> [Element] {
         guard let placed = SvgImport.graphic(graphic.svg, pageWidth: pageWidth, pageHeight: pageHeight) else { return [] }
-        return placed.elements.map { el in
+        let named = placed.elements.map { el in
             var named = el
             named.graphicId = graphic.id
             return named
         }
+        guard let kind = graphic.animationKind else { return named }
+        return ElementAnimation.motioned(named, kind: kind)
     }
 }
