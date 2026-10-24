@@ -256,10 +256,12 @@ enum ExportChoices {
 ///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
 ///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,
 ///  "colourProfile":"rgb","html":{"nav":true,"mobileStack":true,
-///  "embedMedia":true},"zip":false,"pngCompress":false}. A missing
-///  "pptxStyledText" is "editable"; a missing "zip" or "pngCompress" off.
+///  "embedMedia":true},"zip":false,"pngCompress":false,"pdfTagged":true}. A
+///  missing "pptxStyledText" is "editable"; a missing "zip" or "pngCompress"
+///  off, and a missing "pdfTagged" false.
 struct ExportLast: Codable, Equatable {
-    /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html".
+    /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html" |
+    /// "docx" (a Doc's Word document).
     var format: String
     var scale: Double
     /// The long edge typed, in pixels; nil when the scale applies.
@@ -292,12 +294,17 @@ struct ExportLast: Codable, Equatable {
     var zip = false
     /// The PNG's Compress file (PngWriter).
     var pngCompress = false
+    /// The PDF's "Tagged for screen readers": a tagged PDF (PdfTags) — on
+    /// for a sheet that remembers nothing, but false when a remembered
+    /// setting has no key, as one written before it has not. Never for a
+    /// flattened PDF or the print one.
+    var pdfTagged = true
 
     static let key = "exportLast"
-    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html"]
+    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx"]
     /// The export sheet's file types, in the order its picker lists them —
     /// the Android twin's ExportSettings.formats.
-    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html"]
+    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     static let styledEditable = "editable"
@@ -306,13 +313,14 @@ struct ExportLast: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText,
-             suggested, pdfBookmarks, colourProfile, html, zip, pngCompress
+             suggested, pdfBookmarks, colourProfile, html, zip, pngCompress, pdfTagged
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
          pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable,
          suggested: Bool = false, pdfBookmarks: Bool = true, colourProfile: String = "rgb",
-         html: HTMLExporter.Settings = HTMLExporter.Settings(), zip: Bool = false, pngCompress: Bool = false) {
+         html: HTMLExporter.Settings = HTMLExporter.Settings(), zip: Bool = false, pngCompress: Bool = false,
+         pdfTagged: Bool = true) {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -328,6 +336,7 @@ struct ExportLast: Codable, Equatable {
         self.html = html
         self.zip = zip
         self.pngCompress = pngCompress
+        self.pdfTagged = pdfTagged
     }
 
     /// Whether styled text goes out editable, as the setting says.
@@ -358,6 +367,8 @@ struct ExportLast: Codable, Equatable {
         html = (try? c.decode(HTMLExporter.Settings.self, forKey: .html)) ?? HTMLExporter.Settings()
         zip = (try? c.decode(Bool.self, forKey: .zip)) ?? false
         pngCompress = (try? c.decode(Bool.self, forKey: .pngCompress)) ?? false
+        // A setting from before "pdfTagged" was untagged, and stays so.
+        pdfTagged = (try? c.decode(Bool.self, forKey: .pdfTagged)) ?? false
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -379,6 +390,7 @@ struct ExportLast: Codable, Equatable {
         try c.encode(html, forKey: .html)
         try c.encode(zip, forKey: .zip)
         try c.encode(pngCompress, forKey: .pngCompress)
+        try c.encode(pdfTagged, forKey: .pdfTagged)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -403,6 +415,7 @@ struct ExportLast: Codable, Equatable {
             "\"html\":" + html.json,
             "\"zip\":" + String(zip),
             "\"pngCompress\":" + String(pngCompress),
+            "\"pdfTagged\":" + String(pdfTagged),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

@@ -30,7 +30,8 @@ struct HomeSharing: ViewModifier {
                 MockupSheet(design: design, onNewDesign: { made = $0 }, onChanged: changed)
             }
             .fullScreenCover(item: $presenting) { design in
-                PresentationView(design: design, startPage: 0)
+                // A Doc as its pages.
+                PresentationView(design: DocPages.drawn(design), startPage: 0)
             }
             .alert("That design can't be opened", isPresented: $unopened) {
                 Button("OK", role: .cancel) {}
@@ -45,15 +46,18 @@ struct HomeSharing: ViewModifier {
 }
 
 /// The Export sheet on a design read from its file: a store of its own,
-/// made once, which nothing saves.
+/// made once, which nothing saves — a Doc's of its pages, its Word document
+/// made from its blocks.
 private struct HomeExportSheet: View {
     @State private var store: DesignStore
+    private let doc: Design?
 
     init(design: Design) {
-        _store = State(initialValue: DesignStore(design: design))
+        _store = State(initialValue: DesignStore(design: DocPages.drawn(design)))
+        doc = Docs.isDoc(design) ? design : nil
     }
 
     var body: some View {
-        ExportSheet(store: store, readOnly: true)
+        ExportSheet(store: store, readOnly: true, doc: doc)
     }
 }

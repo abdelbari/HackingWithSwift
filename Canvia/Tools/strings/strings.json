@@ -206,6 +206,15 @@
     "ja": "%@のビーンブロブ",
     "pt-BR": "Mancha de feijão (%@)"
   },
+  "%@ block": {
+    "ar": "كتلة %@",
+    "de": "Block: %@",
+    "es": "Bloque de %@",
+    "fr": "Bloc %@",
+    "it": "Blocco %@",
+    "ja": "%@ ブロック",
+    "pt-BR": "Bloco de %@"
+  },
   "%@ burst": {
     "ar": "انفجار (%@)",
     "de": "Explosion (%@)",
@@ -1843,6 +1852,15 @@
     "it": "%d + %d adattati",
     "ja": "%d + 調整済み %d",
     "pt-BR": "%d + %d adaptados"
+  },
+  "%d / %d": {
+    "ar": "%d / %d",
+    "de": "%d / %d",
+    "es": "%d / %d",
+    "fr": "%d / %d",
+    "it": "%d / %d",
+    "ja": "%d / %d",
+    "pt-BR": "%d / %d"
   },
   "%d SmartArt|%d SmartArt": {
     "ar": {
@@ -4127,6 +4145,15 @@
     "ja": "QR コードは全体で使うため、トリミングできません。",
     "pt-BR": "Um código QR é usado inteiro, por isso não pode ser cortado."
   },
+  "A Word document: headings, lists, tables and pictures, to edit in Word.": {
+    "ar": "مستند Word: عناوين وقوائم وجداول وصور لتحريرها في Word.",
+    "de": "Ein Word-Dokument: Überschriften, Listen, Tabellen und Bilder zum Bearbeiten in Word.",
+    "es": "Un documento de Word: títulos, listas, tablas e imágenes, para editar en Word.",
+    "fr": "Un document Word : titres, listes, tableaux et images, à modifier dans Word.",
+    "it": "Un documento Word: titoli, elenchi, tabelle e immagini, da modificare in Word.",
+    "ja": "Word 文書：見出し、リスト、表、画像を Word で編集できます。",
+    "pt-BR": "Um documento do Word: títulos, listas, tabelas e imagens, para editar no Word."
+  },
   "A bookmark for each page, by its title, so a reader can jump between them.": {
     "ar": "إشارة مرجعية لكل صفحة باسمها، ليتنقل القارئ بينها.",
     "de": "Ein Lesezeichen je Seite, mit ihrem Titel, damit ein Reader zwischen ihnen springen kann.",
@@ -4297,6 +4324,15 @@
     "it": "Un’immagine per pagina",
     "ja": "ページごとに 1 枚の画像",
     "pt-BR": "Uma imagem de cada página"
+  },
+  "A reminder at the time, with the caption copied and the file made then — so later edits go with it.": {
+    "ar": "تذكير في الموعد، مع نسخ التعليق وإنشاء الملف حينها — فتُضمَّن التعديلات اللاحقة.",
+    "de": "Eine Erinnerung zur gewählten Zeit, mit kopierter Bildunterschrift und der Datei erst dann erstellt – spätere Änderungen sind also dabei.",
+    "es": "Un recordatorio a la hora indicada, con el texto copiado y el archivo creado en ese momento, así que los cambios posteriores se incluyen.",
+    "fr": "Un rappel à l'heure dite, avec la légende copiée et le fichier créé à ce moment-là : les modifications ultérieures sont incluses.",
+    "it": "Un promemoria all'ora scelta, con la didascalia copiata e il file creato in quel momento: le modifiche successive sono incluse.",
+    "ja": "指定の時刻にリマインダーを表示し、キャプションをコピーしてその時点でファイルを作成します。後からの編集も反映されます。",
+    "pt-BR": "Um lembrete na hora, com a legenda copiada e o arquivo criado nesse momento — então as edições posteriores vão junto."
   },
   "A row of cells per row, or paste rows from a spreadsheet": {
     "ar": "صف خلايا لكل صف، أو الصق صفوفًا من جدول بيانات",
@@ -4541,6 +4577,15 @@
     "ja": "バーコードを追加",
     "pt-BR": "Adicionar um código de barras"
   },
+  "Add a block": {
+    "ar": "إضافة كتلة",
+    "de": "Block hinzufügen",
+    "es": "Añadir un bloque",
+    "fr": "Ajouter un bloc",
+    "it": "Aggiungi un blocco",
+    "ja": "ブロックを追加",
+    "pt-BR": "Adicionar um bloco"
+  },
   "Add a caption": {
     "ar": "إضافة تسمية توضيحية",
     "de": "Bildunterschrift hinzufügen",
@@ -4784,6 +4829,15 @@
     "ja": "本文を追加",
     "pt-BR": "Adicionar corpo de texto"
   },
+  "Add column": {
+    "ar": "إضافة عمود",
+    "de": "Spalte hinzufügen",
+    "es": "Añadir columna",
+    "fr": "Ajouter une colonne",
+    "it": "Aggiungi colonna",
+    "ja": "列を追加",
+    "pt-BR": "Adicionar coluna"
+  },
   "Add column left": {
     "ar": "إضافة عمود لليسار",
     "de": "Spalte links einfügen",
@@ -4909,6 +4963,15 @@
     "it": "Aggiungi foto o video",
     "ja": "写真または動画を追加",
     "pt-BR": "Adicionar fotos ou vídeo"
+  },
+  "Add row": {
+    "ar": "إضافة صف",
+    "de": "Zeile hinzufügen",
+    "es": "Añadir fila",
+    "fr": "Ajouter une ligne",
+    "it": "Aggiungi riga",
+    "ja": "行を追加",
+    "pt-BR": "Adicionar linha"
   },
   "Add row above": {
     "ar": "إضافة صف أعلاه",
@@ -5420,6 +5483,15 @@
     "ja": "すべてのフォント",
     "pt-BR": "Todas as fontes"
   },
+  "All pages": {
+    "ar": "كل الصفحات",
+    "de": "Alle Seiten",
+    "es": "Todas las páginas",
+    "fr": "Toutes les pages",
+    "it": "Tutte le pagine",
+    "ja": "すべてのページ",
+    "pt-BR": "Todas as páginas"
+  },
   "All pages (%d)": {
     "ar": "كل الصفحات (%d)",
     "de": "Alle Seiten (%d)",
@@ -5608,6 +5680,15 @@
     "it": "Animazione",
     "ja": "アニメーション",
     "pt-BR": "Animação"
+  },
+  "Animations in the editor and Present; System follows the phone. Exports are unchanged.": {
+    "ar": "الحركات في المحرر والعرض؛ «النظام» يتبع الهاتف. لا تتغير عمليات التصدير.",
+    "de": "Animationen im Editor und beim Präsentieren; System folgt dem Telefon. Exporte bleiben unverändert.",
+    "es": "Animaciones en el editor y en Presentar; Sistema sigue al teléfono. Las exportaciones no cambian.",
+    "fr": "Animations dans l'éditeur et en Présentation ; Système suit le téléphone. Les exports ne changent pas.",
+    "it": "Animazioni nell'editor e in Presenta; Sistema segue il telefono. Le esportazioni non cambiano.",
+    "ja": "エディタとプレゼンテーションのアニメーション。「システム」は端末の設定に従います。書き出しは変わりません。",
+    "pt-BR": "Animações no editor e em Apresentar; Sistema segue o telefone. As exportações não mudam."
   },
   "Any": {
     "ar": "أي",
@@ -5977,6 +6058,24 @@
     "it": "Ascesa",
     "ja": "上昇",
     "pt-BR": "Ascender"
+  },
+  "Ask for alt text": {
+    "ar": "طلب النص البديل",
+    "de": "Nach Alternativtext fragen",
+    "es": "Pedir texto alternativo",
+    "fr": "Demander le texte alternatif",
+    "it": "Chiedi il testo alternativo",
+    "ja": "代替テキストを尋ねる",
+    "pt-BR": "Pedir texto alternativo"
+  },
+  "Asks what a photo, graphic or chart shows as soon as you add it.": {
+    "ar": "يسأل عمّا تعرضه الصورة أو الرسم أو المخطط بمجرد إضافته.",
+    "de": "Fragt, was ein Foto, eine Grafik oder ein Diagramm zeigt, sobald du es hinzufügst.",
+    "es": "Pregunta qué muestra una foto, un gráfico o un diagrama en cuanto lo añades.",
+    "fr": "Demande ce que montre une photo, un graphisme ou un graphique dès que vous l'ajoutez.",
+    "it": "Chiede cosa mostra una foto, una grafica o un grafico appena lo aggiungi.",
+    "ja": "写真、グラフィック、グラフを追加するとすぐに、何が写っているかを尋ねます。",
+    "pt-BR": "Pergunta o que uma foto, um gráfico ou um diagrama mostra assim que você o adiciona."
   },
   "Audio": {
     "ar": "الصوت",
@@ -7757,6 +7856,15 @@
     "ja": "すべてのページをチェック中…",
     "pt-BR": "Verificando todas as páginas…"
   },
+  "Checklist": {
+    "ar": "قائمة تحقق",
+    "de": "Checkliste",
+    "es": "Lista de tareas",
+    "fr": "Liste de contrôle",
+    "it": "Elenco di controllo",
+    "ja": "チェックリスト",
+    "pt-BR": "Lista de verificação"
+  },
   "Checks": {
     "ar": "مربعات",
     "de": "Prüfungen",
@@ -8507,6 +8615,15 @@
     "ja": "コントラスト：すべてのテキストがはっきり読めます",
     "pt-BR": "Contraste: todos os textos estão legíveis"
   },
+  "Convert to design": {
+    "ar": "تحويل إلى تصميم",
+    "de": "In Design umwandeln",
+    "es": "Convertir en diseño",
+    "fr": "Convertir en design",
+    "it": "Converti in design",
+    "ja": "デザインに変換",
+    "pt-BR": "Converter em design"
+  },
   "Cool": {
     "ar": "بارد",
     "de": "Kühl",
@@ -8870,6 +8987,15 @@
     "ja": "SVG を作成できませんでした",
     "pt-BR": "Não foi possível criar o SVG"
   },
+  "Couldn't make the Word document": {
+    "ar": "تعذّر إنشاء مستند Word",
+    "de": "Das Word-Dokument konnte nicht erstellt werden",
+    "es": "No se pudo crear el documento de Word",
+    "fr": "Impossible de créer le document Word",
+    "it": "Impossibile creare il documento Word",
+    "ja": "Word 文書を作成できませんでした",
+    "pt-BR": "Não foi possível criar o documento do Word"
+  },
   "Couldn't make the brand kit file.": {
     "ar": "تعذّر إنشاء ملف مجموعة العلامة التجارية.",
     "de": "Die Brand-Kit-Datei konnte nicht erstellt werden.",
@@ -8887,6 +9013,15 @@
     "it": "Impossibile creare le copie",
     "ja": "コピーを作成できませんでした",
     "pt-BR": "Não foi possível criar as cópias"
+  },
+  "Couldn't make the design": {
+    "ar": "تعذّر إنشاء التصميم",
+    "de": "Das Design konnte nicht erstellt werden",
+    "es": "No se pudo crear el diseño",
+    "fr": "Impossible de créer le design",
+    "it": "Impossibile creare il design",
+    "ja": "デザインを作成できませんでした",
+    "pt-BR": "Não foi possível criar o design"
   },
   "Couldn't make the design file": {
     "ar": "تعذّر إنشاء ملف التصميم",
@@ -8914,6 +9049,15 @@
     "it": "Impossibile creare il mockup",
     "ja": "モックアップを作成できませんでした",
     "pt-BR": "Não foi possível criar o mockup"
+  },
+  "Couldn't make the post": {
+    "ar": "تعذّر إعداد المنشور",
+    "de": "Der Beitrag konnte nicht erstellt werden",
+    "es": "No se pudo crear la publicación",
+    "fr": "Impossible de créer la publication",
+    "it": "Impossibile creare il post",
+    "ja": "投稿を作成できませんでした",
+    "pt-BR": "Não foi possível criar a publicação"
   },
   "Couldn't make the print PDF": {
     "ar": "تعذّر إنشاء PDF للطباعة",
@@ -9595,6 +9739,24 @@
     "it": "Tratteggiato",
     "ja": "破線",
     "pt-BR": "Tracejado"
+  },
+  "Data": {
+    "ar": "البيانات",
+    "de": "Daten",
+    "es": "Datos",
+    "fr": "Données",
+    "it": "Dati",
+    "ja": "データ",
+    "pt-BR": "Dados"
+  },
+  "Date": {
+    "ar": "التاريخ",
+    "de": "Datum",
+    "es": "Fecha",
+    "fr": "Date",
+    "it": "Data",
+    "ja": "日付",
+    "pt-BR": "Data"
   },
   "Decimals": {
     "ar": "المنازل العشرية",
@@ -10460,6 +10622,15 @@
     "ja": "行を均等に",
     "pt-BR": "Distribuir linhas"
   },
+  "Divider": {
+    "ar": "فاصل",
+    "de": "Trennlinie",
+    "es": "Separador",
+    "fr": "Séparateur",
+    "it": "Separatore",
+    "ja": "区切り線",
+    "pt-BR": "Divisor"
+  },
   "Divider %d": {
     "ar": "فاصل %d",
     "de": "Trennlinie %d",
@@ -10477,6 +10648,24 @@
     "it": "Divisori",
     "ja": "区切り線",
     "pt-BR": "Divisores"
+  },
+  "Doc": {
+    "ar": "مستند",
+    "de": "Doc",
+    "es": "Documento",
+    "fr": "Doc",
+    "it": "Doc",
+    "ja": "ドキュメント",
+    "pt-BR": "Doc"
+  },
+  "Docs": {
+    "ar": "المستندات",
+    "de": "Docs",
+    "es": "Documentos",
+    "fr": "Docs",
+    "it": "Doc",
+    "ja": "ドキュメント",
+    "pt-BR": "Docs"
   },
   "Document": {
     "ar": "المستند",
@@ -10954,6 +11143,15 @@
     "it": "Superficie di disegno. Trascina per disegnare un tratto; tocca Fine nella barra qui sotto per terminare.",
     "ja": "描画エリア。ドラッグしてストロークを描き、終わったら下のバーの「完了」をタップします。",
     "pt-BR": "Área de desenho. Arraste para desenhar um traço; toque em Concluído na barra abaixo para terminar."
+  },
+  "Draws a line under linked words in the editor and Present.": {
+    "ar": "يرسم خطًا تحت الكلمات المرتبطة في المحرر والعرض.",
+    "de": "Zeichnet im Editor und beim Präsentieren eine Linie unter verlinkte Wörter.",
+    "es": "Traza una línea bajo las palabras enlazadas en el editor y en Presentar.",
+    "fr": "Trace un trait sous les mots liés dans l'éditeur et en Présentation.",
+    "it": "Traccia una linea sotto le parole con link nell'editor e in Presenta.",
+    "ja": "エディタとプレゼンテーションで、リンクされた語に下線を引きます。",
+    "pt-BR": "Desenha uma linha sob as palavras com link no editor e em Apresentar."
   },
   "Dreamy": {
     "ar": "حالم",
@@ -12749,6 +12947,15 @@
     "ja": "色を修正",
     "pt-BR": "Corrigir cor"
   },
+  "Fix heading level": {
+    "ar": "إصلاح مستوى العنوان",
+    "de": "Überschriftenebene korrigieren",
+    "es": "Corregir nivel de título",
+    "fr": "Corriger le niveau de titre",
+    "it": "Correggi livello del titolo",
+    "ja": "見出しレベルを修正",
+    "pt-BR": "Corrigir nível do título"
+  },
   "Flag": {
     "ar": "علم",
     "de": "Flagge",
@@ -13745,6 +13952,42 @@
     "ja": "見出し",
     "pt-BR": "Título"
   },
+  "Heading 1": {
+    "ar": "عنوان 1",
+    "de": "Überschrift 1",
+    "es": "Título 1",
+    "fr": "Titre 1",
+    "it": "Titolo 1",
+    "ja": "見出し 1",
+    "pt-BR": "Título 1"
+  },
+  "Heading 2": {
+    "ar": "عنوان 2",
+    "de": "Überschrift 2",
+    "es": "Título 2",
+    "fr": "Titre 2",
+    "it": "Titolo 2",
+    "ja": "見出し 2",
+    "pt-BR": "Título 2"
+  },
+  "Heading 3": {
+    "ar": "عنوان 3",
+    "de": "Überschrift 3",
+    "es": "Título 3",
+    "fr": "Titre 3",
+    "it": "Titolo 3",
+    "ja": "見出し 3",
+    "pt-BR": "Título 3"
+  },
+  "Heading levels skip": {
+    "ar": "مستويات العناوين تتخطى مستوى",
+    "de": "Überschriftenebenen werden übersprungen",
+    "es": "Los niveles de título se saltan uno",
+    "fr": "Les niveaux de titre sautent un niveau",
+    "it": "I livelli dei titoli saltano un livello",
+    "ja": "見出しのレベルが飛んでいます",
+    "pt-BR": "Os níveis de título pulam um nível"
+  },
   "Heading, Caption, Price…": {
     "ar": "عنوان، تسمية توضيحية، سعر…",
     "de": "Überschrift, Bildunterschrift, Preis …",
@@ -13762,6 +14005,15 @@
     "it": "Intestazione: %@",
     "ja": "見出し：%@",
     "pt-BR": "Título: %@"
+  },
+  "Headings, reading order and alt text a screen reader can follow.": {
+    "ar": "عناوين وترتيب قراءة ونص بديل يمكن لقارئ الشاشة اتباعها.",
+    "de": "Überschriften, Lesereihenfolge und Alternativtext, denen ein Screenreader folgen kann.",
+    "es": "Títulos, orden de lectura y texto alternativo que un lector de pantalla puede seguir.",
+    "fr": "Titres, ordre de lecture et texte alternatif qu'un lecteur d'écran peut suivre.",
+    "it": "Titoli, ordine di lettura e testo alternativo che un lettore di schermo può seguire.",
+    "ja": "スクリーンリーダーがたどれる見出し、読み上げ順、代替テキスト。",
+    "pt-BR": "Títulos, ordem de leitura e texto alternativo que um leitor de tela consegue seguir."
   },
   "Headline": {
     "ar": "عنوان رئيسي",
@@ -15026,6 +15278,15 @@
     "ja": "大きく",
     "pt-BR": "Maior"
   },
+  "Larger handles": {
+    "ar": "مقابض أكبر",
+    "de": "Größere Anfasser",
+    "es": "Controles más grandes",
+    "fr": "Poignées plus grandes",
+    "it": "Maniglie più grandi",
+    "ja": "ハンドルを大きく",
+    "pt-BR": "Alças maiores"
+  },
   "Larger notes": {
     "ar": "ملاحظات أكبر",
     "de": "Größere Notizen",
@@ -15189,6 +15450,15 @@
     "pt-BR": "Menos margem"
   },
   "Letter": {
+    "ar": "رسالة",
+    "de": "Brief",
+    "es": "Carta",
+    "fr": "Lettre",
+    "it": "Lettera",
+    "ja": "手紙",
+    "pt-BR": "Carta"
+  },
+  "Letter\u0004animate by": {
     "ar": "حرف",
     "de": "Buchstabe",
     "es": "Letra",
@@ -15950,6 +16220,15 @@
     "ja": "12 にする",
     "pt-BR": "Mudar para 12"
   },
+  "Make it a heading": {
+    "ar": "اجعله عنوانًا",
+    "de": "Zur Überschrift machen",
+    "es": "Convertir en título",
+    "fr": "En faire un titre",
+    "it": "Rendilo un titolo",
+    "ja": "見出しにする",
+    "pt-BR": "Transformar em título"
+  },
   "Make larger": {
     "ar": "تكبير",
     "de": "Vergrößern",
@@ -15986,6 +16265,15 @@
     "ja": "チェックした各サイズごとに、同じフォルダーにレイアウトを調整した新しいデザインを作成します。「%@」はそのままです。",
     "pt-BR": "Cria um novo design para cada tamanho marcado, reorganizado para caber, na mesma pasta. “%@” continua como está."
   },
+  "Makes selection handles and their touch areas bigger.": {
+    "ar": "يكبّر مقابض التحديد ومناطق لمسها.",
+    "de": "Vergrößert die Auswahl-Anfasser und ihre Tippbereiche.",
+    "es": "Agranda los controles de selección y sus zonas táctiles.",
+    "fr": "Agrandit les poignées de sélection et leurs zones tactiles.",
+    "it": "Ingrandisce le maniglie di selezione e le loro aree di tocco.",
+    "ja": "選択ハンドルとそのタップ領域を大きくします。",
+    "pt-BR": "Aumenta as alças de seleção e suas áreas de toque."
+  },
   "Making copy %d of %d…": {
     "ar": "جارٍ إنشاء النسخة %d من %d…",
     "de": "Kopie %d von %d wird erstellt …",
@@ -16021,6 +16309,24 @@
     "it": "Creazione dell’SVG",
     "ja": "SVG を作成中",
     "pt-BR": "Criando o SVG"
+  },
+  "Making the Word document": {
+    "ar": "جارٍ إنشاء مستند Word",
+    "de": "Word-Dokument wird erstellt",
+    "es": "Creando el documento de Word",
+    "fr": "Création du document Word",
+    "it": "Creazione del documento Word",
+    "ja": "Word 文書を作成中",
+    "pt-BR": "Criando o documento do Word"
+  },
+  "Making the post": {
+    "ar": "جارٍ إعداد المنشور",
+    "de": "Beitrag wird erstellt",
+    "es": "Creando la publicación",
+    "fr": "Création de la publication",
+    "it": "Creazione del post",
+    "ja": "投稿を作成中",
+    "pt-BR": "Criando a publicação"
   },
   "Making the print PDF": {
     "ar": "جارٍ إنشاء PDF للطباعة",
@@ -16117,6 +16423,15 @@
     "it": "Segna come decorativa",
     "ja": "装飾としてマーク",
     "pt-BR": "Marcar como decorativo"
+  },
+  "Mark done": {
+    "ar": "تعليم كمنجز",
+    "de": "Als erledigt markieren",
+    "es": "Marcar como hecha",
+    "fr": "Marquer comme faite",
+    "it": "Segna come fatto",
+    "ja": "完了にする",
+    "pt-BR": "Marcar como feita"
   },
   "Marker": {
     "ar": "قلم عريض",
@@ -16243,6 +16558,15 @@
     "it": "Tonalità medio-chiara",
     "ja": "やや明るい肌の色",
     "pt-BR": "Tom de pele médio-claro"
+  },
+  "Meeting notes": {
+    "ar": "ملاحظات الاجتماع",
+    "de": "Besprechungsnotizen",
+    "es": "Notas de reunión",
+    "fr": "Notes de réunion",
+    "it": "Note della riunione",
+    "ja": "議事録",
+    "pt-BR": "Notas de reunião"
   },
   "Menu from page titles": {
     "ar": "قائمة من عناوين الصفحات",
@@ -17354,6 +17678,15 @@
     "ja": "新しい順",
     "pt-BR": "Mais recentes"
   },
+  "Newsletter": {
+    "ar": "نشرة إخبارية",
+    "de": "Newsletter",
+    "es": "Boletín",
+    "fr": "Newsletter",
+    "it": "Newsletter",
+    "ja": "ニュースレター",
+    "pt-BR": "Boletim"
+  },
   "Next": {
     "ar": "التالي",
     "de": "Weiter",
@@ -17632,6 +17965,24 @@
     "it": "Nessuna guida in questo design.",
     "ja": "このデザインにはガイドがありません。",
     "pt-BR": "Não há guias neste design."
+  },
+  "No header row": {
+    "ar": "بلا صف عناوين",
+    "de": "Keine Kopfzeile",
+    "es": "Sin fila de encabezado",
+    "fr": "Sans ligne d'en-tête",
+    "it": "Nessuna riga di intestazione",
+    "ja": "見出し行なし",
+    "pt-BR": "Sem linha de cabeçalho"
+  },
+  "No heading on a multi-page PDF": {
+    "ar": "لا عنوان في ملف PDF متعدد الصفحات",
+    "de": "Keine Überschrift in einem mehrseitigen PDF",
+    "es": "Ningún título en un PDF de varias páginas",
+    "fr": "Aucun titre dans un PDF de plusieurs pages",
+    "it": "Nessun titolo in un PDF di più pagine",
+    "ja": "複数ページの PDF に見出しがありません",
+    "pt-BR": "Nenhum título em um PDF de várias páginas"
   },
   "No icon matches “%@”.": {
     "ar": "لا يوجد رمز يطابق «%@».",
@@ -18020,6 +18371,15 @@
     "ja": "後で",
     "pt-BR": "Agora não"
   },
+  "Not read": {
+    "ar": "لا يُقرأ",
+    "de": "Nicht vorlesen",
+    "es": "No se lee",
+    "fr": "Non lu",
+    "it": "Non letto",
+    "ja": "読み上げない",
+    "pt-BR": "Não lido"
+  },
   "Not selected; %@": {
     "ar": "غير محدد؛ %@",
     "de": "Nicht ausgewählt; %@",
@@ -18181,6 +18541,15 @@
     "it": "Ancora niente in questa pagina.",
     "ja": "このページにはまだ何もありません。",
     "pt-BR": "Nada nesta página ainda."
+  },
+  "Nothing planned — plan a post from Share": {
+    "ar": "لا شيء مخطط له — خطّط لمنشور من «مشاركة»",
+    "de": "Nichts geplant – plane einen Beitrag über Teilen",
+    "es": "Nada planificado: planifica una publicación desde Compartir",
+    "fr": "Rien de planifié — planifiez une publication depuis Partager",
+    "it": "Niente in programma: pianifica un post da Condividi",
+    "ja": "予定はありません — 共有から投稿を予定できます",
+    "pt-BR": "Nada planejado — planeje uma publicação em Compartilhar"
   },
   "Nothing selected can move": {
     "ar": "لا شيء من المحدد يمكن تحريكه",
@@ -18541,6 +18910,15 @@
     "it": "Disattivato",
     "ja": "オフ",
     "pt-BR": "Desativado"
+  },
+  "Off, clips stay paused in the editor until you tap them.": {
+    "ar": "عند الإيقاف تبقى المقاطع متوقفة في المحرر حتى تنقر عليها.",
+    "de": "Aus bleiben Clips im Editor pausiert, bis du sie antippst.",
+    "es": "Desactivado, los clips se quedan en pausa en el editor hasta que los tocas.",
+    "fr": "Désactivé, les clips restent en pause dans l'éditeur jusqu'à ce que vous les touchiez.",
+    "it": "Disattivato, le clip restano in pausa nell'editor finché non le tocchi.",
+    "ja": "オフにすると、タップするまでエディタでクリップは一時停止のままです。",
+    "pt-BR": "Desativado, os clipes ficam pausados no editor até você tocar neles."
   },
   "Offset": {
     "ar": "الإزاحة",
@@ -19358,6 +19736,15 @@
     "ja": "ページの背景",
     "pt-BR": "Fundo da página"
   },
+  "Page break": {
+    "ar": "فاصل صفحة",
+    "de": "Seitenumbruch",
+    "es": "Salto de página",
+    "fr": "Saut de page",
+    "it": "Interruzione di pagina",
+    "ja": "改ページ",
+    "pt-BR": "Quebra de página"
+  },
   "Page copied": {
     "ar": "تم نسخ الصفحة",
     "de": "Seite kopiert",
@@ -19555,6 +19942,15 @@
     "it": "Carta, abbondanza e segni di taglio come impostati",
     "ja": "設定どおりの用紙、塗り足し、トンボ",
     "pt-BR": "Papel, sangria e marcas de corte conforme definido"
+  },
+  "Paragraph": {
+    "ar": "فقرة",
+    "de": "Absatz",
+    "es": "Párrafo",
+    "fr": "Paragraphe",
+    "it": "Paragrafo",
+    "ja": "段落",
+    "pt-BR": "Parágrafo"
   },
   "Paragraph spacing": {
     "ar": "تباعد الفقرات",
@@ -20285,6 +20681,51 @@
     "ja": "プレーン",
     "pt-BR": "Simples"
   },
+  "Plan a post": {
+    "ar": "خطّط لمنشور",
+    "de": "Beitrag planen",
+    "es": "Planificar una publicación",
+    "fr": "Planifier une publication",
+    "it": "Pianifica un post",
+    "ja": "投稿を予定",
+    "pt-BR": "Planejar uma publicação"
+  },
+  "Plan a post…": {
+    "ar": "خطّط لمنشور…",
+    "de": "Beitrag planen …",
+    "es": "Planificar una publicación…",
+    "fr": "Planifier une publication…",
+    "it": "Pianifica un post…",
+    "ja": "投稿を予定…",
+    "pt-BR": "Planejar uma publicação…"
+  },
+  "Plan post": {
+    "ar": "خطّط",
+    "de": "Planen",
+    "es": "Planificar",
+    "fr": "Planifier",
+    "it": "Pianifica",
+    "ja": "予定する",
+    "pt-BR": "Planejar"
+  },
+  "Planned": {
+    "ar": "المخطط لها",
+    "de": "Geplant",
+    "es": "Planificadas",
+    "fr": "Planifiées",
+    "it": "Pianificati",
+    "ja": "予定",
+    "pt-BR": "Planejadas"
+  },
+  "Planned posts": {
+    "ar": "المنشورات المخطط لها",
+    "de": "Geplante Beiträge",
+    "es": "Publicaciones planificadas",
+    "fr": "Publications planifiées",
+    "it": "Post pianificati",
+    "ja": "予定した投稿",
+    "pt-BR": "Publicações planejadas"
+  },
   "Plaque": {
     "ar": "لوحة",
     "de": "Plakette",
@@ -20302,6 +20743,15 @@
     "it": "Riproduci",
     "ja": "再生",
     "pt-BR": "Reproduzir"
+  },
+  "Play clips automatically": {
+    "ar": "تشغيل المقاطع تلقائيًا",
+    "de": "Clips automatisch abspielen",
+    "es": "Reproducir clips automáticamente",
+    "fr": "Lire les clips automatiquement",
+    "it": "Riproduci clip automaticamente",
+    "ja": "クリップを自動再生",
+    "pt-BR": "Reproduzir clipes automaticamente"
   },
   "Play enhanced": {
     "ar": "تشغيل المُحسَّن",
@@ -20804,6 +21254,15 @@
     "ja": "プログレスリング",
     "pt-BR": "Anel de progresso"
   },
+  "Proposal": {
+    "ar": "مقترح",
+    "de": "Angebot",
+    "es": "Propuesta",
+    "fr": "Proposition",
+    "it": "Proposta",
+    "ja": "提案書",
+    "pt-BR": "Proposta"
+  },
   "Pulse (loop)": {
     "ar": "نبض (تكرار)",
     "de": "Pulsieren (Schleife)",
@@ -21010,6 +21469,15 @@
     "it": "Leggi un codice in questa immagine",
     "ja": "この画像のコードを読み取る",
     "pt-BR": "Ler um código nesta imagem"
+  },
+  "Read as": {
+    "ar": "يُقرأ كـ",
+    "de": "Vorlesen als",
+    "es": "Leer como",
+    "fr": "Lire comme",
+    "it": "Leggi come",
+    "ja": "読み上げ方",
+    "pt-BR": "Ler como"
   },
   "Read by VoiceOver and written into SVG exports. Suggest asks the on-device classifier for a first draft.": {
     "ar": "يقرؤه VoiceOver ويُكتب في ملفات SVG المصدَّرة. يطلب «اقتراح» مسودة أولى من المصنِّف على الجهاز.",
@@ -21226,6 +21694,15 @@
     "it": "Ripeti, niente da ripetere",
     "ja": "やり直す、やり直す操作はありません",
     "pt-BR": "Refazer, nada para refazer"
+  },
+  "Reduce motion": {
+    "ar": "تقليل الحركة",
+    "de": "Bewegung reduzieren",
+    "es": "Reducir movimiento",
+    "fr": "Réduire les animations",
+    "it": "Riduci movimento",
+    "ja": "視差効果を減らす",
+    "pt-BR": "Reduzir movimento"
   },
   "Reflow": {
     "ar": "إعادة الترتيب",
@@ -21782,6 +22259,15 @@
     "ja": "このページの内容を置き換えます。元に戻すで復元できます。",
     "pt-BR": "Substitui o que está nesta página. Desfazer traz de volta."
   },
+  "Report": {
+    "ar": "تقرير",
+    "de": "Bericht",
+    "es": "Informe",
+    "fr": "Rapport",
+    "it": "Relazione",
+    "ja": "レポート",
+    "pt-BR": "Relatório"
+  },
   "Reset": {
     "ar": "إعادة تعيين",
     "de": "Zurücksetzen",
@@ -22096,6 +22582,15 @@
     "it": "Diagonale ascendente",
     "ja": "右上がりの斜線",
     "pt-BR": "Diagonal ascendente"
+  },
+  "Role": {
+    "ar": "الدور",
+    "de": "Rolle",
+    "es": "Función",
+    "fr": "Rôle",
+    "it": "Ruolo",
+    "ja": "役割",
+    "pt-BR": "Função"
   },
   "Roll": {
     "ar": "تدحرج",
@@ -23711,6 +24206,15 @@
     "ja": "SVG を共有",
     "pt-BR": "Compartilhar SVG"
   },
+  "Share Word document": {
+    "ar": "مشاركة مستند Word",
+    "de": "Word-Dokument teilen",
+    "es": "Compartir documento de Word",
+    "fr": "Partager le document Word",
+    "it": "Condividi documento Word",
+    "ja": "Word 文書を共有",
+    "pt-BR": "Compartilhar documento do Word"
+  },
   "Share a PNG, a JPG, a PDF, a video or an animated GIF — or a print-ready PDF with bleed and crop marks. Present full screen from the top bar.": {
     "ar": "شارك PNG أو JPG أو PDF أو فيديو أو GIF متحركًا — أو PDF جاهزًا للطباعة مع هامش النزف وعلامات القص. واعرض بملء الشاشة من الشريط العلوي.",
     "de": "Teile ein PNG, ein JPG, eine PDF, ein Video oder ein animiertes GIF – oder eine druckfertige PDF mit Beschnittzugabe und Schnittmarken. Präsentiere im Vollbild über die obere Leiste.",
@@ -23737,6 +24241,15 @@
     "it": "Condividilo. Esporta la pagina come immagine, tutto come PDF, o il design stesso da aprire su un altro telefono, Android o iPhone.",
     "ja": "共有しましょう。ページを画像として、全体を PDF として、またはデザイン自体を別のスマートフォン（Android または iPhone）で開けるように書き出せます。",
     "pt-BR": "Compartilhe. Exporte a página como imagem, tudo como PDF ou o próprio design para abrir em outro celular — Android ou iPhone."
+  },
+  "Share now": {
+    "ar": "شارك الآن",
+    "de": "Jetzt teilen",
+    "es": "Compartir ahora",
+    "fr": "Partager maintenant",
+    "it": "Condividi ora",
+    "ja": "今すぐ共有",
+    "pt-BR": "Compartilhar agora"
   },
   "Share this kit…": {
     "ar": "مشاركة هذه المجموعة…",
@@ -25511,6 +26024,15 @@
     "ja": "タグ",
     "pt-BR": "Etiqueta"
   },
+  "Tagged for screen readers": {
+    "ar": "موسوم لقارئات الشاشة",
+    "de": "Für Screenreader getaggt",
+    "es": "Etiquetado para lectores de pantalla",
+    "fr": "Balisé pour les lecteurs d'écran",
+    "it": "Taggato per lettori di schermo",
+    "ja": "スクリーンリーダー用タグ付き",
+    "pt-BR": "Marcado para leitores de tela"
+  },
   "Take %@ out of the brand templates": {
     "ar": "إخراج %@ من قوالب العلامة التجارية",
     "de": "%@ aus den Markenvorlagen entfernen",
@@ -27107,6 +27629,24 @@
     "ja": "ポスターをタイル状に分割",
     "pt-BR": "Pôster em partes"
   },
+  "Time": {
+    "ar": "الوقت",
+    "de": "Uhrzeit",
+    "es": "Hora",
+    "fr": "Heure",
+    "it": "Ora",
+    "ja": "時刻",
+    "pt-BR": "Hora"
+  },
+  "Time to post %@": {
+    "ar": "حان وقت نشر %@",
+    "de": "Zeit, %@ zu posten",
+    "es": "Hora de publicar %@",
+    "fr": "C'est l'heure de publier %@",
+    "it": "È ora di pubblicare %@",
+    "ja": "%@ を投稿する時間です",
+    "pt-BR": "Hora de publicar %@"
+  },
   "Timeline": {
     "ar": "المخطط الزمني",
     "de": "Zeitleiste",
@@ -27566,6 +28106,24 @@
     "ja": "時計回りに回転",
     "pt-BR": "Girar no sentido horário"
   },
+  "Turn into": {
+    "ar": "تحويل إلى",
+    "de": "Umwandeln in",
+    "es": "Convertir en",
+    "fr": "Transformer en",
+    "it": "Trasforma in",
+    "ja": "変換",
+    "pt-BR": "Transformar em"
+  },
+  "Turn into presentation": {
+    "ar": "تحويل إلى عرض تقديمي",
+    "de": "In Präsentation umwandeln",
+    "es": "Convertir en presentación",
+    "fr": "Transformer en présentation",
+    "it": "Trasforma in presentazione",
+    "ja": "プレゼンテーションに変換",
+    "pt-BR": "Transformar em apresentação"
+  },
   "Turn on Timeline in More to time it by the playhead.": {
     "ar": "فعّل «المخطط الزمني» في «المزيد» لتوقيته بمؤشر التشغيل.",
     "de": "Aktiviere die Zeitleiste unter „Mehr“, um das Timing per Abspielkopf festzulegen.",
@@ -27655,6 +28213,15 @@
     "it": "Testo",
     "ja": "種類",
     "pt-BR": "Tipo"
+  },
+  "Type '/' for blocks": {
+    "ar": "اكتب «/» للكتل",
+    "de": "„/“ tippen für Blöcke",
+    "es": "Escribe «/» para ver bloques",
+    "fr": "Tapez « / » pour les blocs",
+    "it": "Digita \"/\" per i blocchi",
+    "ja": "「/」でブロックを挿入",
+    "pt-BR": "Digite \"/\" para blocos"
   },
   "Type a link or some text first": {
     "ar": "اكتب رابطًا أو بعض النص أولًا",
@@ -27790,6 +28357,15 @@
     "it": "Sottolineato",
     "ja": "下線",
     "pt-BR": "Sublinhado"
+  },
+  "Underline links": {
+    "ar": "تسطير الروابط",
+    "de": "Links unterstreichen",
+    "es": "Subrayar enlaces",
+    "fr": "Souligner les liens",
+    "it": "Sottolinea i link",
+    "ja": "リンクに下線を引く",
+    "pt-BR": "Sublinhar links"
   },
   "Underlines & circles": {
     "ar": "خطوط سفلية ودوائر",
@@ -29108,6 +29684,15 @@
     "ja": "単語ごと",
     "pt-BR": "Palavra por palavra"
   },
+  "Word document": {
+    "ar": "مستند Word",
+    "de": "Word-Dokument",
+    "es": "Documento de Word",
+    "fr": "Document Word",
+    "it": "Documento Word",
+    "ja": "Word 文書",
+    "pt-BR": "Documento do Word"
+  },
   "Words": {
     "ar": "الكلمات",
     "de": "Wörter",
@@ -29296,6 +29881,15 @@
     "it": "Le tue foto",
     "ja": "あなたの写真",
     "pt-BR": "Suas fotos"
+  },
+  "Your post is ready to share.": {
+    "ar": "منشورك جاهز للمشاركة.",
+    "de": "Dein Beitrag ist bereit zum Teilen.",
+    "es": "Tu publicación está lista para compartir.",
+    "fr": "Votre publication est prête à être partagée.",
+    "it": "Il tuo post è pronto da condividere.",
+    "ja": "投稿を共有する準備ができました。",
+    "pt-BR": "Sua publicação está pronta para compartilhar."
   },
   "Your templates": {
     "ar": "قوالبك",

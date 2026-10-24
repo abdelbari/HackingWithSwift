@@ -39,6 +39,13 @@ struct ClipsPlayKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// The clips held on the frame they start at while the page plays —
+/// Settings ▸ Accessibility's Play clips automatically turned off, in the
+/// editor, for those not tapped. None anywhere else.
+struct PausedClipsKey: EnvironmentKey {
+    static let defaultValue: Set<String> = []
+}
+
 /// Whether clips are asked for frame after frame, in order — a video
 /// export — so each is read on from its last frame by a reader of its own
 /// (ClipReader) rather than sought for every one.
@@ -112,6 +119,11 @@ extension EnvironmentValues {
     var clipsPlay: Bool {
         get { self[ClipsPlayKey.self] }
         set { self[ClipsPlayKey.self] = newValue }
+    }
+
+    var pausedClips: Set<String> {
+        get { self[PausedClipsKey.self] }
+        set { self[PausedClipsKey.self] = newValue }
     }
 
     /// The readers a video export reads the page's clips with, in order;

@@ -231,7 +231,7 @@ final class DownloadPagesTests: XCTestCase {
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(last.json.utf8)) as? [String: Any])
         XCTAssertEqual(Set(object.keys), ["format", "scale", "longEdge", "jpegQuality", "transparent", "pages",
                                           "pdfNotes", "pdfCompress", "pptxStyledText",
-                                          "suggested", "pdfBookmarks", "colourProfile", "html"])
+                                          "suggested", "pdfBookmarks", "colourProfile", "html", "pdfTagged"])
         XCTAssertTrue(object["longEdge"] is NSNull)
         XCTAssertEqual(object["format"] as? String, "png")
         XCTAssertEqual(object["scale"] as? Double, 2)
@@ -247,8 +247,9 @@ final class DownloadPagesTests: XCTestCase {
     func testTheLastExportReadsLeniently() throws {
         let android = #"{"format":"jpg","scale":3,"longEdge":1080,"jpegQuality":0.7,"transparent":true,"pages":"chosen"}"#
         let read = try XCTUnwrap(ExportLast.read(android))
+        // Written before "pdfTagged": untagged.
         XCTAssertEqual(read, ExportLast(format: "jpg", scale: 3, longEdge: 1080, jpegQuality: 0.7,
-                                        transparent: true, pages: "chosen"))
+                                        transparent: true, pages: "chosen", pdfTagged: false))
         let odd = try XCTUnwrap(ExportLast.read(#"{"format":"webp","scale":9,"pages":"some"}"#))
         XCTAssertEqual(odd.format, "png")
         XCTAssertEqual(odd.scale, 3)

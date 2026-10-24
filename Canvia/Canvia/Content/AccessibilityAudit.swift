@@ -21,6 +21,13 @@
 //  - readingOrder: a page whose layers, bottom to top, run in another order
 //    than the page reads — rows top to bottom, left to right — among what a
 //    reader says: words, and pictures with alt text.
+//  - headings: a heading a level below the one before it skips one
+//    ("Heading levels skip": an h3 after an h1, or a design's first heading
+//    an h2), and a design of two or more shown pages with no heading at all
+//    ("No heading on a multi-page PDF") — headings as TextRoles and Read as
+//    say, read in reading order across the shown pages. Fixes: Fix heading
+//    level (the level after the one before) and Make it a heading (the
+//    first page's biggest text an h1).
 //  - colourVision: text that passes contrast but not as it is seen with a
 //    colour vision deficiency, and chart series that look alike so
 //    (ColourVision) — each saying which ways of seeing it fails in.
@@ -39,7 +46,7 @@ import Foundation
 enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
-        case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, colourVision, missingLetters
+        case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, headings, colourVision, missingLetters
     }
 
     /// What a finding's button does.
@@ -47,6 +54,8 @@ enum AccessibilityAudit {
         case fixColour = "Fix colour"
         case addAltText = "Add alt text"
         case makeIt12 = "Make it 12"
+        case fixHeadingLevel = "Fix heading level"
+        case makeHeading = "Make it a heading"
     }
 
     /// One thing found: {kind, pageIndex, elementId, message, fix}.
@@ -67,6 +76,7 @@ enum AccessibilityAudit {
         let holds = filmHolds(design)
         let seen = Dictionary(grouping: ColourVision.textFindings(design), by: \.contrast.pageIndex)
         let charts = Dictionary(grouping: ColourVision.chartFindings(design), by: \.pageIndex)
+        let headings = Dictionary(grouping: headingFindings(design), by: \.pageIndex)
         var out: [Finding] = []
         for (p, page) in design.pages.enumerated() where page.hidden != true {
             let shown = page.elements.filter { !$0.isHidden }
@@ -109,6 +119,7 @@ enum AccessibilityAudit {
                 out.append(Finding(kind: .readingOrder, pageIndex: p, elementId: first,
                                    message: tr("The layers are in a different order from how the page reads")))
             }
+            out += headings[p] ?? []
             for f in seen[p] ?? [] {
                 out.append(Finding(kind: .colourVision, pageIndex: p, elementId: f.contrast.elementId,
                                    message: tr("Hard to read in %@ view: %@:1", ColourVision.names(f.kinds),
@@ -281,6 +292,82 @@ enum AccessibilityAudit {
         return nil
     }
 
+    // MARK: headings
+
+    /// `el`'s heading level for a reader, 1 to 3, or nil when it is not a
+    /// heading: its Read as, else its role (TextRoles).
+    static func headingLevel(_ el: Element, in design: Design) -> Int? {
+        if let read = TextRoles.readAs(el) {
+            switch read {
+            case TextRoles.h1: return 1
+            case TextRoles.h2: return 2
+            case TextRoles.h3: return 3
+            default: return nil
+            }
+        }
+        return TextRoles.level(TextRoles.of(el, in: design))
+    }
+
+    /// The shown pages' words, page by page in reading order, each with its
+    /// page's index.
+    private static func readText(_ design: Design) -> [(page: Int, el: Element)] {
+        design.pages.enumerated().flatMap { p, page -> [(page: Int, el: Element)] in
+            guard page.hidden != true else { return [] }
+            let shown = page.elements.filter { !$0.isHidden && hasWords($0) }
+            let byId = Dictionary(shown.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let order = CanvasAccessibility.readingOrder(shown, pageHeight: Double(design.size(for: page).height))
+            return order.compactMap { id in byId[id].map { (page: p, el: $0) } }
+        }
+    }
+
+    /// The headings findings: each heading more than one level below the
+    /// heading before it in reading order (the first heading after an
+    /// imagined level 0), and, for a design of two or more shown pages with
+    /// no heading, one for the whole design on its first shown page, about
+    /// that page's biggest text when it has any — the Android twin's rule.
+    static func headingFindings(_ design: Design) -> [Finding] {
+        let read = readText(design)
+        var out: [Finding] = []
+        var previous = 0
+        for (p, el) in read {
+            guard let level = headingLevel(el, in: design) else { continue }
+            if level > previous + 1 {
+                out.append(Finding(kind: .headings, pageIndex: p, elementId: el.id,
+                                   message: tr("Heading levels skip"), fix: .fixHeadingLevel))
+            }
+            previous = level
+        }
+        let shownPages = design.visiblePageIndices
+        if shownPages.count >= 2, let first = shownPages.first,
+           !read.contains(where: { headingLevel($0.el, in: design) != nil }) {
+            // The biggest first, the first of those in reading order.
+            var biggest: Element?
+            for item in read where item.page == first {
+                if (item.el.fontSize ?? 42) > (biggest?.fontSize ?? 42) || biggest == nil { biggest = item.el }
+            }
+            out.append(Finding(kind: .headings, pageIndex: first, elementId: biggest?.id,
+                               message: tr("No heading on a multi-page PDF"), fix: biggest == nil ? nil : .makeHeading))
+        }
+        return out
+    }
+
+    /// The role a headings fix gives element `id`: Make it a heading an h1,
+    /// Fix heading level the level after the heading before it.
+    static func headingFix(_ design: Design, id: String) -> String {
+        var previous = 0
+        for item in readText(design) {
+            if item.el.id == id { return TextRoles.heading(previous + 1) }
+            previous = headingLevel(item.el, in: design) ?? previous
+        }
+        return TextRoles.h1
+    }
+
+    /// A headings fix: the role written and any Read as taken away, so the
+    /// role is what is read.
+    static func withHeading(_ el: Element, role: String) -> Element {
+        TextRoles.withReadAs(TextRoles.with(el, role), nil)
+    }
+
     // MARK: the sheet's words
 
     /// "5 things on 3 pages", "1 thing on 1 page"; nothing is "Nothing to
@@ -334,6 +421,10 @@ enum AccessibilityAudit {
         case .some(.makeIt12):
             el.fontSize = legibleSize(design)
             if el.type == .text { el.h = FontLibrary.layoutHeight(for: el) }
+        case .some(.fixHeadingLevel), .some(.makeHeading):
+            // A locked page keeps its words as they are.
+            guard !PageLocks.isLocked(design.pages[f.pageIndex]) else { return design }
+            el = withHeading(el, role: headingFix(design, id: id))
         case .some(.addAltText), .none:
             return design
         }

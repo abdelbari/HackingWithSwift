@@ -101,7 +101,14 @@ final class PresentSession {
 struct PresentStage: View {
     let session: PresentSession
     let size: CGSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) private var systemReducesMotion
+    /// Settings ▸ Accessibility's Reduce motion, over the phone's own
+    /// (AccessibilityPrefs).
+    @AppStorage(AccessibilityPrefs.reduceMotionKey) private var reduceMotionChoice = AccessibilityPrefs.system
+    @AppStorage(AccessibilityPrefs.underlineLinksKey) private var underlineLinks = false
+    private var reduceMotion: Bool {
+        AccessibilityPrefs.reducesMotion(reduceMotionChoice, systemReduces: systemReducesMotion)
+    }
 
     var body: some View {
         ZStack {
@@ -162,6 +169,8 @@ struct PresentStage: View {
                 .environment(\.clipsPlay, true)
                 .environment(\.onScreen, true)
         }
+        // Settings ▸ Accessibility's Underline links, never in an export.
+        .overlay(alignment: .topLeading) { if underlineLinks { LinkUnderlines(design: design, page: shown) } }
         .overlay(alignment: .topLeading) { PointerDot(point: session.pointer, page: pageSize) }
         .scaleEffect(scale)
         .frame(width: pageSize.width * scale, height: pageSize.height * scale)

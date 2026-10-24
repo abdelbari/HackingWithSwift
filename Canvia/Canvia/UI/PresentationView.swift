@@ -49,7 +49,13 @@ struct PresentationView: View {
     @State private var autoplayTask: Task<Void, Never>?
     @State private var settleTask: Task<Void, Never>?
     @State private var exitTask: Task<Void, Never>?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) private var systemReducesMotion
+    /// Settings ▸ Accessibility's Reduce motion, over the phone's own
+    /// (AccessibilityPrefs).
+    @AppStorage(AccessibilityPrefs.reduceMotionKey) private var reduceMotionChoice = AccessibilityPrefs.system
+    private var reduceMotion: Bool {
+        AccessibilityPrefs.reducesMotion(reduceMotionChoice, systemReduces: systemReducesMotion)
+    }
     @Environment(\.openURL) private var openURL
     /// Said for a moment when a link has no app here to open it.
     @State private var linkRefused: String?

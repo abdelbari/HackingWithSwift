@@ -61,6 +61,10 @@ struct SelectionOverlay: View {
     @State private var heldEnd: HeldEnd?
 
     private var iz: Double { 1 / max(store.zoom, 0.01) }
+    /// Settings ▸ Accessibility's Larger handles: the handles drawn 1.4
+    /// times as big (AccessibilityPrefs), as Touch.handleReach takes them.
+    @AppStorage(AccessibilityPrefs.largerHandlesKey) private var largerHandles = false
+    private var handleScale: Double { AccessibilityPrefs.handleScale(larger: largerHandles) }
     /// Increase Contrast: heavier outlines, since a one-point accent line
     /// over a busy photo is exactly what that setting is asking to fix.
     private var weight: Double { contrast == .increased ? 1.8 : 1 }
@@ -443,7 +447,7 @@ struct SelectionOverlay: View {
     }
 
     private func handleDot(_ handle: Handle, at point: CGPoint) -> some View {
-        let size = (handle.isCorner ? 11.0 : 9.0) * iz
+        let size = (handle.isCorner ? 11.0 : 9.0) * iz * handleScale
         return Circle()
             .fill(Color.white)
             // A coloured ring on white already separates the handle from the
@@ -459,11 +463,11 @@ struct SelectionOverlay: View {
         // Was arrow.triangle.2.circlepath — the refresh/sync glyph, so the
         // control for rotating your text read as a reload button.
         Image(systemName: "arrow.clockwise")
-            .font(.system(size: 11 * iz, weight: .semibold))
+            .font(.system(size: 11 * iz * handleScale, weight: .semibold))
             .foregroundStyle(Theme.accent)
             // Track the element's angle, so the affordance says which way is up.
             .rotationEffect(.degrees(el.rotation))
-            .frame(width: 24 * iz, height: 24 * iz)
+            .frame(width: 24 * iz * handleScale, height: 24 * iz * handleScale)
             .background(Circle().fill(Color.white)
                 .overlay(Circle().stroke(Theme.accent.opacity(0.9), lineWidth: 1 * iz)))
             .position(point)
@@ -583,7 +587,7 @@ struct SelectionOverlay: View {
     /// A line's end: a white disc ringed in the accent, larger than a
     /// stretch handle, so it reads as the end itself.
     private func endDisc(at point: CGPoint) -> some View {
-        let size = 14.0 * iz
+        let size = 14.0 * iz * handleScale
         return Circle()
             .fill(Color.white)
             .overlay(Circle().stroke(Theme.accent, lineWidth: 2 * iz))

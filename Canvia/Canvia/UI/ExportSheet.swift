@@ -16,6 +16,12 @@ struct ExportSheet: View {
     /// Opened from Home, on the design as saved: nothing here changes it,
     /// so its motion settings and music are shown but not offered.
     var readOnly = false
+    /// A Doc, whose pages `store` holds laid out (DocPages): its Word
+    /// document is made from its blocks. Nil for every other design.
+    var doc: Design? = nil
+    /// The Doc's own store, opened in its editor: where Plan a post keeps
+    /// the post, which `store`'s laid-out pages would not.
+    var docStore: DesignStore? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var scale = 2.0
     @State private var longEdgeText = ""
@@ -56,6 +62,9 @@ struct ExportSheet: View {
     @State private var suggested = "png"
     /// The PDF's outline: a bookmark for each page, by its title.
     @State private var pdfBookmarks = true
+    /// A tagged PDF for screen readers: on unless a remembered export said
+    /// otherwise, and never for a flattened one.
+    @State private var pdfTagged = true
     /// The web page's menu, narrow-screen wrapping and clips
     /// (HTMLExporter.Settings).
     @State private var htmlNav = true
@@ -144,6 +153,8 @@ struct ExportSheet: View {
     @State private var errorMessage: String?
     /// Mockups, over the sheet.
     @State private var showingMockups = false
+    /// Plan a post…, over the sheet.
+    @State private var planningPost = false
 
     var body: some View {
         NavigationStack {
@@ -172,6 +183,7 @@ struct ExportSheet: View {
                     // The design as saved has no editor to add a picture to.
                     MockupSheet(design: store.design, store: readOnly ? nil : store, startPage: store.pageIndex)
                 }
+                .sheet(isPresented: $planningPost) { PlanPostSheet(store: docStore ?? store) }
                 .sheet(isPresented: $choosingPages, onDismiss: {
                     ExportChoices.remember(chosenIds, for: store.design)
                 }) {
@@ -613,6 +625,12 @@ struct ExportSheet: View {
         // The page on a phone, a laptop, a print or a shirt.
         Button("Mockups") { showingMockups = true }
             .buttonStyle(.bordered)
+        // A reminder with the caption, the file made when it rings; kept
+        // with the design, which the sheet from Home does not change.
+        if !readOnly || docStore != nil {
+            Button("Plan a post…") { planningPost = true }
+                .buttonStyle(.bordered)
+        }
     }
 
     /// Why Share cannot now, what Photos took, and a video's lost music.
@@ -661,7 +679,8 @@ struct ExportSheet: View {
         switch fileType {
         case "pdf":
             run(tr("Making the PDF"), format: "pdf") {
-                ExportJobs.pdf(designSnapshot, flatten: flatten, notes: pdfNotes, compress: pdfCompress, bookmarks: pdfBookmarks)
+                ExportJobs.pdf(designSnapshot, flatten: flatten, notes: pdfNotes, compress: pdfCompress, bookmarks: pdfBookmarks,
+                               tagged: pdfTagged && !flatten)
             }
         case "print":
             // The design the pictures render, so "Selection only" prints
@@ -683,6 +702,10 @@ struct ExportSheet: View {
             }
         case "gif":
             run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gif(designSnapshot, settings: movieSettings) }
+        case "docx":
+            // A Doc as a Word document, from its blocks (DocxWriter).
+            guard let doc else { return }
+            run(tr("Making the Word document"), format: "docx") { ExportJobs.docx(doc) }
         default:
             let format = fileType
             run(tr("Rendering"), format: format) { zipped(picturesWork(format == "jpg" ? .jpeg : .png)) }
@@ -738,6 +761,7 @@ struct ExportSheet: View {
         case "mp4": return tr("Share MP4")
         case "gif": return tr("Share GIF")
         case "html": return tr("Share web page")
+        case "docx": return tr("Share Word document")
         default:
             let kind = type == "jpg" ? "JPG" : "PNG"
             return count > 1 ? trn("Share %d %@|Share %d %@s", count, kind) : tr("Share %@", kind)
@@ -751,7 +775,7 @@ struct ExportSheet: View {
     private var fileTypeSection: some View {
         Section {
             Picker("File type", selection: $fileType) {
-                ForEach(ExportLast.fileTypes, id: \.self) { type in
+                ForEach(offeredTypes, id: \.self) { type in
                     fileTypeRow(type).tag(type)
                 }
             }
@@ -760,6 +784,11 @@ struct ExportSheet: View {
             Text(Self.typeNote(fileType))
         }
         .task(id: revision) { await readA11y() }
+    }
+
+    /// The file types offered: a Word document is a Doc's alone.
+    private var offeredTypes: [String] {
+        ExportLast.fileTypes.filter { $0 != "docx" || doc != nil }
     }
 
     private func fileTypeRow(_ type: String) -> some View {
@@ -790,6 +819,7 @@ struct ExportSheet: View {
         case "pptx": return tr("PowerPoint")
         case "mp4": return "MP4"
         case "html": return "HTML"
+        case "docx": return tr("Word document")
         default: return "GIF"
         }
     }
@@ -805,6 +835,7 @@ struct ExportSheet: View {
         case "pptx": return tr("Editable slides.")
         case "mp4": return tr("A video of the pages, with their motion and music.")
         case "html": return tr("A web page: the pages as sections, with a menu, links and video.")
+        case "docx": return tr("A Word document: headings, lists, tables and pictures, to edit in Word.")
         default: return tr("A looping animation, without sound.")
         }
     }
@@ -830,6 +861,8 @@ struct ExportSheet: View {
             pptxSection
         case "html":
             htmlSection
+        case "docx":
+            EmptyView()
         default:
             motionSection
         }
@@ -943,6 +976,7 @@ struct ExportSheet: View {
                 Text(leftOut(pdfIndices) ?? pdfSubtitle)
                 Text("Flatten draws each PDF page as one 300-dpi picture: no editable text and no links, so a print shop gets no font surprises.")
                 Text("A bookmark for each page, by its title, so a reader can jump between them.")
+                Text("Headings, reading order and alt text a screen reader can follow.")
             }
         }
     }
@@ -955,6 +989,10 @@ struct ExportSheet: View {
         // An outline entry a page, by its title, for a reader's navigation;
         // the file's title and language go in always.
         Toggle("Bookmarks", isOn: $pdfBookmarks)
+        // Headings, reading order and alt text for a screen reader — not
+        // for a flattened file, which is pictures.
+        Toggle("Tagged for screen readers", isOn: Binding(get: { pdfTagged && !flatten }, set: { pdfTagged = $0 }))
+            .disabled(flatten)
         Text(pdfSizeNote)
             .font(.footnote)
             .foregroundStyle(.secondary)
@@ -1061,7 +1099,7 @@ struct ExportSheet: View {
                                 pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
                                 pptxStyledText: pptxStyledText, suggested: format == suggested,
                                 pdfBookmarks: pdfBookmarks, colourProfile: paper.colourProfile.rawValue,
-                                html: htmlSettings, zip: zip, pngCompress: pngCompress).json
+                                html: htmlSettings, zip: zip, pngCompress: pngCompress, pdfTagged: pdfTagged).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -1073,13 +1111,16 @@ struct ExportSheet: View {
         // The file type: the last export's when remembered and chosen by
         // hand; else the one suggested from the design (ExportSuggestion),
         // a plain picture in Settings' default format.
-        let read = ExportSuggestion.suggest(store.design)
+        // A Doc's suggestion is its own, not its pages' (a PDF).
+        let read = ExportSuggestion.suggest(doc ?? store.design)
         suggested = read != "png" ? read : (defaultFormat == "jpg" ? "jpg" : "png")
         fileType = suggested
         guard let last = ExportLast.read(exportLast) else { return }
         remember = true
-        if !last.suggested { fileType = last.format }
+        // A Word document is a Doc's alone.
+        if !last.suggested && (last.format != "docx" || doc != nil) { fileType = last.format }
         pdfBookmarks = last.pdfBookmarks
+        pdfTagged = last.pdfTagged
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2
         jpegQuality = last.jpegQuality
         transparent = last.transparent

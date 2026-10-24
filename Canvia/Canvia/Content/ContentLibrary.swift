@@ -287,6 +287,8 @@ struct ContentBundle: Codable {
     var sizes: [SizePreset]?
     /// The first launch's "What will you use Canvia for?" (UseProfile).
     var uses: [UseCase]?
+    /// The Doc templates (Docs), from templates/docs.json.
+    var docs: [DocTemplate]?
 }
 
 enum ContentLibrary {
@@ -317,6 +319,7 @@ enum ContentLibrary {
     static var pairings: [FontPairing] { bundle.pairings }
     static var stickerGroups: [StickerGroup] { bundle.stickerGroups }
     static var uses: [UseCase] { bundle.uses ?? [] }
+    static var docTemplates: [DocTemplate] { bundle.docs ?? [] }
 
     /// The design-type catalogue; the eleven Home has always shown should
     /// it fail to load, so a size is always there to start from.
@@ -572,10 +575,18 @@ struct SizePreset: Identifiable, Codable, Equatable {
     }
 
     /// `design`, made at this type, as it starts: at the Whiteboard type
-    /// its pages expanded (Whiteboards), any other as it is — the Android
-    /// twin's SizePreset.measured.
+    /// its pages expanded (Whiteboards), at the Doc type blocks to type
+    /// into on Letter pages (Docs), any other as it is — the Android twin's
+    /// SizePreset.measured.
     func started(_ design: Design) -> Design {
-        id == Whiteboards.presetId ? Whiteboards.started(design) : design
+        switch id {
+        case Whiteboards.presetId: return Whiteboards.started(design)
+        case Docs.presetId:
+            var doc = Docs.started(design.title)
+            doc.id = design.id
+            return doc
+        default: return design
+        }
     }
 
     /// "210 × 297 mm", or "1080 × 1920" for a size in pixels.
@@ -601,7 +612,7 @@ struct SizePreset: Identifiable, Codable, Equatable {
         "insta-post": "square", "insta-story": "iphone", "presentation": "display",
         "youtube-thumb": "play.rectangle", "facebook-post": "rectangle", "poster": "doc.richtext",
         "flyer": "doc", "a4": "doc.text", "business-card": "person.crop.rectangle",
-        "quote-card": "quote.opening", "logo": "seal", "website": "globe",
+        "quote-card": "quote.opening", "logo": "seal", "website": "globe", "doc": "doc.plaintext",
     ]
 
     /// How many of the catalogue's first sizes Home's row shows: the

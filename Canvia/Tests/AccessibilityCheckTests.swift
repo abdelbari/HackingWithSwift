@@ -265,9 +265,13 @@ final class AccessibilityCheckTests: XCTestCase {
             Page(elements: [Element.sticker("🌸")]),
         ]
         let found = AccessibilityAudit.findings(d)
-        XCTAssertEqual(found.map(\.kind), [.altText, .contrast, .smallText, .altText])
-        XCTAssertEqual(found.map(\.pageIndex), [0, 1, 1, 2])
-        XCTAssertEqual(AccessibilityAudit.summary(found), "4 things on 3 pages")
+        // Three pages and no heading: a headings finding as well, on the
+        // first page, which has no words to make one.
+        XCTAssertEqual(found.map(\.kind), [.altText, .headings, .contrast, .smallText, .altText])
+        XCTAssertEqual(found.map(\.pageIndex), [0, 0, 1, 1, 2])
+        XCTAssertNil(found[1].elementId)
+        XCTAssertNil(found[1].fix)
+        XCTAssertEqual(AccessibilityAudit.summary(found), "5 things on 3 pages")
         XCTAssertEqual(AccessibilityAudit.byPage(found).map(\.pageIndex), [0, 1, 2])
         XCTAssertEqual(AccessibilityAudit.byPage(found)[1].findings.count, 2)
         XCTAssertEqual(AccessibilityAudit.summary(Array(found.prefix(1))), "1 thing on 1 page")

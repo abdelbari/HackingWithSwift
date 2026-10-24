@@ -1,0 +1,36 @@
+{
+  "note": "The shared Doc fixture: Docs.units(blocks) laid out at unitHeights (page pixels) in the page's content height (Letter 1056 less two 72 pt margins, 864) must break at breaks — each the index of the first block of a page after the first — and DocxWriter.documentXml(design) must equal doc-document.xml byte for byte. Both phones read these files.",
+  "design": {
+    "id": "d-doc",
+    "title": "Annual report",
+    "width": 816,
+    "height": 1056,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "kind": "doc",
+    "docPage": {"size": "letter", "margins": 72},
+    "blocks": [
+      {"id": "b1", "type": "h1", "text": "Annual report"},
+      {"id": "b2", "type": "p", "text": "We grew in **every** region, and *most* of all in the _north_ & east."},
+      {"id": "b3", "type": "h2", "text": "Highlights"},
+      {"id": "b4", "type": "bullet", "text": "Revenue up 12%"},
+      {"id": "b5", "type": "bullet", "text": "Two new markets"},
+      {"id": "b6", "type": "table", "table": {"rows": [["Region", "Sales"], ["North", "12"], ["South", "9"]], "header": true}},
+      {"id": "b7", "type": "h2", "text": "Next year"},
+      {"id": "b8", "type": "p", "text": "More of the same.\nAnd a little more."},
+      {"id": "b9", "type": "pagebreak"},
+      {"id": "b10", "type": "h3", "text": "Notes"},
+      {"id": "b11", "type": "number", "text": "One"},
+      {"id": "b12", "type": "number", "text": "Two"},
+      {"id": "b13", "type": "quote", "text": "Less, but better."},
+      {"id": "b14", "type": "image", "src": "media:photo-1", "alt": "The team <on> site"},
+      {"id": "b15", "type": "chart", "alt": "Sales by quarter", "chart": {"id": "chart_1", "kind": "column", "data": "Q1, 4\nQ2, 6"}},
+      {"id": "b16", "type": "divider"},
+      {"id": "b17", "type": "checklist", "text": "Book the venue", "checked": true}
+    ]
+  },
+  "units": [[0], [1], [2], [3, 4], [5], [6], [7], [8], [9], [10, 11], [12], [13], [14], [15], [16]],
+  "unitHeights": [49, 120, 38, 50, 200, 38, 300, 0, 30, 50, 60, 403, 403, 8, 22],
+  "contentHeight": 864,
+  "breaks": [6, 9, 14]
+}

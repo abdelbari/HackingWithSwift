@@ -229,11 +229,22 @@ struct CanviaApp: App {
         Button("Cancel", role: .cancel) { sheetsIn = nil }
     }
 
+    /// A Doc is edited as its blocks (DocEditorView), every other design
+    /// on its canvas.
+    @ViewBuilder
+    private func designEditor(_ store: DesignStore, onHome: @escaping () -> Void) -> some View {
+        if Docs.isDoc(store.design) {
+            DocEditorView(store: store, onHome: onHome)
+        } else {
+            EditorView(store: store, onHome: onHome)
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ZStack {
                 if let store = editingStore {
-                    EditorView(store: store) {
+                    designEditor(store) {
                         withAnimation(.snappy(duration: 0.28)) { editingStore = nil }
                     }
                     // A new identity for each design, so one opened over

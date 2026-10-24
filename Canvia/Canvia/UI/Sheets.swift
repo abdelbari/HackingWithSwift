@@ -340,6 +340,7 @@ struct SpacingSheet: View {
                 if let el = store.singleSelection {
                     spacingSections(el)
                     textBoxSection(el)
+                    if TextRoles.hasRole(el) { roleSection(el) }
                 }
             })
             .navigationTitle("Spacing")
@@ -508,6 +509,33 @@ struct SpacingSheet: View {
             Text(bent
                  ? tr("Fitting and alignment wait while the words follow a curve, a path or stand in columns.")
                  : tr("With auto-fit on, drag the box and the type resizes to fill it; the alignment places shorter text within a taller box."))
+        }
+    }
+
+    /// What the box is in the document's outline (TextRoles): its Role —
+    /// Auto, inferred by size, or a title, a heading at a level, body, a
+    /// quote or a caption — which a tagged PDF, a web page and VoiceOver's
+    /// heading take; and Read as, how a screen reader takes it in an
+    /// export whatever it looks like, Not read leaving it out. Each change
+    /// one step, as the Android twin's Text panel rows.
+    private func roleSection(_ el: Element) -> some View {
+        let inferred = TextRoles.of(TextRoles.with(el, nil), in: store.design)
+        return Section {
+            Picker("Role", selection: Binding(
+                get: { TextRoles.stored(el) ?? "" },
+                set: { v in store.updateSelected { $0 = TextRoles.with($0, v.isEmpty ? nil : v) } })) {
+                // Auto says what it comes to: "Auto · Heading 1".
+                Text(inferred.map { TextRoles.name(nil) + " · " + TextRoles.name($0) } ?? TextRoles.name(nil)).tag("")
+                ForEach(TextRoles.roles, id: \.self) { Text(TextRoles.name($0)).tag($0) }
+            }
+            Picker("Read as", selection: Binding(
+                get: { TextRoles.readAs(el) ?? "" },
+                set: { v in store.updateSelected { $0 = TextRoles.withReadAs($0, v.isEmpty ? nil : v) } })) {
+                Text(TextRoles.readAsName(nil)).tag("")
+                ForEach(TextRoles.readChoices, id: \.self) { Text(TextRoles.readAsName($0)).tag($0) }
+            }
+        } header: {
+            Text("Role")
         }
     }
 

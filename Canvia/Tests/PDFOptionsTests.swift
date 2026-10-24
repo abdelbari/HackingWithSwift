@@ -47,16 +47,16 @@ final class PDFOptionsTests: XCTestCase {
     func testTheSettingsJSONIsTheSharedText() {
         let plain = ExportLast(format: "png", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false, pages: "all")
         XCTAssertEqual(plain.json,
-                       #"{"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false}"#)
+                       #"{"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false,"pdfTagged":true}"#)
         let pdf = ExportLast(format: "pdf", scale: 3, longEdge: 1080, jpegQuality: 1, transparent: true,
                              pages: "chosen", pdfNotes: true, pdfCompress: true)
         XCTAssertEqual(pdf.json,
-                       #"{"format":"pdf","scale":3.0,"longEdge":1080,"jpegQuality":1.0,"transparent":true,"pages":"chosen","pdfNotes":true,"pdfCompress":true,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false}"#)
+                       #"{"format":"pdf","scale":3.0,"longEdge":1080,"jpegQuality":1.0,"transparent":true,"pages":"chosen","pdfNotes":true,"pdfCompress":true,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false,"pdfTagged":true}"#)
         // The Android twin's PdfOptionsTest row.
         let shared = ExportLast(format: "pdf", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
                                 pages: "all", pdfNotes: true, pdfCompress: true)
         XCTAssertEqual(shared.json,
-                       #"{"format":"pdf","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":true,"pdfCompress":true,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false}"#)
+                       #"{"format":"pdf","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":true,"pdfCompress":true,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false,"pdfTagged":true}"#)
         XCTAssertEqual(ExportLast.read(pdf.json), pdf)
         XCTAssertEqual(ExportLast.read(plain.json), plain)
         XCTAssertEqual(ExportLast.number(1.5), "1.5")
@@ -67,6 +67,11 @@ final class PDFOptionsTests: XCTestCase {
         let old = try XCTUnwrap(ExportLast.read(#"{"format":"pdf","scale":2,"pages":"all"}"#))
         XCTAssertFalse(old.pdfNotes)
         XCTAssertFalse(old.pdfCompress)
+        // A setting from before the tagged PDF stays untagged; a fresh sheet
+        // tags, as on the Android twin.
+        XCTAssertFalse(old.pdfTagged)
+        XCTAssertTrue(ExportLast(format: "pdf", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
+                                 pages: "all").pdfTagged)
         let odd = try XCTUnwrap(ExportLast.read(#"{"format":"pdf","pdfNotes":"yes","pdfCompress":1}"#))
         XCTAssertFalse(odd.pdfNotes)
         XCTAssertFalse(odd.pdfCompress)
@@ -78,7 +83,7 @@ final class PDFOptionsTests: XCTestCase {
         XCTAssertTrue(old.styledTextEditable)
         let picture = ExportLast(format: "pptx", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
                                  pages: "all", pptxStyledText: "picture")
-        XCTAssertTrue(picture.json.hasSuffix(#""pdfCompress":false,"pptxStyledText":"picture","suggested":false,"pdfBookmarks":true,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false}"#))
+        XCTAssertTrue(picture.json.hasSuffix(#""pdfCompress":false,"pptxStyledText":"picture","suggested":false,"pdfBookmarks":true,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false,"pdfTagged":true}"#))
         XCTAssertEqual(ExportLast.read(picture.json)?.pptxStyledText, "picture")
         XCTAssertFalse(try XCTUnwrap(ExportLast.read(picture.json)).styledTextEditable)
         XCTAssertEqual(ExportLast.read(#"{"format":"pptx","pptxStyledText":"vector"}"#)?.pptxStyledText, "editable")
@@ -88,7 +93,7 @@ final class PDFOptionsTests: XCTestCase {
         let round = ExportLast(format: "mp4", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
                                pages: "all", suggested: true, pdfBookmarks: false)
         XCTAssertEqual(ExportLast.read(round.json), round)
-        XCTAssertTrue(round.json.hasSuffix(#""pdfCompress":false,"pptxStyledText":"editable","suggested":true,"pdfBookmarks":false,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false}"#))
+        XCTAssertTrue(round.json.hasSuffix(#""pdfCompress":false,"pptxStyledText":"editable","suggested":true,"pdfBookmarks":false,"colourProfile":"rgb","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false,"pdfTagged":true}"#))
     }
 
     // MARK: notes pages

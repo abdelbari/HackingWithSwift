@@ -522,6 +522,8 @@ struct DataSheet: View {
         guard !elements.isEmpty else { return false }
         store.applyToPage { $0.elements.append(contentsOf: elements) }
         store.selection = Set(elements.map(\.id))
+        // A chart, not a table, is asked what it shows (AltTextPrompt).
+        if mode == 0, let first = elements.first { store.promptAltText(first) }
         // Add's Recently used: the kind of chart, or the table.
         if mode == 0 { ElementSearch.remember(.chart, kind.rawValue) } else { ElementSearch.remember(.table, "table") }
         return true

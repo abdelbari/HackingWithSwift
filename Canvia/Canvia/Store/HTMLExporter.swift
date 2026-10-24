@@ -11,6 +11,10 @@
 //    frame as the poster and its file beside the page (media/<id>.<ext>),
 //    so the export is a .zip; without it a clip is its still and the page
 //    is one self-contained index.html. The design's soundtrack is left out;
+//  - after each page's picture, a visually hidden text layer of its words
+//    as a screen reader wants them (`textLayer`): headings <h1>–<h3>,
+//    paragraphs, quotes, captions, lists and tables, in reading order, by
+//    the same roles as a tagged PDF's (PdfTags);
 //  - CSS that scales each section to the window's width, and with
 //    `mobileStack` wraps the menu on a narrow screen.
 
@@ -61,6 +65,7 @@ enum HTMLExporter {
         + "section{position:relative;width:100%;scroll-margin-top:56px}"
         + "section>svg{display:block;width:100%;height:auto}"
         + "section>video{position:absolute;object-fit:cover}"
+        + ".sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);border:0}"
 
     /// A graphic drawing itself on, and one twinkling (SVGExporter.moving):
     /// written only on a web page that has one.
@@ -139,6 +144,7 @@ enum HTMLExporter {
             let page = design.pages[index]
             out += "<section id=\"page-\(n + 1)\" aria-label=\"\(SVGExporter.escape(labels[n]))\">"
             out += svg?(page) ?? SVGExporter.svg(design: design, page: page, aria: true, anchors: anchors, moving: true)
+            out += textLayer(design, page: page)
             if settings.embedMedia {
                 let size = design.size(for: page)
                 for clip in clips(design, pages: [index]) {
@@ -151,6 +157,56 @@ enum HTMLExporter {
         }
         out += "</main>\n</body>\n</html>\n"
         return out
+    }
+
+    /// `page`'s words for a screen reader, hidden from sight: a
+    /// `<div class="sr">` of its structure (PdfTags.page) as HTML — /H1–/H3
+    /// as <h1>–<h3>, /P as <p>, /BlockQuote as <blockquote>, a /Caption as
+    /// a <figure>'s <figcaption>, a list as <ul> and a table as <table>
+    /// with <th> and <td>. Figures are left to the picture's own labels.
+    /// Nothing for a page with no words. The Android twin's
+    /// HtmlWriter.textLayer, tag for tag.
+    static func textLayer(_ design: Design, page: Page) -> String {
+        let all = design.masterElements(behind: page) + page.elements
+        let byId = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let numbering = design.pageNumbering(shownOn: page)
+        func words(_ node: PdfTags.StructNode) -> String {
+            if let text = node.text { return text }
+            return node.ids.compactMap { byId[$0] }.map { el in
+                var raw = el.text ?? ""
+                if let numbering {
+                    raw = raw.replacingOccurrences(of: "{page}", with: String(numbering.number))
+                        .replacingOccurrences(of: "{pages}", with: String(numbering.count))
+                }
+                return RichText.strip(raw).trimmingCharacters(in: .whitespacesAndNewlines)
+            }.joined(separator: " ")
+        }
+        func esc(_ s: String) -> String { SVGExporter.escape(s).replacingOccurrences(of: "\n", with: "<br>") }
+        var out = ""
+        for node in PdfTags.page(design, page) {
+            switch node.role {
+            case PdfTags.h1, PdfTags.h2, PdfTags.h3:
+                let tag = node.role.lowercased()
+                out += "<\(tag)>" + esc(words(node)) + "</\(tag)>"
+            case PdfTags.p: out += "<p>" + esc(words(node)) + "</p>"
+            case PdfTags.blockQuote: out += "<blockquote>" + esc(words(node)) + "</blockquote>"
+            case PdfTags.caption: out += "<figure><figcaption>" + esc(words(node)) + "</figcaption></figure>"
+            case PdfTags.l:
+                let items = node.kids.map { "<li>" + esc($0.kids.first?.text ?? "") + "</li>" }
+                out += "<ul>" + items.joined() + "</ul>"
+            case PdfTags.table:
+                let rows = node.kids.map { row -> String in
+                    let cells = row.kids.map { cell -> String in
+                        let tag = cell.role.lowercased()
+                        return "<\(tag)>" + esc(cell.text ?? "") + "</\(tag)>"
+                    }
+                    return "<tr>" + cells.joined() + "</tr>"
+                }
+                out += "<table>" + rows.joined() + "</table>"
+            default: break
+            }
+        }
+        return out.isEmpty ? "" : "<div class=\"sr\">" + out + "</div>"
     }
 
     /// A clip over its place in the page, a share of the page's size so it

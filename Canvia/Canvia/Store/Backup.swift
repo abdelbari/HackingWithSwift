@@ -17,7 +17,8 @@
 //   settings.json            the settings that travel, in one object:
 //                            {"autoLists": true, "canvia.use": …} — what
 //                            Canvia is used for only when it was answered
-//                            (UseProfile)
+//                            (UseProfile), and Settings ▸ Accessibility's
+//                            (AccessibilityPrefs)
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and kits' assets are,
 //   videos/<id>.<ext>        their clips,
@@ -98,21 +99,15 @@ enum Backup {
         var exportA11yNudge: Bool?
     }
 
-    /// The one settings file: "autoLists", and "canvia.use" when `use` is
-    /// not nil.
-    static func encodeSettings(autoLists: Bool, use: String?) -> Data {
-        settingsData(autoLists: autoLists, use: use, exportA11yNudge: nil)
-    }
-
-    /// The same, with Export's "exportA11yNudge" too.
-    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool) -> Data {
-        settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge)
-    }
-
-    private static func settingsData(autoLists: Bool, use: String?, exportA11yNudge: Bool?) -> Data {
+    /// The one settings file: "autoLists", "canvia.use" when `use` is not
+    /// nil, Export's "exportA11yNudge" when it is given, and the
+    /// accessibility settings it is given (AccessibilityPrefs).
+    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool? = nil,
+                               accessibility: AccessibilityPrefs.Settings = AccessibilityPrefs.Settings()) -> Data {
         var object: [String: Any] = ["autoLists": autoLists]
         if let use { object[UseProfile.key] = use }
         if let exportA11yNudge { object[ExportPlan.a11yNudgeKey] = exportA11yNudge }
+        AccessibilityPrefs.write(accessibility, into: &object)
         return (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data("{}".utf8)
     }
 
@@ -310,7 +305,8 @@ enum Backup {
         // The settings that travel, what Canvia is used for among them when
         // it was answered: one settings.json for both.
         try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn, use: UseProfile.current(),
-                                                    exportA11yNudge: ExportPlan.remindsA11y()))
+                                                    exportA11yNudge: ExportPlan.remindsA11y(),
+                                                    accessibility: AccessibilityPrefs.current()))
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
@@ -512,6 +508,7 @@ enum Backup {
         if let remind = decodeA11yNudge(reader.file(settingsFile)) {
             UserDefaults.standard.set(remind, forKey: ExportPlan.a11yNudgeKey)
         }
+        AccessibilityPrefs.apply(AccessibilityPrefs.decodeSettings(reader.file(settingsFile)))
         // What Canvia is used for, on a phone with no answer yet.
         if UseProfile.current() == nil, let use = UseProfile.decodeSettings(reader.file(UseProfile.settingsFile)) {
             UseProfile.set(use)

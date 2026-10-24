@@ -745,6 +745,16 @@ struct Design: Codable, Equatable, Identifiable {
     /// them (BulkCreate). Nil, and not written, before it is used.
     var bulk: BulkData?
 
+    /// Share ▸ Plan a post's posts, soonest first (PostPlanner); nil, and
+    /// not written, when there are none.
+    var plannedPosts: [PlannedPost]?
+
+    /// "doc" for a Doc (Docs), whose words are its `blocks` on pages of
+    /// `docPage`; nil, and not written, for every other design.
+    var kind: String?
+    var blocks: [DocBlock]?
+    var docPage: DocPage?
+
     /// Whether Present goes round from the last page shown to the first;
     /// turning it off takes the key away.
     var presentLoops: Bool {
@@ -827,6 +837,14 @@ struct Design: Codable, Equatable, Identifiable {
         let talks = (try? c.decode([Lossy<Recording>].self, forKey: .recordings))?.compactMap(\.value) ?? []
         recordings = talks.isEmpty ? nil : Array(talks.prefix(Recordings.limit))
         bulk = (try? c.decode(BulkData.self, forKey: .bulk)).flatMap { $0.columns.isEmpty ? nil : $0 }
+        // Each post on its own: one that does not read is passed over.
+        let posts = (try? c.decode([Lossy<PlannedPost>].self, forKey: .plannedPosts))?.compactMap(\.value) ?? []
+        plannedPosts = posts.isEmpty ? nil : posts
+        // A Doc's blocks, each on its own: one of a type this build does not
+        // know is passed over.
+        kind = try? c.decode(String.self, forKey: .kind)
+        blocks = (try? c.decode([Lossy<DocBlock>].self, forKey: .blocks)).map { $0.compactMap(\.value) }
+        docPage = try? c.decode(DocPage.self, forKey: .docPage)
         // The old soundtrack, read forever: the one track of a file with no
         // `audio` key, and passed over beside one that has it. Never written
         // back, as `motion` no longer has it.
@@ -863,6 +881,7 @@ struct Design: Codable, Equatable, Identifiable {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
         case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present, beatSyncRestore, recordings
         case bulk
+        case plannedPosts, kind, blocks, docPage
     }
 
     /// The master page, if one is set and still exists.

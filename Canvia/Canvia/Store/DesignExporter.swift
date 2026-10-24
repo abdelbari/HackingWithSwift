@@ -488,9 +488,14 @@ enum DesignExporter {
     /// language and maker, with `bookmarks` an outline entry for each page
     /// — none for a notes page, which its page's leads to — and each
     /// page's pictures' alt texts, flattened or not.
+    ///
+    /// With `tagged`, and not flattened, the file is a tagged PDF for
+    /// screen readers (PdfTags): a sentinel is drawn before each element,
+    /// and the update turns each into marked content and writes the
+    /// structure tree — the alt texts then in the tree, not as annotations.
     @MainActor
     static func exportPDF(design source: Design, range: PageRange = .all, current: Int = 0, flatten: Bool = false,
-                          notes: Bool = false, compress: Bool = false, bookmarks: Bool = true,
+                          notes: Bool = false, compress: Bool = false, bookmarks: Bool = true, tagged: Bool = false,
                           to url: URL, progress: ((Double) -> Void)? = nil) async throws {
         let indices = range.indices(in: source, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
@@ -517,6 +522,8 @@ enum DesignExporter {
         for sheet in sheets {
             if case .page(let index) = sheet { held.insert(design.pages[index].id) }
         }
+        let tagging = tagged && !flatten
+        var tags: [PDFUpdate.PageTags?] = []
         do {
             for (n, sheet) in sheets.enumerated() {
                 try await pacer.breathe()
@@ -530,30 +537,55 @@ enum DesignExporter {
                         if flatten {
                             drawFlattened(design: design, page: page, fitting: box)
                         } else {
-                            draw(design: design, page: page, into: cg, fitting: box)
+                            draw(design: design, page: page, into: cg, fitting: box, tagged: tagging)
                             linkAreas(of: page, in: design, pages: held, onto: cg, pageHeight: box.height)
                         }
                     }
                     titles.append(bookmarks ? PDFMetadata.bookmarkTitle(page, number: index + 1) : nil)
-                    figures.append(figureAreas(of: page, in: design, pageHeight: Double(box.height)))
+                    // Tagged, a figure's alt text is in the structure tree instead.
+                    figures.append(tagging ? [] : figureAreas(of: page, in: design, pageHeight: Double(box.height)))
+                    tags.append(tagging ? PDFUpdate.PageTags(nodes: PdfTags.page(design, page),
+                                                             drawn: design.drawnElements(on: page).map(\.id)) : nil)
                 case .notes(let index):
                     let page = design.pages[index]
                     let box = bounds(page)
-                    writer.page(box) { cg in drawNotesPage(design: design, page: page, box: box, flatten: flatten, into: cg) }
+                    writer.page(box) { cg in
+                        drawNotesPage(design: design, page: page, box: box, flatten: flatten, tagged: tagging, into: cg)
+                    }
                     titles.append(nil)
                     figures.append([])
+                    // The notes are a paragraph; the small page decoration.
+                    tags.append(tagging ? PDFUpdate.PageTags(nodes: [PdfTags.StructNode(role: PdfTags.p, ids: [notesTag])],
+                                                             drawn: [notesTag]) : nil)
                 }
                 progress?(Double(n + 1) / Double(sheets.count))
             }
             try await pacer.finish()
             writer.close()
             // A file whose metadata could not be added is still the PDF.
-            PDFUpdate.appendUpdate(to: url, metadata: metadata(for: design, titles: titles, figures: figures))
+            var meta = metadata(for: design, titles: titles, figures: figures)
+            meta.tags = tagging ? tags : nil
+            PDFUpdate.appendUpdate(to: url, metadata: meta)
         } catch {
             writer.close()
             try? FileManager.default.removeItem(at: url)
             throw error
         }
+    }
+
+    /// What a tagged notes page's one sentinel stands for: its notes.
+    private static let notesTag = "notes"
+
+    /// A tagged PDF's sentinel `index` (PdfTags), drawn straight into `cg`
+    /// at `at`: what the update takes out again and turns into marked
+    /// content.
+    private static func drawSentinel(_ index: Int, at: CGPoint, into cg: CGContext) {
+        let c = PdfTags.sentinelComponents(index)
+        cg.saveGState()
+        cg.setFillColor(CGColor(srgbRed: Double(c.red) / 255, green: Double(c.green) / 255,
+                                blue: Double(c.blue) / 255, alpha: 1))
+        cg.fill(CGRect(x: at.x, y: at.y, width: PdfTags.sentinelSize, height: PdfTags.sentinelSize))
+        cg.restoreGState()
     }
 
     // MARK: notes pages
@@ -564,9 +596,10 @@ enum DesignExporter {
     /// Flattened, the whole notes page is one picture at 300 dpi, as every
     /// flattened page is.
     @MainActor
-    private static func drawNotesPage(design: Design, page: Page, box: CGRect, flatten: Bool, into cg: CGContext) {
+    private static func drawNotesPage(design: Design, page: Page, box: CGRect, flatten: Bool, tagged: Bool = false,
+                                      into cg: CGContext) {
         guard flatten else {
-            drawNotesContent(design: design, page: page, box: box, into: cg)
+            drawNotesContent(design: design, page: page, box: box, tagged: tagged, into: cg)
             return
         }
         let format = UIGraphicsImageRendererFormat()
@@ -583,7 +616,8 @@ enum DesignExporter {
     /// y running down: laid out by ExportChoices' notes numbers, the
     /// Android twin's PdfNotes.
     @MainActor
-    private static func drawNotesContent(design: Design, page: Page, box: CGRect, into cg: CGContext) {
+    private static func drawNotesContent(design: Design, page: Page, box: CGRect, tagged: Bool = false,
+                                         into cg: CGContext) {
         cg.setFillColor(UIColor.white.cgColor)
         cg.fill(box)
         let thumb = ExportChoices.notesThumbnail(box.size).offsetBy(dx: box.minX, dy: box.minY)
@@ -599,6 +633,8 @@ enum DesignExporter {
         let colour = UIColor(hex: ExportChoices.notesColor)
         let words = NSAttributedString(string: (page.notes ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
                                        attributes: [.font: font, .foregroundColor: colour, .paragraphStyle: style])
+        // Tagged, the notes are what the page's one sentinel opens.
+        if tagged { drawSentinel(1, at: body.origin, into: cg) }
         cg.saveGState()
         cg.clip(to: body)
         words.draw(with: body, options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
@@ -1020,11 +1056,13 @@ enum DesignExporter {
                                    scale: scale, clip: CGRect(x: 0, y: 0, width: w, height: h))
     }
 
-    /// Draw one page into an arbitrary context at `bounds`, as vectors.
+    /// Draw one page into an arbitrary context at `bounds`, as vectors —
+    /// with `tagged`, a sentinel before each element (PageRenderView).
     @MainActor
     private static func draw(design: Design, page: Page,
-                             into context: CGContext, fitting bounds: CGRect) {
-        draw(design: design, page: page, into: context, drawing: covering(bounds, size: design.size(for: page)))
+                             into context: CGContext, fitting bounds: CGRect, tagged: Bool = false) {
+        draw(design: design, page: page, into: context, drawing: covering(bounds, size: design.size(for: page)),
+             tagged: tagged)
     }
 
     /// Draw one page as `drawing` places it, as vectors: the view draws in
@@ -1033,13 +1071,13 @@ enum DesignExporter {
     /// page is a designed bleed, drawn by the page itself out to there.
     @MainActor
     private static func draw(design: Design, page: Page,
-                             into context: CGContext, drawing: PrintLayout.Drawing) {
+                             into context: CGContext, drawing: PrintLayout.Drawing, tagged: Bool = false) {
         let reach = max(0, -Double(drawing.clip.minX))
         // At a fine display scale, so SwiftUI's pixel rounding moves nothing
         // that a vector page would show: at 1 it snaps every frame to whole
         // page units, and a box set half a unit into the bleed came out
         // reaching half a unit over the trim instead.
-        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page, bleed: reach)
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page, bleed: reach, sentinels: tagged)
             .environment(\.displayScale, vectorScale))
         renderer.render { size, drawInContext in
             context.saveGState()

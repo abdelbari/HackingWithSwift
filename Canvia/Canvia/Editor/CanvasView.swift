@@ -29,7 +29,13 @@ struct CanvasView: View {
     @State private var chartValue: [String: Int] = [:]
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.displayScale) private var displayScale
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) private var systemReducesMotion
+    /// Settings ▸ Accessibility's Reduce motion, over the phone's own
+    /// (AccessibilityPrefs).
+    @AppStorage(AccessibilityPrefs.reduceMotionKey) private var reduceMotionChoice = AccessibilityPrefs.system
+    private var reduceMotion: Bool {
+        AccessibilityPrefs.reducesMotion(reduceMotionChoice, systemReduces: systemReducesMotion)
+    }
     @Environment(\.layoutDirection) private var layoutDirection
     /// Which way the last swipe turned the page, for the page's slide in.
     @State private var swipeStep = 0
@@ -55,6 +61,10 @@ struct CanvasView: View {
     @State private var restWait: Task<Void, Never>?
     /// Shape assist, from the Draw bar: on unless turned off.
     @AppStorage(ShapeAssist.key) private var shapeAssist = true
+    /// Settings ▸ Accessibility's Play clips automatically and Underline
+    /// links (AccessibilityPrefs).
+    @AppStorage(AccessibilityPrefs.autoplayClipsKey) private var autoplayClips = true
+    @AppStorage(AccessibilityPrefs.underlineLinksKey) private var underlineLinks = false
     @State private var dropTargeted = false
     /// The frame a tile carried from the Add sheet would fill, while it is
     /// over one (LibraryDrag).
@@ -588,6 +598,8 @@ struct CanvasView: View {
                 // the frames decoded so far rather than holding up the
                 // canvas for each one.
                 .environment(\.liveVideo, store.previewTime != nil || store.clipScrub != nil)
+                // With Play clips off, a clip holds its first frame until tapped.
+                .environment(\.pausedClips, pausedClips)
                 // A photo's subject is found for focus off the main thread.
                 .environment(\.onScreen, true)
                 .environment(\.playsPictures, playAnimated)
@@ -610,6 +622,7 @@ struct CanvasView: View {
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
                 ForEach(store.design.guides) { guide in guideLine(guide) }
                 if store.showsReadingOrder { readingOrderOverlay }
+                if underlineLinks { LinkUnderlines(design: store.design, page: shownPage) }
                 // Check accessibility's View as, over the page.
                 if store.viewAs != .typical { ColourVisionLayer(store: store, kind: store.viewAs) }
             }
@@ -1677,11 +1690,29 @@ struct CanvasView: View {
             .accessibilityElement()
             .accessibilityLabel(CanvasAccessibility.label(for: el, on: store.page.elements))
             .accessibilityValue(spokenValue(of: el))
-            .accessibilityAddTraits(store.selection.contains(el.id) ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAddTraits(readerTraits(el))
             .accessibilityHint(el.type == .text ? tr("Double tap to select; double tap and hold to edit")
                                : el.type == .image ? tr("Double tap to select; Crop is in the actions")
                                : tr("Double tap to select"))
             .accessibilityActions { accessibilityActions(for: el) }
+    }
+
+    /// Settings ▸ Accessibility's Play clips automatically turned off: the
+    /// page's clips but those selected — tapped — held on the frame they
+    /// start at while the page plays.
+    private var pausedClips: Set<String> {
+        guard !autoplayClips else { return [] }
+        let clips = shownPage.elements.filter { VideoStore.isVideo($0.src) && !store.selection.contains($0.id) }
+        return Set(clips.map(\.id))
+    }
+
+    /// A button, selected when it is — and a heading as well when it reads
+    /// as one (TextRoles), so VoiceOver's rotor can go from heading to
+    /// heading.
+    private func readerTraits(_ el: Element) -> AccessibilityTraits {
+        var traits: AccessibilityTraits = store.selection.contains(el.id) ? [.isButton, .isSelected] : .isButton
+        if TextRoles.isHeading(el, in: store.design) { traits.insert(.isHeader) }
+        return traits
     }
 
     /// A tap on `el` at page point `point` — on its own hit area, or passed

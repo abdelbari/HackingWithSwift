@@ -7,7 +7,12 @@
 // left as it was and an incremental update appended — the Android twin's
 // PdfLinks, line for line where the two meet. Any PDF reader applies the
 // update; a file this cannot read as expected is left untouched.
+//
+// Tagged (PdfTags), the update also writes each page's content again with
+// its sentinels turned into marked content, the structure tree and its
+// parent tree, and the catalog's /MarkInfo — the twin's PdfLinks again.
 
+import Compression
 import Foundation
 
 enum PDFUpdate {
@@ -35,6 +40,20 @@ enum PDFUpdate {
         var lang: String
         var bookmarks: [String?] = []
         var figures: [[Picture]] = []
+        /// The structure to tag the file with, `tags[i]` page i's, or nil
+        /// for an untagged file (PdfTags).
+        var tags: [PageTags?]? = nil
+    }
+
+    /// A page's structure (`nodes`, PdfTags.page) and the elements drawn on
+    /// it in the order their sentinels were (`drawn`: sentinel k is
+    /// `drawn[k - 1]`). The page's content streams are written again with
+    /// the sentinels turned into marked content (PdfTags.mark), and the
+    /// structure tree written to match: a /Sect for the page under one
+    /// /Document, the page given /StructParents and /Tabs /S.
+    struct PageTags {
+        var nodes: [PdfTags.StructNode]
+        var drawn: [String]
     }
 
     /// `pdf` with `metadata` added; `pdf` as it was when it could not be.
@@ -169,15 +188,38 @@ enum PDFUpdate {
                   let root = PDFUpdate.reference(trailer, "Root") else { return nil }
             let offsets = xref(startxref)
 
-            func objectText(_ number: Int) -> String? {
+            /// Where object `number`'s body starts, past its header.
+            func bodyAt(_ number: Int) -> Int? {
                 guard var at = offsets[number] else { return nil }
                 while at < text.count && text.isSpace(at) { at += 1 }
                 // The header right there, not the next one anywhere on.
                 let head = text.string(at, at + 64)
                 guard let match = PDFUpdate.match(#"^(\d+)\s+\d+\s+obj"#, in: head),
-                      Int((head as NSString).substring(with: match.range(at: 1))) == number,
-                      let open = text.index(of: "<<", from: at + match.range.length) else { return nil }
+                      Int((head as NSString).substring(with: match.range(at: 1))) == number else { return nil }
+                return at + match.range.length
+            }
+
+            func objectText(_ number: Int) -> String? {
+                guard let body = bodyAt(number), let open = text.index(of: "<<", from: body) else { return nil }
                 return text.dictionary(at: open)
+            }
+
+            /// Stream object `number`'s dictionary and its bytes, undecoded.
+            func streamOf(_ number: Int) -> (dict: String, data: Data)? {
+                guard let body = bodyAt(number), let open = text.index(of: "<<", from: body),
+                      let dict = text.dictionary(at: open) else { return nil }
+                var at = open + (dict as NSString).length
+                while at < text.count && text.isSpace(at) { at += 1 }
+                guard text.starts(with: "stream", at: at) else { return nil }
+                at += "stream".utf8.count
+                if at < text.count && text.raw[at] == 0x0D { at += 1 }
+                if at < text.count && text.raw[at] == 0x0A { at += 1 }
+                var length = PDFUpdate.firstGroup(#"/Length\s+(\d++)(?!\s+\d+\s+R)"#, in: dict).flatMap { Int($0) }
+                if length == nil, let n = PDFUpdate.reference(dict, "Length"), let b = bodyAt(n) {
+                    length = PDFUpdate.firstGroup(#"^\s*(\d+)"#, in: text.string(b, b + 32)).flatMap { Int($0) }
+                }
+                guard let length, length >= 0, at + length <= text.count else { return nil }
+                return (dict, Data(text.raw[at..<(at + length)]))
             }
 
             /// The array object `number` is, "[" to "]" with neither
@@ -213,7 +255,9 @@ enum PDFUpdate {
             var position = text.count
             func emit(_ s: String) {
                 // One byte a character: every one written is Latin-1.
-                let bytes = Data(s.unicodeScalars.map { UInt8(truncatingIfNeeded: $0.value) })
+                emitBytes(PDFUpdate.latin1(s))
+            }
+            func emitBytes(_ bytes: Data) {
                 out.append(bytes)
                 position += bytes.count
             }
@@ -222,9 +266,41 @@ enum PDFUpdate {
 
             var written: [Int: Int] = [:]
             var next = size
-            for (index, pageFigures) in metadata.figures.enumerated() where !pageFigures.isEmpty && index < pages.count {
+            let tags = metadata.tags
+            // Each tagged page's marked content: its MCIDs, in order, and the
+            // element each draws.
+            var marked: [Int: [PdfTags.Marked]] = [:]
+            let pageCount = min(max(metadata.figures.count, tags?.count ?? 0), pages.count)
+            for index in 0..<pageCount {
+                let pageFigures = index < metadata.figures.count ? metadata.figures[index] : []
+                let pageTags: PageTags? = tags.flatMap { index < $0.count ? $0[index] : nil }
+                guard !pageFigures.isEmpty || pageTags != nil else { continue }
                 let page = pages[index]
                 guard let dict = objectText(page) else { continue }
+                if let pageTags {
+                    // Each content stream again, its sentinels marked content.
+                    let contents = PDFUpdate.firstGroup(#"/Contents\s*(\[[^\]]*\]|\d+\s+0\s+R)"#, in: dict) ?? ""
+                    let roles = PdfTags.roles(pageTags.nodes)
+                    var pageMarked: [PdfTags.Marked] = []
+                    for ref in PDFUpdate.allGroups(#"(\d+)\s+0\s+R"#, in: contents) {
+                        guard let number = Int(ref), let stream = streamOf(number),
+                              let plain = PDFUpdate.decoded(stream.dict, stream.data) else { continue }
+                        let result = PdfTags.mark(plain, drawn: pageTags.drawn, roleOf: { roles[$0] },
+                                                  firstMcid: pageMarked.count)
+                        guard let packed = PDFUpdate.deflated(PDFUpdate.latin1(result.content)) else { continue }
+                        pageMarked += result.marked
+                        written[number] = position
+                        emit("\(number) 0 obj\n<< /Length \(packed.count) /Filter /FlateDecode >>\nstream\n")
+                        emitBytes(packed)
+                        emit("\nendstream\nendobj\n")
+                    }
+                    marked[index] = pageMarked
+                }
+                guard !pageFigures.isEmpty else {
+                    written[page] = position
+                    emit("\(page) 0 obj\n\(PDFUpdate.withStructParents(dict, key: index))\nendobj\n")
+                    continue
+                }
                 // The page's own annotations — its links — kept, when they
                 // are an array of their own the page's is written in place of.
                 var refs: [String] = PDFUpdate.reference(dict, "Annots").flatMap(arrayText)
@@ -241,8 +317,9 @@ enum PDFUpdate {
                          + "/Border [0 0 0] /F 4 /Contents \(PDFUpdate.textString(figure.alt)) >>\nendobj\n")
                     refs.append("\(number) 0 R")
                 }
+                let annotated = PDFUpdate.withAnnots(dict, refs)
                 written[page] = position
-                emit("\(page) 0 obj\n\(PDFUpdate.withAnnots(dict, refs))\nendobj\n")
+                emit("\(page) 0 obj\n\(pageTags == nil ? annotated : PDFUpdate.withStructParents(annotated, key: index))\nendobj\n")
             }
             // The information dictionary afresh, in place of the writer's.
             let newInfo = next
@@ -274,18 +351,78 @@ enum PDFUpdate {
                          + "\(prev)\(after) /Dest \(dest) >>\nendobj\n")
                 }
             }
+            // The structure tree: one /Document, a /Sect a tagged page, and
+            // each page's structure under it; the parent tree says, a page
+            // at a time, which element each MCID belongs to.
+            var structRoot: Int?
+            if let tags {
+                let rootNumber = next
+                let document = next + 1
+                let parentTree = next + 2
+                next += 3
+                structRoot = rootNumber
+                var parents: [Int: [Int?]] = [:]
+                var sects: [Int] = []
+                func writeNode(_ node: PdfTags.StructNode, parent: Int, index: Int, mcids: [String: [Int]]) -> Int {
+                    let number = next
+                    next += 1
+                    let kids = node.kids.map { writeNode($0, parent: number, index: index, mcids: mcids) }
+                    let own = node.ids.flatMap { mcids[$0] ?? [] }
+                    for m in own where m < (parents[index]?.count ?? 0) { parents[index]?[m] = number }
+                    let k = (own.map { String($0) } + kids.map { String($0) + " 0 R" }).joined(separator: " ")
+                    let alt = node.alt.map { " /Alt \(PDFUpdate.textString($0))" } ?? ""
+                    let actual = node.text.map { " /ActualText \(PDFUpdate.textString($0))" } ?? ""
+                    let scope = node.role == PdfTags.th ? " /A << /O /Table /Scope /Column >>" : ""
+                    written[number] = position
+                    emit("\(number) 0 obj\n<< /Type /StructElem /S /\(node.role) /P \(parent) 0 R /Pg \(pages[index]) 0 R "
+                         + "/K [\(k)]\(alt)\(actual)\(scope) >>\nendobj\n")
+                    return number
+                }
+                for (index, pageTags) in tags.enumerated() where index < pages.count {
+                    guard let pageTags else { continue }
+                    let pageMarked = marked[index] ?? []
+                    parents[index] = Array(repeating: nil, count: pageMarked.count)
+                    var mcids: [String: [Int]] = [:]
+                    for m in pageMarked { mcids[m.elementId, default: []].append(m.mcid) }
+                    let sect = next
+                    next += 1
+                    sects.append(sect)
+                    let kids = pageTags.nodes.map { writeNode($0, parent: sect, index: index, mcids: mcids) }
+                    let k = kids.map { String($0) + " 0 R" }.joined(separator: " ")
+                    written[sect] = position
+                    emit("\(sect) 0 obj\n<< /Type /StructElem /S /\(PdfTags.sect) /P \(document) 0 R /Pg \(pages[index]) 0 R "
+                         + "/K [\(k)] >>\nendobj\n")
+                }
+                let sectRefs = sects.map { String($0) + " 0 R" }.joined(separator: " ")
+                written[document] = position
+                emit("\(document) 0 obj\n<< /Type /StructElem /S /\(PdfTags.document) /P \(rootNumber) 0 R "
+                     + "/K [\(sectRefs)] >>\nendobj\n")
+                let nums = parents.keys.sorted().map { index -> String in
+                    let refs = (parents[index] ?? []).map { r in r.map { String($0) + " 0 R" } ?? "null" }
+                    return String(index) + " [" + refs.joined(separator: " ") + "]"
+                }
+                written[parentTree] = position
+                emit("\(parentTree) 0 obj\n<< /Nums [\(nums.joined(separator: " "))] >>\nendobj\n")
+                let nextKey = (parents.keys.max() ?? -1) + 1
+                written[rootNumber] = position
+                emit("\(rootNumber) 0 obj\n<< /Type /StructTreeRoot /K [\(document) 0 R] /ParentTree \(parentTree) 0 R "
+                     + "/ParentTreeNextKey \(nextKey) /RoleMap << >> >>\nendobj\n")
+            }
             // The catalog again, saying the language, the outline and that
-            // the title is what a viewer shows; anything it said before of
-            // those is replaced.
+            // the title is what a viewer shows — and, tagged, its structure
+            // and that it is marked; anything it said before of those is
+            // replaced.
             var stripped = catalog
             for pattern in [#"/Lang\s*\([^)]*\)"#, #"/Lang\s*<[^>]*>"#, #"/Outlines\s+\d+\s+0\s+R"#,
-                            #"/ViewerPreferences\s*<<[^>]*>>"#] {
+                            #"/ViewerPreferences\s*<<[^>]*>>"#, #"/MarkInfo\s*<<[^>]*>>"#,
+                            #"/StructTreeRoot\s+\d+\s+0\s+R"#] {
                 stripped = PDFUpdate.removing(pattern, from: stripped)
             }
             let outlinePart = outlines.map { " /Outlines \($0) 0 R" } ?? ""
+            let structPart = structRoot.map { " /MarkInfo << /Marked true >> /StructTreeRoot \($0) 0 R" } ?? ""
             written[root] = position
             emit("\(root) 0 obj\n\(String(stripped.dropLast(2))) /Lang \(PDFUpdate.literal(metadata.lang))\(outlinePart) "
-                 + "/ViewerPreferences << /DisplayDocTitle true >> >>\nendobj\n")
+                 + "/ViewerPreferences << /DisplayDocTitle true >>\(structPart) >>\nendobj\n")
 
             let xrefAt = position
             // The free list's head first, as Acrobat writes an update.
@@ -391,6 +528,68 @@ enum PDFUpdate {
         // page from now on.
         let stripped = removing(#"/Annots\s+\d+\s+0\s+R"#, from: dict)
         return String(stripped.dropLast(2)) + " /Annots [\(refs.joined(separator: " "))] >>"
+    }
+
+    /// A tagged page's dictionary: its key into the parent tree, and its
+    /// tab order the structure's.
+    private static func withStructParents(_ dict: String, key: Int) -> String {
+        let stripped = removing(#"/Tabs\s*/\w+"#, from: removing(#"/StructParents\s+\d+"#, from: dict))
+        return String(stripped.dropLast(2)) + " /StructParents \(key) /Tabs /S >>"
+    }
+
+    /// Text one character a byte, as everything the update writes is.
+    static func latin1(_ s: String) -> Data {
+        Data(s.unicodeScalars.map { UInt8(truncatingIfNeeded: $0.value) })
+    }
+
+    /// A content stream's operators, one character a byte: inflated when it
+    /// is deflated, as Core Graphics writes it; nil for any other filter.
+    static func decoded(_ dict: String, _ data: Data) -> String? {
+        guard let filter = firstGroup(#"/Filter\s*(?:\[\s*)?/(\w+)"#, in: dict) else {
+            return String(data: data, encoding: .isoLatin1)
+        }
+        guard filter == "FlateDecode", match(#"/Filter\s*\[\s*/\w+\s+/"#, in: dict) == nil,
+              !dict.contains("/DecodeParms"), let plain = inflated(data) else { return nil }
+        return String(data: plain, encoding: .isoLatin1)
+    }
+
+    /// A zlib stream — its 2-byte header, the deflated bytes, its check —
+    /// inflated, however long it comes out, to a quarter of a gigabyte; nil
+    /// when it is not one.
+    static func inflated(_ packed: Data) -> Data? {
+        guard packed.count > 2 else { return nil }
+        let raw = packed.dropFirst(2)
+        var capacity = max(packed.count * 8, 64 * 1024)
+        while capacity <= 256 * 1024 * 1024 {
+            let size = capacity
+            var out = Data(count: size)
+            let written = out.withUnsafeMutableBytes { (dst: UnsafeMutableRawBufferPointer) -> Int in
+                raw.withUnsafeBytes { (src: UnsafeRawBufferPointer) -> Int in
+                    guard let to = dst.bindMemory(to: UInt8.self).baseAddress,
+                          let from = src.bindMemory(to: UInt8.self).baseAddress else { return 0 }
+                    return compression_decode_buffer(to, size, from, raw.count, nil, COMPRESSION_ZLIB)
+                }
+            }
+            guard written > 0 else { return nil }
+            // Filled to the brim: there may be more, so again with more room.
+            if written < size { return out.prefix(written) }
+            capacity *= 4
+        }
+        return nil
+    }
+
+    /// `plain` deflated as FlateDecode reads it (CmykPdf.Flate).
+    static func deflated(_ plain: Data) -> Data? {
+        var out = Data()
+        guard let flate = try? CmykPdf.Flate(emit: { out.append($0) }) else { return nil }
+        let bytes = [UInt8](plain)
+        do {
+            try flate.write(bytes, count: bytes.count)
+            try flate.finish()
+        } catch {
+            return nil
+        }
+        return out
     }
 
     /// Words — a title, a bookmark, an alt text — as a PDF text string: hex

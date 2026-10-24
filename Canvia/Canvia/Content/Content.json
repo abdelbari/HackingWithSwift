@@ -47499,6 +47499,22 @@
    ]
   },
   {
+   "id": "doc",
+   "name": "Doc",
+   "category": "Documents",
+   "width": 816,
+   "height": 1056,
+   "keywords": [
+    "doc",
+    "docs",
+    "document",
+    "word",
+    "report",
+    "notes",
+    "writing"
+   ]
+  },
+  {
    "id": "tiktok-video",
    "name": "TikTok Video",
    "category": "Video",
@@ -48438,6 +48454,453 @@
     "Events",
     "Marketing",
     "Education"
+   ]
+  }
+ ],
+ "docs": [
+  {
+   "id": "doc-report",
+   "name": "Report",
+   "category": "Business",
+   "docPage": {
+    "size": "a4",
+    "margins": 72
+   },
+   "blocks": [
+    {
+     "id": "doc-report-1",
+     "type": "h1",
+     "text": "Quarterly report"
+    },
+    {
+     "id": "doc-report-2",
+     "type": "p",
+     "text": "A short summary of the quarter: what we set out to do, what we did, and what comes next."
+    },
+    {
+     "id": "doc-report-3",
+     "type": "h2",
+     "text": "Highlights"
+    },
+    {
+     "id": "doc-report-4",
+     "type": "bullet",
+     "text": "Revenue up 12% on the last quarter"
+    },
+    {
+     "id": "doc-report-5",
+     "type": "bullet",
+     "text": "Two new markets opened"
+    },
+    {
+     "id": "doc-report-6",
+     "type": "bullet",
+     "text": "Customer satisfaction at 94%"
+    },
+    {
+     "id": "doc-report-7",
+     "type": "h2",
+     "text": "Results"
+    },
+    {
+     "id": "doc-report-8",
+     "type": "table",
+     "table": {
+      "rows": [
+       [
+        "Measure",
+        "Target",
+        "Actual"
+       ],
+       [
+        "Revenue",
+        "1.2M",
+        "1.3M"
+       ],
+       [
+        "New customers",
+        "400",
+        "460"
+       ],
+       [
+        "Churn",
+        "5%",
+        "4%"
+       ]
+      ],
+      "header": true
+     }
+    },
+    {
+     "id": "doc-report-9",
+     "type": "h2",
+     "text": "Next quarter"
+    },
+    {
+     "id": "doc-report-10",
+     "type": "number",
+     "text": "Grow the two new markets"
+    },
+    {
+     "id": "doc-report-11",
+     "type": "number",
+     "text": "Launch the spring range"
+    },
+    {
+     "id": "doc-report-12",
+     "type": "number",
+     "text": "Hire three support staff"
+    }
+   ]
+  },
+  {
+   "id": "doc-resume",
+   "name": "Resume",
+   "category": "Personal",
+   "docPage": {
+    "size": "letter",
+    "margins": 54
+   },
+   "blocks": [
+    {
+     "id": "doc-resume-1",
+     "type": "h1",
+     "text": "Alex Morgan"
+    },
+    {
+     "id": "doc-resume-2",
+     "type": "p",
+     "text": "Product designer · alex@example.com · 555 0100"
+    },
+    {
+     "id": "doc-resume-3",
+     "type": "divider"
+    },
+    {
+     "id": "doc-resume-4",
+     "type": "h2",
+     "text": "Experience"
+    },
+    {
+     "id": "doc-resume-5",
+     "type": "h3",
+     "text": "Senior designer, Northwind — 2021 to now"
+    },
+    {
+     "id": "doc-resume-6",
+     "type": "bullet",
+     "text": "Led the redesign of the mobile app"
+    },
+    {
+     "id": "doc-resume-7",
+     "type": "bullet",
+     "text": "Grew the design team from two to six"
+    },
+    {
+     "id": "doc-resume-8",
+     "type": "h3",
+     "text": "Designer, Fabrikam — 2017 to 2021"
+    },
+    {
+     "id": "doc-resume-9",
+     "type": "bullet",
+     "text": "Designed the booking flow used by a million people a month"
+    },
+    {
+     "id": "doc-resume-10",
+     "type": "h2",
+     "text": "Education"
+    },
+    {
+     "id": "doc-resume-11",
+     "type": "p",
+     "text": "BA in Graphic Design, 2017"
+    },
+    {
+     "id": "doc-resume-12",
+     "type": "h2",
+     "text": "Skills"
+    },
+    {
+     "id": "doc-resume-13",
+     "type": "p",
+     "text": "Interaction design, prototyping, user research, illustration"
+    }
+   ]
+  },
+  {
+   "id": "doc-letter",
+   "name": "Letter",
+   "category": "Business",
+   "docPage": {
+    "size": "letter",
+    "margins": 72
+   },
+   "blocks": [
+    {
+     "id": "doc-letter-1",
+     "type": "p",
+     "text": "Your name\nYour street\nYour town"
+    },
+    {
+     "id": "doc-letter-2",
+     "type": "p",
+     "text": "1 March"
+    },
+    {
+     "id": "doc-letter-3",
+     "type": "p",
+     "text": "Dear Ms Rivera,"
+    },
+    {
+     "id": "doc-letter-4",
+     "type": "p",
+     "text": "Thank you for your letter of last week. I am writing to confirm the details we agreed on the phone."
+    },
+    {
+     "id": "doc-letter-5",
+     "type": "p",
+     "text": "Please let me know if anything here is not as you remember it."
+    },
+    {
+     "id": "doc-letter-6",
+     "type": "p",
+     "text": "Yours sincerely,"
+    },
+    {
+     "id": "doc-letter-7",
+     "type": "p",
+     "text": "Your name"
+    }
+   ]
+  },
+  {
+   "id": "doc-meeting-notes",
+   "name": "Meeting notes",
+   "category": "Business",
+   "docPage": {
+    "size": "a4",
+    "margins": 72
+   },
+   "blocks": [
+    {
+     "id": "doc-meeting-notes-1",
+     "type": "h1",
+     "text": "Team meeting"
+    },
+    {
+     "id": "doc-meeting-notes-2",
+     "type": "p",
+     "text": "**Date:** Monday · **Attendees:** Sam, Priya, Jo"
+    },
+    {
+     "id": "doc-meeting-notes-3",
+     "type": "h2",
+     "text": "Agenda"
+    },
+    {
+     "id": "doc-meeting-notes-4",
+     "type": "number",
+     "text": "Last week's actions"
+    },
+    {
+     "id": "doc-meeting-notes-5",
+     "type": "number",
+     "text": "Launch plan"
+    },
+    {
+     "id": "doc-meeting-notes-6",
+     "type": "number",
+     "text": "Anything else"
+    },
+    {
+     "id": "doc-meeting-notes-7",
+     "type": "h2",
+     "text": "Notes"
+    },
+    {
+     "id": "doc-meeting-notes-8",
+     "type": "p",
+     "text": "The launch moves to the 14th so the new photos can go in."
+    },
+    {
+     "id": "doc-meeting-notes-9",
+     "type": "h2",
+     "text": "Actions"
+    },
+    {
+     "id": "doc-meeting-notes-10",
+     "type": "checklist",
+     "text": "Sam to book the venue",
+     "checked": false
+    },
+    {
+     "id": "doc-meeting-notes-11",
+     "type": "checklist",
+     "text": "Priya to send the brief",
+     "checked": false
+    },
+    {
+     "id": "doc-meeting-notes-12",
+     "type": "checklist",
+     "text": "Jo to update the plan",
+     "checked": true
+    }
+   ]
+  },
+  {
+   "id": "doc-proposal",
+   "name": "Proposal",
+   "category": "Business",
+   "docPage": {
+    "size": "letter",
+    "margins": 72
+   },
+   "blocks": [
+    {
+     "id": "doc-proposal-1",
+     "type": "h1",
+     "text": "Project proposal"
+    },
+    {
+     "id": "doc-proposal-2",
+     "type": "p",
+     "text": "Prepared for Contoso · Prepared by Northwind Studio"
+    },
+    {
+     "id": "doc-proposal-3",
+     "type": "h2",
+     "text": "The problem"
+    },
+    {
+     "id": "doc-proposal-4",
+     "type": "p",
+     "text": "Visitors leave the site before they find what they came for."
+    },
+    {
+     "id": "doc-proposal-5",
+     "type": "h2",
+     "text": "What we propose"
+    },
+    {
+     "id": "doc-proposal-6",
+     "type": "p",
+     "text": "A clearer home page, a faster search and a simpler checkout, tested with real customers at each step."
+    },
+    {
+     "id": "doc-proposal-7",
+     "type": "quote",
+     "text": "Make the first minute on the site the best minute."
+    },
+    {
+     "id": "doc-proposal-8",
+     "type": "h2",
+     "text": "Timeline and cost"
+    },
+    {
+     "id": "doc-proposal-9",
+     "type": "table",
+     "table": {
+      "rows": [
+       [
+        "Phase",
+        "Weeks",
+        "Cost"
+       ],
+       [
+        "Research",
+        "2",
+        "8,000"
+       ],
+       [
+        "Design",
+        "4",
+        "16,000"
+       ],
+       [
+        "Build and test",
+        "6",
+        "24,000"
+       ]
+      ],
+      "header": true
+     }
+    },
+    {
+     "id": "doc-proposal-10",
+     "type": "h2",
+     "text": "Next steps"
+    },
+    {
+     "id": "doc-proposal-11",
+     "type": "p",
+     "text": "Sign off the scope and we can start within two weeks."
+    }
+   ]
+  },
+  {
+   "id": "doc-newsletter",
+   "name": "Newsletter",
+   "category": "Marketing",
+   "docPage": {
+    "size": "a4",
+    "margins": 72
+   },
+   "blocks": [
+    {
+     "id": "doc-newsletter-1",
+     "type": "h1",
+     "text": "The Spring Newsletter"
+    },
+    {
+     "id": "doc-newsletter-2",
+     "type": "p",
+     "text": "News from the garden centre, for everyone who grows."
+    },
+    {
+     "id": "doc-newsletter-3",
+     "type": "divider"
+    },
+    {
+     "id": "doc-newsletter-4",
+     "type": "h2",
+     "text": "What's in bloom"
+    },
+    {
+     "id": "doc-newsletter-5",
+     "type": "p",
+     "text": "Tulips, daffodils and the first of the lilac are in. Come early for the best choice."
+    },
+    {
+     "id": "doc-newsletter-6",
+     "type": "h2",
+     "text": "Events this month"
+    },
+    {
+     "id": "doc-newsletter-7",
+     "type": "bullet",
+     "text": "Saturday: seed swap, 10 till noon"
+    },
+    {
+     "id": "doc-newsletter-8",
+     "type": "bullet",
+     "text": "Wednesday: pruning workshop"
+    },
+    {
+     "id": "doc-newsletter-9",
+     "type": "h2",
+     "text": "From the team"
+    },
+    {
+     "id": "doc-newsletter-10",
+     "type": "quote",
+     "text": "Plant in spring, rest in summer, gather in autumn."
+    },
+    {
+     "id": "doc-newsletter-11",
+     "type": "p",
+     "text": "See you soon!"
+    }
    ]
   }
  ]

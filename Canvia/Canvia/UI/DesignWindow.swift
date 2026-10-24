@@ -13,7 +13,11 @@ struct DesignWindow: View {
     var body: some View {
         Group {
             if let store {
-                EditorView(store: store) { dismissWindow() }
+                if Docs.isDoc(store.design) {
+                    DocEditorView(store: store) { dismissWindow() }
+                } else {
+                    EditorView(store: store) { dismissWindow() }
+                }
             } else {
                 ContentUnavailableView("This design is no longer here",
                                        systemImage: "rectangle.slash",

@@ -825,7 +825,35 @@ final class DesignStore {
         }
         applyToPage { $0.elements.append(el) }
         selection = [el.id]
+        promptAltText(el)
         return true
+    }
+
+    /// Settings ▸ Accessibility's Ask for alt text: the element just added
+    /// whose alt text is asked for (AltTextPrompt); nil for none.
+    var altTextPrompt: String?
+
+    /// Asks for `el`'s alt text when the setting is on and it is a photo,
+    /// a graphic or a chart (AccessibilityPrefs.prompts).
+    func promptAltText(_ el: Element) {
+        guard UserDefaults.standard.bool(forKey: AccessibilityPrefs.altTextPromptKey),
+              AccessibilityPrefs.prompts(el) else { return }
+        altTextPrompt = el.id
+    }
+
+    /// The alt text typed for `altTextPrompt`, as one step; blank asks
+    /// nothing more of it.
+    func answerAltTextPrompt(_ text: String) {
+        guard let id = altTextPrompt else { return }
+        altTextPrompt = nil
+        let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !words.isEmpty else { return }
+        apply { d in
+            for p in d.pages.indices {
+                guard let i = d.pages[p].elements.firstIndex(where: { $0.id == id }) else { continue }
+                d.pages[p].elements[i].altText = words
+            }
+        }
     }
 
     /// A graphic brought in from an SVG file (see SvgImport): every part on
@@ -835,6 +863,7 @@ final class DesignStore {
         guard !graphic.elements.isEmpty, landsOnUnlockedPage() else { return }
         applyToPage { $0.elements += graphic.elements }
         selection = Set(graphic.elements.map(\.id))
+        if let first = graphic.elements.first { promptAltText(first) }
         if graphic.skipped {
             buzz(.reject)
             announce(SvgImport.partialNote, undoable: false)

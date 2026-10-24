@@ -527,7 +527,7 @@ struct ContextToolbar: View {
             Picker("Animate by", selection: Binding(
                 get: { animation.unit },
                 set: { store.animateSelected(by: $0); store.playPreview() })) {
-                Text("Letter").tag("letter")
+                Text(tr("Letter", context: "animate by")).tag("letter")
                 Text("Word").tag("word")
                 Text(tr("Line", context: "animate by")).tag("line")
             }
