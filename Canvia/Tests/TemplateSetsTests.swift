@@ -50,6 +50,9 @@ final class TemplateSetsTests: XCTestCase {
             ("resume-two-page-slate", 2), ("resume-two-page-sage", 2), ("resume-two-page-ink", 2),
             ("resume-two-page-coral", 2),
             ("brochure-trifold-dental", 2), ("brochure-trifold-yoga", 2), ("brochure-trifold-museum", 2),
+            // Round 31's Website type: three-section sites.
+            ("website-studio-portfolio", 3), ("website-cafe-landing", 3), ("website-app-launch", 3),
+            ("website-wedding-day", 3), ("website-consultancy", 3), ("website-workshop-course", 3),
         ]
         for (id, count) in rows {
             let t = ContentLibrary.templates.first { $0.id == id }
@@ -209,8 +212,8 @@ final class TemplateSetsTests: XCTestCase {
                      "logo-animated", "gmail-header", "snapchat-geofilter", "podcast-cover", "zoom-background",
                      "etsy-shop-icon"]
         // Before the Whiteboard type, which came later and is drawn on
-        // rather than started from a template.
-        XCTAssertEqual(Array(SizePreset.all.map(\.id).dropLast().suffix(added.count)), added)
+        // rather than started from a template, and the Website type after it.
+        XCTAssertEqual(Array(SizePreset.all.map(\.id).dropLast(2).suffix(added.count)), added)
         for id in added {
             let preset = try XCTUnwrap(SizePreset.byId(id), id)
             XCTAssertFalse(preset.keywords.isEmpty, id)

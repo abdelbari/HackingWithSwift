@@ -218,7 +218,9 @@ struct ElementView: View {
 /// A chart part as it grows in (ElementAnimation.growState): scaled about
 /// its anchor, and a line or area cut to the share of its box drawn on so
 /// far from the left — its stroke's reach beyond the box kept, as the
-/// Android twin's renderer clips it. Nothing is masked once it is in.
+/// Android twin's renderer clips it. Nothing is masked once it is in, and
+/// an element at rest is drawn as it was before charts grew: no effect at
+/// all, so a page's export and its cut at the edge are what they were.
 private struct GrowReveal: ViewModifier {
     let state: ElementAnimation.State
     let w: Double
@@ -227,16 +229,19 @@ private struct GrowReveal: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        let scaled = content
-            .scaleEffect(x: state.scaleX, y: state.scaleY, anchor: UnitPoint(x: state.anchorX, y: state.anchorY))
-        if state.reveal < 1 {
-            scaled.mask(alignment: .topLeading) {
-                Rectangle()
-                    .frame(width: max(0, w * state.reveal + reach), height: 3 * h + 2 * reach)
-                    .offset(x: -reach, y: -h - reach)
-            }
+        if state.scaleX == 1 && state.scaleY == 1 && state.reveal >= 1 {
+            content
+        } else if state.reveal < 1 {
+            content
+                .scaleEffect(x: state.scaleX, y: state.scaleY, anchor: UnitPoint(x: state.anchorX, y: state.anchorY))
+                .mask(alignment: .topLeading) {
+                    Rectangle()
+                        .frame(width: max(0, w * state.reveal + reach), height: 3 * h + 2 * reach)
+                        .offset(x: -reach, y: -h - reach)
+                }
         } else {
-            scaled
+            content
+                .scaleEffect(x: state.scaleX, y: state.scaleY, anchor: UnitPoint(x: state.anchorX, y: state.anchorY))
         }
     }
 }

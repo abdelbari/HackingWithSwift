@@ -277,7 +277,9 @@ final class NestedGroupsTests: XCTestCase {
         XCTAssertEqual(frame.angle, 30)
         XCTAssertEqual(frame.element.rotation, 30)
         // The upright box round them is bigger: what the frame replaces.
-        XCTAssertGreaterThan(Geometry.union(turned.map(Geometry.aabb)).width, 210)
+        // Taller (about 226), as the Android twin checks; turned 30 this
+        // wide, short pair comes out narrower (about 167), not wider.
+        XCTAssertGreaterThan(Geometry.union(turned.map(Geometry.aabb)).height, 140 + 80)
     }
 
     func testTurnThenScaleThenTurnBackGivesTheOriginalGeometry() {

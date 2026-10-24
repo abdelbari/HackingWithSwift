@@ -101,11 +101,12 @@ enum Copies {
     /// adjustments, duotone and effect — in place of the frame's, so one
     /// with none clears the frame's; a `foreign` picture, from another app,
     /// has no look of its own and leaves the frame's as it was. The Android
-    /// twin's Copies.filled, with the same rows.
+    /// twin's Copies.filled, with the same rows. A new photo's "none" is
+    /// written as no filter at all, as Android's photo has none to write.
     static func filled(_ frame: Element, with photo: Element, foreign: Bool) -> Element {
         var out = Crop.replaced(frame, src: photo.src)
         guard !foreign else { return out }
-        out.filter = photo.filter
+        out.filter = photo.filter == "none" ? nil : photo.filter
         out.filterStrength = photo.filterStrength
         out.adjustments = photo.adjustments
         out.duotone = photo.duotone

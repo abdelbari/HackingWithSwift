@@ -65,7 +65,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
             "album-cover", "label", "sticker", "bookmark", "ticket", "gift-certificate", "letterhead-a4",
             "letterhead-letter", "newsletter", "magazine", "banner", "facebook-event-cover", "instagram-ad",
             "twitch-banner", "etsy-banner", "mobile-video", "logo-animated", "gmail-header", "snapchat-geofilter",
-            "podcast-cover", "zoom-background", "etsy-shop-icon", "whiteboard",
+            "podcast-cover", "zoom-background", "etsy-shop-icon", "whiteboard", "website",
         ])
         XCTAssertEqual(try designType("us-letter").name, "US Letter Document")
         XCTAssertEqual(try designType("resume-letter").name, "Resume (US Letter)")
