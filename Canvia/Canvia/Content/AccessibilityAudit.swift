@@ -131,11 +131,24 @@ enum AccessibilityAudit {
     /// What a box whose font lacks some of its letters is said to have.
     static let missingLettersNote = tr("Letters missing from the font")
 
-    /// Whether `el`'s words have letters its font does not
-    /// (FontLibrary.covers).
+    /// Whether `el`'s words have letters their font does not
+    /// (FontLibrary.covers): the words set in a font of their own (spans)
+    /// checked in it, the rest in the box's font — the Android twin's rule.
     static func lacksLetters(_ el: Element) -> Bool {
         guard ShapeText.carriesWords(el), let text = el.text, !text.isEmpty else { return false }
-        return !FontLibrary.covers(el.fontFamily, RichText.strip(text))
+        let plain = RichText.strip(text) as NSString
+        let spans = el.type == .text ? el.liveSpans : []
+        let own = spans.filter { $0.font != nil && 0 <= $0.start && $0.start <= $0.end && $0.end <= plain.length }
+        for span in own {
+            let words = plain.substring(with: NSRange(location: span.start, length: span.end - span.start))
+            if !FontLibrary.covers(span.font, words) { return true }
+        }
+        let rest = NSMutableString(string: plain as String)
+        for span in own where span.end > span.start {
+            rest.replaceCharacters(in: NSRange(location: span.start, length: span.end - span.start),
+                                   with: String(repeating: " ", count: span.end - span.start))
+        }
+        return !FontLibrary.covers(el.fontFamily, rest as String)
     }
 
     // MARK: the rules

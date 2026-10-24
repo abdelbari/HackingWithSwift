@@ -116,12 +116,15 @@ struct FindReplaceSheet: View {
                 .disabled(needle.isEmpty || found.isEmpty)
             // How many it will change, on the button that changes them, as
             // on the Android twin.
-            Button(found.isEmpty ? tr("Replace all") : tr("Replace all %d", found.count)) {
+            // Only the matches it can change: a chart's value labels and
+            // axis numbers are found, never replaced.
+            let count = found.filter { DesignStore.replaceable(store.design, $0) }.count
+            Button(count == 0 ? tr("Replace all") : tr("Replace all %d", count)) {
                 replacedCount = store.replaceAll(needle, with: replacement,
                                                  caseSensitive: caseSensitive, wholeWord: wholeWord)
                 current = 0
             }
-            .disabled(needle.isEmpty || found.isEmpty)
+            .disabled(needle.isEmpty || count == 0)
         }
     }
 
@@ -179,7 +182,13 @@ struct FindReplaceSheet: View {
     private func replaceCurrent(in found: [DesignStore.TextMatch]) {
         guard !found.isEmpty else { return }
         let at = min(max(current, 0), found.count - 1)
-        guard store.replaceOne(found[at], with: replacement) else { return }
+        guard store.replaceOne(found[at], with: replacement) else {
+            // A match Replace never changes is passed on from.
+            if !DesignStore.replaceable(store.design, found[at]) {
+                show(FindReplace.step(from: at, by: 1, count: found.count), in: found)
+            }
+            return
+        }
         replacedCount = nil
         let now = matches
         let next = DesignStore.matchAfter(replacing: found[at], at: at,

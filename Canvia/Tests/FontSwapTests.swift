@@ -63,6 +63,23 @@ final class FontSwapTests: XCTestCase {
         XCTAssertEqual(after.pages[0].elements.map(\.fontWeight), [400, 700])
     }
 
+    /// Shared: no weight set, replaced by a family with only a Bold, is set
+    /// at 700; an alias is stored as the family it means.
+    func testNoWeightSetTakesTheOnlyWeightANewFamilyHas() throws {
+        let bytes = try Data(contentsOf: try XCTUnwrap(FontLibrary.bundledURL("lora-700.ttf")))
+        defer { FontStore.remove(CustomFonts.sha12(bytes)) }
+        let heavy = try FontStore.add(bytes).get()
+        XCTAssertEqual(FontLibrary.weights(heavy), [700])
+        var d = Design(title: "weights", width: 800, height: 600)
+        d.pages[0].elements = [text("None", "serif")]
+        d.pages[0].elements[0].fontWeight = nil
+        let after = FontSwap.replaced(d, from: "serif", to: heavy, heightFor: { _ in 40 })
+        XCTAssertEqual(after.pages[0].elements[0].fontWeight, 700)
+        XCTAssertEqual(after.pages[0].elements[0].fontFamily, heavy)
+        let aliased = FontSwap.replaced(d, from: "serif", to: "didone", heightFor: { _ in 40 })
+        XCTAssertEqual(aliased.pages[0].elements[0].fontFamily, "playfair-display")
+    }
+
     /// A chart's own font is swapped with its labels, and an alias counts
     /// as the family it means.
     func testAChartsFontAndAnAliasAreSwapped() {

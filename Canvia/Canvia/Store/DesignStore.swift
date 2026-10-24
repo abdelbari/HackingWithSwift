@@ -1958,8 +1958,7 @@ final class DesignStore {
                     caseSensitive: Bool = false, wholeWord: Bool = false) -> Int {
         // A chart's value labels and axis numbers are found, never replaced.
         let total = matches(for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord).filter { match in
-            match.kind == .notes
-                || design.pages[match.pageIndex].elements.first { $0.id == match.elementId }.map(FindReplace.replaces) == true
+            Self.replaceable(design, match)
         }.count
         guard total > 0 else { return 0 }
         apply { design in
@@ -1994,6 +1993,16 @@ final class DesignStore {
         findHighlight = nil
         announce(trn("Replaced %d occurrence|Replaced %d occurrences", total))
         return total
+    }
+
+    /// Whether Replace can change `match`: words in a page's notes, or in
+    /// a box FindReplace.replaces — never a chart's value label or axis
+    /// number, which are found all the same.
+    static func replaceable(_ design: Design, _ match: TextMatch) -> Bool {
+        if match.kind == .notes { return true }
+        guard design.pages.indices.contains(match.pageIndex),
+              let el = design.pages[match.pageIndex].elements.first(where: { $0.id == match.elementId }) else { return false }
+        return FindReplace.replaces(el)
     }
 
     /// The design with only `match` replaced — the words around it, their

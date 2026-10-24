@@ -57,6 +57,12 @@ final class ListTypingTests: XCTestCase {
         XCTAssertEqual(nested.text, "a\nb\nc\nplain - line")
         XCTAssertEqual(nested.paragraphs, [TextParagraph(list: "bullet"), TextParagraph(list: "bullet", level: 1),
                                            TextParagraph(list: "bullet", level: 2), TextParagraph()])
+        // Shared: a tab after the marker, and odd space indents, as copied
+        // from other apps.
+        let odd = TextLists.fromPasted("•\tMilk\n - a\n   - b")
+        XCTAssertEqual(odd.text, "Milk\na\nb")
+        XCTAssertEqual(odd.paragraphs, [TextParagraph(list: "bullet"), TextParagraph(list: "bullet"),
+                                        TextParagraph(list: "bullet", level: 1)])
         let el = RichClipboard.paste(Element.text(""), at: 0, removed: 0, plainText: "1. a\n2. b")
         XCTAssertEqual(RichText.strip(el.text ?? ""), "a\nb")
         XCTAssertEqual(TextLists.lines(el), [TextParagraph(list: "number"), TextParagraph(list: "number")])
