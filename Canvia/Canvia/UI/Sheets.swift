@@ -683,12 +683,21 @@ struct FiltersSheet: View {
         let preset = ImageFilterPreset.from(store.singleSelection?.filter)
         if preset != .none {
             let value = PhotoLook.strength(store.singleSelection?.filterStrength)
-            effectSlider(tr("%@ strength", preset.displayName), value: value, in: 0...1,
-                         readout: "\(Int((value * 100).rounded()))%") { v, el in
-                let strength = (v * 100).rounded() / 100
-                el.filterStrength = strength >= 1 ? nil : strength
-            }
+            // At rest at full strength, which is written as none.
+            PreciseDial(label: tr("%@ strength", preset.displayName), value: (value * 100).rounded(),
+                        range: 0...100, rest: 100,
+                        live: { v in store.updateSelectedTransient { Self.setStrength(&$0, v) } },
+                        done: { store.commit() },
+                        set: { v in store.updateSelected { Self.setStrength(&$0, v) } })
         }
+    }
+
+    /// A photo's filter strength from a dial's `steps`, 0 to 100: all of
+    /// it written as none.
+    private static func setStrength(_ el: inout Element, _ steps: Double) {
+        guard el.type == .image else { return }
+        let strength = steps.rounded() / 100
+        el.filterStrength = strength >= 1 ? nil : strength
     }
 
     /// Every look taken off in one step — filter and its strength, dials,
@@ -775,7 +784,7 @@ struct FiltersSheet: View {
                 .disabled(store.singleSelection?.adjustments?.isNeutral ?? true)
             }
             // The dials in Canva's three groups, each in its order.
-            dialGroup(tr("Light", context: "photo adjustments")) {
+            dialGroup(tr("Light", context: "photo adjustments"), .light) {
                 dial(tr("Brightness"), \.brightness, in: -1...1)
                 dial(tr("Contrast"), \.contrast, in: -1...1)
                 dial(tr("Highlights"), \.highlights, in: -1...1)
@@ -783,14 +792,14 @@ struct FiltersSheet: View {
                 dial(tr("Whites"), \.whites, in: -1...1)
                 dial(tr("Blacks"), \.blacks, in: -1...1)
             }
-            dialGroup(tr("Colour")) {
+            dialGroup(tr("Colour"), .colour) {
                 dial(tr("Saturation"), \.saturation, in: -1...1)
                 dial(tr("Vibrance"), \.vibrance, in: -1...1)
                 dial(tr("Warmth"), \.warmth, in: -1...1)
                 dial(tr("Tint"), \.tint, in: -1...1)
                 if !isCode { selectiveColour }
             }
-            dialGroup(tr("Texture")) {
+            dialGroup(tr("Texture"), .texture) {
                 dial(tr("Clarity"), \.clarity, in: -1...1)
                 dial(tr("Sharpness"), \.sharpness, in: -1...1)
                 dial(tr("Vignette"), \.vignette, in: 0...1)
@@ -858,47 +867,53 @@ struct FiltersSheet: View {
         .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
-    /// One of the chosen band's three dials, −100 to +100.
+    /// One of the chosen band's three dials, −100 to +100, set as any
+    /// other dial is (PreciseDial).
     private func bandSlider(_ label: String, band: String, shift: HueShift,
                             _ key: WritableKeyPath<HueShift, Double>) -> some View {
-        let value = shift[keyPath: key]
-        let readout = String(format: "%+.0f", value * 100)
         let name = HueBands.bands.first { $0.key == band }?.name ?? band
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(label).font(.subheadline)
-                Spacer()
-                Text(readout)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            .accessibilityHidden(true)
-            Slider(value: Binding(
-                get: { value },
-                set: { v in
-                    var next = shift
-                    next[keyPath: key] = (v * 100).rounded() / 100
-                    store.updateSelectedTransient { el in
-                        guard el.type == .image else { return }
-                        el.setHueShift(band, to: next)
-                    }
-                }
-            ), in: -1...1, onEditingChanged: { editing in
-                if !editing { store.commit() }
-            })
-            .accessibilityLabel(tr("%@ %@", name, label))
-            .accessibilityValue(readout)
+        func shifted(_ v: Double) -> HueShift {
+            var next = shift
+            next[keyPath: key] = v / 100
+            return next
         }
+        return PreciseDial(label: label, spoken: tr("%@ %@", name, label),
+                           value: (shift[keyPath: key] * 100).rounded(), range: -100...100,
+                           live: { v in
+                               store.updateSelectedTransient { el in
+                                   guard el.type == .image else { return }
+                                   el.setHueShift(band, to: shifted(v))
+                               }
+                           },
+                           done: { store.commit() },
+                           set: { v in
+                               store.updateSelected { el in
+                                   guard el.type == .image else { return }
+                                   el.setHueShift(band, to: shifted(v))
+                               }
+                           })
     }
 
-    /// A group of dials under its name — Light, Colour, Texture.
-    private func dialGroup<Dials: View>(_ name: String, @ViewBuilder _ dials: () -> Dials) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(name)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
-                .accessibilityAddTraits(.isHeader)
+    /// A group of dials under its name — Light, Colour, Texture — with a
+    /// Reset that puts back only that group's dials, as one step.
+    private func dialGroup<Dials: View>(_ name: String, _ group: DialPrecision.DialGroup,
+                                        @ViewBuilder _ dials: () -> Dials) -> some View {
+        let moved = DialPrecision.isMoved(store.singleSelection?.adjustments, group)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Button("Reset") {
+                    store.updateSelected { $0.adjustments = DialPrecision.cleared($0.adjustments, group) }
+                }
+                .font(.caption)
+                .disabled(!moved)
+                .accessibilityLabel(tr("Reset %@", name))
+            }
+            .padding(.top, 4)
             dials()
         }
     }
@@ -1153,32 +1168,16 @@ struct FiltersSheet: View {
         }
     }
 
+    /// One dial in steps (DialPrecision): live and one step a drag; a
+    /// number typed, a reset or a VoiceOver step one step each.
     private func dial(_ label: String, _ key: WritableKeyPath<Adjustments, Double>,
                       in range: ClosedRange<Double>) -> some View {
         let current = store.singleSelection?.adjustments ?? .neutral
-        let readout = String(format: "%+.0f", current[keyPath: key] * 100)
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(label).font(.subheadline)
-                Spacer()
-                Text(readout)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            // The slider itself carries the name and the number shown, so
-            // VoiceOver says "Brightness, +20" rather than a bare percentage.
-            .accessibilityHidden(true)
-            Slider(value: Binding(
-                get: { current[keyPath: key] },
-                set: { value in
-                    store.updateSelectedTransient { $0.setAdjustment(key, to: value) }
-                }
-            ), in: range, onEditingChanged: { editing in
-                if !editing { store.commit() }
-            })
-            .accessibilityLabel(label)
-            .accessibilityValue(readout)
-        }
+        return PreciseDial(label: label, value: (current[keyPath: key] * 100).rounded(),
+                           range: DialPrecision.steps(range),
+                           live: { v in store.updateSelectedTransient { $0.setAdjustment(key, to: v / 100) } },
+                           done: { store.commit() },
+                           set: { v in store.updateSelected { $0.setAdjustment(key, to: v / 100) } })
     }
 
     private func filterPreview(_ preset: ImageFilterPreset) -> some View {

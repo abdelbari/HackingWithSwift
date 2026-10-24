@@ -22385,6 +22385,15 @@
     "ja": "リセット",
     "pt-BR": "Redefinir"
   },
+  "Reset %@": {
+    "ar": "إعادة تعيين %@",
+    "de": "%@ zurücksetzen",
+    "es": "Restablecer %@",
+    "fr": "Réinitialiser %@",
+    "it": "Reimposta %@",
+    "ja": "%@をリセット",
+    "pt-BR": "Redefinir %@"
+  },
   "Reset crop": {
     "ar": "إعادة تعيين الاقتصاص",
     "de": "Zuschnitt zurücksetzen",
@@ -28411,6 +28420,15 @@
     "it": "Digita un valore",
     "ja": "値を入力",
     "pt-BR": "Digite um valor"
+  },
+  "Type a value for %@": {
+    "ar": "اكتب قيمة لـ %@",
+    "de": "Wert für %@ eingeben",
+    "es": "Escribe un valor para %@",
+    "fr": "Saisir une valeur pour %@",
+    "it": "Digita un valore per %@",
+    "ja": "%@の値を入力",
+    "pt-BR": "Digite um valor para %@"
   },
   "Type size": {
     "ar": "حجم الخط",
