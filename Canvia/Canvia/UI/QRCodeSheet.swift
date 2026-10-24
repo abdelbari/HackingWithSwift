@@ -205,14 +205,20 @@ private struct QRStyleSections: View {
     /// A barcode's look: its colours, margin and words under the bars,
     /// rather than a QR code's dots, eyes, correction and logo.
     var barcode = false
+    /// A correction or logo the code's words do not fit, refused: said
+    /// until the look next changes (CodeGenerator.holds).
+    @State private var refused = false
 
     var body: some View {
-        colourSections
-        if barcode {
-            Section { wordsToggle }
-        } else {
-            QRShapeSections(store: store, id: id)
+        Group {
+            colourSections
+            if barcode {
+                Section { wordsToggle }
+            } else {
+                QRShapeSections(store: store, id: id, refused: $refused)
+            }
         }
+        .onChange(of: store.element(id).map(CodeGenerator.style(of:))) { refused = false }
     }
 
     /// Whether the barcode writes its words under its bars, as one step.
@@ -262,7 +268,8 @@ private struct QRStyleSections: View {
                 let risks = barcode
                     ? [CodeGenerator.scanRisk(color: style.color, background: style.background, pageBehind: behind)].compactMap { $0 }
                     : CodeGenerator.risks(code, pageBehind: behind)
-                ForEach(risks, id: \.self) { risk in
+                let said = (refused ? [CodeGenerator.tooLongForLevel] : []) + risks
+                ForEach(said, id: \.self) { risk in
                     Label(risk, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(Color(.systemRed))
                 }
@@ -302,14 +309,22 @@ private struct QRStyleSections: View {
     }
 
     /// The code in `next`, as one undo step after any typing, which is a
-    /// step of its own; nothing when it already looks so.
-    static func restyle(store: DesignStore, id: String, _ next: CodeGenerator.Look) {
-        guard let code = store.element(id), CodeGenerator.style(of: code) != next else { return }
+    /// step of its own; nothing when it already looks so. False, and
+    /// nothing done, when its words do not fit next's correction
+    /// (CodeGenerator.holds).
+    @discardableResult
+    static func restyle(store: DesignStore, id: String, _ next: CodeGenerator.Look) -> Bool {
+        guard let code = store.element(id), CodeGenerator.style(of: code) != next else { return true }
+        guard CodeGenerator.holds(code, next) else {
+            store.buzz(.reject)
+            return false
+        }
         if store.hasPendingChanges { store.commit() }
         store.updateSelected { el in
             if el.id == id { el = CodeGenerator.styled(el, next) }
         }
         store.buzz(.tick)
+        return true
     }
 }
 
@@ -319,6 +334,7 @@ private struct QRStyleSections: View {
 private struct QRShapeSections: View {
     let store: DesignStore
     let id: String
+    @Binding var refused: Bool
 
     var body: some View {
         let style = store.element(id).map(CodeGenerator.style(of:)) ?? CodeGenerator.Look()
@@ -332,13 +348,13 @@ private struct QRShapeSections: View {
             Picker("Error correction", selection: Binding(get: { style.level }, set: { level in
                 var next = style
                 next.ec = level
-                QRStyleSections.restyle(store: store, id: id, next)
+                if !QRStyleSections.restyle(store: store, id: id, next) { refused = true }
             })) {
                 ForEach(CodeGenerator.levels, id: \.self) { Text(verbatim: $0).tag($0) }
             }
             .disabled(style.logo != nil)
         }
-        QRLogoSection(store: store, id: id, style: style)
+        QRLogoSection(store: store, id: id, style: style, refused: $refused)
     }
 
     /// A binding that sets one of the look's shapes as one step.
@@ -373,6 +389,7 @@ private struct QRLogoSection: View {
     let store: DesignStore
     let id: String
     let style: CodeGenerator.Look
+    @Binding var refused: Bool
 
     private var candidates: [String] {
         let kit = BrandKit.load().logos.map(BrandKit.mediaSource)
@@ -431,7 +448,7 @@ private struct QRLogoSection: View {
     private func pick(_ src: String?) {
         var next = style
         next.logo = src
-        QRStyleSections.restyle(store: store, id: id, next)
+        if !QRStyleSections.restyle(store: store, id: id, next) { refused = true }
     }
 }
 

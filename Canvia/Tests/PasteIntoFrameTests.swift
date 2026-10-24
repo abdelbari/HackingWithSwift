@@ -28,7 +28,8 @@ final class PasteIntoFrameTests: XCTestCase {
         let plain = photo("plain")
         let text = Element.text("Hello")
         let picture = photo()
-        let page = [f, other, locked, plain]
+        let bars = photo("bars", src: "barcode:code128:A1")
+        let page = [f, other, locked, plain, bars]
         let rows: [(String, [Element], [Element], Bool, Copies.PasteTarget)] = [
             ("frame + picture", [f], [picture], true, .fill("frame")),
             ("frame + a copied photo", [f], [picture], false, .fill("frame")),
@@ -40,6 +41,8 @@ final class PasteIntoFrameTests: XCTestCase {
             ("photo + a picture from another app", [plain], [picture], true, .replace("plain")),
             ("photo + a copied photo", [plain], [picture], false, .add),
             ("frame + an empty frame copied", [f], [frame("copied")], false, .add),
+            ("a barcode + a picture from another app", [bars], [picture], true, .add),
+            ("frame + a copied barcode", [f], [photo("c", src: "barcode:code128:A1")], false, .add),
         ]
         for (name, selected, payload, foreign, target) in rows {
             XCTAssertEqual(Copies.pasteTarget(selected, among: page, payload: payload, foreign: foreign), target, name)

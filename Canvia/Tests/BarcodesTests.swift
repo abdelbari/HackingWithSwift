@@ -171,6 +171,27 @@ final class BarcodesTests: XCTestCase {
 
     // MARK: QR style
 
+    /// Shared with the Android twin: 1,500 bytes fit at L, M and Q but not
+    /// at H, so a correction of H or a logo (which makes it H) is refused,
+    /// while any other change, a short code and a barcode are not.
+    func testACorrectionOrLogoTheWordsNoLongerFitAtIsRefused() {
+        let long = Element.image(CodeGenerator.source(for: String(repeating: "x", count: 1500)))
+        func look(ec: String = CodeGenerator.defaultLevel, logo: String? = nil, color: String = CodeGenerator.defaultColor) -> CodeGenerator.Look {
+            var out = CodeGenerator.Look()
+            out.ec = ec
+            out.logo = logo
+            out.color = color
+            return out
+        }
+        XCTAssertTrue(CodeGenerator.holds(long, look(ec: "L")))
+        XCTAssertTrue(CodeGenerator.holds(long, look(ec: "Q")))
+        XCTAssertFalse(CodeGenerator.holds(long, look(ec: "H")))
+        XCTAssertFalse(CodeGenerator.holds(long, look(logo: "media:logo")))
+        XCTAssertTrue(CodeGenerator.holds(long, look(color: "#ff0000")))
+        XCTAssertTrue(CodeGenerator.holds(Element.image(CodeGenerator.source(for: "hi")), look(logo: "media:logo")))
+        XCTAssertTrue(CodeGenerator.holds(Element.image("barcode:code128:A1"), look(ec: "H")))
+    }
+
     func testTheStyleKeysAreWrittenOnlyWhenNotTheDefaultAndALogoMakesTheLevelH() throws {
         let plain = Element.image(CodeGenerator.source(for: "https://canvia.app"))
         var look = CodeGenerator.Look()
