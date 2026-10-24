@@ -1333,24 +1333,17 @@ struct EditorView: View {
         }
     }
 
-    /// The frame's shape: Free, the picture's own, and the usual ratios
-    /// (CropAspect), the one the frame has lit. Each trims the frame inside
-    /// itself (Crop.trimmedToRatio); a frame locked in position keeps its
-    /// shape, so its chips wait.
+    /// The frame's shape: Free, the picture's own, the orientation chip,
+    /// the usual ratios (CropAspect) and Custom…, the one the frame has lit
+    /// (CropRatioChips). Each trims the frame inside itself
+    /// (Crop.trimmedToRatio); a frame locked in position keeps its shape, so
+    /// its chips wait.
     private func cropAspectRow(_ photo: Element?) -> some View {
-        let lit = photo.flatMap { el in store.cropping.map { CropAspect.matching(el, image: $0.imageSize) } } ?? .free
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(CropAspect.allCases, id: \.self) { aspect in
-                    Button(aspect.name) { store.setCropAspect(aspect) }
-                        .buttonStyle(.bordered)
-                        .tint(aspect == lit ? Theme.accent : .secondary)
-                        .controlSize(.small)
-                        .accessibilityAddTraits(aspect == lit ? .isSelected : [])
-                }
-            }
-        }
-        .disabled(photo?.holdsPlace ?? true)
+        CropRatioChips(match: store.cropMatch, portrait: (photo.map { $0.h > $0.w }) ?? false,
+                       onAspect: { aspect, turned in store.setCropAspect(aspect, turned: turned) },
+                       onTurn: { store.turnCropAspect() },
+                       onCustom: { ratio in store.setCropRatio(ratio) })
+            .disabled(photo?.holdsPlace ?? true)
     }
 
     /// The straighten dial: −45 to 45 degrees in half steps, a tick at
@@ -1434,19 +1427,15 @@ struct EditorView: View {
         store.graphicCropping?.ids.first.flatMap(store.element)?.clipBox != nil
     }
 
-    /// The window's shape, as a photo's frame has them; Original is the
-    /// graphic's own.
+    /// The window's shape, as a photo's frame has them — the orientation
+    /// chip and Custom… too; Original is the graphic's own.
     private var graphicAspectRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(CropAspect.allCases, id: \.self) { aspect in
-                    Button(aspect.name) { store.setGraphicCropAspect(aspect) }
-                        .buttonStyle(.bordered)
-                        .tint(.secondary)
-                        .controlSize(.small)
-                }
-            }
-        }
+        let window = store.graphicCropWindow
+        return CropRatioChips(match: store.graphicCropMatch,
+                              portrait: window.map { $0.height > $0.width } ?? false,
+                              onAspect: { aspect, turned in store.setGraphicCropAspect(aspect, turned: turned) },
+                              onTurn: { store.turnGraphicCropAspect() },
+                              onCustom: { ratio in store.setGraphicCropRatio(ratio) })
     }
 
     /// Brush size, the strokes so far, and the two ways out.

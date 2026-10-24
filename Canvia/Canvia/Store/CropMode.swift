@@ -120,13 +120,34 @@ extension DesignStore {
     /// ratio (Crop.trimmedToRatio), inside the one open step. Free leaves
     /// the frame as it is. Not for a photo locked in position, whose frame
     /// stays put, as the brackets are not drawn for it.
-    func setCropAspect(_ aspect: CropAspect) {
-        guard let crop = cropping, let photo = cropElement, !photo.holdsPlace,
-              let ratio = aspect.ratio(image: crop.imageSize) else { return }
+    func setCropAspect(_ aspect: CropAspect, turned: Bool = false) {
+        guard let crop = cropping, let ratio = aspect.ratio(image: crop.imageSize, turned: turned) else { return }
+        setCropRatio(ratio)
+    }
+
+    /// The frame trimmed to `ratio`, width over height — a chip's, or one
+    /// typed in Custom… (CropAspect.customRatio).
+    func setCropRatio(_ ratio: Double) {
+        guard let crop = cropping, let photo = cropElement, !photo.holdsPlace, ratio > 0 else { return }
         cropEdit { Crop.trimmedToRatio($0, ratio: ratio, image: crop.imageSize) }
         if let trimmed = cropElement {
             badge = Units.readout(width: trimmed.w.rounded(), height: trimmed.h.rounded(), design)
         }
+    }
+
+    /// The chip lit for the frame, and whether it has it turned
+    /// (CropAspect.matched).
+    var cropMatch: CropAspect.Match {
+        guard let crop = cropping, let photo = cropElement else { return CropAspect.Match(aspect: .free, turned: false) }
+        return CropAspect.matched(photo, image: crop.imageSize)
+    }
+
+    /// The orientation chip: the lit ratio the other way round (r becomes
+    /// 1/r). Nothing for Free, Original or 1:1.
+    func turnCropAspect() {
+        let match = cropMatch
+        guard match.aspect.turns else { return }
+        setCropAspect(match.aspect, turned: !match.turned)
     }
 
     /// The straighten dial: the existing `straighten` key, written live in

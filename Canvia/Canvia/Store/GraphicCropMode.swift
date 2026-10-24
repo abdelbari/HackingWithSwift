@@ -88,9 +88,31 @@ extension DesignStore {
 
     /// A ratio from the crop bar: the window cut to it about its middle,
     /// inside the frame; Free leaves it, Original is the frame's own.
-    func setGraphicCropAspect(_ aspect: CropAspect) {
-        guard let crop = graphicCropping, let window = graphicCropWindow,
-              let ratio = aspect.ratio(image: crop.frame.size), ratio > 0 else { return }
+    func setGraphicCropAspect(_ aspect: CropAspect, turned: Bool = false) {
+        guard let crop = graphicCropping, let ratio = aspect.ratio(image: crop.frame.size, turned: turned) else { return }
+        setGraphicCropRatio(ratio)
+    }
+
+    /// The chip lit for the window, and whether it has it turned
+    /// (CropAspect.matched), Original being the graphic's own.
+    var graphicCropMatch: CropAspect.Match {
+        guard let crop = graphicCropping, let window = graphicCropWindow, window.height > 0 else {
+            return CropAspect.Match(aspect: .free, turned: false)
+        }
+        return CropAspect.matched(ratio: Double(window.width / window.height), image: crop.frame.size)
+    }
+
+    /// The orientation chip: the lit ratio the other way round.
+    func turnGraphicCropAspect() {
+        let match = graphicCropMatch
+        guard match.aspect.turns else { return }
+        setGraphicCropAspect(match.aspect, turned: !match.turned)
+    }
+
+    /// The window cut to `ratio`, width over height, about its middle,
+    /// inside the frame — a chip's, or one typed in Custom….
+    func setGraphicCropRatio(_ ratio: Double) {
+        guard let crop = graphicCropping, let window = graphicCropWindow, ratio > 0 else { return }
         var w = Double(window.width), h = Double(window.height)
         if w / max(h, 0.0001) > ratio { w = h * ratio } else { h = w / ratio }
         let upright = crop.frame.upright

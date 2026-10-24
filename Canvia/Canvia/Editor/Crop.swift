@@ -320,37 +320,77 @@ enum Crop {
     }
 }
 
-/// The crop bar's frame shapes, in the order the chips show them. The same
-/// names and ratios as the Android twin's crop bar.
+/// The crop bar's frame shapes, in the order the chips show them: Free, the
+/// picture's own, then the shared list — 1:1, 4:5, 2:3, 3:4, 9:16 and 21:9,
+/// each but 1:1 one of a pair kept landscape-normalised (5:4, 3:2, 4:3,
+/// 16:9, 21:9) whose other way round the orientation chip turns it to. The
+/// same names and ratios as the Android twin's Crop.aspects.
 enum CropAspect: CaseIterable, Hashable {
-    case free, original, square, fourFive, threeTwo, fourThree, sixteenNine, nineSixteen
+    case free, original, square, fourFive, twoThree, threeFour, nineSixteen, twentyOneNine
+
+    /// What the lit chip is, and whether the frame has it the other way
+    /// round — 5:4 for the 4:5 chip, 9:21 for 21:9.
+    struct Match: Equatable {
+        var aspect: CropAspect
+        var turned: Bool
+    }
+
+    /// Width and height as the chip offers it first; nil for Free and
+    /// Original.
+    var sides: (w: Int, h: Int)? {
+        switch self {
+        case .free, .original: return nil
+        case .square: return (1, 1)
+        case .fourFive: return (4, 5)
+        case .twoThree: return (2, 3)
+        case .threeFour: return (3, 4)
+        case .nineSixteen: return (9, 16)
+        case .twentyOneNine: return (21, 9)
+        }
+    }
+
+    /// The pair as it is kept, the longer side first: 5:4 for 4:5.
+    var landscape: (w: Int, h: Int)? {
+        guard let s = sides else { return nil }
+        return (w: max(s.w, s.h), h: min(s.w, s.h))
+    }
+
+    /// Whether the orientation chip turns it: a ratio with two ways round
+    /// — not Free, Original or 1:1.
+    var turns: Bool {
+        guard let sides else { return false }
+        return sides.w != sides.h
+    }
 
     /// The chip's words.
-    var name: String {
+    var name: String { name(turned: false) }
+
+    /// The chip's words, the other way round when `turned` and it turns.
+    func name(turned: Bool) -> String {
         switch self {
         case .free: return tr("Free")
         case .original: return tr("Original")
-        case .square: return "1:1"
-        case .fourFive: return "4:5"
-        case .threeTwo: return "3:2"
-        case .fourThree: return "4:3"
-        case .sixteenNine: return "16:9"
-        case .nineSixteen: return "9:16"
+        default:
+            guard let sides else { return "" }
+            return turned && turns ? "\(sides.h):\(sides.w)" : "\(sides.w):\(sides.h)"
         }
     }
 
     /// Width over height; Original is the picture's own, and Free is none —
     /// the frame as it is.
     func ratio(image: CGSize) -> Double? {
+        ratio(image: image, turned: false)
+    }
+
+    /// The same, the other way round (r becomes 1/r) when `turned` and it
+    /// turns.
+    func ratio(image: CGSize, turned: Bool) -> Double? {
         switch self {
         case .free: return nil
         case .original: return image.height > 0 ? Double(image.width) / Double(image.height) : nil
-        case .square: return 1
-        case .fourFive: return 4.0 / 5
-        case .threeTwo: return 3.0 / 2
-        case .fourThree: return 4.0 / 3
-        case .sixteenNine: return 16.0 / 9
-        case .nineSixteen: return 9.0 / 16
+        default:
+            guard let sides else { return nil }
+            return turned && turns ? Double(sides.h) / Double(sides.w) : Double(sides.w) / Double(sides.h)
         }
     }
 
@@ -358,11 +398,37 @@ enum CropAspect: CaseIterable, Hashable {
     /// one percent — Original before 4:3 for a 4:3 picture — and Free when
     /// none does.
     static func matching(_ el: Element, image: CGSize) -> CropAspect {
-        guard el.h > 0 else { return .free }
-        let have = el.w / el.h
-        return allCases.first { aspect in
-            guard let ratio = aspect.ratio(image: image), ratio > 0 else { return false }
-            return abs(have / ratio - 1) < 0.01
-        } ?? .free
+        matched(el, image: image).aspect
+    }
+
+    /// The chip lit for `el`, and whether the frame has it turned.
+    static func matched(_ el: Element, image: CGSize) -> Match {
+        guard el.h > 0 else { return Match(aspect: .free, turned: false) }
+        return matched(ratio: el.w / el.h, image: image)
+    }
+
+    /// The chip lit for a frame `have` wide to 1 high: the first, in the
+    /// chips' order, whose ratio it has either way round within one percent
+    /// (matchingAspect, both orientations) — its own way before the other —
+    /// and Free when none does.
+    static func matched(ratio have: Double, image: CGSize) -> Match {
+        guard have > 0, have.isFinite else { return Match(aspect: .free, turned: false) }
+        for aspect in allCases {
+            guard let ratio = aspect.ratio(image: image), ratio > 0 else { continue }
+            if abs(have / ratio - 1) < 0.01 { return Match(aspect: aspect, turned: false) }
+            if aspect.turns && abs(have * ratio - 1) < 0.01 { return Match(aspect: aspect, turned: true) }
+        }
+        return Match(aspect: .free, turned: false)
+    }
+
+    /// The largest number a side of Custom… takes.
+    static let customMost = 100
+
+    /// Custom…'s width and height as typed, as a ratio: each a whole number
+    /// from 1 to customMost, else nil — nothing applied.
+    static func customRatio(_ w: String, _ h: String) -> Double? {
+        guard let w = Int(w.trimmingCharacters(in: .whitespaces)), let h = Int(h.trimmingCharacters(in: .whitespaces)),
+              (1...customMost).contains(w), (1...customMost).contains(h) else { return nil }
+        return Double(w) / Double(h)
     }
 }

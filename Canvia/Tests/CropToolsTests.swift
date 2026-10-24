@@ -88,10 +88,11 @@ final class CropToolsTests: XCTestCase {
     func testTheLitChipIsTheFrameShape() {
         XCTAssertEqual(CropAspect.matching(photo(), image: image), .square)
         XCTAssertEqual(CropAspect.matching(photo(w: 400, h: 300), image: image), .original)
-        XCTAssertEqual(CropAspect.matching(photo(w: 400, h: 300), image: CGSize(width: 10, height: 10)), .fourThree)
-        XCTAssertEqual(CropAspect.matching(photo(w: 200, h: 113), image: image), .sixteenNine)
+        // Round 33: 4:3 and 16:9 are the 3:4 and 9:16 chips turned.
+        XCTAssertEqual(CropAspect.matching(photo(w: 400, h: 300), image: CGSize(width: 10, height: 10)), .threeFour)
+        XCTAssertEqual(CropAspect.matching(photo(w: 200, h: 113), image: image), .nineSixteen)
         XCTAssertEqual(CropAspect.matching(photo(w: 123, h: 200), image: image), .free)
-        XCTAssertEqual(CropAspect.allCases.map(\.name), ["Free", "Original", "1:1", "4:5", "3:2", "4:3", "16:9", "9:16"])
+        XCTAssertEqual(CropAspect.allCases.map(\.name), ["Free", "Original", "1:1", "4:5", "2:3", "3:4", "9:16", "21:9"])
     }
 
     /// Rotate 90: a quarter turn clockwise about the centre, the sides
