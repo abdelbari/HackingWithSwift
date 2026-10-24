@@ -85,6 +85,17 @@ final class UseProfileTests: XCTestCase {
         XCTAssertEqual(UseProfile.settingsFile, "settings.json")
     }
 
+    /// The backup's one settings.json carries the use beside "autoLists",
+    /// and each reader finds its own key in it.
+    func testTheSettingsFileCarriesListsAndTheUseTogether() {
+        XCTAssertEqual(UseProfile.settingsFile, Backup.settingsFile)
+        let data = Backup.encodeSettings(autoLists: false, use: "nonprofit")
+        XCTAssertEqual(String(decoding: data, as: UTF8.self), #"{"autoLists":false,"canvia.use":"nonprofit"}"#)
+        XCTAssertEqual(UseProfile.decodeSettings(data), "nonprofit")
+        XCTAssertEqual(Backup.decodeSettings(data), false)
+        XCTAssertNil(UseProfile.decodeSettings(Backup.encodeSettings(autoLists: true, use: nil)))
+    }
+
     /// Shared: Home's hero row for each use, and the categories' order —
     /// the Android twin's fixtures/use-profile.json.
     func testTheSharedFixture() throws {

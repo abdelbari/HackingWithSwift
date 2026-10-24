@@ -65,7 +65,7 @@ final class ListTypingTests: XCTestCase {
     /// The setting travels in a backup's settings.json, on by default.
     func testTheAutoListsSettingTravelsInABackup() {
         XCTAssertEqual(TextLists.autoListsKey, "canvia.autoLists")
-        XCTAssertEqual(Backup.decodeSettings(Backup.encodeSettings(autoLists: false)), false)
+        XCTAssertEqual(Backup.decodeSettings(Backup.encodeSettings(autoLists: false, use: nil)), false)
         XCTAssertEqual(Backup.decodeSettings(Data("{\"autoLists\":true}".utf8)), true)
         XCTAssertNil(Backup.decodeSettings(Data("{}".utf8)))
         XCTAssertNil(Backup.decodeSettings(nil))

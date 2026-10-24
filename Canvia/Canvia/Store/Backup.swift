@@ -14,9 +14,9 @@
 //   brandkits.json           the brand kits
 //   dictionary.json          this phone's own dictionary, Add to
 //                            dictionary's words, when it has any
-//   settings.json            the settings that travel: {"autoLists": true}
-//   settings.json            the settings that travel: {"canvia.use": …},
-//                            what Canvia is used for, when it was answered
+//   settings.json            the settings that travel, in one object:
+//                            {"autoLists": true, "canvia.use": …} — what
+//                            Canvia is used for only when it was answered
 //                            (UseProfile)
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and kits' assets are,
@@ -88,15 +88,21 @@ enum Backup {
     // MARK: settings
 
     /// The settings that travel with a backup, by the keys both phones
-    /// write: "autoLists", whether a typed "- " or "1. " starts a list.
+    /// write: "autoLists", whether a typed "- " or "1. " starts a list, and
+    /// "canvia.use", what Canvia is used for (UseProfile) — one file, so a
+    /// backup never holds two entries of one name.
     static let settingsFile = "settings.json"
 
     private struct Settings: Codable {
         var autoLists: Bool?
     }
 
-    static func encodeSettings(autoLists: Bool) -> Data {
-        (try? JSONEncoder().encode(Settings(autoLists: autoLists))) ?? Data("{}".utf8)
+    /// The one settings file: "autoLists", and "canvia.use" when `use` is
+    /// not nil.
+    static func encodeSettings(autoLists: Bool, use: String?) -> Data {
+        var object: [String: Any] = ["autoLists": autoLists]
+        if let use { object[UseProfile.key] = use }
+        return (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data("{}".utf8)
     }
 
     /// The backup's "autoLists"; nil when it has none, as an older backup.
@@ -284,9 +290,9 @@ enum Backup {
         // This phone's own dictionary, when Add to dictionary has added any.
         let dictionary = SpellingDictionary.load()
         if !dictionary.isEmpty { try writer.add(Proofreader.dictionaryFile, Proofreader.encodeDictionary(dictionary)) }
-        try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn))
-        // What Canvia is used for, when it was answered.
-        if let use = UseProfile.current() { try writer.add(UseProfile.settingsFile, UseProfile.encodeSettings(use)) }
+        // The settings that travel, what Canvia is used for among them when
+        // it was answered: one settings.json for both.
+        try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn, use: UseProfile.current()))
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
