@@ -129,6 +129,8 @@ struct ExportSheet: View {
     @State private var errorMessage: String?
     /// Mockups, over the sheet.
     @State private var showingMockups = false
+    /// Plan a post…, over the sheet.
+    @State private var planningPost = false
 
     var body: some View {
         NavigationStack {
@@ -157,6 +159,7 @@ struct ExportSheet: View {
                     // The design as saved has no editor to add a picture to.
                     MockupSheet(design: store.design, store: readOnly ? nil : store, startPage: store.pageIndex)
                 }
+                .sheet(isPresented: $planningPost) { PlanPostSheet(store: store) }
                 .sheet(isPresented: $choosingPages, onDismiss: {
                     ExportChoices.remember(chosenIds, for: store.design)
                 }) {
@@ -505,6 +508,12 @@ struct ExportSheet: View {
         // The page on a phone, a laptop, a print or a shirt.
         Button("Mockups") { showingMockups = true }
             .buttonStyle(.bordered)
+        // A reminder with the caption, the file made when it rings; kept
+        // with the design, which the sheet from Home does not change.
+        if !readOnly {
+            Button("Plan a post…") { planningPost = true }
+                .buttonStyle(.bordered)
+        }
     }
 
     /// Why Share cannot now, what Photos took, and a video's lost music.

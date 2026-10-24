@@ -1,5 +1,6 @@
-// Settings: Appearance, Language, Editing, Export, Help, Storage, Backup
-// and About — the same sections, in the same words, as the Android twin's.
+// Settings: Appearance, Language, Editing, Accessibility, Export, Help,
+// Storage, Backup and About — the same sections, in the same words, as the
+// Android twin's.
 // Opened from Home's gear and the editor's More menu.
 //
 // Language opens Canvia's page in the Settings app, where iOS keeps an
@@ -110,6 +111,12 @@ struct SettingsSheet: View {
     @AppStorage(AppDefaults.unitKey) private var unit = "px"
     /// What Canvia is used for, as the first launch asked; "" for none.
     @AppStorage(UseProfile.key) private var use = ""
+    /// Settings ▸ Accessibility (AccessibilityPrefs).
+    @AppStorage(AccessibilityPrefs.reduceMotionKey) private var reduceMotion = AccessibilityPrefs.system
+    @AppStorage(AccessibilityPrefs.autoplayClipsKey) private var autoplayClips = true
+    @AppStorage(AccessibilityPrefs.altTextPromptKey) private var altTextPrompt = false
+    @AppStorage(AccessibilityPrefs.underlineLinksKey) private var underlineLinks = false
+    @AppStorage(AccessibilityPrefs.largerHandlesKey) private var largerHandles = false
     @State private var snapping = SnapSettings.load()
     @State private var storage: StorageReport?
     @State private var clearingCaches = false
@@ -141,6 +148,7 @@ struct SettingsSheet: View {
                 languageSection
                 brandSection
                 editingSection
+                accessibilitySection
                 exportSection
                 helpSection
                 storageSection
@@ -219,6 +227,43 @@ struct SettingsSheet: View {
             store?.snapping = next
         }
         .onAppear { if let store { snapping = store.snapping } }
+    }
+
+    /// Each row with what it does in a line, read with it as one.
+    private var accessibilitySection: some View {
+        Section("Accessibility") {
+            Picker(selection: $reduceMotion) {
+                ForEach(AccessibilityPrefs.reduceMotionChoices, id: \.self) {
+                    Text(AccessibilityPrefs.reduceMotionName($0)).tag($0)
+                }
+            } label: {
+                explained("Reduce motion",
+                          "Animations in the editor and Present; System follows the phone. Exports are unchanged.")
+            }
+            Toggle(isOn: $autoplayClips) {
+                explained("Play clips automatically", "Off, clips stay paused in the editor until you tap them.")
+            }
+            Toggle(isOn: $altTextPrompt) {
+                explained("Ask for alt text", "Asks what a photo, graphic or chart shows as soon as you add it.")
+            }
+            Toggle(isOn: $underlineLinks) {
+                explained("Underline links", "Draws a line under linked words in the editor and Present.")
+            }
+            Toggle(isOn: $largerHandles) {
+                explained("Larger handles", "Makes selection handles and their touch areas bigger.")
+            }
+        }
+    }
+
+    /// A setting's name with what it does in a line under it.
+    private func explained(_ title: LocalizedStringKey, _ note: LocalizedStringKey) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+            Text(note)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var exportSection: some View {

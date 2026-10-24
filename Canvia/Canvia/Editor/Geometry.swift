@@ -27,8 +27,13 @@ enum Touch {
     /// screen, the Android twin's HANDLE_MIN_GAP: on a small or zoomed-out
     /// element the ring of handles stands off the outline to keep them apart.
     static let handleMinGap = 17.0
-    /// How far from a handle, on screen, a finger still takes it.
-    static let handleReach = 22.0
+    /// How far from a handle, on screen, a finger still takes it: 1.4
+    /// times as far with Settings ▸ Accessibility's Larger handles.
+    static var handleReach: Double { 22.0 * handleScale }
+    /// Larger handles' 1.4, else 1 (AccessibilityPrefs).
+    static var handleScale: Double {
+        AccessibilityPrefs.handleScale(larger: UserDefaults.standard.bool(forKey: AccessibilityPrefs.largerHandlesKey))
+    }
     /// Inside the element a handle reaches only this far, so a touch on the
     /// body of a small element still moves it rather than resizing it.
     static let handleReachInside = 8.0

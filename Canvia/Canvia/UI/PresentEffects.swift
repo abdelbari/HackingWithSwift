@@ -12,7 +12,13 @@ import SwiftUI
 struct PresentEffectsLayer: View {
     let session: PresentSession
     let size: CGSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) private var systemReducesMotion
+    /// Settings ▸ Accessibility's Reduce motion, over the phone's own
+    /// (AccessibilityPrefs).
+    @AppStorage(AccessibilityPrefs.reduceMotionKey) private var reduceMotionChoice = AccessibilityPrefs.system
+    private var reduceMotion: Bool {
+        AccessibilityPrefs.reducesMotion(reduceMotionChoice, systemReduces: systemReducesMotion)
+    }
 
     var body: some View {
         let shown = session.effects.filter { $0.id != "blur" }

@@ -113,7 +113,13 @@ struct EditorView: View {
     /// undo gestures again (UndoHost): as it appears, and as typing, the
     /// title, a sheet or an alert lets the keyboard go.
     @State private var undoClaim = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) private var systemReducesMotion
+    /// Settings ▸ Accessibility's Reduce motion, over the phone's own
+    /// (AccessibilityPrefs).
+    @AppStorage(AccessibilityPrefs.reduceMotionKey) private var reduceMotionChoice = AccessibilityPrefs.system
+    private var reduceMotion: Bool {
+        AccessibilityPrefs.reducesMotion(reduceMotionChoice, systemReduces: systemReducesMotion)
+    }
 
     /// What the banner says while saves are failing; the Android twin says
     /// the same.
@@ -1953,5 +1959,6 @@ private struct WordRequests: ViewModifier {
             }
             .modifier(WordLinkPrompt(store: store))
             .modifier(PhotoInLettersPrompts(store: store, openAdjust: { activeSheet = .photoInLetters }))
+            .modifier(AltTextPrompt(store: store))
     }
 }

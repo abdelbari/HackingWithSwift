@@ -41,6 +41,7 @@ struct ElementView: View {
     @Environment(\.pageNumber) private var pageNumber
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.clipsPlay) private var clipsPlay
+    @Environment(\.pausedClips) private var pausedClips
     @Environment(\.playsPictures) private var playsPictures
     @Environment(\.captionTime) private var captionTime
     @Environment(\.captionsPlay) private var captionsPlay
@@ -100,7 +101,7 @@ struct ElementView: View {
         // at rest, the frame at its start.
         if let src = el.src, let parts = VideoStore.split(src), parts.time == nil {
             let clip = el.clip ?? ClipPlayback()
-            if let clock = animationTime {
+            if let clock = animationTime, !pausedClips.contains(el.id) {
                 let length = liveVideo ? VideoStore.knownLength(parts.id) : VideoStore.duration(of: parts.id)
                 el.src = VideoStore.src(parts.id, at: VideoStore.clipTime(clock.time, clip: clip, duration: length))
             } else {
@@ -207,7 +208,7 @@ struct ElementView: View {
                 // Whether the page's clock runs, read here once so a photo
                 // is not drawn again on every tick of it — not for a scrub,
                 // whose time stands still between drags.
-                ImageElementView(element: el, clipPlays: clipsPlay && animationTime != nil)
+                ImageElementView(element: el, clipPlays: clipsPlay && animationTime != nil && !pausedClips.contains(el.id))
             }
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)

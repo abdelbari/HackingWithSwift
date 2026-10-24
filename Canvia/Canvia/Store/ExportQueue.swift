@@ -420,15 +420,17 @@ final class ExportNotifications: NSObject, UNUserNotificationCenterDelegate {
     static let shareAction = "canvia.export.share"
     static let openAction = "canvia.export.open"
 
-    /// At launch: this object hears the actions, and the done category has
-    /// its Share and Open.
+    /// At launch: this object hears the actions, the done category has its
+    /// Share and Open, and a planned post's reminder its Share now
+    /// (PostReminders).
     static func register() {
         let center = UNUserNotificationCenter.current()
         center.delegate = shared
         let share = UNNotificationAction(identifier: shareAction, title: ExportChoices.shareAction, options: [.foreground])
         let open = UNNotificationAction(identifier: openAction, title: ExportChoices.openAction, options: [.foreground])
         center.setNotificationCategories([UNNotificationCategory(identifier: category, actions: [share, open],
-                                                                  intentIdentifiers: [], options: [])])
+                                                                  intentIdentifiers: [], options: []),
+                                          PostReminders.notificationCategory])
     }
 
     /// Asked once, the first time an export is kept going in the
@@ -462,6 +464,15 @@ final class ExportNotifications: NSObject, UNUserNotificationCenterDelegate {
     /// (ExportQueue.tapped).
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
+        // A planned post's reminder: Share now, or the reminder itself,
+        // makes the post and shares it.
+        if let post = PostReminders.post(of: response.notification.request) {
+            if response.actionIdentifier != UNNotificationDismissActionIdentifier {
+                Task { @MainActor in await PostReminders.shareNow(designId: post.designId, postId: post.postId) }
+            }
+            completionHandler()
+            return
+        }
         let request = Self.request(for: response.actionIdentifier)
         let identifier = response.notification.request.identifier
         let job = identifier.hasPrefix(Self.identifierPrefix)
@@ -481,10 +492,11 @@ final class ExportNotifications: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    /// In the app, the pill already says it.
+    /// In the app, the pill already says an export's; a planned post's
+    /// reminder shows, as it is the time to post.
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([])
+        completionHandler(PostReminders.post(of: notification.request) != nil ? [.banner, .sound, .list] : [])
     }
 }
 

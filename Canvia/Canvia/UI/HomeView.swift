@@ -17,6 +17,8 @@ enum HomeSheet: Identifiable, Equatable {
     case brandKit
     /// Everything brought in: photos, clips, songs and fonts.
     case uploads
+    /// The posts planned, across the designs (PostPlanner).
+    case planned
 
     var id: String {
         switch self {
@@ -28,6 +30,7 @@ enum HomeSheet: Identifiable, Equatable {
         case .settings: return "settings"
         case .brandKit: return "brand-kit"
         case .uploads: return "uploads"
+        case .planned: return "planned"
         }
     }
 }
@@ -312,6 +315,12 @@ struct HomeView: View {
                 .onDisappear { reload() }
         case .uploads:
             uploadsSheet
+        case .planned:
+            PlannedSheet(onOpen: { design in
+                openAfterSheet = design
+                homeSheet = nil
+            })
+            .onDisappear { reload() }
         }
     }
 
@@ -668,6 +677,7 @@ struct HomeView: View {
                     folder = nil
                 }
                 uploadsChip
+                plannedChip
                 ForEach(folders, id: \.self) { name in
                     chip(name, selected: folder == name, systemImage: starredFolders.contains(name) ? "star.fill" : "folder") {
                         folder = folder == name ? nil : name
@@ -835,6 +845,11 @@ struct HomeView: View {
     /// Everything brought in, on a sheet of its own.
     private var uploadsChip: some View {
         chip(tr("Uploads"), selected: false, systemImage: "photo.on.rectangle") { homeSheet = .uploads }
+    }
+
+    /// The posts planned, soonest first, on a sheet of their own.
+    private var plannedChip: some View {
+        chip(tr("Planned"), selected: false, systemImage: "calendar") { homeSheet = .planned }
     }
 
     private func chip(_ title: String, selected: Bool, systemImage: String? = nil,
