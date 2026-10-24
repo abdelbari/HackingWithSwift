@@ -117,6 +117,12 @@ final class FolderPathsTests: XCTestCase {
         // Moved up to the top, a deleted folder's star goes; those inside it move.
         let up = DesignLibrary.renamingFolder(stars, from: "Clients/Acme", to: nil)
         XCTAssertEqual(Set(up.map(\.name)), ["2026", "Personal"])
+        // Deleted with Move contents up, a starred folder does not star the one it is in.
+        let removed = DesignLibrary.removingFolder(stars, from: "Clients/Acme", up: "Clients")
+        XCTAssertEqual(Set(removed.filter(\.starred).map(\.name)), ["Clients/2026", "Personal"])
+        let kept = DesignLibrary.removingFolder(stars + [Folder(name: "Clients", starred: true)], from: "Clients/Acme", up: "Clients")
+        XCTAssertEqual(Set(kept.filter(\.starred).map(\.name)), ["Clients", "Clients/2026", "Personal"])
+        XCTAssertEqual(Set(DesignLibrary.removingFolder(stars, from: "Clients/Acme", up: nil).map(\.name)), ["2026", "Personal"])
         let text = DesignLibrary.homeFoldersJSON(renamed)
         XCTAssertEqual(Set(DesignLibrary.homeFolders(fromJSON: text).map(\.name)), Set(renamed.map(\.name)))
     }
