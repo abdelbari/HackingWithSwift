@@ -989,6 +989,15 @@
     "ja": "%@ の種類",
     "pt-BR": "Tipo %@"
   },
+  "%@ warp": {
+    "ar": "تشويه %@",
+    "de": "Verzerrung %@",
+    "es": "Deformación %@",
+    "fr": "Déformation %@",
+    "it": "Distorsione %@",
+    "ja": "%@ ワープ",
+    "pt-BR": "Distorção %@"
+  },
   "%@ wide, %@ tall": {
     "ar": "بعرض %@ وارتفاع %@",
     "de": "%@ breit, %@ hoch",
@@ -4250,6 +4259,15 @@
     "ja": "A4（300 dpi、3508）",
     "pt-BR": "A4 a 300 dpi (3508)"
   },
+  "Aa uppercase": {
+    "ar": "Aa أحرف كبيرة",
+    "de": "Aa Großbuchstaben",
+    "es": "Aa mayúsculas",
+    "fr": "Aa majuscules",
+    "it": "Aa maiuscole",
+    "ja": "Aa 大文字",
+    "pt-BR": "Aa maiúsculas"
+  },
   "About": {
     "ar": "حول",
     "de": "Info",
@@ -4502,6 +4520,15 @@
     "ja": "引用を追加",
     "pt-BR": "Adicionar uma citação"
   },
+  "Add a section header": {
+    "ar": "إضافة ترويسة قسم",
+    "de": "Abschnittsüberschrift hinzufügen",
+    "es": "Añadir un encabezado de sección",
+    "fr": "Ajouter un en-tête de section",
+    "it": "Aggiungi un'intestazione di sezione",
+    "ja": "セクション見出しを追加",
+    "pt-BR": "Adicionar um cabeçalho de seção"
+  },
   "Add a subheading": {
     "ar": "إضافة عنوان فرعي",
     "de": "Unterüberschrift hinzufügen",
@@ -4509,6 +4536,15 @@
     "fr": "Ajouter un sous-titre",
     "it": "Aggiungi un sottotitolo",
     "ja": "小見出しを追加",
+    "pt-BR": "Adicionar um subtítulo"
+  },
+  "Add a subtitle": {
+    "ar": "إضافة عنوان فرعي",
+    "de": "Untertitel hinzufügen",
+    "es": "Añadir un subtítulo",
+    "fr": "Ajouter un sous-titre",
+    "it": "Aggiungi un sottotitolo",
+    "ja": "サブタイトルを追加",
     "pt-BR": "Adicionar um subtítulo"
   },
   "Add a template of yours": {
@@ -5285,6 +5321,15 @@
     "ja": "行の交互色",
     "pt-BR": "Linhas alternadas"
   },
+  "Amount": {
+    "ar": "المقدار",
+    "de": "Stärke",
+    "es": "Cantidad",
+    "fr": "Intensité",
+    "it": "Intensità",
+    "ja": "量",
+    "pt-BR": "Intensidade"
+  },
   "Analogous": {
     "ar": "متجاورة",
     "de": "Analog",
@@ -5329,6 +5374,15 @@
     "it": "Anima",
     "ja": "アニメート",
     "pt-BR": "Animar"
+  },
+  "Animate by": {
+    "ar": "التحريك حسب",
+    "de": "Animieren nach",
+    "es": "Animar por",
+    "fr": "Animer par",
+    "it": "Anima per",
+    "ja": "アニメーションの単位",
+    "pt-BR": "Animar por"
   },
   "Animated": {
     "ar": "متحرك",
@@ -5698,6 +5752,15 @@
     "it": "Grafica",
     "ja": "アートワーク",
     "pt-BR": "Arte"
+  },
+  "Ascend": {
+    "ar": "صعود",
+    "de": "Aufsteigen",
+    "es": "Ascender",
+    "fr": "Montée",
+    "it": "Ascesa",
+    "ja": "上昇",
+    "pt-BR": "Ascender"
   },
   "Audio": {
     "ar": "الصوت",
@@ -6200,6 +6263,15 @@
     "ja": "ブロブ",
     "pt-BR": "Manchas"
   },
+  "Block": {
+    "ar": "كتلة",
+    "de": "Block",
+    "es": "Bloque",
+    "fr": "Bloc",
+    "it": "Blocco",
+    "ja": "ブロック",
+    "pt-BR": "Bloco"
+  },
   "Blue": {
     "ar": "أزرق",
     "de": "Blau",
@@ -6434,6 +6506,15 @@
     "ja": "バウンス（ループ）",
     "pt-BR": "Quicar (repetir)"
   },
+  "Bounce in": {
+    "ar": "ارتداد للداخل",
+    "de": "Hereinspringen",
+    "es": "Rebote de entrada",
+    "fr": "Rebond d'entrée",
+    "it": "Rimbalzo in entrata",
+    "ja": "バウンスイン",
+    "pt-BR": "Entrada com quique"
+  },
   "Box": {
     "ar": "صندوق",
     "de": "Kasten",
@@ -6460,6 +6541,15 @@
     "it": "Testo del corpo del brand",
     "ja": "ブランドの本文",
     "pt-BR": "Corpo de texto da marca"
+  },
+  "Brand colours": {
+    "ar": "ألوان العلامة التجارية",
+    "de": "Markenfarben",
+    "es": "Colores de marca",
+    "fr": "Couleurs de la marque",
+    "it": "Colori del brand",
+    "ja": "ブランドカラー",
+    "pt-BR": "Cores da marca"
   },
   "Brand fonts": {
     "ar": "خطوط العلامة التجارية",
@@ -6772,6 +6862,15 @@
     "it": "Fumetti",
     "ja": "バブル",
     "pt-BR": "Bolhas"
+  },
+  "Bulge": {
+    "ar": "انتفاخ",
+    "de": "Wölbung",
+    "es": "Abultar",
+    "fr": "Renflement",
+    "it": "Rigonfiamento",
+    "ja": "膨らみ",
+    "pt-BR": "Abaulado"
   },
   "Bulleted list": {
     "ar": "قائمة نقطية",
@@ -7513,6 +7612,15 @@
     "it": "Timbro rotondo",
     "ja": "丸いスタンプ",
     "pt-BR": "Carimbo redondo"
+  },
+  "Clarify": {
+    "ar": "توضيح",
+    "de": "Scharfstellen",
+    "es": "Enfocar",
+    "fr": "Netteté",
+    "it": "Messa a fuoco",
+    "ja": "くっきり",
+    "pt-BR": "Nitidez"
   },
   "Clarity": {
     "ar": "الوضوح",
@@ -10874,6 +10982,15 @@
     "ja": "写真を編集",
     "pt-BR": "Editar foto"
   },
+  "Edit shape": {
+    "ar": "تعديل الشكل",
+    "de": "Form bearbeiten",
+    "es": "Editar forma",
+    "fr": "Modifier la forme",
+    "it": "Modifica forma",
+    "ja": "形を編集",
+    "pt-BR": "Editar forma"
+  },
   "Edit text": {
     "ar": "تعديل النص",
     "de": "Text bearbeiten",
@@ -12172,6 +12289,15 @@
     "it": "Correggi colore",
     "ja": "色を修正",
     "pt-BR": "Corrigir cor"
+  },
+  "Flag": {
+    "ar": "علم",
+    "de": "Flagge",
+    "es": "Bandera",
+    "fr": "Drapeau",
+    "it": "Bandiera",
+    "ja": "旗",
+    "pt-BR": "Bandeira"
   },
   "Flags": {
     "ar": "الأعلام",
@@ -14228,6 +14354,15 @@
     "ja": "バックグラウンドで書き出しを続けますか？",
     "pt-BR": "Continuar exportando em segundo plano?"
   },
+  "Keep formatting when pasting": {
+    "ar": "الإبقاء على التنسيق عند اللصق",
+    "de": "Formatierung beim Einfügen beibehalten",
+    "es": "Mantener el formato al pegar",
+    "fr": "Conserver la mise en forme lors du collage",
+    "it": "Mantieni la formattazione quando incolli",
+    "ja": "ペースト時に書式を保持",
+    "pt-BR": "Manter a formatação ao colar"
+  },
   "Keep proportions": {
     "ar": "الحفاظ على النسب",
     "de": "Proportionen beibehalten",
@@ -14534,6 +14669,15 @@
     "ja": "余白を減らす",
     "pt-BR": "Menos margem"
   },
+  "Letter": {
+    "ar": "حرف",
+    "de": "Buchstabe",
+    "es": "Letra",
+    "fr": "Lettre",
+    "it": "Lettera",
+    "ja": "文字",
+    "pt-BR": "Letra"
+  },
   "Letter pop": {
     "ar": "بروز الحروف",
     "de": "Buchstaben-Pop",
@@ -14677,6 +14821,15 @@
     "it": "Linea",
     "ja": "線",
     "pt-BR": "Linha"
+  },
+  "Line %@": {
+    "ar": "تباعد الأسطر %@",
+    "de": "Zeilenabstand %@",
+    "es": "Interlineado %@",
+    "fr": "Interligne %@",
+    "it": "Interlinea %@",
+    "ja": "行間 %@",
+    "pt-BR": "Entrelinha %@"
   },
   "Line colour": {
     "ar": "لون الخط",
@@ -15352,6 +15505,15 @@
     "it": "Pennarello",
     "ja": "マーカー",
     "pt-BR": "Marcador"
+  },
+  "Markers": {
+    "ar": "أقلام التمييز",
+    "de": "Textmarker",
+    "es": "Marcadores",
+    "fr": "Surligneurs",
+    "it": "Evidenziatori",
+    "ja": "マーカー",
+    "pt-BR": "Marcadores"
   },
   "Marketing": {
     "ar": "التسويق",
@@ -18710,6 +18872,15 @@
     "ja": "貼り付け",
     "pt-BR": "Colar"
   },
+  "Paste as plain text": {
+    "ar": "لصق كنص عادي",
+    "de": "Als reinen Text einfügen",
+    "es": "Pegar como texto sin formato",
+    "fr": "Coller en texte brut",
+    "it": "Incolla come testo semplice",
+    "ja": "プレーンテキストとしてペースト",
+    "pt-BR": "Colar como texto simples"
+  },
   "Paste page": {
     "ar": "لصق الصفحة",
     "de": "Seite einfügen",
@@ -18880,6 +19051,15 @@
     "it": "Personale",
     "ja": "パーソナル",
     "pt-BR": "Pessoal"
+  },
+  "Perspective": {
+    "ar": "منظور",
+    "de": "Perspektive",
+    "es": "Perspectiva",
+    "fr": "Perspective",
+    "it": "Prospettiva",
+    "ja": "遠近",
+    "pt-BR": "Perspectiva"
   },
   "Phone": {
     "ar": "هاتف",
@@ -21080,6 +21260,15 @@
     "ja": "右上がりの斜線",
     "pt-BR": "Diagonal ascendente"
   },
+  "Roll": {
+    "ar": "تدحرج",
+    "de": "Rollen",
+    "es": "Rodar",
+    "fr": "Roulade",
+    "it": "Rotolamento",
+    "ja": "ロール",
+    "pt-BR": "Rolar"
+  },
   "Rose": {
     "ar": "وردي",
     "de": "Rose",
@@ -21902,6 +22091,15 @@
     "ja": "セクション",
     "pt-BR": "Seção"
   },
+  "Section header": {
+    "ar": "ترويسة القسم",
+    "de": "Abschnittsüberschrift",
+    "es": "Encabezado de sección",
+    "fr": "En-tête de section",
+    "it": "Intestazione di sezione",
+    "ja": "セクション見出し",
+    "pt-BR": "Cabeçalho de seção"
+  },
   "See all": {
     "ar": "عرض الكل",
     "de": "Alle anzeigen",
@@ -22442,6 +22640,15 @@
     "ja": "図形アシスト",
     "pt-BR": "Assistente de formas"
   },
+  "Shape point %d": {
+    "ar": "نقطة الشكل %d",
+    "de": "Formpunkt %d",
+    "es": "Punto de la forma %d",
+    "fr": "Point de la forme %d",
+    "it": "Punto della forma %d",
+    "ja": "形のポイント %d",
+    "pt-BR": "Ponto da forma %d"
+  },
   "Shapes": {
     "ar": "الأشكال",
     "de": "Formen",
@@ -22702,6 +22909,15 @@
     "it": "Scudo",
     "ja": "盾",
     "pt-BR": "Escudo"
+  },
+  "Shift": {
+    "ar": "إزاحة",
+    "de": "Verschieben",
+    "es": "Desplazar",
+    "fr": "Décalage",
+    "it": "Spostamento",
+    "ja": "シフト",
+    "pt-BR": "Deslocar"
   },
   "Shorter row": {
     "ar": "صف أقصر",
@@ -23017,6 +23233,15 @@
     "it": "Dimensioni preimpostate",
     "ja": "サイズのプリセット",
     "pt-BR": "Tamanhos predefinidos"
+  },
+  "Skate": {
+    "ar": "تزلج",
+    "de": "Gleiten",
+    "es": "Patinar",
+    "fr": "Glisse",
+    "it": "Pattinaggio",
+    "ja": "スケート",
+    "pt-BR": "Deslizar"
   },
   "Skin tone": {
     "ar": "لون البشرة",
@@ -23507,6 +23732,15 @@
     "ja": "間隔",
     "pt-BR": "Espaçamento"
   },
+  "Spacing %d": {
+    "ar": "التباعد %d",
+    "de": "Abstand %d",
+    "es": "Espaciado %d",
+    "fr": "Espacement %d",
+    "it": "Spaziatura %d",
+    "ja": "間隔 %d",
+    "pt-BR": "Espaçamento %d"
+  },
   "Spanish": {
     "ar": "الإسبانية",
     "de": "Spanisch",
@@ -23659,6 +23893,15 @@
     "it": "Quadrato",
     "ja": "正方形",
     "pt-BR": "Quadrado"
+  },
+  "Squeeze": {
+    "ar": "ضغط",
+    "de": "Stauchen",
+    "es": "Estrechar",
+    "fr": "Pincement",
+    "it": "Stringi",
+    "ja": "すぼめる",
+    "pt-BR": "Apertar"
   },
   "Squircle": {
     "ar": "مربع مستدير",
@@ -24197,6 +24440,15 @@
     "ja": "件名",
     "pt-BR": "Assunto"
   },
+  "Subtitle": {
+    "ar": "عنوان فرعي",
+    "de": "Untertitel",
+    "es": "Subtítulo",
+    "fr": "Sous-titre",
+    "it": "Sottotitolo",
+    "ja": "サブタイトル",
+    "pt-BR": "Subtítulo"
+  },
   "Suffix": {
     "ar": "لاحقة",
     "de": "Suffix",
@@ -24547,6 +24799,15 @@
     "it": "Il testo rispetto a ciò che ha dietro, secondo WCAG AA: 4,5:1, o 3:1 per il testo grande.",
     "ja": "背景に対するテキストのコントラスト（WCAG AA 基準：4.5:1、大きな文字は 3:1）。",
     "pt-BR": "Texto em relação ao que está atrás dele, segundo WCAG AA: 4,5:1, ou 3:1 para texto grande."
+  },
+  "Text animations": {
+    "ar": "حركات النص",
+    "de": "Textanimationen",
+    "es": "Animaciones de texto",
+    "fr": "Animations de texte",
+    "it": "Animazioni del testo",
+    "ja": "テキストアニメーション",
+    "pt-BR": "Animações de texto"
   },
   "Text box": {
     "ar": "مربع نص",
@@ -26216,6 +26477,15 @@
     "ja": "試す:",
     "pt-BR": "Experimente:"
   },
+  "Tumble": {
+    "ar": "شقلبة",
+    "de": "Purzeln",
+    "es": "Voltereta",
+    "fr": "Culbute",
+    "it": "Capriola",
+    "ja": "タンブル",
+    "pt-BR": "Cambalhota"
+  },
   "Turn": {
     "ar": "تدوير",
     "de": "Drehung",
@@ -27398,6 +27668,15 @@
     "ja": "色温度",
     "pt-BR": "Temperatura"
   },
+  "Warp amount": {
+    "ar": "مقدار التشويه",
+    "de": "Stärke der Verzerrung",
+    "es": "Cantidad de deformación",
+    "fr": "Intensité de la déformation",
+    "it": "Intensità della distorsione",
+    "ja": "ワープの量",
+    "pt-BR": "Intensidade da distorção"
+  },
   "Wave": {
     "ar": "موجة",
     "de": "Welle",
@@ -27740,6 +28019,15 @@
     "ja": "写真なし",
     "pt-BR": "Sem fotos"
   },
+  "Word": {
+    "ar": "كلمة",
+    "de": "Wort",
+    "es": "Palabra",
+    "fr": "Mot",
+    "it": "Parola",
+    "ja": "単語",
+    "pt-BR": "Palavra"
+  },
   "Word by word": {
     "ar": "كلمة بكلمة",
     "de": "Wort für Wort",
@@ -27793,6 +28081,15 @@
     "it": "Racchiudi le parole come faresti in un messaggio: **due asterischi** per il grassetto, *un asterisco* o _trattini bassi_ per il corsivo, __due trattini bassi__ per sottolineare, ~~due tilde~~ per barrare. I simboli scompaiono e le parole prendono lo stile, sulla tela e in ogni esportazione. Mentre digiti, scegli alcune parole e tocca Grassetto, Corsivo, Sottolineato o Barrato sopra la tastiera per aggiungere o togliere i simboli intorno.",
     "ja": "メッセージと同じように単語を囲みます：**アスタリスク 2 つ** で太字、*アスタリスク 1 つ* または _アンダースコア_ で斜体、__アンダースコア 2 つ__ で下線、~~チルダ 2 つ~~ で取り消し線。記号は消え、キャンバスでもすべての書き出しでも単語にスタイルが適用されます。入力中に単語を選んでキーボード上の「太字」「斜体」「下線」「取り消し線」をタップすると、記号を付けたり外したりできます。",
     "pt-BR": "Marque as palavras como faria em uma mensagem: **duas estrelas** para negrito, *uma estrela* ou _sublinhados_ para itálico, __dois sublinhados__ para sublinhar, ~~dois tis~~ para tachar. Os marcadores desaparecem e as palavras ganham o estilo, na tela de design e em todas as exportações. Enquanto digita, escolha algumas palavras e toque em Negrito, Itálico, Sublinhado ou Tachado acima do teclado para colocar ou tirar os marcadores."
+  },
+  "Write on": {
+    "ar": "كتابة",
+    "de": "Schreiben",
+    "es": "Escritura",
+    "fr": "Écriture",
+    "it": "Scrittura",
+    "ja": "手書き",
+    "pt-BR": "Escrita"
   },
   "X axis": {
     "ar": "المحور السيني",
