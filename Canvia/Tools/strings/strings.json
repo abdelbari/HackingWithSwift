@@ -7451,6 +7451,15 @@
     "ja": "置き換えるものを選択",
     "pt-BR": "Escolher um substituto"
   },
+  "Choose a sheet": {
+    "ar": "اختر ورقة",
+    "de": "Tabellenblatt wählen",
+    "es": "Elige una hoja",
+    "fr": "Choisissez une feuille",
+    "it": "Scegli un foglio",
+    "ja": "シートを選択",
+    "pt-BR": "Escolha uma planilha"
+  },
   "Choose a video": {
     "ar": "اختيار فيديو",
     "de": "Video auswählen",
@@ -13774,6 +13783,15 @@
     "it": "Importa un kit…",
     "ja": "キットを読み込む…",
     "pt-BR": "Importar um kit…"
+  },
+  "Import data": {
+    "ar": "استيراد البيانات",
+    "de": "Daten importieren",
+    "es": "Importar datos",
+    "fr": "Importer des données",
+    "it": "Importa dati",
+    "ja": "データを読み込む",
+    "pt-BR": "Importar dados"
   },
   "Imported %d of %d columns": {
     "ar": "تم استيراد %d من %d عمود",
@@ -24826,6 +24844,15 @@
     "it": "Quel file supera 1 MB",
     "ja": "そのファイルは 1 MB を超えています",
     "pt-BR": "Esse arquivo tem mais de 1 MB"
+  },
+  "That file is over 10 MB": {
+    "ar": "حجم ذلك الملف أكبر من 10 ميغابايت",
+    "de": "Diese Datei ist größer als 10 MB",
+    "es": "Ese archivo ocupa más de 10 MB",
+    "fr": "Ce fichier dépasse 10 Mo",
+    "it": "Quel file supera 10 MB",
+    "ja": "そのファイルは 10 MB を超えています",
+    "pt-BR": "Esse arquivo tem mais de 10 MB"
   },
   "That file isn't a Canvia design.": {
     "ar": "ذلك الملف ليس تصميم Canvia.",

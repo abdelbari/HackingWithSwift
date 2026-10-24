@@ -126,6 +126,12 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   script's seeded maths). A loop is a picture `motion:<id>` that plays
   round in Play, Present, video and GIF, and shows its first frame in a
   still
+- Import data: a chart's or a table's data sheet takes CSV, TSV and text
+  files and Excel workbooks (`XlsxReader`: shared strings, numbers, dates
+  as ISO, booleans, formulas' cached values, up to 500 rows by 50
+  columns), asking which sheet when there are several; a workbook opened
+  in Canvia from another app becomes a new design with a chart of its
+  first sheet (`Spreadsheets`)
 - Mockups: from the Export sheet's Share row and a design's card on Home,
   a page shown on a phone, laptop, tablet, framed print, poster, business
   card, T-shirt, mug and more — twenty-one vector scenes

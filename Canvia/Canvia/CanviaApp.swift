@@ -83,6 +83,27 @@ struct CanviaApp: App {
         }
     }
 
+    /// An Excel workbook handed to the app, opened as a new design with a
+    /// chart of its first sheet (Spreadsheets), under the same card a
+    /// design file shows.
+    private func openSpreadsheet(_ url: URL) {
+        guard url.isFileURL else { return }
+        let taken = DesignLibrary.recents().map(\.title)
+        openingFile = true
+        Task { @MainActor in
+            defer {
+                openingFile = false
+                DesignPackage.discardInboxCopy(url)
+            }
+            do {
+                let design = try await Spreadsheets.importFile(at: url, taken: taken)
+                withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
+            } catch {
+                openError = error.localizedDescription
+            }
+        }
+    }
+
     /// A photo, video, PDF or SVG handed to the app, gathered with any that
     /// come with it, copied into the inbox and offered as a new design
     /// (SharedInbox). The copies handed over go once landed.
@@ -225,6 +246,8 @@ struct CanviaApp: App {
             .onOpenURL { url in
                 if SharedInbox.kind(of: url) != nil {
                     receiveShared(url)
+                } else if Spreadsheets.isSpreadsheet(url) {
+                    openSpreadsheet(url)
                 } else if PowerPoints.isDeck(url) {
                     deckURLs.append(url)
                 } else {
