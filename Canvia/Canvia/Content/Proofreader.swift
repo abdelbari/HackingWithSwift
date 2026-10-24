@@ -158,11 +158,12 @@ enum Proofreader {
 
     /// Every writing finding (Proofing.findings) across `design`, in the
     /// order its words are checked (checkables), in `language` — the
-    /// design's own when nil — each placed in its stored words, its one fix
+    /// design's own when nil, and the phone's when the design has none
+    /// (writingLanguage) — each placed in its stored words, its one fix
     /// its only suggestion. The typographic kinds only with `typography`.
     static func writing(in design: Design, language: String? = nil,
                         typography: Bool = Proofing.typographyOn) -> [Misspelling] {
-        let lang = language ?? design.language
+        let lang = writingLanguage(language ?? design.language)
         return checkables(in: design).flatMap { item -> [Misspelling] in
             let plain = item.plain as NSString
             return Proofing.findings(item.plain, language: lang, typography: typography).compactMap { f in
@@ -415,6 +416,13 @@ enum Proofreader {
         var out = design
         out.spellIgnore = now.isEmpty ? nil : now
         return out
+    }
+
+    /// The language the writing rules run in: `language` (BCP-47), or the
+    /// phone's own for none — as spelling falls back to it
+    /// (checkerLanguage), and as the Android twin's writing check does.
+    static func writingLanguage(_ language: String?) -> String {
+        languageTag(language) ?? Locale.current.identifier(.bcp47)
     }
 
     /// A language as the design keeps it: trimmed, nil for none.

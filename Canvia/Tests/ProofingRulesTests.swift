@@ -46,6 +46,36 @@ final class ProofingRulesTests: XCTestCase {
         return d
     }
 
+    /// Settings ▸ Proofing's Typography travels in a backup's settings by
+    /// the Android twin's key; a file without it, or with another kind of
+    /// value, keeps this phone's.
+    func testTypographyTravelsInABackup() throws {
+        let off = Backup.encodeSettings(autoLists: true, use: nil, exportA11yNudge: true, proofTypography: false)
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: off) as? [String: Any])
+        XCTAssertEqual(object["proofTypography"] as? Bool, false)
+        XCTAssertEqual(Backup.decodeProofTypography(off), false)
+        XCTAssertEqual(Backup.decodeProofTypography(Data(#"{"proofTypography":true}"#.utf8)), true)
+        XCTAssertNil(Backup.decodeProofTypography(Data(#"{"proofTypography":1}"#.utf8)))
+        XCTAssertNil(Backup.decodeProofTypography(Backup.encodeSettings(autoLists: true, use: nil)))
+    }
+
+    /// A design with no language is checked in the phone's, as spelling
+    /// and the Android twin's writing check are; a design's own wins.
+    func testADesignWithNoLanguageIsCheckedInThePhones() {
+        let phone = Locale.current.identifier(.bcp47)
+        XCTAssertEqual(Proofreader.writingLanguage(nil), phone)
+        XCTAssertEqual(Proofreader.writingLanguage("  "), phone)
+        XCTAssertEqual(Proofreader.writingLanguage("de"), "de")
+        let text = "Er sagt \"ja\" a Uhr"
+        let unset = Proofreader.writing(in: boxDesign(text), language: nil, typography: true).compactMap(\.rule)
+        XCTAssertEqual(unset, Proofing.findings(text, language: phone, typography: true).map(\.kind))
+        var german = boxDesign(text)
+        german.language = "de"
+        let quotes = Proofreader.writing(in: german, language: nil, typography: true).first { $0.rule == Proofing.quotes }
+        XCTAssertEqual(quotes?.suggestions.first, "\u{201E}")
+        XCTAssertFalse(Proofreader.writing(in: german, language: nil, typography: true).contains { $0.rule == Proofing.article })
+    }
+
     func testAFindingIsPlacedInTheStoredWordsAndFixedWithTheWordsStylingKept() throws {
         let d = boxDesign("**the the** cat")
         let found = Proofreader.writing(in: d, language: "en", typography: true)

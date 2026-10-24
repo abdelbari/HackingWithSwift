@@ -1,5 +1,5 @@
 {
-  "note": "The shared rich Doc fixture: blocks with spans (colour, highlight, link), spansText and align. Read and written back by both phones, every block must come out key for key as it went in; Find, Check spelling, the word count and the Word document read it as the tests say.",
+  "note": "The shared rich Doc fixture: blocks with spans (colour, highlight, link), spansText and align. Read and written back by both phones, every block must come out key for key as it went in; Find, Check spelling, the word count and the Word document read it as the tests say. wordRows: words counted between any Unicode spaces (a no-break space parts two), each with a letter or a number in it.",
   "design": {
     "id": "d-rich",
     "title": "Launch plan",
@@ -26,5 +26,14 @@
     {"blockId": "r6", "start": 9, "end": 15}
   ],
   "words": 25,
-  "wordCountLine": "25 words · 1 min read"
+  "wordCountLine": "25 words · 1 min read",
+  "wordRows": [
+    {"text": "deux\u00a0mots", "words": 2},
+    {"text": "un\u3000deux", "words": 2},
+    {"text": "line\u2028break\u2029here\u0085now", "words": 4},
+    {"text": "\u00bd cup", "words": 2},
+    {"text": "\u2014 \u2013 \u2026", "words": 0},
+    {"text": "\ud83d\ude00 hi", "words": 1},
+    {"text": "tab\there", "words": 2}
+  ]
 }

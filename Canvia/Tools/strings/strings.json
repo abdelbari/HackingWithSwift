@@ -4383,12 +4383,12 @@
     "pt-BR": "Uma nova paleta"
   },
   "A or an": {
-    "ar": "a أو an (الإنجليزية)",
+    "ar": "A أو an (الإنجليزية)",
     "de": "A oder an (Englisch)",
     "es": "A o an (inglés)",
     "fr": "A ou an (anglais)",
     "it": "A o an (inglese)",
-    "ja": "a と an（英語）",
+    "ja": "A と an（英語）",
     "pt-BR": "A ou an (inglês)"
   },
   "A picture of each page": {
@@ -5638,6 +5638,15 @@
     "it": "Salva anche i sottotitoli (.srt)",
     "ja": "字幕も保存 (.srt)",
     "pt-BR": "Salvar também as legendas (.srt)"
+  },
+  "Also while typing: Ctrl+K links the selected words, Ctrl+Alt+Up and Ctrl+Alt+Down loosen and tighten the line spacing, Ctrl+Alt+Right and Ctrl+Alt+Left the letter spacing, and Ctrl+Alt+C and Ctrl+Alt+V copy and paste the box's style.": {
+    "ar": "وأثناء الكتابة أيضًا: Ctrl+K يربط الكلمات المحددة، وCtrl+Alt+Up وCtrl+Alt+Down يوسّعان تباعد الأسطر ويضيّقانه، وCtrl+Alt+Right وCtrl+Alt+Left تباعد الأحرف، وCtrl+Alt+C وCtrl+Alt+V ينسخان نمط المربع ويلصقانه.",
+    "de": "Außerdem beim Tippen: Strg+K verlinkt die ausgewählten Wörter, Strg+Alt+Nach oben und Strg+Alt+Nach unten vergrößern und verringern den Zeilenabstand, Strg+Alt+Rechts und Strg+Alt+Links den Zeichenabstand, und Strg+Alt+C und Strg+Alt+V kopieren und fügen den Stil des Felds ein.",
+    "es": "También al escribir: Ctrl+K enlaza las palabras seleccionadas, Ctrl+Alt+Arriba y Ctrl+Alt+Abajo aumentan y reducen el interlineado, Ctrl+Alt+Derecha y Ctrl+Alt+Izquierda el espaciado entre letras, y Ctrl+Alt+C y Ctrl+Alt+V copian y pegan el estilo del cuadro.",
+    "fr": "Toujours pendant la saisie : Ctrl+K ajoute un lien aux mots sélectionnés, Ctrl+Alt+Haut et Ctrl+Alt+Bas augmentent et réduisent l’interligne, Ctrl+Alt+Droite et Ctrl+Alt+Gauche l’espacement des lettres, et Ctrl+Alt+C et Ctrl+Alt+V copient et collent le style de la zone.",
+    "it": "Inoltre, durante la digitazione: Ctrl+K collega le parole selezionate, Ctrl+Alt+Su e Ctrl+Alt+Giù aumentano e riducono l’interlinea, Ctrl+Alt+Destra e Ctrl+Alt+Sinistra la spaziatura delle lettere, e Ctrl+Alt+C e Ctrl+Alt+V copiano e incollano lo stile della casella.",
+    "ja": "入力中はさらに、Ctrl+K で選択した語句にリンク、Ctrl+Alt+上 と Ctrl+Alt+下 で行間を広く・狭く、Ctrl+Alt+右 と Ctrl+Alt+左 で文字間隔を変え、Ctrl+Alt+C と Ctrl+Alt+V でボックスのスタイルをコピー・貼り付けできます。",
+    "pt-BR": "Também ao digitar: Ctrl+K cria um link nas palavras selecionadas, Ctrl+Alt+Seta para cima e Ctrl+Alt+Seta para baixo aumentam e diminuem o espaçamento entre linhas, Ctrl+Alt+Direita e Ctrl+Alt+Esquerda o espaçamento entre letras, e Ctrl+Alt+C e Ctrl+Alt+V copiam e colam o estilo da caixa."
   },
   "Also while typing: ⌘K links the selected words, ⌥⌘↑ and ⌥⌘↓ loosen and tighten the line spacing, ⌥⌘→ and ⌥⌘← the letter spacing, and ⌥⌘C and ⌥⌘V copy and paste the box's style.": {
     "ar": "وأثناء الكتابة أيضًا: ‏⌘K يضيف رابطًا إلى الكلمات المحددة، و⌥⌘↑ و⌥⌘↓ يوسّعان تباعد الأسطر ويضيّقانه، و⌥⌘→ و⌥⌘← تباعد الأحرف، و⌥⌘C و⌥⌘V ينسخان نمط المربع ويلصقانه.",
@@ -7933,9 +7942,9 @@
   },
   "Check spelling also suggests curly quotes, an ellipsis for three full stops and a dash between numbers.": {
     "ar": "يقترح التدقيق الإملائي أيضًا علامات اقتباس منحنية، وعلامة حذف بدل ثلاث نقاط، وشرطة بين الأرقام.",
-    "de": "Die Rechtschreibprüfung schlägt auch typografische Anführungszeichen, ein Auslassungszeichen statt drei Punkten und einen Gedankenstrich zwischen Zahlen vor.",
+    "de": "Die Rechtschreibprüfung schlägt auch typografische Anführungszeichen, Auslassungspunkte statt drei Punkten und einen Gedankenstrich zwischen Zahlen vor.",
     "es": "Revisar ortografía también sugiere comillas tipográficas, puntos suspensivos en lugar de tres puntos y una raya entre números.",
-    "fr": "La vérification orthographique propose aussi des guillemets typographiques, des points de suspension pour trois points et un tiret entre deux nombres.",
+    "fr": "La vérification orthographique suggère aussi des guillemets typographiques, des points de suspension à la place de trois points et un tiret entre les nombres.",
     "it": "Il controllo ortografico suggerisce anche virgolette tipografiche, i puntini di sospensione al posto di tre punti e un trattino tra i numeri.",
     "ja": "スペルチェックでは、カーリー引用符、3つのピリオドの代わりの三点リーダー、数字の間のダッシュも提案します。",
     "pt-BR": "A verificação ortográfica também sugere aspas curvas, reticências no lugar de três pontos e um traço entre números."
@@ -9853,7 +9862,7 @@
   },
   "Dash in a range": {
     "ar": "شرطة في نطاق",
-    "de": "Strich in einem Bereich",
+    "de": "Gedankenstrich in einem Bereich",
     "es": "Raya en un intervalo",
     "fr": "Tiret dans un intervalle",
     "it": "Trattino in un intervallo",
@@ -9918,19 +9927,19 @@
     "ar": "تقليل تباعد الأحرف",
     "de": "Zeichenabstand verringern",
     "es": "Reducir espaciado entre letras",
-    "fr": "Réduire l'espacement des lettres",
+    "fr": "Réduire l’espacement des lettres",
     "it": "Riduci spaziatura lettere",
-    "ja": "字間を狭くする",
+    "ja": "文字間隔を狭く",
     "pt-BR": "Diminuir espaçamento entre letras"
   },
   "Decrease line spacing": {
     "ar": "تقليل تباعد الأسطر",
     "de": "Zeilenabstand verringern",
     "es": "Reducir interlineado",
-    "fr": "Réduire l'interligne",
+    "fr": "Réduire l’interligne",
     "it": "Riduci interlinea",
-    "ja": "行間を狭くする",
-    "pt-BR": "Diminuir entrelinhas"
+    "ja": "行間を狭く",
+    "pt-BR": "Diminuir espaçamento entre linhas"
   },
   "Default": {
     "ar": "الافتراضي",
@@ -11878,7 +11887,7 @@
   },
   "Ellipsis": {
     "ar": "علامة الحذف",
-    "de": "Auslassungszeichen",
+    "de": "Auslassungspunkte",
     "es": "Puntos suspensivos",
     "fr": "Points de suspension",
     "it": "Puntini di sospensione",
@@ -13104,7 +13113,7 @@
     "pt-BR": "O ajuste e o alinhamento ficam em espera enquanto as palavras seguem uma curva, um caminho ou estão em colunas."
   },
   "Fix": {
-    "ar": "تصحيح",
+    "ar": "إصلاح",
     "de": "Korrigieren",
     "es": "Corregir",
     "fr": "Corriger",
@@ -13113,7 +13122,7 @@
     "pt-BR": "Corrigir"
   },
   "Fix all": {
-    "ar": "تصحيح الكل",
+    "ar": "إصلاح الكل",
     "de": "Alle korrigieren",
     "es": "Corregir todo",
     "fr": "Tout corriger",
@@ -14964,19 +14973,19 @@
     "ar": "زيادة تباعد الأحرف",
     "de": "Zeichenabstand vergrößern",
     "es": "Aumentar espaciado entre letras",
-    "fr": "Augmenter l'espacement des lettres",
+    "fr": "Augmenter l’espacement des lettres",
     "it": "Aumenta spaziatura lettere",
-    "ja": "字間を広くする",
+    "ja": "文字間隔を広く",
     "pt-BR": "Aumentar espaçamento entre letras"
   },
   "Increase line spacing": {
     "ar": "زيادة تباعد الأسطر",
     "de": "Zeilenabstand vergrößern",
     "es": "Aumentar interlineado",
-    "fr": "Augmenter l'interligne",
+    "fr": "Augmenter l’interligne",
     "it": "Aumenta interlinea",
-    "ja": "行間を広くする",
-    "pt-BR": "Aumentar entrelinhas"
+    "ja": "行間を広く",
+    "pt-BR": "Aumentar espaçamento entre linhas"
   },
   "Indent": {
     "ar": "مسافة بادئة",
@@ -15706,11 +15715,11 @@
   },
   "Letter spacing %d%%": {
     "ar": "تباعد الأحرف %d%%",
-    "de": "Zeichenabstand %d%%",
-    "es": "Espaciado entre letras %d%%",
-    "fr": "Espacement des lettres %d%%",
+    "de": "Zeichenabstand %d %%",
+    "es": "Espaciado entre letras %d %%",
+    "fr": "Espacement des lettres %d %%",
     "it": "Spaziatura lettere %d%%",
-    "ja": "字間 %d%%",
+    "ja": "文字間隔 %d%%",
     "pt-BR": "Espaçamento entre letras %d%%"
   },
   "Letters": {
@@ -15909,7 +15918,7 @@
     "fr": "Interligne %@",
     "it": "Interlinea %@",
     "ja": "行間 %@",
-    "pt-BR": "Entrelinhas %@"
+    "pt-BR": "Espaçamento entre linhas %@"
   },
   "Line type": {
     "ar": "نوع الخط",
@@ -21496,7 +21505,7 @@
     "de": "Korrektur",
     "es": "Revisión",
     "fr": "Révision",
-    "it": "Revisione",
+    "it": "Correzione",
     "ja": "校正",
     "pt-BR": "Revisão"
   },
@@ -28615,12 +28624,12 @@
   },
   "Unclosed bracket or quote": {
     "ar": "قوس أو علامة اقتباس غير مغلقة",
-    "de": "Nicht geschlossene Klammer oder Anführung",
+    "de": "Nicht geschlossene Klammer oder Anführungszeichen",
     "es": "Paréntesis o comillas sin cerrar",
     "fr": "Parenthèse ou guillemet non fermé",
     "it": "Parentesi o virgolette non chiuse",
     "ja": "閉じていない括弧または引用符",
-    "pt-BR": "Parêntese ou aspas sem fechar"
+    "pt-BR": "Parêntese ou aspas não fechados"
   },
   "Underline": {
     "ar": "تسطير",

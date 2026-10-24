@@ -317,16 +317,33 @@ enum Docs {
     static let wordsAMinute = 200
 
     /// How many words the Doc holds — its text blocks' and its tables'
-    /// cells', each run between spaces with a letter or a digit in it one.
+    /// cells', each run between spaces with a letter or a number in it one
+    /// (`countWords`).
     static func wordCount(_ design: Design) -> Int {
-        func count(_ text: String) -> Int {
-            text.components(separatedBy: .whitespacesAndNewlines)
-                .filter { word in word.contains { $0.isLetter || $0.isNumber } }.count
-        }
-        return blocks(design).reduce(0) { n, b in
-            if textTypes.contains(b.type) { return n + count(RichText.strip(b.text)) }
+        blocks(design).reduce(0) { n, b in
+            if textTypes.contains(b.type) { return n + countWords(RichText.strip(b.text)) }
             guard b.type == table else { return n }
-            return n + tableRows(b).rows.joined().reduce(0) { $0 + count($1) }
+            return n + tableRows(b).rows.joined().reduce(0) { $0 + countWords($1) }
+        }
+    }
+
+    /// The words in `text`: each run between spaces with a letter or a
+    /// number in it. The rule both phones share: a space is any of
+    /// whitespacesAndNewlines — tab, the line breaks, U+0085 and every Zs,
+    /// Zl and Zp, so a no-break space ("deux mots") parts two words — and
+    /// a letter or a number is any L* or N* scalar ("½" is one).
+    static func countWords(_ text: String) -> Int {
+        text.components(separatedBy: .whitespacesAndNewlines)
+            .filter { word in word.unicodeScalars.contains(where: isLetterOrNumber) }.count
+    }
+
+    private static func isLetterOrNumber(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.properties.generalCategory {
+        case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter,
+             .decimalNumber, .letterNumber, .otherNumber:
+            return true
+        default:
+            return false
         }
     }
 

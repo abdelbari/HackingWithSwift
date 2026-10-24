@@ -136,5 +136,14 @@ final class DocsRichTests: XCTestCase {
         XCTAssertEqual(Docs.wordCountLine(1), "1 word · 1 min read")
         XCTAssertEqual(Docs.readingMinutes(0), 1)
         XCTAssertEqual(Docs.readingMinutes(300), 2)
+        // Any Unicode space parts words, and a word needs a letter or a
+        // number — the same on both phones.
+        let rows = try XCTUnwrap(fixture()["wordRows"] as? [[String: Any]])
+        for row in rows {
+            let text = try XCTUnwrap(row["text"] as? String)
+            XCTAssertEqual(Docs.countWords(text), row["words"] as? Int, text)
+        }
+        let nbsp = Docs.withBlocks(d, [DocBlock(id: "n", type: Docs.p, text: "deux\u{a0}mots")])
+        XCTAssertEqual(Docs.wordCount(nbsp), 2)
     }
 }

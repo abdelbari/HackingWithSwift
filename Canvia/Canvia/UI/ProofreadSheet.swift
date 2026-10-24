@@ -11,7 +11,7 @@
 // word, extra spaces, a missing capital, straight quotes and the rest, the
 // typographic ones only while Settings ▸ Proofing's Typography is on — each
 // with Fix (one undo step), Ignore (for this check), and Fix all of its kind
-// (one undo step for them all).
+// where more than one of it can be fixed (one undo step for them all).
 
 import SwiftUI
 
@@ -157,7 +157,7 @@ struct ProofreadSheet: View {
                 Button("Ignore") { letBe.insert(finding.id) }
                     .buttonStyle(.borderless)
                     .controlSize(.small)
-                if finding.suggestions.first != nil {
+                if finding.suggestions.first != nil && fixable(finding.rule) > 1 {
                     Button("Fix all") { fixAll(finding.rule) }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
@@ -241,6 +241,12 @@ struct ProofreadSheet: View {
     }
 
     /// Every finding of `rule` showing fixed, as one undo step.
+    /// How many findings of `rule` still showing have a fix: Fix all
+    /// shows where more than one has, on both phones.
+    private func fixable(_ rule: String?) -> Int {
+        writingShown.filter { $0.rule == rule && !$0.suggestions.isEmpty }.count
+    }
+
     private func fixAll(_ rule: String?) {
         if let next = Proofreader.fixedAll(store.design, writingShown.filter { $0.rule == rule }) {
             store.apply { $0 = next }
