@@ -366,12 +366,19 @@ struct DocEditorView: View {
             return
         }
         let nextType = listed.contains(block.type) ? block.type : Docs.p
-        let made = DocBlock(type: nextType, text: after, checked: nextType == Docs.checklist ? false : nil,
-                            level: nextType == Docs.p ? nil : block.level)
+        // Each half keeps its words' spans, and the new one the block's
+        // alignment, as on the Android twin.
+        let whole = Docs.withText(block, before + "\n" + after)
+        var made = Docs.withText(whole, after)
+        made.id = Docs.newId()
+        made.type = nextType
+        made.checked = nextType == Docs.checklist ? false : nil
+        made.level = nextType == Docs.p ? nil : block.level
+        let kept = Docs.withText(whole, before)
         editBlocks { list in
             list.flatMap { b -> [DocBlock] in
                 guard b.id == id else { return [b] }
-                return [Docs.withText(b, before), made]
+                return [kept, made]
             }
         }
         focusSoon(made.id)
