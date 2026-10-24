@@ -87,7 +87,8 @@ enum HomeExports {
             }
             part(0)
             let design = try await load(id)
-            let made = Self.snapshot(design)
+            // A Doc as its pages, but its design file as it is.
+            let made = Self.snapshot(format == .designFiles ? design : DocPages.drawn(design))
             let render: ExportQueue.Work
             switch format {
             case .png:
@@ -137,7 +138,8 @@ enum HomeExports {
     @MainActor
     static func printDesign(_ id: String, queue: ExportQueue) {
         queue.enqueue(ExportQueue.Job(label: tr("Preparing to print"), designId: id, work: { report in
-            let design = try await load(id)
+            // A Doc as its pages.
+            let design = DocPages.drawn(try await load(id))
             var options = PrintLayout.Options()
             options.bleed = Bleed.printPoints(design)
             return try await ExportJobs.printPDF(Self.snapshot(design), options: options, flatten: false, printing: true)(report)

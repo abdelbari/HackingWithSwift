@@ -32,7 +32,9 @@ extension DesignLibrary {
     /// Page one of `design` at the thumbnail's width, as its card shows it;
     /// a kept version's row in Version history draws with this too.
     @MainActor
-    static func thumbnailImage(for design: Design) -> UIImage? {
+    static func thumbnailImage(for given: Design) -> UIImage? {
+        // A Doc as its first page.
+        let design = DocPages.drawn(given)
         // An expanded whiteboard as its bounds and their margin.
         guard let first = design.pages.first.map({ Whiteboards.drawn(design, $0) }) else { return nil }
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: first))

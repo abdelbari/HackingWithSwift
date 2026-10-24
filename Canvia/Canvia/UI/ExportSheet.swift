@@ -16,6 +16,12 @@ struct ExportSheet: View {
     /// Opened from Home, on the design as saved: nothing here changes it,
     /// so its motion settings and music are shown but not offered.
     var readOnly = false
+    /// A Doc, whose pages `store` holds laid out (DocPages): its Word
+    /// document is made from its blocks. Nil for every other design.
+    var doc: Design? = nil
+    /// The Doc's own store, opened in its editor: where Plan a post keeps
+    /// the post, which `store`'s laid-out pages would not.
+    var docStore: DesignStore? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var scale = 2.0
     @State private var longEdgeText = ""
@@ -159,7 +165,7 @@ struct ExportSheet: View {
                     // The design as saved has no editor to add a picture to.
                     MockupSheet(design: store.design, store: readOnly ? nil : store, startPage: store.pageIndex)
                 }
-                .sheet(isPresented: $planningPost) { PlanPostSheet(store: store) }
+                .sheet(isPresented: $planningPost) { PlanPostSheet(store: docStore ?? store) }
                 .sheet(isPresented: $choosingPages, onDismiss: {
                     ExportChoices.remember(chosenIds, for: store.design)
                 }) {
@@ -510,7 +516,7 @@ struct ExportSheet: View {
             .buttonStyle(.bordered)
         // A reminder with the caption, the file made when it rings; kept
         // with the design, which the sheet from Home does not change.
-        if !readOnly {
+        if !readOnly || docStore != nil {
             Button("Plan a post…") { planningPost = true }
                 .buttonStyle(.bordered)
         }
@@ -584,6 +590,10 @@ struct ExportSheet: View {
             }
         case "gif":
             run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gif(designSnapshot, settings: movieSettings) }
+        case "docx":
+            // A Doc as a Word document, from its blocks (DocxWriter).
+            guard let doc else { return }
+            run(tr("Making the Word document"), format: "docx") { ExportJobs.docx(doc) }
         default:
             let format = fileType
             run(tr("Rendering"), format: format) { picturesWork(format == "jpg" ? .jpeg : .png) }
@@ -628,6 +638,7 @@ struct ExportSheet: View {
         case "mp4": return tr("Share MP4")
         case "gif": return tr("Share GIF")
         case "html": return tr("Share web page")
+        case "docx": return tr("Share Word document")
         default:
             let kind = type == "jpg" ? "JPG" : "PNG"
             return count > 1 ? trn("Share %d %@|Share %d %@s", count, kind) : tr("Share %@", kind)
@@ -641,7 +652,7 @@ struct ExportSheet: View {
     private var fileTypeSection: some View {
         Section {
             Picker("File type", selection: $fileType) {
-                ForEach(ExportLast.fileTypes, id: \.self) { type in
+                ForEach(offeredTypes, id: \.self) { type in
                     fileTypeRow(type).tag(type)
                 }
             }
@@ -649,6 +660,11 @@ struct ExportSheet: View {
         } footer: {
             Text(Self.typeNote(fileType))
         }
+    }
+
+    /// The file types offered: a Word document is a Doc's alone.
+    private var offeredTypes: [String] {
+        ExportLast.fileTypes.filter { $0 != "docx" || doc != nil }
     }
 
     private func fileTypeRow(_ type: String) -> some View {
@@ -679,6 +695,7 @@ struct ExportSheet: View {
         case "pptx": return tr("PowerPoint")
         case "mp4": return "MP4"
         case "html": return "HTML"
+        case "docx": return tr("Word document")
         default: return "GIF"
         }
     }
@@ -694,6 +711,7 @@ struct ExportSheet: View {
         case "pptx": return tr("Editable slides.")
         case "mp4": return tr("A video of the pages, with their motion and music.")
         case "html": return tr("A web page: the pages as sections, with a menu, links and video.")
+        case "docx": return tr("A Word document: headings, lists, tables and pictures, to edit in Word.")
         default: return tr("A looping animation, without sound.")
         }
     }
@@ -718,6 +736,8 @@ struct ExportSheet: View {
             pptxSection
         case "html":
             htmlSection
+        case "docx":
+            EmptyView()
         default:
             motionSection
         }
@@ -966,12 +986,14 @@ struct ExportSheet: View {
         // The file type: the last export's when remembered and chosen by
         // hand; else the one suggested from the design (ExportSuggestion),
         // a plain picture in Settings' default format.
-        let read = ExportSuggestion.suggest(store.design)
+        // A Doc's suggestion is its own, not its pages' (a PDF).
+        let read = ExportSuggestion.suggest(doc ?? store.design)
         suggested = read != "png" ? read : (defaultFormat == "jpg" ? "jpg" : "png")
         fileType = suggested
         guard let last = ExportLast.read(exportLast) else { return }
         remember = true
-        if !last.suggested { fileType = last.format }
+        // A Word document is a Doc's alone.
+        if !last.suggested && (last.format != "docx" || doc != nil) { fileType = last.format }
         pdfBookmarks = last.pdfBookmarks
         pdfTagged = last.pdfTagged
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2

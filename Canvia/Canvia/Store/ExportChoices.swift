@@ -259,7 +259,8 @@ enum ExportChoices {
 ///  "embedMedia":true},"pdfTagged":true}. A missing "pptxStyledText" is
 ///  "editable", and a missing "pdfTagged" false.
 struct ExportLast: Codable, Equatable {
-    /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html".
+    /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html" |
+    /// "docx" (a Doc's Word document).
     var format: String
     var scale: Double
     /// The long edge typed, in pixels; nil when the scale applies.
@@ -294,10 +295,10 @@ struct ExportLast: Codable, Equatable {
     var pdfTagged = true
 
     static let key = "exportLast"
-    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html"]
+    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx"]
     /// The export sheet's file types, in the order its picker lists them —
     /// the Android twin's ExportSettings.formats.
-    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html"]
+    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     static let styledEditable = "editable"

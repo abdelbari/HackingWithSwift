@@ -590,6 +590,12 @@ struct Design: Codable, Equatable, Identifiable {
     /// not written, when there are none.
     var plannedPosts: [PlannedPost]?
 
+    /// "doc" for a Doc (Docs), whose words are its `blocks` on pages of
+    /// `docPage`; nil, and not written, for every other design.
+    var kind: String?
+    var blocks: [DocBlock]?
+    var docPage: DocPage?
+
     /// Whether Present goes round from the last page shown to the first;
     /// turning it off takes the key away.
     var presentLoops: Bool {
@@ -674,6 +680,11 @@ struct Design: Codable, Equatable, Identifiable {
         // Each post on its own: one that does not read is passed over.
         let posts = (try? c.decode([Lossy<PlannedPost>].self, forKey: .plannedPosts))?.compactMap(\.value) ?? []
         plannedPosts = posts.isEmpty ? nil : posts
+        // A Doc's blocks, each on its own: one of a type this build does not
+        // know is passed over.
+        kind = try? c.decode(String.self, forKey: .kind)
+        blocks = (try? c.decode([Lossy<DocBlock>].self, forKey: .blocks)).map { $0.compactMap(\.value) }
+        docPage = try? c.decode(DocPage.self, forKey: .docPage)
         // The old soundtrack, read forever: the one track of a file with no
         // `audio` key, and passed over beside one that has it. Never written
         // back, as `motion` no longer has it.
@@ -709,7 +720,7 @@ struct Design: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
         case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present, beatSyncRestore, recordings
-        case plannedPosts
+        case plannedPosts, kind, blocks, docPage
     }
 
     /// The master page, if one is set and still exists.

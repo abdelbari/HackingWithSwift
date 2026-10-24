@@ -19,6 +19,7 @@ enum DesignSizeChoice: String, AppEnum, CaseIterable {
     case quoteCard = "quote-card"
     case logo
     case usLetter = "us-letter"
+    case doc
     case tiktokVideo = "tiktok-video"
     case instaReel = "insta-reel"
     case youtubeVideo = "youtube-video"
@@ -93,6 +94,7 @@ enum DesignSizeChoice: String, AppEnum, CaseIterable {
         .quoteCard: "Quote Card",
         .logo: "Logo",
         .usLetter: "US Letter Document",
+        .doc: "Doc",
         .tiktokVideo: "TikTok Video",
         .instaReel: "Instagram Reel",
         .youtubeVideo: "YouTube Video",

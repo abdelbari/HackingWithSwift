@@ -31,6 +31,8 @@ enum ExportSuggestion {
     /// page hidden has no shown page, and is "png".
     static func suggest(_ design: Design, presets: [SizePreset] = ContentLibrary.sizes) -> String {
         if isWebsite(design, presets: presets) { return "html" }
+        // A Doc goes out as its pages (Docs.paginated).
+        if Docs.isDoc(design) { return "pdf" }
         let shown = design.visiblePageIndices.map { design.pages[$0] }
         if !design.audioTracks.isEmpty || shown.contains(where: { moves(design, $0) }) { return "mp4" }
         if shown.count > 1, let kind = category(design, presets: presets), documentCategories.contains(kind) {

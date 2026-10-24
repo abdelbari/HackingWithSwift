@@ -170,6 +170,16 @@ enum ExportJobs {
     /// main actor, where library photos are drawn; written out away from
     /// it, since turning every photo and clip into base64 takes long
     /// enough, on a design with clips, to freeze the app.
+    /// A Doc as a Word document, from its blocks (DocxWriter).
+    static func docx(_ design: Design) -> Work {
+        { report in
+            let url = DesignExporter.fileURL(for: design, ext: DocxWriter.fileExtension)
+            try DocPages.writeDocx(design, to: url)
+            report(1)
+            return ExportQueue.Result(urls: [url])
+        }
+    }
+
     static func designFile(_ design: Design) -> Work {
         { report in
             let url = DesignExporter.fileURL(for: design, ext: DesignPackage.ext)

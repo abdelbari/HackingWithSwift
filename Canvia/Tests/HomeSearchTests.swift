@@ -109,7 +109,7 @@ final class HomeSearchTests: XCTestCase {
         XCTAssertEqual(ids(.whiteboards), ["board", "broken"])
         XCTAssertEqual(ids(.print), ["broken"])
         XCTAssertEqual(DesignLibrary.TypeFilter.allCases.map(\.label),
-                       ["All", "Presentations", "Social", "Video", "Print", "Documents", "Whiteboards"])
+                       ["All", "Presentations", "Social", "Video", "Print", "Documents", "Whiteboards", "Docs"])
     }
 
     func testEditedChipsByDay() {

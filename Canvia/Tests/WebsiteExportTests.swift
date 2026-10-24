@@ -94,7 +94,7 @@ final class WebsiteExportTests: XCTestCase {
         XCTAssertTrue(settings.json.contains(#""html":{"nav":false,"mobileStack":true,"embedMedia":true}"#))
         XCTAssertEqual(ExportLast.read(settings.json), settings)
         XCTAssertEqual(ExportLast.read(#"{"format":"html"}"#)?.html, HTMLExporter.Settings())
-        XCTAssertEqual(ExportLast.fileTypes.last, "html")
+        XCTAssertEqual(ExportLast.fileTypes.suffix(2), ["html", "docx"])
         XCTAssertEqual(ContentLibrary.templates.filter { $0.width == 1366 && $0.height == 768 }.count, 6)
     }
 }

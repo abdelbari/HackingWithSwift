@@ -79,12 +79,14 @@ enum PostReminders {
     /// it is done. Nothing for a post no longer there.
     @MainActor
     static func shareNow(designId: String, postId: String) async {
-        guard let design = try? await HomeExports.load(designId),
-              let post = PostPlanner.of(design).first(where: { $0.id == postId }) else {
+        guard let loaded = try? await HomeExports.load(designId),
+              let post = PostPlanner.of(loaded).first(where: { $0.id == postId }) else {
             ExportQueue.shared.note = tr("Couldn't make the post")
             return
         }
         if !post.caption.isEmpty { UIPasteboard.general.string = post.caption }
+        // A Doc as its pages.
+        let design = DocPages.drawn(loaded)
         let ids = PostPlanner.pageIndices(design, post).map { design.pages[$0].id }
         let snapshot = ExportSnapshot(design, range: .chosen(ids), current: 0)
         let job = ExportQueue.Job(label: tr("Making the post"), designId: design.id, work: postExport(post.format, snapshot))

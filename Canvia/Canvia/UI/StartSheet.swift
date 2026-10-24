@@ -219,6 +219,8 @@ private struct StartGrid: View {
     @State private var ownSet: TemplateChoice?
     /// Templates of other sizes near this one's shape, made at it.
     @State private var adapted: [Templates.Adapted] = []
+    /// The Doc templates, each laid out as its pages, at the Doc type.
+    @State private var docStarts: [DocStart] = []
     /// The Filters sheet's choices, as Home's: kept for the session.
     @State private var filter = TemplateFilter.session
     @State private var filtersOpen = false
@@ -246,6 +248,10 @@ private struct StartGrid: View {
                     // Home makes the name one the shelf does not have yet.
                     onCreate(preset.makeDesign())
                 }
+                // A Doc's templates: each a new Doc as it is used.
+                ForEach(docStarts) { start in
+                    DocStartCard(start: start) { onCreate(Docs.fromTemplate(start.template)) }
+                }
                 if category == nil {
                     ForEach(mine) { entry in
                         StartUserTemplateCard(entry: entry) { use(entry) }
@@ -272,6 +278,12 @@ private struct StartGrid: View {
         // text box of every borrowed template is measured as it re-wraps.
         .task(id: preset.id) {
             let size = preset
+            // A Doc starts from Doc templates, never a page reflowed.
+            guard size.id != Docs.presetId else {
+                let made = await Task.detached(priority: .userInitiated) { DocStart.all() }.value
+                if !Task.isCancelled { docStarts = made }
+                return
+            }
             let made = await Task.detached(priority: .userInitiated) { Templates.nearby(size) }.value
             if !Task.isCancelled { adapted = made }
         }
@@ -408,6 +420,41 @@ private struct StartTemplateCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(template.name), \(UserTemplates.shownCategory(template.category)) template")
+    }
+}
+
+/// A Doc template, shown as its first page laid out.
+private struct DocStart: Identifiable {
+    let template: DocTemplate
+    let shown: Design
+    var id: String { template.id }
+
+    /// Every Doc template laid out (templates/docs.json), each block
+    /// measured — off the main thread.
+    static func all() -> [DocStart] {
+        Docs.templates.map { DocStart(template: $0, shown: DocPages.drawn(Docs.fromTemplate($0))) }
+    }
+}
+
+private struct DocStartCard: View {
+    let start: DocStart
+    var action: () -> Void
+
+    var body: some View {
+        let ratio = start.shown.width / max(start.shown.height, 1)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                PageThumbnail(design: start.shown, page: start.shown.pages[0], pixelWidth: 320)
+                    .aspectRatio(ratio, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
+                Text(tr(start.template.name))
+                    .font(.subheadline)
+                    .lineLimit(1)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

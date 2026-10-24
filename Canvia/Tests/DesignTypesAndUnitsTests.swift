@@ -56,7 +56,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
     func testTheCatalogueIsTheSharedList() throws {
         XCTAssertEqual(SizePreset.all.map(\.id), [
             "insta-post", "insta-story", "presentation", "youtube-thumb", "facebook-post", "poster", "flyer", "a4",
-            "business-card", "quote-card", "logo", "us-letter", "tiktok-video", "insta-reel", "youtube-video",
+            "business-card", "quote-card", "logo", "us-letter", "doc", "tiktok-video", "insta-reel", "youtube-video",
             "youtube-banner", "video-call-background", "insta-portrait", "facebook-story", "facebook-cover",
             "linkedin-post", "linkedin-banner", "x-post", "x-header", "pinterest-pin", "phone-wallpaper",
             "desktop-wallpaper", "presentation-4x3", "invitation", "postcard", "menu", "flyer-letter", "a3-poster",

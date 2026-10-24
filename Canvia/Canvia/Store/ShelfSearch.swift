@@ -33,7 +33,7 @@ extension DesignLibrary {
             page.elements.filter { el in
                 (el.type == .text || ShapeText.words(of: el) != nil) && !el.isHidden && el.captions == nil
             }.map { RichText.strip($0.text ?? "") }
-        }
+        } + [Docs.text(design)].filter { !$0.isEmpty }
         let folded = fold(words.joined(separator: " "))
         // Java's \s: space, tab, line feed, vertical tab, form feed, return.
         let spaces: Set<Character> = [" ", "\t", "\n", "\u{0B}", "\u{0C}", "\r", "\r\n"]
@@ -70,12 +70,14 @@ extension DesignLibrary {
     /// paper of its pixels; else the first type in pixels of exactly its
     /// size; else none.
     static func typeOf(_ design: Design, presets: [SizePreset] = SizePreset.all) -> String? {
+        if Docs.isDoc(design) { return Docs.presetId }
         if design.pages.contains(where: Whiteboards.isExpanded) { return Whiteboards.presetId }
         if design.unit != nil,
            let paper = presets.first(where: { $0.unit != nil && $0.w == design.width && $0.h == design.height }) {
             return paper.id
         }
-        return presets.first { $0.unit == nil && $0.w == design.width && $0.h == design.height }?.id
+        // A page of a Doc's size is not a Doc: that takes its blocks.
+        return presets.first { $0.unit == nil && $0.w == design.width && $0.h == design.height && $0.id != Docs.presetId }?.id
     }
 
     /// Whether a design's words hold `query`, capitals and accents aside —
@@ -159,7 +161,7 @@ extension DesignLibrary {
     /// types it takes, or the whiteboard. A design of no known type, or of
     /// a Marketing type, shows under All alone.
     enum TypeFilter: String, CaseIterable, Identifiable {
-        case all, presentations, social, video, print, documents, whiteboards
+        case all, presentations, social, video, print, documents, whiteboards, docs
         var id: String { rawValue }
 
         var label: String {
@@ -171,13 +173,14 @@ extension DesignLibrary {
             case .print: return tr("Print")
             case .documents: return tr("Documents")
             case .whiteboards: return tr("Whiteboards")
+            case .docs: return tr("Docs")
             }
         }
 
         /// The design types' category it takes; nil for All and Whiteboards.
         var category: String? {
             switch self {
-            case .all, .whiteboards: return nil
+            case .all, .whiteboards, .docs: return nil
             case .presentations: return "Presentations"
             case .social: return "Social"
             case .video: return "Video"
@@ -187,12 +190,13 @@ extension DesignLibrary {
         }
 
         /// Whether `design` shows under it: everything under All, a damaged
-        /// design under each; a whiteboard under Whiteboards alone; else a
-        /// design whose type is of its category.
+        /// design under each; a whiteboard under Whiteboards alone, a Doc
+        /// under Docs alone; else a design whose type is of its category.
         func admits(_ design: RecentDesign) -> Bool {
             if self == .all || design.damaged { return true }
             if design.type == Whiteboards.presetId { return self == .whiteboards }
-            if self == .whiteboards { return false }
+            if design.type == Docs.presetId { return self == .docs }
+            if self == .whiteboards || self == .docs { return false }
             guard let type = design.type, let preset = SizePreset.byId(type) else { return false }
             return preset.category == category
         }
