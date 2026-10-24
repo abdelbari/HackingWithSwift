@@ -130,6 +130,37 @@ final class DocsRichTests: XCTestCase {
         XCTAssertEqual(DesignStore.matchAfter(replacing: found[1], at: 1, length: 7, in: now), 1)
     }
 
+    /// Shared: Return splits a block in two as the editor does — the whole
+    /// words first, then each half from them — and each half keeps its
+    /// words' spans and the block's alignment.
+    func testReturnKeepsEachHalfsSpansAndTheAlignment() throws {
+        let split = try XCTUnwrap(fixture()["split"] as? [String: Any])
+        let id = try XCTUnwrap(split["block"] as? String)
+        let block = try XCTUnwrap(Docs.blocks(try design()).first { $0.id == id })
+        let before = try XCTUnwrap(split["before"] as? String)
+        let after = try XCTUnwrap(split["after"] as? String)
+        let whole = Docs.withText(block, before + "\n" + after)
+        let halves = [Docs.withText(whole, before), Docs.withText(whole, after)]
+        let want = try XCTUnwrap(split["halves"] as? [NSDictionary])
+        XCTAssertEqual(halves.count, want.count)
+        for (half, w) in zip(halves, want) {
+            let got = try XCTUnwrap(try json(half).mutableCopy() as? NSMutableDictionary)
+            got.removeObject(forKey: "id")
+            XCTAssertEqual(got, w)
+        }
+    }
+
+    /// Shared: a block's level read as a number, held to 0…4 before it is
+    /// made whole — even one far past an Int's reach — and words are none.
+    func testALevelPastReachIsHeld() throws {
+        let rows = try XCTUnwrap(fixture()["levelRows"] as? [[String: Any]])
+        for row in rows {
+            let entry: [String: Any] = ["id": "l", "type": Docs.bullet, "text": "x", "level": row["level"] ?? NSNull()]
+            let block = try JSONDecoder().decode(DocBlock.self, from: SharedFixture.encoded(entry))
+            XCTAssertEqual(block.level ?? 0, row["kept"] as? Int, "\(row)")
+        }
+    }
+
     /// Shared: the More menu's word count.
     func testTheWordCountReadsTheBlocksAndTheCells() throws {
         let d = try design()

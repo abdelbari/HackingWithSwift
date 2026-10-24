@@ -107,7 +107,9 @@ struct DocBlock: Codable, Equatable, Identifiable {
         align = Docs.keptAlign(aligned)
         // A level written as words is none, and one past reach held to it,
         // as on the Android twin.
-        let depth = (try? c.decode(Double.self, forKey: .level)).flatMap { $0.isFinite ? Int($0) : nil } ?? 0
+        // Held before it is made whole: Int(_:) traps past Int's reach.
+        let depth = (try? c.decode(Double.self, forKey: .level))
+            .flatMap { $0.isFinite ? Int(max(0, min($0, Double(TextLists.maxLevel)))) : nil } ?? 0
         level = depth > 0 ? min(depth, TextLists.maxLevel) : nil
     }
 

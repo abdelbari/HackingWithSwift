@@ -35,5 +35,20 @@
     {"text": "\u2014 \u2013 \u2026", "words": 0},
     {"text": "\ud83d\ude00 hi", "words": 1},
     {"text": "tab\there", "words": 2}
+  ],
+  "split": {
+    "note": "Return before 'brief' in r3: each half keeps its words' spans and the block's alignment, written key for key but the id.",
+    "block": "r3", "before": "Read the ", "after": "brief first.",
+    "halves": [
+      {"type": "p", "text": "Read the ", "align": "justify"},
+      {"type": "p", "text": "brief first.", "spans": [{"start": 0, "end": 5, "link": "https://example.com/brief"}], "spansText": "brief first.", "align": "justify"}
+    ]
+  },
+  "levelRows": [
+    {"level": 1e20, "kept": 4},
+    {"level": -1e20, "kept": 0},
+    {"level": 2.7, "kept": 2},
+    {"level": 9, "kept": 4},
+    {"level": "3", "kept": 0}
   ]
 }
