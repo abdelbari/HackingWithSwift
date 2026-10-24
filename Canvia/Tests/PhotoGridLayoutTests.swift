@@ -165,6 +165,33 @@ final class PhotoGridLayoutTests: XCTestCase {
         XCTAssertFalse(PhotoGrids.layoutsFor(4).contains { $0.cells.count < 4 })
     }
 
+    /// The Android twin's "a grid inside a group keeps its own level and
+    /// the group's turn through a change of layout".
+    func testAGridInsideAGroupKeepsItsOwnLevelAndTheGroupsTurnThroughAChangeOfLayout() throws {
+        func nested(_ cells: [Element]) -> [Element] {
+            cells.map { el in
+                var out = Groups.withChain(el, ["outer"] + Groups.chain(el))
+                out.groupTurn = 30
+                return out
+            }
+        }
+        let three = nested(try grid("three", "media:a", "media:b", "media:c"))
+        let gid = try XCTUnwrap(three[0].grid?.id)
+        let out = PhotoGrids.relayout(three, to: try layout("twoStack"))
+        XCTAssertEqual(out.count, 3)
+        XCTAssertTrue(out.prefix(2).allSatisfy { Groups.chain($0) == ["outer", gid] && $0.groupTurn == 30 })
+        XCTAssertTrue(out.prefix(2).allSatisfy { $0.grid?.id == gid })
+        // The picture left over leaves the grid but not the group round it.
+        let free = try XCTUnwrap(out.count > 2 ? out[2] : nil)
+        XCTAssertEqual(Groups.chain(free), ["outer"])
+        XCTAssertEqual(free.groupTurn, 30)
+        // New, empty cells are in both groups too.
+        let two = nested(try grid("two", "media:a"))
+        let twoId = try XCTUnwrap(two[0].grid?.id)
+        let more = PhotoGrids.relayout(two, to: try layout("three"))
+        XCTAssertTrue(more.allSatisfy { Groups.chain($0) == ["outer", twoId] && $0.groupTurn == 30 })
+    }
+
     // MARK: detach
 
     func testDetachImageMakesThePictureAFreePhotoAtTheFramesBoxAndLeavesTheFrameEmpty() throws {

@@ -16,6 +16,17 @@ enum Groups {
         return [group] + (el.subgroups ?? [])
     }
 
+    /// `el` in the groups `chain`, outermost first: the first its `group`,
+    /// the rest its `subgroups`, none when there are none — the Android
+    /// twin's Groups.withChain.
+    static func withChain(_ el: Element, _ chain: [String]) -> Element {
+        var e = el
+        let inner = Array(chain.dropFirst())
+        e.group = chain.first
+        e.subgroups = inner.isEmpty ? nil : inner
+        return e
+    }
+
     /// The ids of the elements in group `id`, at whatever level it is.
     static func members(_ elements: [Element], of id: String) -> Set<String> {
         Set(elements.filter { chain($0).contains(id) }.map(\.id))
@@ -73,16 +84,18 @@ enum Groups {
     /// the element alone — or, with no level left, the element alone. Nil
     /// when the selection is not one of its groups: the tap selects as ever,
     /// its outermost group (DesignStore.select). So a first tap takes the
-    /// outermost group, a second the next level, and the last the element.
+    /// outermost group, a second the next level, and the last the element,
+    /// where further taps stay — the Android twin's Groups.tapped.
     static func deeper(_ elements: [Element], selection: Set<String>, tapped: String) -> Set<String>? {
         guard selection.contains(tapped), let el = elements.first(where: { $0.id == tapped }) else { return nil }
         let levels = chain(el)
+        if selection == [tapped] { return levels.isEmpty ? nil : selection }
         guard let at = levels.lastIndex(where: { members(elements, of: $0) == selection }) else { return nil }
         for level in levels.dropFirst(at + 1) {
             let ids = members(elements, of: level)
             if ids.count > 1 && ids != selection { return ids }
         }
-        return selection == [tapped] ? nil : [tapped]
+        return [tapped]
     }
 
     /// The outermost group `selection` is the whole of, every member and

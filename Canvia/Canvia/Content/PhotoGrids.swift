@@ -371,7 +371,12 @@ enum PhotoGrids {
         let bounds = Self.bounds(of: cells)
         let spacing = min(max(first.gutter, 0), maxSpacing)
         let share = corners(of: sorted) / 100
-        let group = sorted[0].group ?? first.id
+        // Every group the grid is in kept, the grid itself the innermost,
+        // with the turn of the group outside it — as on Android.
+        let held = Groups.chain(sorted[0])
+        let chain = held.isEmpty ? [first.id] : held
+        let gridId = chain.last ?? first.id
+        let turn = sorted[0].groupTurn
         let frames = Self.frames(to, in: bounds, gutter: spacing)
         // The pictures in the order their old cells fill, to the new cells
         // in the order theirs do — reading order, as Android's fillOrder
@@ -384,13 +389,14 @@ enum PhotoGrids {
             var blank = Element()
             blank.type = .image
             blank.radius = Double(min(f.width, f.height)) * share
-            blank.group = group
+            blank = Groups.withChain(blank, chain)
+            blank.groupTurn = turn
             if sorted.indices.contains(index) { blank.id = sorted[index].id }
             blank.x = f.minX
             blank.y = f.minY
             blank.w = f.width
             blank.h = f.height
-            blank.grid = GridCell(id: group, layout: to.id, cell: index, gutter: spacing, margin: first.margin)
+            blank.grid = GridCell(id: gridId, layout: to.id, cell: index, gutter: spacing, margin: first.margin)
             return blank
         }
         let order = PhotoFrames.readingOrder(newCells).map(\.id)
@@ -408,7 +414,8 @@ enum PhotoGrids {
                 placed.w = target.w
                 placed.h = target.h
                 placed.radius = target.radius
-                placed.group = group
+                placed = Groups.withChain(placed, chain)
+                placed.groupTurn = turn
                 placed.rotation = 0
                 placed.grid = target.grid
                 newCells[at] = placed
@@ -417,9 +424,10 @@ enum PhotoGrids {
                 free.id = UID.make()
                 free.x = bounds.maxX + spacing
                 free.y = below
-                free.group = nil
-                free.subgroups = nil
-                free.groupTurn = nil
+                // Out of the grid, still in any group outside it.
+                let outer = Array(chain.dropLast())
+                free = Groups.withChain(free, outer)
+                free.groupTurn = outer.isEmpty ? nil : turn
                 free.rotation = 0
                 free.grid = nil
                 freed.append(free)

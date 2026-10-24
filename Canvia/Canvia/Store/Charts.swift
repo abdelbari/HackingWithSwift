@@ -81,10 +81,20 @@ extension DesignStore {
             colours[n] = paint
         }
         let palette = DataGraphics.palette(updating: spec.id, design: design, page: page, colours: colours)
+        let grouped = members.first(where: { $0.group != nil })
         var made = DataGraphics.chart(spec, in: frame, palette: palette,
                                       ink: DataGraphics.ink(for: page), colours: colours,
-                                      group: members.first(where: { $0.group != nil })?.group ?? UID.make("grp"))
+                                      group: grouped?.group ?? UID.make("grp"))
         guard !made.isEmpty else { return false }
+        // Every group it is in, at every level, kept — a chart grouped with
+        // a heading stays a group inside that group — and that group's
+        // turn, as on Android.
+        if let grouped {
+            for i in made.indices {
+                made[i].subgroups = grouped.subgroups
+                made[i].groupTurn = grouped.groupTurn
+            }
+        }
         made = DataGraphics.carrying(members, into: made, pivot: pivot, turn: turn)
         // A chart hidden whole stays hidden; one only partly hidden comes
         // back whole, as on Android.
@@ -97,8 +107,13 @@ extension DesignStore {
             page.elements.removeAll { ids.contains($0.id) }
             page.elements.insert(contentsOf: made, at: at)
         }
-        // The new chart's whole group, as a tap on it selects, as on Android.
-        selection = Set(page.elements.filter { $0.group == made[0].group }.map(\.id))
+        // The chart's own level selected, not a group it sits inside, as on
+        // Android.
+        if let inner = Groups.chain(made[0]).last {
+            selection = Groups.members(page.elements, of: inner)
+        } else {
+            selection = Set(made.map(\.id))
+        }
         return true
     }
 }

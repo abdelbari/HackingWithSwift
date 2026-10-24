@@ -53,6 +53,31 @@ final class ChartEditingTests: XCTestCase {
         XCTAssertEqual(s.page.elements.map(\.id), ([below] + chart + [above]).map(\.id), "one step")
     }
 
+    /// The Android twin's "Update keeps a chart grouped inside a group,
+    /// and that group's turn": the chart stays its own level, and Update
+    /// selects that level, not the heading beside it.
+    func testUpdateKeepsAChartGroupedInsideAGroupAndThatGroupsTurn() throws {
+        let spec = ChartSpec(kind: "column", data: "A, 10\nB, 5")
+        var chart = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])
+        let inner = try XCTUnwrap(chart.first?.group)
+        for i in chart.indices {
+            chart[i].group = "outer"
+            chart[i].subgroups = [inner]
+            chart[i].groupTurn = 30
+        }
+        var title = Element.text("Sales")
+        title.group = "outer"
+        title.groupTurn = 30
+        let s = store(chart + [title])
+        var edited = spec
+        edited.data = "A, 10\nB, 5\nC, 7"
+        XCTAssertTrue(s.updateChart(edited))
+        let made = s.page.elements.filter { $0.chart == edited }
+        XCTAssertFalse(made.isEmpty)
+        XCTAssertTrue(made.allSatisfy { Groups.chain($0) == ["outer", inner] && $0.groupTurn == 30 })
+        XCTAssertEqual(s.selection, Set(made.map(\.id)), "the chart's own level")
+    }
+
     func testUpdateSelectsTheWholeGroupAsAndroidDoes() {
         let spec = ChartSpec(kind: "column", data: "A, 10\nB, 5")
         let chart = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])

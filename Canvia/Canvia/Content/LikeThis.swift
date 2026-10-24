@@ -12,14 +12,29 @@
 //   each new part;
 // - its main colour: the new thing's first colour (ColourSwap.colours)
 //   becomes the old thing's first, the rest left as drawn;
-// - its group, when it was one and the new thing is several parts; a new
-//   group for several parts that replace one;
+// - its groups, at every level, when it was one and the new thing is
+//   several parts (the groups outside it when one part replaces several);
+//   a new group for several parts that replace one, inside any it was in;
+//   and the turn of the group outside it, while it stays in that group;
 // - its id, when one part replaces one part, so it stays selected and
 //   named.
 
 import Foundation
 
 enum LikeThis {
+
+    /// The whole graphic from the pack that the one thing selected is a
+    /// part of: every member of its innermost group, when all of them, two
+    /// or more, are parts of that graphic — so swapping one part swaps the
+    /// graphic, not that part alone. Nil for anything else.
+    static func wholeGraphic(_ elements: [Element], selection: Set<String>) -> [Element]? {
+        guard selection.count == 1, let one = elements.first(where: { selection.contains($0.id) }),
+              let graphic = GraphicsLibrary.graphic(of: one)?.id,
+              let inner = Groups.chain(one).last else { return nil }
+        let parts = elements.filter { Groups.chain($0).contains(inner) }
+        guard parts.count > 1, parts.allSatisfy({ GraphicsLibrary.graphic(of: $0)?.id == graphic }) else { return nil }
+        return parts
+    }
 
     static func replaced(_ old: [Element], with fresh: [Element]) -> [Element] {
         guard let first = old.first, !fresh.isEmpty else { return old }
@@ -31,14 +46,22 @@ enum LikeThis {
         let fcx = f.x + f.width / 2
         let fcy = f.y + f.height / 2
         let turn = first.rotation * Double.pi / 180
-        let group: String?
+        let together = old.count >= 2 && first.group != nil && old.allSatisfy { $0.group == first.group }
+        let chain: [String]
         if fresh.count < 2 {
-            group = old.count == 1 ? first.group : nil
-        } else if old.count >= 2, first.group != nil, old.allSatisfy({ $0.group == first.group }) {
-            group = first.group
+            if old.count == 1 {
+                chain = Groups.chain(first)
+            } else {
+                chain = together ? Array(Groups.chain(first).dropLast()) : []
+            }
+        } else if together {
+            chain = Groups.chain(first)
+        } else if old.count == 1 {
+            chain = Groups.chain(first) + [UID.make("grp")]
         } else {
-            group = UID.make("grp")
+            chain = [UID.make("grp")]
         }
+        let groupTurn = chain.first != nil && chain.first == first.group ? first.groupTurn : nil
         var placed = fresh.map { el -> Element in
             // Its middle, scaled about the new thing's, then turned with the
             // old thing about the old box's middle.
@@ -54,7 +77,8 @@ enum LikeThis {
             out.y = ty - out.h / 2
             out.rotation = el.rotation + first.rotation
             out.opacity = first.opacity
-            out.group = group
+            out = Groups.withChain(out, chain)
+            out.groupTurn = groupTurn
             out.animation = first.animation
             out.exitAnimation = first.exitAnimation
             out.timing = first.timing

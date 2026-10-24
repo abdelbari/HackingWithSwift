@@ -111,12 +111,13 @@ extension DesignStore {
     /// The selection replaced in place by `fresh` — More like this — as one
     /// step, keeping its box, turn, opacity, motion, link and main colour
     /// (LikeThis.replaced); the new thing goes where the old one's first
-    /// part was among the layers, and is selected. False, and said, on a
-    /// locked page or when any of the selection is locked, as on the
-    /// Android twin.
+    /// part was among the layers, and is selected. One part of a graphic
+    /// from the pack stands for the whole graphic (LikeThis.wholeGraphic).
+    /// False, and said, on a locked page or when any of it is locked, as
+    /// on the Android twin.
     @discardableResult
     func replaceSelected(with fresh: [Element]) -> Bool {
-        let old = selectedElements
+        let old = LikeThis.wholeGraphic(page.elements, selection: selection) ?? selectedElements
         guard !old.isEmpty, !fresh.isEmpty, !refusesLockedPage() else { return false }
         guard !old.contains(where: { $0.locked }) else {
             buzz(.reject)

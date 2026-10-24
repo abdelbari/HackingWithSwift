@@ -154,7 +154,7 @@ final class NestedGroupsTests: XCTestCase {
         let rows: [(Set<String>, String, Set<String>?)] = [
             (["mark", "word", "heading"], "mark", ["mark", "word"]),
             (["mark", "word"], "mark", ["mark"]),
-            (["mark"], "mark", nil),
+            (["mark"], "mark", ["mark"]),
             (["mark", "word", "heading"], "heading", ["heading"]),
             (["mark", "word"], "word", ["word"]),
             // Not one of its groups: selected as ever.
@@ -176,7 +176,8 @@ final class NestedGroupsTests: XCTestCase {
         XCTAssertEqual(s.selection, ["mark", "word"], "the second the logo")
         XCTAssertTrue(s.selectMember("mark"))
         XCTAssertEqual(s.selection, ["mark"], "the third the mark alone")
-        XCTAssertFalse(s.selectMember("mark"))
+        XCTAssertTrue(s.selectMember("mark"))
+        XCTAssertEqual(s.selection, ["mark"], "and there it stays")
     }
 
     // MARK: Layers' tree
