@@ -2,7 +2,8 @@
 // sheet's Background tab both offer it: the default colours, a colour of
 // your own, the brand kit's, the gradients, your own photos and the built-in
 // pictures — and a picture already behind the page, taken back out as a
-// photo. As the Android twin's background panel offers them.
+// photo; a clip playing behind the page, its Clip controls — trim, speed,
+// volume — over the rest. As the Android twin's background panel offers them.
 
 import SwiftUI
 import PhotosUI
@@ -14,6 +15,9 @@ struct BackgroundChoices: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if let clip = store.page.backgroundClip, clip.isVideo {
+                BackgroundClipControls(store: store, clip: clip)
+            }
             BackgroundDetachButton(store: store)
 
             Text("Solid colours").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
@@ -244,6 +248,67 @@ struct BackgroundDetachButton: View {
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
             }
+        }
+    }
+}
+
+/// A clip playing behind the page (BackgroundClip): its trim over the clip's
+/// length, its speed, its volume and sound — each change one step, as the
+/// Clip sheet makes them for a clip on the page.
+struct BackgroundClipControls: View {
+    @Bindable var store: DesignStore
+    let clip: BackgroundClip
+    /// The clip's length in seconds, once read.
+    @State private var length: Double?
+    @State private var draftVolume: Double?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Clip").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+            trim
+            speed
+            StepSlider(label: tr("Volume"), stored: min(max(clip.playback.volume, 0), 1), range: 0...1, step: 0.1,
+                       draft: $draftVolume, readout: ClipSheet.percentLabel) { v in
+                store.updateBackgroundClip { $0.volume = (min(max(v, 0), 1) * 100).rounded() / 100 }
+            }
+            Toggle("Mute", isOn: Binding(get: { clip.playback.muted },
+                                         set: { on in store.updateBackgroundClip { $0.muted = on } }))
+        }
+        .font(.subheadline)
+        .task(id: clip.src) {
+            guard let id = VideoStore.split(clip.src)?.id else { return }
+            length = await VideoStore.loadedDuration(of: id)
+        }
+    }
+
+    @ViewBuilder
+    private var trim: some View {
+        if let length, length > ClipPlayback.minLength {
+            let start = min(max(0, clip.playback.start), length)
+            let end = min(clip.playback.end ?? length, length)
+            TrimmerBar(length: length, start: start, end: end, minLength: ClipPlayback.minLength,
+                       commit: { s, e in commitTrim(s, e, length: length) }) {
+                Rectangle().fill(Color(.systemGray5))
+            }
+            .accessibilityLabel("Trim")
+        }
+    }
+
+    private var speed: some View {
+        Picker("Speed", selection: Binding(get: { clip.playback.speed },
+                                           set: { v in store.updateBackgroundClip { $0.speed = v } })) {
+            ForEach(ClipPlayback.speeds, id: \.self) { Text(MotionPath.speedLabel($0)).tag($0) }
+        }
+        .pickerStyle(.menu)
+    }
+
+    /// The trim let go at, to a tenth, an end at the clip's own end kept as
+    /// none, as one step.
+    private func commitTrim(_ start: Double, _ end: Double, length: Double) {
+        let kept = Timeline.trimmed(from: start, to: end, duration: length)
+        store.updateBackgroundClip { playback in
+            playback.start = kept.start
+            playback.end = kept.end
         }
     }
 }

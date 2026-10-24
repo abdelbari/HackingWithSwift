@@ -474,8 +474,16 @@ struct ContextToolbar: View {
             Button { store.animateSelected(nil) } label: {
                 Label("No animation", systemImage: el.animation == nil ? "checkmark" : "circle")
             }
-            Divider()
-            entranceButtons(el)
+            Group {
+                // Create: the element dragged round the page, recorded as its path.
+                if store.selection.count == 1 {
+                    Button { store.beginMotionRecord() } label: {
+                        Label("Create", systemImage: el.animation?.kind == ElementAnimation.pathKind ? "checkmark" : "hand.draw")
+                    }
+                }
+                Divider()
+                entranceButtons(el)
+            }
             Divider()
             ForEach(ElementAnimation.kinds.filter { ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
                 Button { store.animateSelected(kind); store.playPreview() } label: {
@@ -514,10 +522,20 @@ struct ContextToolbar: View {
                       systemImage: el.animation?.kind == ElementAnimation.grow ? "checkmark" : "circle")
             }
         }
-        ForEach(ElementAnimation.kinds.filter { $0 != ElementAnimation.grow && !ElementAnimation.textKinds.contains($0) && !ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
+        ForEach(entranceKinds, id: \.self) { kind in
             Button { store.animateSelected(kind); store.playPreview() } label: {
                 Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
             }
+        }
+    }
+
+    /// The entrances offered besides Grow and a text's own: a photo's motion
+    /// only when a photo or a clip is selected.
+    private var entranceKinds: [String] {
+        let photos = store.selectedElements.contains { $0.type == .image }
+        return ElementAnimation.kinds.filter { kind in
+            kind != ElementAnimation.grow && !ElementAnimation.textKinds.contains(kind)
+                && !ElementAnimation.loopKinds.contains(kind) && (photos || !ElementAnimation.forPhotos(kind))
         }
     }
 

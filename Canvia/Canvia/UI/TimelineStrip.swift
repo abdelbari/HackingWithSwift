@@ -3,10 +3,19 @@
 // block as wide as it holds, whose right edge drags its hold longer or
 // shorter; a playhead scrubs the film, the canvas showing each moment it
 // passes, in silence; under the blocks, when each selected element shows,
-// and the design's audio tracks as thin bars, a song's beats ticked across
-// its bar where they fall in the film. While a track has Beat Sync on, a
+// and the design's audio tracks as lanes, a song's beats ticked across its
+// lane where they fall in the film. While a track has Beat Sync on, a
 // dragged edge snaps to a beat within Beats.snapped's reach. As the Android
 // twin's timeline.
+//
+// The lanes answer the hand: a track's lane dragged moves it along the film
+// (Timeline.movedTrack), its ends pulled trim it (trimmedTrack), each drag
+// one Undo — "Move audio", "Trim audio"; tapped, it is chosen, with Edit,
+// Split at the playhead, Duplicate and Delete over the strip. An element's
+// bar is dragged and trimmed the same way (movedTiming, trimmedTiming).
+// Lanes are 28 points tall, touched 44 points tall. A pinch zooms the strip
+// from the film fitted to its width up to Timeline.maxScale points a second,
+// the playhead held where it is on screen.
 
 import SwiftUI
 
@@ -24,6 +33,23 @@ struct TimelineStrip: View {
     /// Each song's beats, in seconds into its file, by AudioStore id, once
     /// read (AudioStore.beats).
     @State private var trackBeats: [String: [Double]] = [:]
+    /// The scale a pinch left, in points a second; nil is the film fitted.
+    @State private var zoom: Double?
+    /// The scale when a pinch began, and where the playhead was across the
+    /// strip then, 0 its left edge and 1 its right.
+    @State private var pinchFrom: Double?
+    @State private var pinchAnchor: Double = 0.5
+    /// Where the playhead is across the strip's width, in points, as last
+    /// laid out.
+    @State private var playheadX: Double = 0
+    @State private var stripWidth: Double = 1
+    /// A lane being dragged: what it was when the finger came down, and the
+    /// scale then.
+    @State private var laneDrag: LaneDrag?
+    /// The track lane tapped, whose actions show over the strip.
+    @State private var chosenTrack: String?
+    /// The track whose Edit is open.
+    @State private var editing: TrackRef?
 
     /// The per-phone switch in More, off unless turned on.
     static let key = "timeline"
@@ -32,7 +58,9 @@ struct TimelineStrip: View {
     static let minScale = 12.0
     static let rulerHeight: CGFloat = 16
     static let blockHeight: CGFloat = 34
-    static let barHeight: CGFloat = 4
+    /// A lane's height, and how much taller a finger finds it.
+    static let laneHeight: CGFloat = 28
+    static let laneReach: CGFloat = 8
     /// The most bars of each kind drawn under the blocks.
     static let maxBars = 4
 
@@ -42,27 +70,56 @@ struct TimelineStrip: View {
         var scale: Double
     }
 
-    /// A thin bar under the blocks: when an element shows, or a track plays.
-    private struct Bar: Identifiable {
+    /// A track lane's or an element bar's drag: which, what was pulled, as
+    /// it stood when the finger came down, and the scale then.
+    private struct LaneDrag {
+        var id: String
+        var edge: Timeline.Edge?
+        var track: AudioTrack?
+        var timing: ElementTiming?
+        var scale: Double
+    }
+
+    private struct TrackRef: Identifiable {
+        var id: String
+    }
+
+    /// A lane under the blocks: when an element shows, or a track plays.
+    private struct Lane: Identifiable {
         var id: String
         var x: Double
         var width: Double
         var color: Color
+        var title: String
+        /// What VoiceOver says of it: "Song, 0:03 to 0:18".
+        var spoken: String
         /// Where a song's beats fall, in points from the film's start.
         var ticks: [Double] = []
+        /// A track's lane, its file's length known; else an element's bar.
+        var track: AudioTrack?
+        var length: Double?
     }
 
     var body: some View {
         VStack(spacing: 0) {
             header
+            if open, let id = chosenTrack, let track = store.design.audioTracks.first(where: { $0.id == id }) {
+                laneActions(track)
+            }
             if open {
                 GeometryReader { geo in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        lanes(scale: scale(width: geo.size.width - 24))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
+                    ScrollViewReader { proxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            lanes(scale: scale(width: geo.size.width - 24))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                        }
+                        .simultaneousGesture(pinchGesture(width: geo.size.width - 24, proxy: proxy))
                     }
+                    .onAppear { stripWidth = max(geo.size.width, 1) }
+                    .onChange(of: geo.size.width) { _, width in stripWidth = max(width, 1) }
                 }
+                .coordinateSpace(name: Self.space)
                 .frame(height: height)
                 // The film runs left to right in any language, as the
                 // design's pages do; the header reads as the language does.
@@ -72,7 +129,14 @@ struct TimelineStrip: View {
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
         .task(id: trackSources) { await readTrackLengths() }
+        .sheet(item: $editing) { ref in
+            NavigationStack { AudioTrackView(store: store, trackId: ref.id) }
+                .presentationDetents([.medium, .large])
+        }
     }
+
+    /// The strip's own space, where the playhead's place is read.
+    private static let space = "timelineStrip"
 
     // MARK: header
 
@@ -110,18 +174,44 @@ struct TimelineStrip: View {
 
     // MARK: layout
 
-    /// Points a second: the film fitted to `width`, at least `minScale` —
-    /// held where it was while an edge is dragged.
+    /// Points a second: the film fitted to `width`, at least `minScale`, or
+    /// as a pinch left it, no wider than Timeline.maxScale — held where it
+    /// was while an edge or a lane is dragged.
     private func scale(width: Double) -> Double {
         if let drag { return drag.scale }
+        if let laneDrag { return laneDrag.scale }
+        let fit = fitScale(width: width)
+        guard let zoom else { return fit }
+        return min(max(zoom, fit), max(fit, Timeline.maxScale))
+    }
+
+    /// The film fitted to `width`, at least `minScale`.
+    private func fitScale(width: Double) -> Double {
         let total = store.timelinePages.reduce(0.0) { $0 + $1.hold }
         return max(width / max(total, 0.1), Self.minScale)
     }
 
     private var height: CGFloat {
         let bars = min(selectedOnTimeline.count, Self.maxBars) + min(store.design.audioTracks.count, Self.maxBars)
-        return 12 + Self.rulerHeight + 3 + Self.blockHeight + CGFloat(bars) * (Self.barHeight + 3)
+        return 12 + Self.rulerHeight + 3 + Self.blockHeight + CGFloat(bars) * (Self.laneHeight + 3)
     }
+
+    /// A pinch zooms the strip, the playhead held where it was across it.
+    private func pinchGesture(width: Double, proxy: ScrollViewProxy) -> some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                if pinchFrom == nil {
+                    pinchFrom = scale(width: width)
+                    pinchAnchor = min(max(playheadX / stripWidth, 0), 1)
+                }
+                guard let from = pinchFrom else { return }
+                zoom = Timeline.pinched(from, factor: Double(value.magnification), minScale: fitScale(width: width))
+                proxy.scrollTo(Self.playheadMark, anchor: UnitPoint(x: pinchAnchor, y: 0.5))
+            }
+            .onEnded { _ in pinchFrom = nil }
+    }
+
+    private static let playheadMark = "playheadMark"
 
     private func lanes(scale: Double) -> some View {
         let pages = store.timelinePages
@@ -135,11 +225,34 @@ struct TimelineStrip: View {
                 }
             }
             .frame(width: max(width, 1), height: Self.blockHeight, alignment: .topLeading)
-            ForEach(elementBars(blocks: blocks, pages: pages, scale: scale)) { barView($0) }
-            ForEach(trackBars(film: width / scale, scale: scale)) { barView($0) }
+            ForEach(elementBars(blocks: blocks, pages: pages, scale: scale)) { lane in
+                elementLane(lane, hold: currentHold(pages), scale: scale)
+            }
+            ForEach(trackBars(film: width / scale, scale: scale)) { lane in
+                trackLane(lane, film: width / scale, scale: scale)
+            }
         }
         .frame(width: max(width, 1), alignment: .leading)
         .overlay(alignment: .topLeading) { playheadLine(width: width, scale: scale) }
+        .overlay(alignment: .topLeading) { playheadAnchor(scale: scale) }
+    }
+
+    /// How long the page on screen holds, on the timeline.
+    private func currentHold(_ pages: [(index: Int, hold: Double)]) -> Double {
+        pages.first { $0.index == store.pageIndex }?.hold ?? store.pageHold
+    }
+
+    /// A point where the playhead stands, for a pinch to keep in place.
+    @ViewBuilder
+    private func playheadAnchor(scale: Double) -> some View {
+        if let at = shownPlayhead {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .id(Self.playheadMark)
+                .padding(.leading, max(0, at * scale))
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: the playhead
@@ -202,6 +315,14 @@ struct TimelineStrip: View {
                 .frame(width: 2)
                 .overlay(alignment: .top) {
                     Circle().fill(Theme.guide).frame(width: 10, height: 10)
+                }
+                .background {
+                    GeometryReader { g in
+                        let x = Double(g.frame(in: .named(Self.space)).midX)
+                        Color.clear
+                            .onAppear { playheadX = x }
+                            .onChange(of: x) { _, now in playheadX = now }
+                    }
                 }
                 .offset(x: min(max(at * scale, 0), width) - 1)
                 .allowsHitTesting(false)
@@ -317,37 +438,198 @@ struct TimelineStrip: View {
     /// When each selected element shows, under its page's block: its timing,
     /// or the whole page.
     private func elementBars(blocks: [Timeline.Block], pages: [(index: Int, hold: Double)],
-                             scale: Double) -> [Bar] {
+                             scale: Double) -> [Lane] {
         guard let pos = pages.firstIndex(where: { $0.index == store.pageIndex }), pos < blocks.count else { return [] }
         let hold = pages[pos].hold, x0 = blocks[pos].x
-        return selectedOnTimeline.prefix(Self.maxBars).map { el -> Bar in
+        return selectedOnTimeline.prefix(Self.maxBars).map { el -> Lane in
             let start = min(el.timing?.start ?? 0, hold)
             let end = min(el.timing?.end ?? hold, hold)
-            return Bar(id: el.id, x: x0 + start * scale, width: max(end - start, 0) * scale, color: Theme.accent)
+            let name = ElementNames.name(of: el)
+            return Lane(id: el.id, x: x0 + start * scale, width: max(end - start, 0) * scale, color: Theme.accent,
+                        title: name, spoken: AudioTracks.spoken(name, from: start, to: end))
         }
     }
 
-    /// Where each of the design's tracks plays in the film, once its
-    /// music's length is read; none for one not heard.
-    private func trackBars(film: Double, scale: Double) -> [Bar] {
-        store.design.audioTracks.prefix(Self.maxBars).compactMap { track -> Bar? in
-            let length = track.audioId.flatMap { trackLengths[$0] }
-            guard let span = AudioMix.span(of: track, duration: length, film: film) else { return nil }
+    /// Where each of the design's tracks plays in the film, once its music's
+    /// length is read: from its start, once through or, looping, to the
+    /// film's end.
+    private func trackBars(film: Double, scale: Double) -> [Lane] {
+        store.design.audioTracks.prefix(Self.maxBars).compactMap { track -> Lane? in
+            guard let length = track.audioId.flatMap({ trackLengths[$0] }), length > 0.01 else { return nil }
+            let at = max(track.start, 0)
+            let until = track.loop ? max(film, at) : at + AudioTracks.length(of: track, duration: length)
             let beats = track.audioId.flatMap { trackBeats[$0] } ?? []
-            let ticks = Beats.inFilm(beats, track: track, length: length, film: span.until).map { $0 * scale }
-            return Bar(id: track.id, x: span.at * scale, width: (span.until - span.at) * scale, color: Theme.userGuide,
-                       ticks: ticks)
+            let ticks = Beats.inFilm(beats, track: track, length: length, film: until).map { $0 * scale }
+            let name = AudioTracks.name(of: track)
+            return Lane(id: track.id, x: at * scale, width: (until - at) * scale, color: Theme.userGuide,
+                        title: name, spoken: AudioTracks.spoken(name, from: at, to: until), ticks: ticks,
+                        track: track, length: length)
         }
     }
 
-    private func barView(_ bar: Bar) -> some View {
+    /// A lane as drawn: its name over its colour, a grip at each end, and
+    /// the one chosen ringed.
+    private func laneFace(_ lane: Lane, chosen: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 6)
+        return shape
+            .fill(lane.color.opacity(0.35))
+            .overlay(alignment: .leading) {
+                Text(lane.title)
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+                    .padding(.horizontal, 14)
+            }
+            .overlay { if !lane.ticks.isEmpty { tickMarks(lane.ticks.map { $0 - lane.x }) } }
+            .clipShape(shape)
+            .overlay(shape.stroke(chosen ? Theme.accent : lane.color, lineWidth: chosen ? 2 : 1))
+    }
+
+    /// A grip at one end of a lane, to pull.
+    private func grip(_ lane: Lane) -> some View {
         Capsule()
-            .fill(bar.color)
-            .frame(width: max(bar.width, 2), height: Self.barHeight)
-            .offset(x: bar.x)
+            .fill(lane.color)
+            .frame(width: 4, height: 16)
+            .frame(width: 14, height: Self.laneHeight)
+            .contentShape(Rectangle().inset(by: -Self.laneReach))
+    }
+
+    /// A track's lane: dragged along the film, its ends pulled to trim it,
+    /// tapped to choose it — each drag one Undo.
+    private func trackLane(_ lane: Lane, film: Double, scale: Double) -> some View {
+        let chosen = chosenTrack == lane.id
+        return laneFace(lane, chosen: chosen)
+            .overlay(alignment: .leading) { grip(lane).gesture(trackGesture(lane, edge: .start, film: film, scale: scale)) }
+            .overlay(alignment: .trailing) { grip(lane).gesture(trackGesture(lane, edge: .end, film: film, scale: scale)) }
+            .frame(width: max(lane.width, 30), height: Self.laneHeight)
+            .contentShape(Rectangle().inset(by: -Self.laneReach))
+            .onTapGesture { chosenTrack = chosen ? nil : lane.id }
+            .gesture(trackGesture(lane, edge: nil, film: film, scale: scale))
+            .offset(x: lane.x)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay { if !bar.ticks.isEmpty { tickMarks(bar.ticks) } }
-            .accessibilityHidden(true)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(lane.spoken)
+            .accessibilityAddTraits(chosen ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { chosenTrack = chosen ? nil : lane.id }
+            .accessibilityAdjustableAction { direction in nudgeTrack(lane, by: direction == .increment ? 0.1 : -0.1, film: film) }
+            .accessibilityAction(named: Text("Trim longer")) { trimTrack(lane, by: 0.1) }
+            .accessibilityAction(named: Text("Trim shorter")) { trimTrack(lane, by: -0.1) }
+    }
+
+    /// A track's lane dragged — whole, or by one end — the step kept open
+    /// until the finger lifts.
+    private func trackGesture(_ lane: Lane, edge: Timeline.Edge?, film: Double, scale: Double) -> some Gesture {
+        DragGesture(minimumDistance: 2, coordinateSpace: .global)
+            .onChanged { value in
+                if laneDrag?.id != lane.id { laneDrag = LaneDrag(id: lane.id, edge: edge, track: lane.track, scale: scale) }
+                guard let current = laneDrag, let track = current.track else { return }
+                let dx = Double(value.translation.width)
+                let next: AudioTrack
+                if let edge = current.edge {
+                    guard let length = lane.length else { return }
+                    next = Timeline.trimmedTrack(track, edge: edge, dx: dx, scale: current.scale, duration: length)
+                } else {
+                    next = Timeline.movedTrack(track, dx: dx, scale: current.scale, film: film, beats: beatsInFilm(track))
+                }
+                store.dragTrack(lane.id, to: next)
+            }
+            .onEnded { _ in
+                let trims = laneDrag?.edge != nil
+                laneDrag = nil
+                store.endLaneDrag(trims ? tr("Trim audio") : tr("Move audio"))
+            }
+    }
+
+    /// VoiceOver's adjust of a track's lane: its start a tenth later or
+    /// earlier.
+    private func nudgeTrack(_ lane: Lane, by seconds: Double, film: Double) {
+        guard let track = lane.track else { return }
+        store.setTrack(lane.id, to: Timeline.movedTrack(track, dx: seconds, scale: 1, film: film, beats: beatsInFilm(track)),
+                       label: tr("Move audio"))
+    }
+
+    /// VoiceOver's Trim longer and Trim shorter: its end a tenth on or back.
+    private func trimTrack(_ lane: Lane, by seconds: Double) {
+        guard let track = lane.track, let length = lane.length else { return }
+        store.setTrack(lane.id, to: Timeline.trimmedTrack(track, edge: .end, dx: seconds, scale: 1, duration: length),
+                       label: tr("Trim audio"))
+    }
+
+    /// A track's song's beats where they fall in the film, for a lane with
+    /// Beat Sync on to snap to.
+    private func beatsInFilm(_ track: AudioTrack) -> [Double] {
+        guard track.beatSync, let id = track.audioId, let beats = trackBeats[id] else { return [] }
+        let film = store.timelinePages.reduce(0.0) { $0 + $1.hold }
+        return Beats.inFilm(beats, track: track, length: trackLengths[id], film: film)
+    }
+
+    /// An element's bar: dragged within its page, its ends pulled to when
+    /// it comes and goes — each drag one Undo.
+    private func elementLane(_ lane: Lane, hold: Double, scale: Double) -> some View {
+        laneFace(lane, chosen: false)
+            .overlay(alignment: .leading) { grip(lane).gesture(timingGesture(lane, edge: .start, hold: hold, scale: scale)) }
+            .overlay(alignment: .trailing) { grip(lane).gesture(timingGesture(lane, edge: .end, hold: hold, scale: scale)) }
+            .frame(width: max(lane.width, 30), height: Self.laneHeight)
+            .contentShape(Rectangle().inset(by: -Self.laneReach))
+            .gesture(timingGesture(lane, edge: nil, hold: hold, scale: scale))
+            .offset(x: lane.x)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(lane.spoken)
+            .accessibilityAdjustableAction { direction in
+                let timing = store.element(lane.id)?.timing
+                store.setTiming(lane.id, to: Timeline.movedTiming(timing, dx: direction == .increment ? 0.1 : -0.1,
+                                                                  scale: 1, hold: hold))
+            }
+            .accessibilityAction(named: Text("Trim longer")) { trimTiming(lane, by: 0.1, hold: hold) }
+            .accessibilityAction(named: Text("Trim shorter")) { trimTiming(lane, by: -0.1, hold: hold) }
+    }
+
+    private func trimTiming(_ lane: Lane, by seconds: Double, hold: Double) {
+        let timing = store.element(lane.id)?.timing
+        store.setTiming(lane.id, to: Timeline.trimmedTiming(timing, edge: .end, dx: seconds, scale: 1, hold: hold))
+    }
+
+    private func timingGesture(_ lane: Lane, edge: Timeline.Edge?, hold: Double, scale: Double) -> some Gesture {
+        DragGesture(minimumDistance: 2, coordinateSpace: .global)
+            .onChanged { value in
+                if laneDrag?.id != lane.id {
+                    laneDrag = LaneDrag(id: lane.id, edge: edge, timing: store.element(lane.id)?.timing, scale: scale)
+                }
+                guard let current = laneDrag else { return }
+                let dx = Double(value.translation.width)
+                let next = current.edge.map {
+                    Timeline.trimmedTiming(current.timing, edge: $0, dx: dx, scale: current.scale, hold: hold)
+                } ?? Timeline.movedTiming(current.timing, dx: dx, scale: current.scale, hold: hold)
+                store.dragTiming(lane.id, to: next)
+            }
+            .onEnded { _ in
+                laneDrag = nil
+                store.endLaneDrag(tr("Edit"))
+            }
+    }
+
+    /// The chosen track's actions: Edit — its volume, fades and Beat Sync —
+    /// Split at the playhead, Duplicate and Delete.
+    private func laneActions(_ track: AudioTrack) -> some View {
+        HStack(spacing: 16) {
+            Text(AudioTracks.name(of: track))
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            Button("Edit") { editing = TrackRef(id: track.id) }
+            Button("Split") {
+                store.splitTrack(track.id, duration: track.audioId.flatMap { trackLengths[$0] })
+            }
+            .disabled(store.filmPlayhead == nil)
+            Button("Duplicate") { store.duplicateTrack(track.id) }
+            Button("Delete", role: .destructive) {
+                chosenTrack = nil
+                store.removeAudioTrack(track.id)
+            }
+        }
+        .font(.subheadline)
+        .padding(.horizontal, 12)
+        .frame(height: 36)
     }
 
     /// A song's beats across its bar, `ticks` points from the film's start.

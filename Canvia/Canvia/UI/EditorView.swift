@@ -35,6 +35,8 @@ enum EditorSheet: String, Identifiable {
     case settings
     /// More's "Audio": the design's tracks, and a voice-over.
     case audio
+    /// Page animations: every element on the page arriving, leaving or both.
+    case pageAnimation
     /// The typing bar's Aa: the font sheet for the words chosen.
     case fontWords
     /// Adjust photo: the picture in a text's letters (PhotoInLetters).
@@ -163,6 +165,11 @@ struct EditorView: View {
                         .padding(.horizontal, 10)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.bottom, 14)
+                } else if let recording = store.motionRecording {
+                    MotionBar(store: store, recording: recording)
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.bottom, 14)
                 } else {
                     insertButton
                         .padding(18)
@@ -173,7 +180,8 @@ struct EditorView: View {
             // the eraser's and the crop's bars: a tap opens the sheet on its
             // progress.
             .overlay(alignment: .bottomLeading) {
-                if store.drawing == nil && store.erasing == nil && store.cropping == nil && store.brushing == nil {
+                if store.drawing == nil && store.erasing == nil && store.cropping == nil && store.brushing == nil
+                    && store.motionRecording == nil {
                     ExportPill { activeSheet = .export }
                         .padding(.trailing, 72)
                         .padding(.bottom, 26)
@@ -241,7 +249,7 @@ struct EditorView: View {
     /// Crop, typing, the pen, the eraser or a brush has the page.
     private var pageTaken: Bool {
         store.cropping != nil || store.editingTextId != nil || store.drawing != nil || store.erasing != nil
-            || store.brushing != nil
+            || store.brushing != nil || store.motionRecording != nil
     }
 
     var body: some View {
@@ -282,6 +290,7 @@ struct EditorView: View {
         // The typing bar's colour well, Aa and Link ask for the colour sheet,
         // the font sheet and the link prompt for the words chosen.
         .modifier(WordRequests(store: store, activeSheet: $activeSheet))
+        .modifier(PageAnimationRequest(store: store, activeSheet: $activeSheet))
         .onChange(of: store.selection) { _, _ in
             if activeSheet != nil { revealSelection() }
         }
@@ -843,9 +852,15 @@ struct EditorView: View {
                     openBackground()
                 } label: { Label("Page background", systemImage: "photo.artframe") }
 
-                Button {
-                    activeSheet = .audio
-                } label: { Label("Audio", systemImage: "waveform") }
+                Group {
+                    Button {
+                        activeSheet = .audio
+                    } label: { Label("Audio", systemImage: "waveform") }
+
+                    Button {
+                        activeSheet = .pageAnimation
+                    } label: { Label("Page animations", systemImage: "sparkles.rectangle.stack") }
+                }
 
                 Button {
                     activeSheet = .find
@@ -1543,6 +1558,8 @@ struct EditorView: View {
             SettingsSheet(store: store)
         case .audio:
             AudioSheet(store: store)
+        case .pageAnimation:
+            PageAnimationSheet(store: store)
         case .pages:
             PageOrganizerSheet(store: store)
         case .snapping:
@@ -1953,5 +1970,20 @@ private struct WordRequests: ViewModifier {
             }
             .modifier(WordLinkPrompt(store: store))
             .modifier(PhotoInLettersPrompts(store: store, openAdjust: { activeSheet = .photoInLetters }))
+    }
+}
+
+/// The hold menu's Animate asks for Page animations.
+private struct PageAnimationRequest: ViewModifier {
+    @Bindable var store: DesignStore
+    @Binding var activeSheet: EditorSheet?
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: store.asksPageAnimation) { _, asked in
+                guard asked else { return }
+                store.asksPageAnimation = false
+                activeSheet = .pageAnimation
+            }
     }
 }
