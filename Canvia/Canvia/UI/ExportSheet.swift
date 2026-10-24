@@ -64,6 +64,8 @@ struct ExportSheet: View {
     /// The web page as Preview shows it, and as Save to Files moves it.
     @State private var previewURL: URL?
     @State private var movingURL: URL?
+    /// While Preview or Save to device makes the page.
+    @State private var makingHTML = false
     @State private var sharedURLs: [URL] = []
     /// What the last save to Photos came to, and whether anything went in.
     @State private var photosNote: PhotosNote?
@@ -150,7 +152,7 @@ struct ExportSheet: View {
                 }
                 .sheet(isPresented: $showingMockups) {
                     // The design as saved has no editor to add a picture to.
-                    MockupSheet(design: store.design, store: readOnly ? nil : store)
+                    MockupSheet(design: store.design, store: readOnly ? nil : store, startPage: store.pageIndex)
                 }
                 .sheet(isPresented: $choosingPages, onDismiss: {
                     ExportChoices.remember(chosenIds, for: store.design)
@@ -726,9 +728,10 @@ struct ExportSheet: View {
                 .disabled(!htmlNav)
             Toggle("Include videos", isOn: $htmlMedia)
             Button("Preview") { previewHTML() }
-                .disabled(leftOut(pdfIndices) != nil)
+                .disabled(leftOut(pdfIndices) != nil || makingHTML)
             Button("Save to device") { saveHTML() }
-                .disabled(leftOut(pdfIndices) != nil)
+                .disabled(leftOut(pdfIndices) != nil || makingHTML)
+            if makingHTML { ProgressView(tr("Making the web page")) }
         } footer: {
             Text(leftOut(pdfIndices) ?? htmlNote)
         }
@@ -753,14 +756,20 @@ struct ExportSheet: View {
     }
 
     /// The page written to a folder of its own and shown here, in a web
-    /// view read from its file.
+    /// view read from its file. Made while the sheet stays live
+    /// (`makingHTML`).
     @MainActor
     private func previewHTML() {
         let snapshot = designSnapshot
-        do {
-            previewURL = try HTMLExporter.preview(snapshot.design, pages: snapshot.pages, settings: htmlSettings)
-        } catch {
-            errorMessage = tr("Couldn't make the web page")
+        let settings = htmlSettings
+        makingHTML = true
+        Task { @MainActor in
+            defer { makingHTML = false }
+            do {
+                previewURL = try await HTMLExporter.preview(snapshot.design, pages: snapshot.pages, settings: settings)
+            } catch {
+                errorMessage = tr("Couldn't make the web page")
+            }
         }
     }
 
@@ -768,11 +777,16 @@ struct ExportSheet: View {
     @MainActor
     private func saveHTML() {
         let snapshot = designSnapshot
-        do {
-            movingURL = try HTMLExporter.export(snapshot.design, pages: snapshot.pages, settings: htmlSettings)
-            rememberSettings("html")
-        } catch {
-            errorMessage = tr("Couldn't make the web page")
+        let settings = htmlSettings
+        makingHTML = true
+        Task { @MainActor in
+            defer { makingHTML = false }
+            do {
+                movingURL = try await HTMLExporter.export(snapshot.design, pages: snapshot.pages, settings: settings)
+                rememberSettings("html")
+            } catch {
+                errorMessage = tr("Couldn't make the web page")
+            }
         }
     }
 

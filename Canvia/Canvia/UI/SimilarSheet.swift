@@ -3,7 +3,8 @@
 // Canva's "See more like this". A tap swaps the selection for one in place,
 // keeping its box, turn, opacity, motion, link and main colour (LikeThis) —
 // one Undo; a press and hold puts one on the page beside it instead, as Add
-// would. Opened from the selection's tool row and from the quick actions at
+// would. The strip follows the selection, so after a swap it shows things
+// like the new one. Opened from the selection's tool row and from the quick actions at
 // the selection, as the Android twin opens it from its selection bar and
 // hold menu.
 
@@ -12,9 +13,9 @@ import SwiftUI
 struct SimilarSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
-    /// What was like the selection as the sheet opened: kept while it is
-    /// up, so each swap leaves the rest to try.
-    @State private var hits: [ElementSearch.Hit] = []
+    /// What is like the selection now: after a swap, things like the new
+    /// one (the old one among them, to swap back), as on the Android twin.
+    private var hits: [ElementSearch.Hit] { store.similarToSelection }
 
     var body: some View {
         NavigationStack {
@@ -42,7 +43,6 @@ struct SimilarSheet: View {
         }
         .presentationDetents([.height(210), .medium])
         .presentationBackgroundInteraction(.enabled(upThrough: .height(210)))
-        .onAppear { hits = store.similarToSelection }
     }
 
     private var strip: some View {

@@ -68,7 +68,7 @@ struct EmojiPicker: View {
     private func tile(_ emoji: Emoji) -> some View {
         let glyph = EmojiCatalogue.toned(emoji.g, emoji.tone ? tone : nil)
         if emoji.tone {
-            face(glyph)
+            face(glyph, starred: emoji.g)
                 .contentShape(Rectangle())
                 .onTapGesture { onPick(glyph) }
                 .onLongPressGesture { toning = emoji.g }
@@ -82,19 +82,21 @@ struct EmojiPicker: View {
                 .accessibilityAction { onPick(glyph) }
                 .accessibilityAction(named: Text("Skin tone")) { toning = emoji.g }
         } else {
-            Button { onPick(glyph) } label: { face(glyph) }
+            Button { onPick(glyph) } label: { face(glyph, starred: emoji.g) }
                 .buttonStyle(.plain)
                 .accessibilityLabel(emoji.name)
-                .contextMenu { favouriteButton(glyph) }
+                .contextMenu { favouriteButton(emoji.g) }
         }
     }
 
-    private func face(_ glyph: String) -> some View {
+    /// `glyph` drawn, starred when `starred` — the emoji without a skin
+    /// tone, which is what a favourite keeps, as on the Android twin.
+    private func face(_ glyph: String, starred: String) -> some View {
         Text(glyph)
             .font(.largeTitle)
             .frame(width: side, height: side)
             .overlay(alignment: .topTrailing) {
-                if Favorites.isFavorite("sticker", glyph) { InsertSheet.favouriteStar.scaleEffect(0.8) }
+                if Favorites.isFavorite("sticker", starred) { InsertSheet.favouriteStar.scaleEffect(0.8) }
             }
     }
 
@@ -107,7 +109,7 @@ struct EmojiPicker: View {
                 toneButton(emoji, pair.element, name: Self.toneNames[pair.offset])
             }
             Divider().frame(height: 28)
-            favouriteButton(EmojiCatalogue.toned(emoji.g, tone))
+            favouriteButton(emoji.g)
                 .labelStyle(.iconOnly)
         }
         .padding(8)
