@@ -171,10 +171,17 @@ enum TextWarp {
         let left = edge(h[0], h[7], h[3], v)
         let right = edge(h[1], h[5], h[2], v)
         func blend(_ k: KeyPath<CGPoint, CGFloat>) -> Double {
-            let ruled = (1 - v) * Double(top[keyPath: k]) + v * Double(bottom[keyPath: k])
-                + (1 - u) * Double(left[keyPath: k]) + u * Double(right[keyPath: k])
-            let corners = (1 - u) * (1 - v) * Double(h[0][keyPath: k]) + u * (1 - v) * Double(h[1][keyPath: k])
-                + u * v * Double(h[2][keyPath: k]) + (1 - u) * v * Double(h[3][keyPath: k])
+            let t: Double = Double(top[keyPath: k]), b: Double = Double(bottom[keyPath: k])
+            let l: Double = Double(left[keyPath: k]), r: Double = Double(right[keyPath: k])
+            // Summed in Android's order, so both phones land on the same bits.
+            var ruled: Double = (1 - v) * t
+            ruled += v * b
+            ruled += (1 - u) * l
+            ruled += u * r
+            var corners: Double = (1 - u) * (1 - v) * Double(h[0][keyPath: k])
+            corners += u * (1 - v) * Double(h[1][keyPath: k])
+            corners += (1 - u) * v * Double(h[3][keyPath: k])
+            corners += u * v * Double(h[2][keyPath: k])
             return ruled - corners
         }
         return CGPoint(x: Double(box.minX) + blend(\.x) * Double(box.width),
@@ -188,39 +195,25 @@ enum TextWarp {
         let out = CGMutablePath()
         var current = CGPoint.zero
         var start = CGPoint.zero
-        func to(_ p: CGPoint) -> CGPoint { map(p, box: box, warp: warp) }
-        func pieces(_ at: (Double) -> CGPoint) {
-            for i in 1...segments { out.addLine(to: to(at(Double(i) / Double(segments)))) }
-        }
-        path.applyWithBlock { element in
-            let e = element.pointee
+        path.applyWithBlock { (element: UnsafePointer<CGPathElement>) in
+            let e: CGPathElement = element.pointee
             switch e.type {
             case .moveToPoint:
                 current = e.points[0]
                 start = current
-                out.move(to: to(current))
+                out.move(to: map(current, box: box, warp: warp))
             case .addLineToPoint:
-                let s = current, p = e.points[0]
-                pieces { t in CGPoint(x: Double(s.x) + (Double(p.x) - Double(s.x)) * t,
-                                      y: Double(s.y) + (Double(p.y) - Double(s.y)) * t) }
-                current = p
+                let ends: [CGPoint] = [current, e.points[0]]
+                addPieces(out, ends, box: box, warp: warp, segments: segments)
+                current = e.points[0]
             case .addQuadCurveToPoint:
-                let s = current, c = e.points[0], p = e.points[1]
-                pieces { t in
-                    let v = 1 - t
-                    return CGPoint(x: v * v * Double(s.x) + 2 * v * t * Double(c.x) + t * t * Double(p.x),
-                                   y: v * v * Double(s.y) + 2 * v * t * Double(c.y) + t * t * Double(p.y))
-                }
-                current = p
+                let ends: [CGPoint] = [current, e.points[0], e.points[1]]
+                addPieces(out, ends, box: box, warp: warp, segments: segments)
+                current = e.points[1]
             case .addCurveToPoint:
-                let s = current, c1 = e.points[0], c2 = e.points[1], p = e.points[2]
-                pieces { t in
-                    let v = 1 - t
-                    let a = v * v * v, b = 3 * v * v * t, c = 3 * v * t * t, d = t * t * t
-                    return CGPoint(x: a * Double(s.x) + b * Double(c1.x) + c * Double(c2.x) + d * Double(p.x),
-                                   y: a * Double(s.y) + b * Double(c1.y) + c * Double(c2.y) + d * Double(p.y))
-                }
-                current = p
+                let ends: [CGPoint] = [current, e.points[0], e.points[1], e.points[2]]
+                addPieces(out, ends, box: box, warp: warp, segments: segments)
+                current = e.points[2]
             case .closeSubpath:
                 out.closeSubpath()
                 current = start
@@ -229,6 +222,35 @@ enum TextWarp {
             }
         }
         return out
+    }
+
+    /// A line (2 points), quadratic (3) or cubic (4) Bézier from its start,
+    /// cut into `segments` straight pieces, each end warped, added to `out`.
+    private static func addPieces(_ out: CGMutablePath, _ points: [CGPoint], box: CGRect, warp: TextWarpSpec,
+                                  segments: Int) {
+        for i in 1...segments {
+            let t = Double(i) / Double(segments)
+            out.addLine(to: map(bezier(points, t), box: box, warp: warp))
+        }
+    }
+
+    /// The point `t` of the way along a line (2 points), quadratic (3) or
+    /// cubic (4) Bézier, by its Bernstein weights — the sums Android uses.
+    private static func bezier(_ points: [CGPoint], _ t: Double) -> CGPoint {
+        let v: Double = 1 - t
+        let weights: [Double]
+        switch points.count {
+        case 2: weights = [v, t]
+        case 3: weights = [v * v, 2 * v * t, t * t]
+        default: weights = [v * v * v, 3 * v * v * t, 3 * v * t * t, t * t * t]
+        }
+        var x: Double = 0
+        var y: Double = 0
+        for (k, w) in weights.enumerated() where k < points.count {
+            x += w * Double(points[k].x)
+            y += w * Double(points[k].y)
+        }
+        return CGPoint(x: x, y: y)
     }
 
     /// The box's outline warped, as a bounding rectangle in the box's own
