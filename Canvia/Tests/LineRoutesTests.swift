@@ -135,9 +135,10 @@ final class LineRoutesTests: XCTestCase {
         XCTAssertEqual(bow.startAngle, -3 * .pi / 4, accuracy: 1e-9)
         XCTAssertEqual(LineRoutes.bow(curve), 25, accuracy: 1e-9)
         near(CGPoint(x: 50, y: 50), LineRoutes.control(CGPoint(x: 0, y: 0), CGPoint(x: 100, y: 0), bend: 0.25), 1e-9)
-        // An arrowhead's tip and back corners, 10 long, pointing along +x.
-        let head = LineRoutes.arrowhead(tip: CGPoint(x: 0, y: 0), angle: 0, size: 10)
-        for (e, a) in zip([CGPoint(x: 0, y: 0), CGPoint(x: -10, y: -6), CGPoint(x: -10, y: 6)], head) { near(e, a, 1e-12) }
+        // A triangle's tip and back corners, 10 long, pointing along +x.
+        let head = try XCTUnwrap(LineEnds.head(LineEnds.Kind.triangle, tip: CGPoint(x: 0, y: 0), angle: 0, thickness: 2))
+        guard case .polygon(let corners) = head.outline else { return XCTFail("a triangle is a polygon") }
+        for (e, a) in zip([CGPoint(x: 0, y: 0), CGPoint(x: -10, y: -6), CGPoint(x: -10, y: 6)], corners) { near(e, a, 1e-12) }
     }
 
     func testALinesWeightChangedKeepsItsEndsWhereTheyWere() {
@@ -384,10 +385,12 @@ final class LineRoutesTests: XCTestCase {
         var d = Design(title: "Lines", width: 800, height: 600)
         d.pages = [Page(elements: [elbow])]
         let svg = SVGExporter.svg(design: d, page: d.pages[0])
-        // The stroke stops 0.9 of a 12-long arrowhead short of its tip at (100, 50).
-        XCTAssertTrue(svg.contains("<path d=\"M0 0L50 0L50 50L89.2 50\" fill=\"none\" stroke=\"#1f2430\" stroke-width=\"4\" "
+        // The stroke's round cap ends on the open arrow's tip at (100, 50):
+        // it stops half the weight short of it.
+        XCTAssertTrue(svg.contains("<path d=\"M0 0L50 0L50 50L98 50\" fill=\"none\" stroke=\"#1f2430\" stroke-width=\"4\" "
                                    + "stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"), svg)
-        XCTAssertTrue(svg.contains("<path d=\"M100 50L88 42.8L88 57.2Z\" fill=\"#1f2430\"/>"), svg)
+        XCTAssertTrue(svg.contains("<path d=\"M88 42.8L100 50L88 57.2\" fill=\"none\" stroke=\"#1f2430\" stroke-width=\"4\" "
+                                   + "stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"), svg)
         let curve = LineRoutes.withEnds(LineRoutes.withType(flat, .curve), CGPoint(x: 0, y: 0), CGPoint(x: 100, y: 0))
         d.pages = [Page(elements: [curve])]
         XCTAssertTrue(SVGExporter.svg(design: d, page: d.pages[0]).contains("<path d=\"M0 0Q50 50 100 0\""))
@@ -397,7 +400,7 @@ final class LineRoutesTests: XCTestCase {
         XCTAssertTrue(slide.contains("<a:prstGeom prst=\"bentConnector3\"><a:avLst><a:gd name=\"adj1\" fmla=\"val 50000\"/>"
                                      + "</a:avLst></a:prstGeom>"), slide)
         XCTAssertTrue(slide.contains("<a:prstGeom prst=\"curvedConnector3\">"), slide)
-        XCTAssertTrue(slide.contains("<a:tailEnd type=\"triangle\"/>"), slide)
+        XCTAssertTrue(slide.contains("<a:tailEnd type=\"arrow\"/>"), slide)
         XCTAssertEqual(slide.components(separatedBy: "<p:cxnSp>").count - 1, 2)
     }
 }

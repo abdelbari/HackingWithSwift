@@ -1310,27 +1310,9 @@ struct ContextToolbar: View {
             }
         }
         dashMenu(el)
-        // Each end on its own — none, an arrow or a dot, nine ways — as the
-        // Android twin sets them, with the old pairs kept as quick picks.
-        Menu {
-            Picker("Start", selection: capBinding(el, start: true)) {
-                ForEach(Self.lineEnds, id: \.key) { end in Text(end.name).tag(end.key) }
-            }
-            .pickerStyle(.menu)
-            Picker("End", selection: capBinding(el, start: false)) {
-                ForEach(Self.lineEnds, id: \.key) { end in Text(end.name).tag(end.key) }
-            }
-            .pickerStyle(.menu)
-            Section("Both ends") {
-                Button("No caps") { setEnds("none", "none") }
-                Button("Arrow end →") { setEnds("none", "arrow") }
-                Button("Both arrows ↔") { setEnds("arrow", "arrow") }
-                Button("Dot ends") { setEnds("dot", "dot") }
-            }
-        } label: {
-            toolLabel("arrow.left.and.right", "Ends")
-        }
-        .accessibilityLabel("Line ends")
+        // Each end on its own, eleven ways, and how big the heads are
+        // (LineEnds), as the Android twin sets them.
+        toolButton("arrow.left.and.right", "Ends") { activeSheet = .lineEnds }
     }
 
     /// Straight, Elbow or Curve (LineRoutes), the line's ends staying where
@@ -1392,42 +1374,6 @@ struct ContextToolbar: View {
     /// A line's dash as one of those; none, or anything else, is solid.
     static func dashStyle(_ dash: String?) -> String {
         dashStyles.contains(dash ?? "") ? dash ?? "solid" : "solid"
-    }
-
-    /// Both ends at once, and nothing recorded when they already are.
-    private func setEnds(_ start: String, _ end: String) {
-        let lines = store.selectedElements.filter { $0.type == .line && !$0.locked }
-        guard lines.contains(where: { Self.lineEnd($0.startCap) != start || Self.lineEnd($0.endCap) != end })
-        else { return }
-        store.updateSelected { e in
-            guard e.type == .line else { return }
-            e.startCap = start
-            e.endCap = end
-        }
-        store.buzz(.tick)
-    }
-
-    /// The ends a line can have, as both phones write them.
-    static let lineEnds: [(key: String, name: String)] = [("none", tr("None")), ("arrow", tr("Arrow")), ("dot", tr("Dot"))]
-
-    /// A line's end as one of those keys; anything else reads as none.
-    static func lineEnd(_ cap: String?) -> String {
-        lineEnds.contains { $0.key == cap } ? cap ?? "none" : "none"
-    }
-
-    /// One end of the selected line, changed on its own — and nothing
-    /// recorded when it is already that.
-    private func capBinding(_ el: Element, start: Bool) -> Binding<String> {
-        Binding(get: { Self.lineEnd(start ? el.startCap : el.endCap) },
-                set: { key in
-                    let lines = store.selectedElements.filter { $0.type == .line && !$0.locked }
-                    guard lines.contains(where: { Self.lineEnd(start ? $0.startCap : $0.endCap) != key }) else { return }
-                    store.updateSelected { e in
-                        guard e.type == .line else { return }
-                        if start { e.startCap = key } else { e.endCap = key }
-                    }
-                    store.buzz(.tick)
-                })
     }
 
     // MARK: universal

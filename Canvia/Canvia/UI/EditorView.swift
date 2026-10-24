@@ -43,6 +43,8 @@ enum EditorSheet: String, Identifiable {
     case photoInLetters
     /// More like this, for a selected icon, sticker, graphic or shape.
     case similar
+    /// A line's ends: Start, End and their size (LineEnds).
+    case lineEnds
     /// The typing bar's highlighter: marker colours for the words chosen.
     case highlightWords
     /// More's "Bulk create…": a page, or a design, for each row of a table.
@@ -1615,6 +1617,8 @@ struct EditorView: View {
             SimilarSheet(store: store)
         case .shadow:
             ShadowSheet(store: store)
+        case .lineEnds:
+            LineEndsSheet(store: store)
         case .clip:
             ClipSheet(store: store)
         case .shapeText:

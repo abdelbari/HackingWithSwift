@@ -74,14 +74,15 @@ final class StyleAndExportParityTests: XCTestCase {
 
     // MARK: line ends
 
-    @MainActor
-    func testLineEndsReadAsNoneArrowOrDot() {
-        XCTAssertEqual(ContextToolbar.lineEnd("arrow"), "arrow")
-        XCTAssertEqual(ContextToolbar.lineEnd("dot"), "dot")
-        XCTAssertEqual(ContextToolbar.lineEnd("none"), "none")
-        XCTAssertEqual(ContextToolbar.lineEnd(nil), "none")
-        XCTAssertEqual(ContextToolbar.lineEnd("feather"), "none", "an end this app does not know reads as none")
-        XCTAssertEqual(ContextToolbar.lineEnds.map(\.key), ["none", "arrow", "dot"])
+    func testLineEndsReadAsOneOfElevenKinds() {
+        XCTAssertEqual(LineEnds.kind("arrow"), .arrow)
+        XCTAssertEqual(LineEnds.kind("dot"), .dot)
+        XCTAssertEqual(LineEnds.kind("diamondOutline"), .diamondOutline)
+        XCTAssertEqual(LineEnds.kind("none"), LineEnds.Kind.none)
+        XCTAssertEqual(LineEnds.kind(nil), LineEnds.Kind.none)
+        XCTAssertEqual(LineEnds.kind("feather"), LineEnds.Kind.none, "an end this app does not know reads as none")
+        XCTAssertEqual(LineEnds.Kind.allCases.map(\.rawValue), ["none", "arrow", "triangle", "triangleOutline", "dot", "circle",
+                                                                "square", "squareOutline", "diamond", "diamondOutline", "bar"])
     }
 
     // MARK: background gradients

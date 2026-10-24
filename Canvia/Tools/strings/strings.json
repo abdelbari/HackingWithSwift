@@ -6380,6 +6380,15 @@
     "ja": "棒",
     "pt-BR": "Barras"
   },
+  "Bar\u0004line end": {
+    "ar": "شَرطة",
+    "de": "Balken",
+    "es": "Barra",
+    "fr": "Barre",
+    "it": "Barra",
+    "ja": "バー",
+    "pt-BR": "Barra"
+  },
   "Bar gap": {
     "ar": "المسافة بين الأعمدة",
     "de": "Balkenabstand",
@@ -7981,6 +7990,15 @@
     "it": "Cerchio",
     "ja": "円",
     "pt-BR": "Círculo"
+  },
+  "Circle outline": {
+    "ar": "دائرة مفرغة",
+    "de": "Kreis-Umriss",
+    "es": "Contorno de círculo",
+    "fr": "Contour de cercle",
+    "it": "Contorno cerchio",
+    "ja": "円（枠線）",
+    "pt-BR": "Contorno de círculo"
   },
   "Circle stamp": {
     "ar": "ختم دائري",
@@ -10496,6 +10514,15 @@
     "ja": "ひし形",
     "pt-BR": "Losango"
   },
+  "Diamond outline": {
+    "ar": "معيّن مفرغ",
+    "de": "Rauten-Umriss",
+    "es": "Contorno de rombo",
+    "fr": "Contour de losange",
+    "it": "Contorno rombo",
+    "ja": "ひし形（枠線）",
+    "pt-BR": "Contorno de losango"
+  },
   "Dictate": {
     "ar": "إملاء",
     "de": "Diktieren",
@@ -11881,6 +11908,15 @@
     "it": "Termina presentazione",
     "ja": "プレゼンテーションを終了",
     "pt-BR": "Encerrar apresentação"
+  },
+  "End size": {
+    "ar": "حجم الطرفين",
+    "de": "Größe der Enden",
+    "es": "Tamaño de los extremos",
+    "fr": "Taille des extrémités",
+    "it": "Dimensione estremità",
+    "ja": "端のサイズ",
+    "pt-BR": "Tamanho das pontas"
   },
   "End the presentation": {
     "ar": "إنهاء العرض التقديمي",
@@ -25316,6 +25352,15 @@
     "ja": "正方形",
     "pt-BR": "Quadrado"
   },
+  "Square outline": {
+    "ar": "مربع مفرغ",
+    "de": "Quadrat-Umriss",
+    "es": "Contorno de cuadrado",
+    "fr": "Contour de carré",
+    "it": "Contorno quadrato",
+    "ja": "正方形（枠線）",
+    "pt-BR": "Contorno de quadrado"
+  },
   "Squeeze": {
     "ar": "ضغط",
     "de": "Stauchen",
@@ -28006,6 +28051,15 @@
     "it": "Triangolo in giù",
     "ja": "下向き三角形",
     "pt-BR": "Triângulo para baixo"
+  },
+  "Triangle outline": {
+    "ar": "مثلث مفرغ",
+    "de": "Dreieck-Umriss",
+    "es": "Contorno de triángulo",
+    "fr": "Contour de triangle",
+    "it": "Contorno triangolo",
+    "ja": "三角形（枠線）",
+    "pt-BR": "Contorno de triângulo"
   },
   "Trim": {
     "ar": "قص",

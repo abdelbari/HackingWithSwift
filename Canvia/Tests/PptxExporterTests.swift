@@ -810,11 +810,11 @@ final class PptxExporterTests: XCTestCase {
         let straight = "<a:xfrm><a:off x=\"95250\" y=\"228600\"/><a:ext cx=\"2857500\" cy=\"0\"/></a:xfrm>"
             + "<a:prstGeom prst=\"line\"><a:avLst/></a:prstGeom><a:ln w=\"38100\" cap=\"rnd\">"
             + "<a:solidFill><a:srgbClr val=\"1F2430\"/></a:solidFill><a:prstDash val=\"dash\"/>"
-            + "<a:headEnd type=\"oval\"/><a:tailEnd type=\"triangle\"/></a:ln>"
+            + "<a:headEnd type=\"oval\"/><a:tailEnd type=\"arrow\"/></a:ln>"
         XCTAssertTrue(xml.contains(straight))
         // Flipped across, its ends swap.
         line.flipH = true
-        XCTAssertTrue(slideXML([line]).contains("<a:headEnd type=\"triangle\"/><a:tailEnd type=\"oval\"/>"))
+        XCTAssertTrue(slideXML([line]).contains("<a:headEnd type=\"arrow\"/><a:tailEnd type=\"oval\"/>"))
         // A colour that does not read is black.
         var unread = Element.shape("rect")
         unread.fill = .solid("nope")

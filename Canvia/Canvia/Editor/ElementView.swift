@@ -1364,57 +1364,16 @@ struct LineElementView: View {
     let element: Element
 
     var body: some View {
-        SwiftUI.Canvas { context, size in
-            let el = element
-            // An elbowed or curved line along its route.
-            if LineRoutes.keepsLevel(el) {
-                Self.drawRoute(el, in: context)
-                return
-            }
-            let t = el.thickness ?? 4
-            let y = size.height / 2
-            let color = Color(hex: el.color ?? "#1f2430")
-            let capSize = max(t * 3, 10)
-            var x1 = 0.0, x2 = size.width
-            if el.startCap == "arrow" { x1 += capSize * 0.9 }
-            if el.endCap == "arrow" { x2 -= capSize * 0.9 }
-
-            var line = Path()
-            line.move(to: CGPoint(x: x1, y: y))
-            line.addLine(to: CGPoint(x: x2, y: y))
-            var style = StrokeStyle(lineWidth: t, lineCap: .round)
-            if el.dash == "dashed" { style.dash = [t * 3, t * 2] }
-            if el.dash == "dotted" { style.dash = [0.01, t * 2.2] }
-            context.stroke(line, with: .color(color), style: style)
-
-            func cap(atStart: Bool, kind: String?) {
-                guard let kind, kind != "none" else { return }
-                if kind == "arrow" {
-                    let tip = atStart ? 0.0 : size.width
-                    let dir = atStart ? 1.0 : -1.0
-                    var p = Path()
-                    p.move(to: CGPoint(x: tip, y: y))
-                    p.addLine(to: CGPoint(x: tip + dir * capSize, y: y - capSize * 0.6))
-                    p.addLine(to: CGPoint(x: tip + dir * capSize, y: y + capSize * 0.6))
-                    p.closeSubpath()
-                    context.fill(p, with: .color(color))
-                } else if kind == "dot" {
-                    let cx = atStart ? t : size.width - t
-                    let r = max(t * 1.4, 5)
-                    context.fill(Path(ellipseIn: CGRect(x: cx - r, y: y - r, width: r * 2, height: r * 2)),
-                                 with: .color(color))
-                }
-            }
-            cap(atStart: true, kind: el.startCap)
-            cap(atStart: false, kind: el.endCap)
+        SwiftUI.Canvas { context, _ in
+            Self.drawRoute(element, in: context)
         }
         .frame(width: element.w, height: element.h)
     }
 
-    /// An elbowed or curved line (LineRoutes) in its own box: one stroke
-    /// along its route — its corners round, a curve a quadratic — dashed as
-    /// a straight one is, stopping short of an arrowhead whose tip is the
-    /// end, and each end's arrowhead or dot pointing along its segment.
+    /// A line (LineRoutes) in its own box: one stroke along its route —
+    /// across its middle when straight, its corners round, a curve a
+    /// quadratic — dashed 3:2 or dotted, stopping short of its heads, and
+    /// each end's head (LineEnds) pointing along its segment.
     static func drawRoute(_ el: Element, in context: GraphicsContext) {
         let t = max(el.thickness ?? 4, 0.5)
         let color = Color(hex: el.color ?? "#1f2430")
@@ -1432,18 +1391,19 @@ struct LineElementView: View {
         if el.dash == "dashed" { style.dash = [t * 3, t * 2] }
         if el.dash == "dotted" { style.dash = [0.01, t * 2.2] }
         context.stroke(stroke, with: .color(color), style: style)
-        for (kind, tip, angle) in [(el.startCap, route.start, route.startAngle), (el.endCap, route.end, route.endAngle)] {
-            if kind == "arrow" {
-                let head = LineRoutes.arrowhead(tip: tip, angle: angle, size: LineRoutes.arrowSize(t))
-                var p = Path()
-                p.addLines(head)
-                p.closeSubpath()
-                context.fill(p, with: .color(color))
-            } else if kind == "dot" {
-                let c = LineRoutes.dotCentre(tip: tip, angle: angle, t: t)
-                let r = LineRoutes.dotRadius(t)
-                context.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(color))
-            }
+        for head in LineEnds.heads(el) {
+            drawHead(head, color: color, in: context)
+        }
+    }
+
+    /// One head: filled, or stroked as wide as its line, round-joined.
+    static func drawHead(_ head: LineEnds.Head, color: Color, in context: GraphicsContext) {
+        let path = Path(LineEnds.path(head))
+        if head.stroked {
+            context.stroke(path, with: .color(color),
+                           style: StrokeStyle(lineWidth: head.width, lineCap: .round, lineJoin: .round))
+        } else {
+            context.fill(path, with: .color(color))
         }
     }
 }

@@ -281,7 +281,7 @@ enum PptxExporter {
             let size = FontLibrary.effectiveFontSize(for: el)
             reach += TextEffect.resolve(el.effect, fontSize: size, ink: el.color ?? "#1f2430").reach
         }
-        if el.type == .line { reach += SVGExporter.arrowSize(max(el.thickness ?? 4, 0.5)) + LineRoutes.bow(el) }
+        if el.type == .line { reach += LineEnds.reach(el) + LineRoutes.bow(el) }
         return reach
     }
 
@@ -832,14 +832,14 @@ enum PptxExporter {
     private static func lineXML(_ el: Element, id: Int, link: String?, frame: Frame) -> String {
         let thickness = max(el.thickness ?? 4, 0.5)
         if LineRoutes.keepsLevel(el) {
-            let caps = "\(lineEnd("headEnd", el.startCap))\(lineEnd("tailEnd", el.endCap))"
+            let caps = "\(lineEnd("headEnd", el.startCap, scale: el.capScale))\(lineEnd("tailEnd", el.endCap, scale: el.capScale))"
             return connectorXML(el, id: id, link: link, frame: frame, caps: caps, thickness: thickness)
         }
         var ends = [el.startCap, el.endCap]
         if el.flipH { ends.reverse() }
         let dash = dashXML(el.dash)
         let paint = "<a:solidFill>\(color(el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
-        let capped = "\(lineEnd("headEnd", ends[0]))\(lineEnd("tailEnd", ends[1]))"
+        let capped = "\(lineEnd("headEnd", ends[0], scale: el.capScale))\(lineEnd("tailEnd", ends[1], scale: el.capScale))"
         let stroke = "<a:ln w=\"\(emu(thickness * frame.unit))\" cap=\"rnd\">\(paint)\(dash)\(capped)</a:ln>"
         let box = xfrm(x: el.x, y: el.y + el.h / 2, w: el.w, h: 0, rotation: el.rotation, frame: frame)
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
@@ -885,12 +885,12 @@ enum PptxExporter {
         }
     }
 
-    private static func lineEnd(_ tag: String, _ cap: String?) -> String {
-        switch cap {
-        case "arrow": return "<a:\(tag) type=\"triangle\"/>"
-        case "dot": return "<a:\(tag) type=\"oval\"/>"
-        default: return ""
-        }
+    /// A line's end as PowerPoint's nearest (LineEnds.pptxType), sized
+    /// by its capScale (LineEnds.pptxSize) when that is not 1.
+    private static func lineEnd(_ tag: String, _ cap: String?, scale: Double?) -> String {
+        guard let type = LineEnds.pptxType(LineEnds.kind(cap)) else { return "" }
+        guard let size = LineEnds.pptxSize(LineEnds.scale(scale)) else { return "<a:\(tag) type=\"\(type)\"/>" }
+        return "<a:\(tag) type=\"\(type)\" w=\"\(size)\" len=\"\(size)\"/>"
     }
 
     // MARK: text

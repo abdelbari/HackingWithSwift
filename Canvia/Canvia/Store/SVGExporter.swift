@@ -183,7 +183,7 @@ enum SVGExporter {
     /// of the box, which for a flat line has no height at all (a filter with
     /// no room draws nothing), and for a heading is too little for its glow.
     static func shadowDef(id: String, shadow: Shadow, element el: Element) -> String {
-        let ends: Double = el.type == .line ? arrowSize(el.thickness ?? 4) + LineRoutes.bow(el) : 0
+        let ends: Double = el.type == .line ? LineEnds.reach(el) + LineRoutes.bow(el) : 0
         let pad: Double = max(64, shadow.blur * 1.5 + max(abs(shadow.offsetX), abs(shadow.offsetY)) + ends)
         return "<filter id=\"\(id)\" filterUnits=\"userSpaceOnUse\" x=\"\(num(el.x - pad))\" y=\"\(num(el.y - pad))\" " +
         "width=\"\(num(el.w + 2 * pad))\" height=\"\(num(el.h + 2 * pad))\">" +
@@ -525,38 +525,35 @@ enum SVGExporter {
         }
     }
 
-    /// A line's arrowhead length for its thickness, as LineElementView draws it.
-    static func arrowSize(_ thickness: Double) -> Double { max(thickness * 3, 10) }
-
     /// A line as LineElementView draws it: round-capped, dashed 3:2 or dotted
-    /// every 2.2 of its thickness, stopping short of an arrowhead whose tip
-    /// is the line's end, and dots a thickness in from the ends.
+    /// every 2.2 of its thickness, stopping short of its heads (LineEnds),
+    /// each head a path in the same geometry. A straight line is a <line>.
     private static func lineMarkup(_ el: Element) -> String {
         if LineRoutes.keepsLevel(el) { return routeMarkup(el) }
-        let y = el.y + el.h / 2
         let t: Double = max(el.thickness ?? 4, 0.5)
-        let arrow = arrowSize(t)
-        let x1: Double = el.x + (el.startCap == "arrow" ? arrow * 0.9 : 0)
-        let x2: Double = el.x + el.w - (el.endCap == "arrow" ? arrow * 0.9 : 0)
-        var dash = ""
-        switch el.dash {
-        case "dashed": dash = " stroke-dasharray=\"\(num(t * 3)) \(num(t * 2))\""
-        case "dotted": dash = " stroke-dasharray=\"0 \(num(t * 2.2))\""
-        default: dash = ""
-        }
+        let route = LineRoutes.route(el)
+        let points = LineRoutes.trimmed(route, startBack: LineRoutes.strokeBack(el, cap: el.startCap),
+                                        endBack: LineRoutes.strokeBack(el, cap: el.endCap))
+        let a = points[0], b = points[points.count - 1]
         let stroke = escape(el.color ?? "#1f2430")
-        var markup = "<line x1=\"\(num(x1))\" y1=\"\(num(y))\" " +
-                     "x2=\"\(num(x2))\" y2=\"\(num(y))\" " +
-                     "stroke=\"\(stroke)\" stroke-width=\"\(num(t))\" stroke-linecap=\"round\"\(dash)/>"
-        markup += capMarkup(el.startCap, x: el.x, y: y, atStart: true, thickness: t, color: stroke)
-        markup += capMarkup(el.endCap, x: el.x + el.w, y: y, atStart: false, thickness: t, color: stroke)
-        return markup
+        let ends = "x1=\"\(num(el.x + Double(a.x)))\" y1=\"\(num(el.y + Double(a.y)))\" " +
+                   "x2=\"\(num(el.x + Double(b.x)))\" y2=\"\(num(el.y + Double(b.y)))\" "
+        let markup = "<line \(ends)stroke=\"\(stroke)\" stroke-width=\"\(num(t))\" stroke-linecap=\"round\"\(dashMarkup(el.dash, t))/>"
+        return markup + headsMarkup(el, color: stroke)
+    }
+
+    private static func dashMarkup(_ dash: String?, _ t: Double) -> String {
+        switch dash {
+        case "dashed": return " stroke-dasharray=\"\(num(t * 3)) \(num(t * 2))\""
+        case "dotted": return " stroke-dasharray=\"0 \(num(t * 2.2))\""
+        default: return ""
+        }
     }
 
     /// An elbowed or curved line (LineRoutes) as one path along its route
     /// — its corners round, a curve a quadratic — dashed and capped as a
-    /// straight one is, each end's arrowhead or dot pointing along its
-    /// segment. As the Android twin writes it.
+    /// straight one is, each end's head pointing along its segment. As the
+    /// Android twin writes it.
     private static func routeMarkup(_ el: Element) -> String {
         let t: Double = max(el.thickness ?? 4, 0.5)
         let route = LineRoutes.route(el)
@@ -569,48 +566,22 @@ enum SVGExporter {
         } else {
             for p in points.dropFirst() { d += "L\(at(p))" }
         }
-        var dash = ""
-        switch el.dash {
-        case "dashed": dash = " stroke-dasharray=\"\(num(t * 3)) \(num(t * 2))\""
-        case "dotted": dash = " stroke-dasharray=\"0 \(num(t * 2.2))\""
-        default: dash = ""
-        }
         let stroke = escape(el.color ?? "#1f2430")
-        func cap(_ kind: String?, tip: CGPoint, angle: Double) -> String {
-            switch kind {
-            case "arrow":
-                let head = LineRoutes.arrowhead(tip: tip, angle: angle, size: LineRoutes.arrowSize(t))
-                return "<path d=\"M\(at(head[0]))L\(at(head[1]))L\(at(head[2]))Z\" fill=\"\(stroke)\"/>"
-            case "dot":
-                let c = LineRoutes.dotCentre(tip: tip, angle: angle, t: t)
-                return "<circle cx=\"\(num(el.x + Double(c.x)))\" cy=\"\(num(el.y + Double(c.y)))\" " +
-                    "r=\"\(num(LineRoutes.dotRadius(t)))\" fill=\"\(stroke)\"/>"
-            default:
-                return ""
-            }
-        }
         let path = "<path d=\"\(d)\" fill=\"none\" stroke=\"\(stroke)\" stroke-width=\"\(num(t))\" " +
-            "stroke-linecap=\"round\" stroke-linejoin=\"round\"\(dash)/>"
-        return path + cap(el.startCap, tip: route.start, angle: route.startAngle)
-            + cap(el.endCap, tip: route.end, angle: route.endAngle)
+            "stroke-linecap=\"round\" stroke-linejoin=\"round\"\(dashMarkup(el.dash, t))/>"
+        return path + headsMarkup(el, color: stroke)
     }
 
-    private static func capMarkup(_ cap: String?, x: Double, y: Double, atStart: Bool,
-                                  thickness t: Double, color: String) -> String {
-        switch cap {
-        case "arrow":
-            let arrow = arrowSize(t)
-            let back: Double = x + (atStart ? arrow : -arrow)
-            return "<path d=\"M\(num(x)) \(num(y))" +
-                   "L\(num(back)) \(num(y - arrow * 0.6))" +
-                   "L\(num(back)) \(num(y + arrow * 0.6))Z\" fill=\"\(color)\"/>"
-        case "dot":
-            let cx: Double = x + (atStart ? t : -t)
-            return "<circle cx=\"\(num(cx))\" cy=\"\(num(y))\" " +
-                   "r=\"\(num(max(t * 1.4, 5)))\" fill=\"\(color)\"/>"
-        default:
-            return ""
-        }
+    /// Both ends' heads (LineEnds) as paths: filled, or stroked as wide as
+    /// the line, round-joined and round-capped.
+    private static func headsMarkup(_ el: Element, color: String) -> String {
+        func at(_ p: CGPoint) -> String { "\(num(el.x + Double(p.x))) \(num(el.y + Double(p.y)))" }
+        return LineEnds.heads(el).map { head -> String in
+            let d = LineEnds.svgData(head, at: at, number: num)
+            guard head.stroked else { return "<path d=\"\(d)\" fill=\"\(color)\"/>" }
+            return "<path d=\"\(d)\" fill=\"none\" stroke=\"\(color)\" stroke-width=\"\(num(head.width))\" " +
+                "stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+        }.joined()
     }
 
     /// Images and stickers travel as bitmaps, rendered through the same views
