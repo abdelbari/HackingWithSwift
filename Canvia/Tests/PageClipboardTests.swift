@@ -168,6 +168,30 @@ final class PageClipboardTests: XCTestCase {
         XCTAssertFalse(landed.contains { $0.elements[0].id.hasPrefix("box") })
     }
 
+    /// A story page among square ones, pasted while the current page has a
+    /// size of its own: every page lands fitted to the design's size and
+    /// drawn at it, with no size of its own — as on the Android twin.
+    func testPastedPagesFitTheDesignSizeAndDropTheirOwnSize() {
+        var pages = three
+        pages.pages[1].page.width = 2000
+        pages.pages[1].page.height = 1000
+        let landed = PageClipboard.landed(pages, width: 1000, height: 500)
+        XCTAssertEqual(landed.map(\.width), [nil, nil, nil])
+        XCTAssertEqual(landed.map(\.height), [nil, nil, nil])
+        XCTAssertEqual(landed.map { $0.elements[0].x }, [250, 0, 375])
+
+        var own = page(1)
+        own.width = 500
+        own.height = 1000
+        let s = store(pages: [own])
+        PageClipboard.copy(pages)
+        guard PageClipboard.hasPage() else { return }   // the general pasteboard is unavailable in some hosts
+        s.pastePage()
+        let pasted = s.design.pages[1...3]
+        XCTAssertTrue(pasted.allSatisfy { $0.width == nil && $0.height == nil })
+        XCTAssertEqual(pasted.map { $0.elements[0].w }, [50, 50, 50], "fitted to 1000 × 500, not the current page")
+    }
+
     func testPastingSeveralIsOneStepAfterTheCurrentPageAndShowsTheFirst() {
         let s = store(pages: [page(1), page(2)])
         PageClipboard.copy(three)

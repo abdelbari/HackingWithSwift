@@ -3143,7 +3143,7 @@ final class DesignStore {
     /// of them shown.
     func pastePage() {
         guard let copied = PageClipboard.pastePages() else { return }
-        let landed = PageClipboard.landed(copied, width: pageWidth, height: pageHeight)
+        let landed = PageClipboard.landed(copied, width: design.width, height: design.height)
         guard !landed.isEmpty else { return }
         let at = pageIndex + 1
         // The fonts of your own they brought recorded with them, one step.

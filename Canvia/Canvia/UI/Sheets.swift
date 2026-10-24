@@ -1980,22 +1980,24 @@ struct LayersSheet: View {
     private func selectBarButtons(_ picked: [Element]) -> some View {
         let ids = store.selection
         let allHidden = !picked.isEmpty && picked.allSatisfy(\.isHidden)
-        let anyUnlocked = picked.contains { !$0.locked }
-        // A locked row is ticked to be unlocked: with any ticked row locked
-        // the button unlocks them all, as on the Android twin.
+        // A locked row is ticked for Unlock only: Align, Hide and Delete pass
+        // over it, as on the Android twin.
+        let free = Set(picked.filter { !$0.locked }.map(\.id))
+        let anyUnlocked = !free.isEmpty
+        // With any ticked row locked the button unlocks them all.
         let anyLocked = picked.contains { $0.locked }
         barButton(tr("Group"), "square.on.square") { store.groupSelected() }
             .disabled(!store.canGroup)
         barButton(tr("Align"), "align.horizontal.left") { onAlign() }
-            .disabled(picked.isEmpty)
+            .disabled(!anyUnlocked)
         barButton(anyLocked ? tr("Unlock") : tr("Lock"), anyLocked ? "lock.open" : "lock") {
             store.setLock(ids, anyLocked ? .unlocked : .full)
         }
         .disabled(picked.isEmpty)
         barButton(allHidden ? tr("Show") : tr("Hide"), allHidden ? "eye" : "eye.slash") {
-            store.setHidden(ids, hidden: !allHidden)
+            store.setHidden(free, hidden: !allHidden)
         }
-        .disabled(picked.isEmpty)
+        .disabled(!anyUnlocked)
         barButton(tr("Delete"), "trash") { store.deleteSelected() }
             .disabled(!anyUnlocked)
     }
