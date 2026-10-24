@@ -1,0 +1,312 @@
+{
+  "note": "ColourVision: Machado 2009 (severity 1.0) and greyscale, in linear sRGB; each colour as each way of seeing shows it, and what Check accessibility flags in the design. Both phones read this file.",
+  "colours": {
+    "#ff0000": {
+      "protanopia": "#6d5f00",
+      "deuteranopia": "#a39000",
+      "tritanopia": "#ff000f",
+      "achromatopsia": "#7f7f7f"
+    },
+    "#00ff00": {
+      "protanopia": "#ffe500",
+      "deuteranopia": "#efd63a",
+      "tritanopia": "#00f7d9",
+      "achromatopsia": "#dcdcdc"
+    },
+    "#0000ff": {
+      "protanopia": "#0059ff",
+      "deuteranopia": "#003dfb",
+      "tritanopia": "#006b96",
+      "achromatopsia": "#4c4c4c"
+    },
+    "#ffffff": {
+      "protanopia": "#ffffff",
+      "deuteranopia": "#ffffff",
+      "tritanopia": "#ffffff",
+      "achromatopsia": "#ffffff"
+    },
+    "#000000": {
+      "protanopia": "#000000",
+      "deuteranopia": "#000000",
+      "tritanopia": "#000000",
+      "achromatopsia": "#000000"
+    },
+    "#e53935": {
+      "protanopia": "#6e6332",
+      "deuteranopia": "#98892e",
+      "tritanopia": "#fc003a",
+      "achromatopsia": "#7b7b7b"
+    },
+    "#43a047": {
+      "protanopia": "#a3923f",
+      "deuteranopia": "#978a4e",
+      "tritanopia": "#329c8c",
+      "achromatopsia": "#8d8d8d"
+    },
+    "#1e88e5": {
+      "protanopia": "#598fe9",
+      "deuteranopia": "#377de3",
+      "tritanopia": "#009eab",
+      "achromatopsia": "#858585"
+    },
+    "#fdd835": {
+      "protanopia": "#efd402",
+      "deuteranopia": "#f9df41",
+      "tritanopia": "#ffc6ba",
+      "achromatopsia": "#dadada"
+    },
+    "#8e24aa": {
+      "protanopia": "#0052ae",
+      "deuteranopia": "#2a5ca7",
+      "tritanopia": "#8d4267",
+      "achromatopsia": "#595959"
+    },
+    "#808080": {
+      "protanopia": "#808080",
+      "deuteranopia": "#808080",
+      "tritanopia": "#808080",
+      "achromatopsia": "#808080"
+    },
+    "#c0392b": {
+      "protanopia": "#615728",
+      "deuteranopia": "#827525",
+      "tritanopia": "#d30137",
+      "achromatopsia": "#6a6a6a"
+    }
+  },
+  "design": {
+    "id": "d-cvd",
+    "title": "CVD",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "b1",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 0,
+            "y": 0,
+            "w": 480,
+            "h": 200,
+            "fill": {
+              "kind": "solid",
+              "color": "#0d47a1"
+            }
+          },
+          {
+            "id": "b2",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 0,
+            "y": 600,
+            "w": 480,
+            "h": 200,
+            "fill": {
+              "kind": "solid",
+              "color": "#000000"
+            }
+          },
+          {
+            "id": "b4",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 0,
+            "y": 280,
+            "w": 480,
+            "h": 120,
+            "fill": {
+              "kind": "solid",
+              "color": "#2e7d32"
+            }
+          },
+          {
+            "id": "e1",
+            "type": "text",
+            "text": "Amber on blue",
+            "x": 20,
+            "y": 20,
+            "w": 400,
+            "h": 60,
+            "fontSize": 16,
+            "fontWeight": 400,
+            "color": "#ffab00"
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "text": "Red on black",
+            "x": 20,
+            "y": 620,
+            "w": 400,
+            "h": 60,
+            "fontSize": 16,
+            "fontWeight": 400,
+            "color": "#e53935"
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "text": "White on black",
+            "x": 20,
+            "y": 700,
+            "w": 400,
+            "h": 60,
+            "fontSize": 16,
+            "fontWeight": 400,
+            "color": "#ffffff"
+          },
+          {
+            "id": "s1",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 500,
+            "y": 20,
+            "w": 500,
+            "h": 200,
+            "fill": {
+              "kind": "solid",
+              "color": "#00838f"
+            }
+          },
+          {
+            "id": "e5",
+            "type": "text",
+            "text": "Black on teal",
+            "x": 520,
+            "y": 60,
+            "w": 400,
+            "h": 60,
+            "fontSize": 16,
+            "fontWeight": 400,
+            "color": "#000000"
+          },
+          {
+            "id": "e4",
+            "type": "text",
+            "text": "Fails anyway",
+            "x": 20,
+            "y": 300,
+            "w": 400,
+            "h": 60,
+            "fontSize": 42,
+            "fontWeight": 400,
+            "color": "#d32f2f"
+          },
+          {
+            "id": "c0",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 500,
+            "y": 500,
+            "w": 80,
+            "h": 200,
+            "fill": {
+              "kind": "solid",
+              "color": "#e53935"
+            },
+            "chart": {
+              "id": "chart_1",
+              "kind": "bar",
+              "data": "A, 3\nB, 5\nC, 2"
+            },
+            "chartPart": "series:0"
+          },
+          {
+            "id": "c1",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 600,
+            "y": 500,
+            "w": 80,
+            "h": 200,
+            "fill": {
+              "kind": "solid",
+              "color": "#43a047"
+            },
+            "chart": {
+              "id": "chart_1",
+              "kind": "bar",
+              "data": "A, 3\nB, 5\nC, 2"
+            },
+            "chartPart": "series:1"
+          },
+          {
+            "id": "c2",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 700,
+            "y": 500,
+            "w": 80,
+            "h": 200,
+            "fill": {
+              "kind": "solid",
+              "color": "#1e88e5"
+            },
+            "chart": {
+              "id": "chart_1",
+              "kind": "bar",
+              "data": "A, 3\nB, 5\nC, 2"
+            },
+            "chartPart": "series:2"
+          }
+        ]
+      }
+    ]
+  },
+  "texts": [
+    {
+      "id": "e1",
+      "kinds": [
+        "protanopia",
+        "tritanopia"
+      ]
+    },
+    {
+      "id": "e2",
+      "kinds": [
+        "protanopia"
+      ]
+    },
+    {
+      "id": "e5",
+      "kinds": [
+        "deuteranopia"
+      ]
+    }
+  ],
+  "charts": [
+    {
+      "id": "c0",
+      "first": 0,
+      "second": 1,
+      "kinds": [
+        "achromatopsia"
+      ]
+    },
+    {
+      "id": "c0",
+      "first": 0,
+      "second": 2,
+      "kinds": [
+        "achromatopsia"
+      ]
+    },
+    {
+      "id": "c0",
+      "first": 1,
+      "second": 2,
+      "kinds": [
+        "achromatopsia"
+      ]
+    }
+  ]
+}

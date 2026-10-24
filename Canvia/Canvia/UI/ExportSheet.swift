@@ -56,6 +56,14 @@ struct ExportSheet: View {
     @State private var suggested = "png"
     /// The PDF's outline: a bookmark for each page, by its title.
     @State private var pdfBookmarks = true
+    /// The web page's menu, narrow-screen wrapping and clips
+    /// (HTMLExporter.Settings).
+    @State private var htmlNav = true
+    @State private var htmlStack = true
+    @State private var htmlMedia = true
+    /// The web page as Preview shows it, and as Save to Files moves it.
+    @State private var previewURL: URL?
+    @State private var movingURL: URL?
     @State private var sharedURLs: [URL] = []
     /// What the last save to Photos came to, and whether anything went in.
     @State private var photosNote: PhotosNote?
@@ -515,7 +523,7 @@ struct ExportSheet: View {
     /// selection too.
     private var sharedIndices: [Int] {
         switch fileType {
-        case "pdf", "pptx": return pdfIndices
+        case "pdf", "pptx", "html": return pdfIndices
         case "mp4", "gif": return moviePages
         default: return exportedIndices
         }
@@ -553,6 +561,8 @@ struct ExportSheet: View {
             run(tr("Making the PowerPoint"), format: "pptx") {
                 ExportJobs.powerPoint(designSnapshot, styled: pptxStyledText != ExportLast.styledPicture)
             }
+        case "html":
+            run(tr("Making the web page"), format: "html") { ExportJobs.html(designSnapshot, settings: htmlSettings) }
         case "mp4":
             run(tr("Rendering the video"), format: "mp4") {
                 ExportJobs.movie(designSnapshot, settings: movieSettings, captions: captionsSrt)
@@ -602,6 +612,7 @@ struct ExportSheet: View {
         case "pptx": return tr("Share PowerPoint")
         case "mp4": return tr("Share MP4")
         case "gif": return tr("Share GIF")
+        case "html": return tr("Share web page")
         default:
             let kind = type == "jpg" ? "JPG" : "PNG"
             return count > 1 ? trn("Share %d %@|Share %d %@s", count, kind) : tr("Share %@", kind)
@@ -652,6 +663,7 @@ struct ExportSheet: View {
         case "svg": return "SVG"
         case "pptx": return tr("PowerPoint")
         case "mp4": return "MP4"
+        case "html": return "HTML"
         default: return "GIF"
         }
     }
@@ -666,6 +678,7 @@ struct ExportSheet: View {
         case "svg": return tr("Editable vectors for another program.")
         case "pptx": return tr("Editable slides.")
         case "mp4": return tr("A video of the pages, with their motion and music.")
+        case "html": return tr("A web page: the pages as sections, with a menu, links and video.")
         default: return tr("A looping animation, without sound.")
         }
     }
@@ -688,6 +701,8 @@ struct ExportSheet: View {
             noteSection(svgNote)
         case "pptx":
             pptxSection
+        case "html":
+            htmlSection
         default:
             motionSection
         }
@@ -699,6 +714,65 @@ struct ExportSheet: View {
             styledTextRow
         } footer: {
             Text(leftOut(pdfIndices) ?? pptxSubtitle)
+        }
+    }
+
+    /// The web page's switches, Preview and Save to Files, and what it
+    /// will be made as.
+    private var htmlSection: some View {
+        Section {
+            Toggle("Menu from page titles", isOn: $htmlNav)
+            Toggle("Fit the menu to phones", isOn: $htmlStack)
+                .disabled(!htmlNav)
+            Toggle("Include videos", isOn: $htmlMedia)
+            Button("Preview") { previewHTML() }
+                .disabled(leftOut(pdfIndices) != nil)
+            Button("Save to device") { saveHTML() }
+                .disabled(leftOut(pdfIndices) != nil)
+        } footer: {
+            Text(leftOut(pdfIndices) ?? htmlNote)
+        }
+        .sheet(item: Binding(get: { previewURL.map(ShareURL.init) }, set: { if $0 == nil { previewURL = nil } })) { item in
+            WebPreview(url: item.url)
+        }
+        .fileMover(isPresented: Binding(get: { movingURL != nil }, set: { if !$0 { movingURL = nil } }),
+                   file: movingURL) { _ in movingURL = nil }
+    }
+
+    private var htmlSettings: HTMLExporter.Settings {
+        HTMLExporter.Settings(nav: htmlNav, mobileStack: htmlStack, embedMedia: htmlMedia)
+    }
+
+    /// "3 pages as sections of one index.html", or in a .zip with its
+    /// clips.
+    private var htmlNote: String {
+        let pages = pagesWord(pdfIndices.count)
+        return HTMLExporter.zipped(store.design, pages: pdfIndices, settings: htmlSettings)
+            ? tr("%@ as sections, in a .zip with its videos.", pages)
+            : tr("%@ as sections of one index.html.", pages)
+    }
+
+    /// The page written to a folder of its own and shown here, in a web
+    /// view read from its file.
+    @MainActor
+    private func previewHTML() {
+        let snapshot = designSnapshot
+        do {
+            previewURL = try HTMLExporter.preview(snapshot.design, pages: snapshot.pages, settings: htmlSettings)
+        } catch {
+            errorMessage = tr("Couldn't make the web page")
+        }
+    }
+
+    /// The page made, and moved where the person picks in Files.
+    @MainActor
+    private func saveHTML() {
+        let snapshot = designSnapshot
+        do {
+            movingURL = try HTMLExporter.export(snapshot.design, pages: snapshot.pages, settings: htmlSettings)
+            rememberSettings("html")
+        } catch {
+            errorMessage = tr("Couldn't make the web page")
         }
     }
 
@@ -847,7 +921,8 @@ struct ExportSheet: View {
                                 jpegQuality: jpegQuality, transparent: transparent,
                                 pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
                                 pptxStyledText: pptxStyledText, suggested: format == suggested,
-                                pdfBookmarks: pdfBookmarks, colourProfile: paper.colourProfile.rawValue).json
+                                pdfBookmarks: pdfBookmarks, colourProfile: paper.colourProfile.rawValue,
+                                html: htmlSettings).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -872,6 +947,9 @@ struct ExportSheet: View {
         pdfNotes = last.pdfNotes
         pdfCompress = last.pdfCompress
         pptxStyledText = last.pptxStyledText
+        htmlNav = last.html.nav
+        htmlStack = last.html.mobileStack
+        htmlMedia = last.html.embedMedia
         paper.colourProfile = PrintLayout.ColourProfile.of(last.colourProfile)
         pageRange = RangeChoice(rawValue: last.pages) ?? .all
         // After the scale's own change has cleared the field, which it does

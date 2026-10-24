@@ -1,0 +1,180 @@
+{
+  "note": "Template facets as tools/generate_templates.py computes them, and what Templates.filtered lets through for each filter, over the whole built-in library in its order. Both phones read this file.",
+  "facets": {
+    "mega-sale-post": {
+      "colors": [
+        "purple",
+        "pink",
+        "yellow"
+      ],
+      "animated": false,
+      "photo": false,
+      "pages": 1
+    },
+    "neon-nights-story": {
+      "colors": [
+        "black"
+      ],
+      "animated": false,
+      "photo": true,
+      "pages": 1
+    },
+    "website-studio-portfolio": {
+      "colors": [
+        "white",
+        "blue"
+      ],
+      "animated": false,
+      "photo": false,
+      "pages": 3
+    },
+    "website-cafe-landing": {
+      "colors": [
+        "white",
+        "brown",
+        "orange"
+      ],
+      "animated": false,
+      "photo": false,
+      "pages": 3
+    },
+    "deck-indigo-agenda": {
+      "colors": [
+        "blue"
+      ],
+      "animated": false,
+      "photo": false,
+      "pages": 1
+    },
+    "logo-northbound-roasters": {
+      "colors": [
+        "orange",
+        "black"
+      ],
+      "animated": false,
+      "photo": false,
+      "pages": 1
+    }
+  },
+  "cases": [
+    {
+      "filter": {},
+      "count": 217,
+      "first": [
+        "mega-sale-post",
+        "neon-nights-story",
+        "quarterly-review-title",
+        "bold-thumbnail-tech",
+        "live-jazz-poster"
+      ]
+    },
+    {
+      "filter": {
+        "colors": [
+          "blue"
+        ]
+      },
+      "count": 55,
+      "first": [
+        "cards-bold-split",
+        "documents-gold-seal-certificate",
+        "documents-studio-invoice",
+        "facebook-webinar-live-seat",
+        "facebook-customer-quote-card"
+      ]
+    },
+    {
+      "filter": {
+        "colors": [
+          "pink",
+          "brown"
+        ]
+      },
+      "count": 18,
+      "first": [
+        "mega-sale-post",
+        "flyers-coffee-shop-opening",
+        "food-card-coffee-loyalty",
+        "occasions-birthday-confetti-invite",
+        "shapes-certified-partner-pentagon"
+      ]
+    },
+    {
+      "filter": {
+        "photo": true
+      },
+      "count": 4,
+      "first": [
+        "neon-nights-story",
+        "bold-thumbnail-tech",
+        "live-jazz-poster",
+        "golden-hour-quote"
+      ]
+    },
+    {
+      "filter": {
+        "photo": false,
+        "multiPage": true
+      },
+      "count": 31,
+      "first": [
+        "deck-seed-round-pitch",
+        "deck-quarterly-business-review",
+        "deck-marketing-plan",
+        "deck-product-launch",
+        "deck-science-lesson"
+      ]
+    },
+    {
+      "filter": {
+        "multiPage": false,
+        "colors": [
+          "black"
+        ]
+      },
+      "count": 28,
+      "first": [
+        "neon-nights-story",
+        "live-jazz-poster",
+        "documents-gold-seal-certificate",
+        "facebook-now-hiring-roles",
+        "invites-candlelit-fortieth"
+      ]
+    },
+    {
+      "filter": {
+        "animated": true
+      },
+      "count": 0,
+      "first": []
+    },
+    {
+      "filter": {
+        "animated": false,
+        "colors": [
+          "teal"
+        ]
+      },
+      "count": 23,
+      "first": [
+        "cards-elegant-serif",
+        "flyers-cleaning-tear-off",
+        "logo-wayfarer-travel",
+        "logo-amara-monogram",
+        "quote-card-night-mood"
+      ]
+    },
+    {
+      "filter": {
+        "colors": [
+          "grey"
+        ],
+        "multiPage": true
+      },
+      "count": 1,
+      "first": [
+        "website-wedding-day"
+      ]
+    }
+  ]
+}

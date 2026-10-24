@@ -15,6 +15,9 @@
 //   dictionary.json          this phone's own dictionary, Add to
 //                            dictionary's words, when it has any
 //   settings.json            the settings that travel: {"autoLists": true}
+//   settings.json            the settings that travel: {"canvia.use": …},
+//                            what Canvia is used for, when it was answered
+//                            (UseProfile)
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and kits' assets are,
 //   videos/<id>.<ext>        their clips,
@@ -282,6 +285,8 @@ enum Backup {
         let dictionary = SpellingDictionary.load()
         if !dictionary.isEmpty { try writer.add(Proofreader.dictionaryFile, Proofreader.encodeDictionary(dictionary)) }
         try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn))
+        // What Canvia is used for, when it was answered.
+        if let use = UseProfile.current() { try writer.add(UseProfile.settingsFile, UseProfile.encodeSettings(use)) }
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
@@ -479,6 +484,10 @@ enum Backup {
         // The settings that travel, as the backup has them.
         if let autoLists = decodeSettings(reader.file(settingsFile)) {
             UserDefaults.standard.set(autoLists, forKey: TextLists.autoListsKey)
+        }
+        // What Canvia is used for, on a phone with no answer yet.
+        if UseProfile.current() == nil, let use = UseProfile.decodeSettings(reader.file(UseProfile.settingsFile)) {
+            UseProfile.set(use)
         }
         FontStore.installed()
         progress(1)

@@ -24,6 +24,12 @@ struct RecentDesign: Identifiable, Sendable {
     var dpi: Double? = nil
     /// Starred on Home.
     var starred = false
+    /// Its words, as Home searches them (DesignLibrary.searchText); none
+    /// for a damaged design.
+    var text = ""
+    /// Its design type's id (DesignLibrary.typeOf), for the Type chips;
+    /// nil when it has no known type.
+    var type: String? = nil
 
     /// "210 × 297 mm", or "1080 × 1920" for a design in pixels.
     var sizeText: String { Units.dimensions(width: width, height: height, unit: unit, dpi: dpi) }
@@ -641,6 +647,8 @@ enum DesignLibrary {
         var found = Set<String>()
         for design in designs {
             for page in design.pages { collectClips(on: page, into: &found) }
+            // A talk's camera (Recordings).
+            found.formUnion(Recordings.cameraIds(design))
         }
         return found
     }
@@ -718,7 +726,8 @@ enum DesignLibrary {
     /// The AudioStore ids these designs play under their videos, on any of
     /// their tracks.
     static func soundtracks(in designs: [Design]) -> Set<String> {
-        Set(designs.flatMap { $0.audioTracks.compactMap(\.storedAudioId) })
+        // The talks' voices too (Recordings).
+        Set(designs.flatMap { $0.audioTracks.compactMap(\.storedAudioId) + Recordings.of($0).map(\.audio) })
     }
 
     // MARK: uploads in use

@@ -1,0 +1,57 @@
+{
+  "note": "RecordingPlan: the page up at a moment of a talk, the spans a talk captures, the film's holds at the talk rate of 30 fps, and where the camera bubble sits and how round its corners are. Both phones read this file.",
+  "recording": {
+    "id": "rec_1",
+    "createdAt": 1700000000000,
+    "audio": "rec_1.m4a",
+    "camera": "rec_1.mp4",
+    "bubble": {"corner": "bottomLeft", "size": 0.22, "shape": "circle"},
+    "pages": [
+      {"pageId": "p1", "start": 0.0, "end": 12.4},
+      {"pageId": "p2", "start": 12.4, "end": 20.0},
+      {"pageId": "p1", "start": 20.0, "end": 21.5},
+      {"pageId": "p3", "start": 21.5, "end": 95.0}
+    ]
+  },
+  "at": [
+    {"t": -1.0, "page": "p1"},
+    {"t": 0.0, "page": "p1"},
+    {"t": 12.39, "page": "p1"},
+    {"t": 12.4, "page": "p2"},
+    {"t": 20.0, "page": "p1"},
+    {"t": 21.5, "page": "p3"},
+    {"t": 94.99, "page": "p3"},
+    {"t": 95.0, "page": "p3"},
+    {"t": 300.0, "page": "p3"}
+  ],
+  "capture": {
+    "first": "p1",
+    "turns": [
+      {"page": "p2", "at": 3.0},
+      {"page": "p2", "at": 4.0},
+      {"page": "p3", "at": 5.0},
+      {"page": "p4", "at": 5.02},
+      {"page": "p1", "at": 9.5}
+    ],
+    "end": 11.0,
+    "spans": [
+      {"pageId": "p1", "start": 0.0, "end": 3.0},
+      {"pageId": "p2", "start": 3.0, "end": 5.0},
+      {"pageId": "p4", "start": 5.0, "end": 9.5},
+      {"pageId": "p1", "start": 9.5, "end": 11.0}
+    ]
+  },
+  "film": {
+    "fps": 30,
+    "holds": [12.4, 7.6, 1.5, 60.0, 13.5]
+  },
+  "bubbles": [
+    {"bubble": {"corner": "bottomLeft", "size": 0.22, "shape": "circle"}, "width": 1920, "height": 1080, "rect": [43.2, 799.2, 237.6, 237.6]},
+    {"bubble": {"corner": "topRight", "size": 0.3, "shape": "rounded"}, "width": 1080, "height": 1920, "rect": [712.8, 43.2, 324.0, 324.0]}
+  ],
+  "radii": [
+    {"shape": "circle", "side": 200, "radius": 100.0},
+    {"shape": "rounded", "side": 200, "radius": 40.0},
+    {"shape": "rounded", "side": 237.6, "radius": 47.52}
+  ]
+}

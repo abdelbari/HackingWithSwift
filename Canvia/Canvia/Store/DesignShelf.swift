@@ -41,6 +41,12 @@ extension DesignLibrary {
         var dpi: Double?
         /// True when the design is starred; not written otherwise.
         var starred: Bool?
+        /// Its words, as Home searches them (searchText); none in an entry
+        /// written before they were kept, which is read again.
+        var text: String?
+        /// Its design type's id (typeOf), for Home's Type chips; none when
+        /// it has no known type.
+        var type: String?
 
         init(_ design: Design, id: String, modified: Double) {
             self.id = id
@@ -55,6 +61,8 @@ extension DesignLibrary {
             unit = design.physicalUnit
             dpi = design.physicalUnit == nil ? nil : design.dpi
             starred = design.starred
+            text = DesignLibrary.searchText(design)
+            type = DesignLibrary.typeOf(design)
         }
     }
 
@@ -102,7 +110,8 @@ extension DesignLibrary {
             let modified = (values?.contentModificationDate?.timeIntervalSince1970 ?? 0) * 1000
             // Within a microsecond rather than to the bit, as the time is a
             // fraction of a millisecond that has been through JSON.
-            if let hit = cached[id], abs(hit.modified - modified) < 0.001 {
+            // An entry from before the words were kept is read again once.
+            if let hit = cached[id], abs(hit.modified - modified) < 0.001, hit.text != nil {
                 entries.append(hit)
                 continue
             }
@@ -124,7 +133,7 @@ extension DesignLibrary {
             RecentDesign(id: entry.id, title: entry.title, width: entry.width, height: entry.height,
                          pages: entry.pages, updatedAt: entry.updatedAt, folder: entry.folder,
                          thumbnailStamp: stamps[entry.id], unit: entry.unit, dpi: entry.dpi,
-                         starred: entry.starred == true)
+                         starred: entry.starred == true, text: entry.text ?? "", type: entry.type)
         }
         .sorted { $0.updatedAt > $1.updatedAt }
         return shelf

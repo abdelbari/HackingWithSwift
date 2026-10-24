@@ -582,6 +582,10 @@ struct Design: Codable, Equatable, Identifiable {
     /// extras "beatSyncRestore".
     var beatSyncRestore: [String: Double?]?
 
+    /// Present and record's talks, newest first, at most Recordings.limit;
+    /// nil, and not written, when there are none (Recordings).
+    var recordings: [Recording]?
+
     /// Whether Present goes round from the last page shown to the first;
     /// turning it off takes the key away.
     var presentLoops: Bool {
@@ -660,6 +664,9 @@ struct Design: Codable, Equatable, Identifiable {
         beatSyncRestore = (try? c.decode([String: KeptHold].self, forKey: .beatSyncRestore))?.mapValues(\.seconds)
         let tracks = (try? c.decode([AudioTrack.IfReadable].self, forKey: .audio))?.compactMap(\.track) ?? []
         audio = tracks.isEmpty ? nil : tracks
+        // Each talk on its own: one that does not read is passed over.
+        let talks = (try? c.decode([Lossy<Recording>].self, forKey: .recordings))?.compactMap(\.value) ?? []
+        recordings = talks.isEmpty ? nil : Array(talks.prefix(Recordings.limit))
         // The old soundtrack, read forever: the one track of a file with no
         // `audio` key, and passed over beside one that has it. Never written
         // back, as `motion` no longer has it.
@@ -694,7 +701,7 @@ struct Design: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present, beatSyncRestore
+        case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present, beatSyncRestore, recordings
     }
 
     /// The master page, if one is set and still exists.

@@ -108,6 +108,8 @@ struct SettingsSheet: View {
     @AppStorage(TextLists.autoListsKey) private var autoLists = true
     @AppStorage(AppDefaults.exportFormatKey) private var exportFormat = "png"
     @AppStorage(AppDefaults.unitKey) private var unit = "px"
+    /// What Canvia is used for, as the first launch asked; "" for none.
+    @AppStorage(UseProfile.key) private var use = ""
     @State private var snapping = SnapSettings.load()
     @State private var storage: StorageReport?
     @State private var clearingCaches = false
@@ -245,6 +247,20 @@ struct SettingsSheet: View {
                 } else {
                     dismiss()
                 }
+            }
+            whatYouMake
+        }
+    }
+
+    /// "What you make": the use chosen, or none, which puts Home back as
+    /// it always was.
+    private var whatYouMake: some View {
+        Picker("What you make", selection: Binding(
+            get: { UseProfile.byId(use)?.id ?? "" },
+            set: { UseProfile.set($0.isEmpty ? nil : $0) })) {
+            Text("Not chosen").tag("")
+            ForEach(UseProfile.all) { choice in
+                Text(choice.label).tag(choice.id)
             }
         }
     }

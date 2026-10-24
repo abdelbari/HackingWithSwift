@@ -132,13 +132,17 @@ enum DesignPackage {
     /// The design's clips, those `whole` picks (from each one's size and
     /// type, by id) handed to `take` with their files — and any it does not
     /// pick, or `take` turns away, replaced by its first frame packed as a
-    /// photo.
+    /// photo. Present and record's cameras (Recordings) are weighed with the
+    /// clips, as the Android twin weighs them, so the same design makes the
+    /// same file on either phone; a camera not picked stays behind, with no
+    /// still, and its talk plays voice-only.
     private static func packingClips(_ design: Design, media: inout [String: Media],
                                      whole wholeIDs: ([String: (bytes: Int, ext: String)]) -> Set<String>,
                                      take: (String, URL) -> Bool) -> Design {
         var files: [String: URL] = [:]
         var clips: [String: (bytes: Int, ext: String)] = [:]
-        for id in videoIDs(in: design) {
+        let cameras = Recordings.cameraIds(design)
+        for id in videoIDs(in: design).union(cameras) {
             guard let url = VideoStore.url(for: id) else { continue }
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? Int.max
             files[id] = url
@@ -149,6 +153,8 @@ enum DesignPackage {
         for id in files.keys.sorted() {
             guard let url = files[id] else { continue }
             if whole.contains(id), take(id, url) {
+                continue
+            } else if cameras.contains(id) {
                 continue
             } else if let still = VideoStore.poster(id)?.jpegData(compressionQuality: 0.9) {
                 let newId = UID.make("img")
@@ -354,16 +360,18 @@ enum DesignPackage {
         return fonts.isEmpty ? nil : fonts
     }
 
-    /// The music of the design's tracks, packed, those on this phone that
-    /// travel (Soundtrack.packed); none when none does. A track whose file
+    /// The music of the design's tracks and its talks' voices, packed,
+    /// those on this phone that travel (Soundtrack.packed); none when none
+    /// does. A track whose file
     /// stays behind names music only the phone it was chosen on has, as the
     /// soundtrack always did. A built-in sound effect is in every copy of
     /// the app, so it is never packed.
     static func packedAudio(of design: Design) -> [String: Media]? {
         var files: [String: URL] = [:]
         var sizes: [String: (bytes: Int, ext: String)] = [:]
-        for track in design.audioTracks {
-            guard let id = track.storedAudioId, files[id] == nil, let url = AudioStore.url(for: id) else { continue }
+        let ids = design.audioTracks.compactMap(\.storedAudioId) + Recordings.of(design).map(\.audio)
+        for id in ids {
+            guard files[id] == nil, let url = AudioStore.url(for: id) else { continue }
             files[id] = url
             sizes[id] = (bytes: (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0,
                          ext: url.pathExtension.lowercased())
@@ -688,6 +696,8 @@ enum DesignPackage {
             next.src = AudioTrack.src(moved)
             return next
         }
+        // The talks pointed at where their voices and cameras went.
+        design = Recordings.remapped(design, audio: music, video: clips)
         if normalize { design.normalizeTextHeights() }
         return design
     }

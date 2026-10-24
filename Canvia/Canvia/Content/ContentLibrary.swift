@@ -39,10 +39,17 @@ struct Template: Codable, Identifiable {
     /// Nil or empty is the one page `background` and `elements` describe;
     /// when there are pages, `background` and `elements` are the first's.
     var pages: [TemplatePage]? = nil
+    /// What the Filters sheet filters it by, worked out by the templates
+    /// generator (TemplateFacets); nil, for one written before, is a
+    /// template of no colour, still, without photos, of its pages.
+    var facets: TemplateFacets? = nil
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, category, width, height, background, elements, pages
+        case id, name, category, width, height, background, elements, pages, facets
     }
+
+    /// Its facets, or those of a template with none written.
+    var shownFacets: TemplateFacets { facets ?? TemplateFacets(pages: pageCount) }
 
     /// The template's pages, in order: one for a single-page template.
     var pageSpecs: [TemplatePage] {
@@ -181,6 +188,7 @@ extension Template {
         height = try c.decode(Double.self, forKey: .height)
         let listed = try c.decodeIfPresent([TemplatePage].self, forKey: .pages) ?? []
         pages = listed.isEmpty ? nil : listed
+        facets = try? c.decodeIfPresent(TemplateFacets.self, forKey: .facets)
         if let first = listed.first {
             background = first.background
             elements = first.elements
@@ -277,6 +285,8 @@ struct ContentBundle: Codable {
     var photoSpecs: PhotoSpecs
     /// The design types: every size a design can start at.
     var sizes: [SizePreset]?
+    /// The first launch's "What will you use Canvia for?" (UseProfile).
+    var uses: [UseCase]?
 }
 
 enum ContentLibrary {
@@ -306,6 +316,7 @@ enum ContentLibrary {
     static var gradients: [GradientPreset] { bundle.gradients }
     static var pairings: [FontPairing] { bundle.pairings }
     static var stickerGroups: [StickerGroup] { bundle.stickerGroups }
+    static var uses: [UseCase] { bundle.uses ?? [] }
 
     /// The design-type catalogue; the eleven Home has always shown should
     /// it fail to load, so a size is always there to start from.
@@ -368,11 +379,15 @@ enum ContentLibrary {
     }
 
     /// Templates in a category (nil is all of them) whose name or category
-    /// matches the query (empty is all of them).
-    static func filteredTemplates(in category: String?, matching query: String) -> [Template] {
+    /// matches the query (empty is all of them), and that `facets` lets
+    /// through (TemplateFilter.admits; an empty filter lets all through) —
+    /// the Android twin's Templates.filtered.
+    static func filteredTemplates(in category: String?, matching query: String,
+                                  facets: TemplateFilter = TemplateFilter(),
+                                  among library: [Template] = templates) -> [Template] {
         let needle = query.trimmingCharacters(in: .whitespaces)
-        return templates.filter { t in
-            (category == nil || t.category == category)
+        return library.filter { t in
+            (category == nil || t.category == category) && facets.admits(t.shownFacets)
                 && (needle.isEmpty || t.name.localizedCaseInsensitiveContains(needle)
                     || t.category.localizedCaseInsensitiveContains(needle))
         }
@@ -569,7 +584,7 @@ struct SizePreset: Identifiable, Codable, Equatable {
     }
 
     /// The symbol a size is drawn with: its own for the eleven on Home's
-    /// row, else its category's.
+    /// row and the website, else its category's.
     var icon: String {
         if let own = Self.icons[id] { return own }
         switch category {
@@ -586,7 +601,7 @@ struct SizePreset: Identifiable, Codable, Equatable {
         "insta-post": "square", "insta-story": "iphone", "presentation": "display",
         "youtube-thumb": "play.rectangle", "facebook-post": "rectangle", "poster": "doc.richtext",
         "flyer": "doc", "a4": "doc.text", "business-card": "person.crop.rectangle",
-        "quote-card": "quote.opening", "logo": "seal",
+        "quote-card": "quote.opening", "logo": "seal", "website": "globe",
     ]
 
     /// How many of the catalogue's first sizes Home's row shows: the

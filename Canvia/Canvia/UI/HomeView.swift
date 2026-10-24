@@ -81,6 +81,9 @@ struct HomeView: View {
     @State private var renameText = ""
     @State private var query = ""
     @State private var sort = DesignLibrary.Sort.recent
+    /// The Type and Edited chips under the search.
+    @State private var typeFilter = DesignLibrary.TypeFilter.all
+    @State private var editedFilter = DesignLibrary.Edited.any
     @State private var trashed: [RecentDesign] = []
     @State private var showingTrash = false
     /// The design in Recently deleted whose deletion for good is being
@@ -95,6 +98,10 @@ struct HomeView: View {
     /// is up.
     @State private var openingFile = false
     @State private var templateCategory: String?
+    /// The template Filters sheet's choices, kept for the session
+    /// (TemplateFilter.session), and whether the sheet is up.
+    @State private var templateFilter = TemplateFilter.session
+    @State private var filtersOpen = false
     /// A built-in template, while its preview is up.
     @State private var previewing: Template?
     /// One of your own of several pages, while its strip asks which.
@@ -125,6 +132,11 @@ struct HomeView: View {
     /// The ids picked in Select.
     @State private var picked: Set<String> = []
     @State private var touring = false
+    /// The first launch's "What will you use Canvia for?", before the tour.
+    @State private var askingUse = false
+    /// What Canvia is used for (UseProfile), which orders the hero row and
+    /// the templates; "" when skipped or not asked.
+    @AppStorage(UseProfile.key) private var use = ""
     /// The designs just moved to Recently deleted, all at once, while their
     /// one Undo is on offer.
     @State private var justTrashed: [RecentDesign] = []
@@ -140,6 +152,9 @@ struct HomeView: View {
     @State private var mockingUp: Design?
     /// The design presented from its card.
     @State private var presenting: Design?
+    /// Present and record from a card: the studio, then the talks.
+    @State private var talkRecording: Design?
+    @State private var talkReviewing: Design?
     /// Share… or Present on a design whose file does not read, said.
     @State private var unopened = false
     /// Select's Share, asking what as.
@@ -154,7 +169,11 @@ struct HomeView: View {
         shelf
             .onAppear {
                 reload()
-                if Onboarding.needsTour { touring = true }
+                if UseProfile.needsAsking {
+                    askingUse = true
+                } else if Onboarding.needsTour {
+                    touring = true
+                }
                 // Copies the editor made and was asked to show.
                 let asked = HomeHighlight.take()
                 if !asked.isEmpty { highlighted = Set(asked) }
@@ -162,9 +181,7 @@ struct HomeView: View {
             .sheet(item: $copyResizing) { source in
                 CopyResizeSheet(source: source) { made in showCopies(made) }
             }
-            .sheet(isPresented: $touring, onDismiss: { Onboarding.markSeen() }) {
-                WelcomeTour { touring = false }
-            }
+            .modifier(FirstRunSheets(touring: $touring, askingUse: $askingUse))
             .sheet(item: $homeSheet, onDismiss: afterSheet) { shown in
                 sheetView(shown)
             }
@@ -173,6 +190,12 @@ struct HomeView: View {
             .background { designFilePicker }
             .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened,
                                   mockingUp: $mockingUp, open: { create($0) }, changed: { reload() }))
+            .modifier(TalkSheets(recording: $talkRecording, reviewing: $talkReviewing) { next in
+                var saved = next
+                saved.updatedAt = Date().timeIntervalSince1970 * 1000
+                DesignLibrary.save(saved)
+                reload()
+            })
             .importPickers(media: $pickingMedia, pdf: $pickingPDF, onLanded: onImport) { importError = $0 }
             .powerPointImport($deckURLs, onOpen: onOpen)
             .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
@@ -190,6 +213,7 @@ struct HomeView: View {
                 // Always there: it finds templates as well as designs, and
                 // an empty shelf still has templates to search.
                 searchBar
+                if !recents.isEmpty { shelfFilterChips }
                 if loaded && recents.isEmpty && damaged.isEmpty && trashed.isEmpty {
                     firstRunCard
                 }
@@ -278,7 +302,7 @@ struct HomeView: View {
             // A restore, or Recently deleted emptied, shows on the shelf.
             .onDisappear { reload() }
         case .brandKit:
-            StandaloneBrandKitSheet()
+            StandaloneBrandKitSheet(onGuidelines: { createFromSheet($0) })
                 // Its templates lead Home's.
                 .onDisappear { reload() }
         case .uploads:
@@ -456,11 +480,62 @@ struct HomeView: View {
     /// under Starred, the starred ones.
     private var shownRecents: [RecentDesign] {
         if starredOnly { return starredShelf.designs }
-        return DesignLibrary.filter(recents + damaged, query: query, sort: sort, folder: folder)
+        let now = Date()
+        return DesignLibrary.filter(recents + damaged, query: query, sort: sort, folder: folder,
+                                    type: typeFilter, edited: editedFilter,
+                                    now: now.timeIntervalSince1970 * 1000, startOfToday: DesignLibrary.startOfDay(now))
     }
 
+    /// Starred, of the Type and Edited chosen.
     private var starredShelf: (folders: [String], designs: [RecentDesign]) {
-        DesignLibrary.starredShelf(recents, starredFolders: starredFolders, query: query, sort: sort)
+        let now = Date()
+        let inView = recents.filter {
+            typeFilter.admits($0) && editedFilter.admits($0, now: now.timeIntervalSince1970 * 1000,
+                                                         startOfToday: DesignLibrary.startOfDay(now))
+        }
+        return DesignLibrary.starredShelf(inView, starredFolders: starredFolders, query: query, sort: sort)
+    }
+
+    /// Type and Edited, under the search: each a menu chip.
+    private var shelfFilterChips: some View {
+        HStack(spacing: 8) {
+            Menu {
+                Picker(tr("Type: %@", typeFilter.label), selection: $typeFilter) {
+                    ForEach(DesignLibrary.TypeFilter.allCases) { Text($0.label).tag($0) }
+                }
+            } label: {
+                menuChipLabel(tr("Type: %@", typeFilter.label), active: typeFilter != .all)
+            }
+            Menu {
+                Picker(tr("Edited: %@", editedFilter.label), selection: $editedFilter) {
+                    ForEach(DesignLibrary.Edited.allCases) { Text($0.label).tag($0) }
+                }
+            } label: {
+                menuChipLabel(tr("Edited: %@", editedFilter.label), active: editedFilter != .any)
+            }
+            Spacer()
+        }
+        .padding(.horizontal)
+    }
+
+    private func menuChipLabel(_ title: String, active: Bool) -> some View {
+        HStack(spacing: 4) {
+            Text(title)
+            Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+        }
+        .font(.subheadline.weight(.medium))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(active ? Theme.accent : Theme.card, in: Capsule())
+        .foregroundStyle(active ? Color.white : Theme.ink)
+    }
+
+    /// Where a design found by its words alone has them; nil for one found
+    /// by its title, or with no search.
+    private func snippet(for recent: RecentDesign) -> DesignLibrary.Snippet? {
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty,
+              !DesignLibrary.matchesTitle(recent, query: query) else { return nil }
+        return DesignLibrary.snippet(recent.text, query: query)
     }
 
     private var folders: [String] { DesignLibrary.folders(in: recents) }
@@ -502,7 +577,10 @@ struct HomeView: View {
     }
 
     private var shownTemplates: [Template] {
-        let matching = ContentLibrary.filteredTemplates(in: templateCategory, matching: query)
+        let found = ContentLibrary.filteredTemplates(in: templateCategory, matching: query, facets: templateFilter)
+        // What Canvia is used for leads, browsing everything.
+        let browsing = templateCategory == nil && query.trimmingCharacters(in: .whitespaces).isEmpty
+        let matching = browsing ? UseProfile.templatesFirst(use, found) { $0.category } : found
         // Starred templates first.
         let starred = Set(Favorites.ids(of: "template"))
         return matching.filter { starred.contains($0.id) } + matching.filter { !starred.contains($0.id) }
@@ -562,7 +640,7 @@ struct HomeView: View {
                         templateCategory = nil
                     }
                 }
-                ForEach(ContentLibrary.templateCategories, id: \.self) { category in
+                ForEach(UseProfile.categories(use, ContentLibrary.templateCategories), id: \.self) { category in
                     chip(category, selected: templateCategory == category) {
                         templateCategory = templateCategory == category ? nil : category
                         yoursOnly = false
@@ -1072,7 +1150,8 @@ struct HomeView: View {
                     // A size opens on its blank page and everything already
                     // made at that size, rather than straight into an empty
                     // page with no idea there was a head start on offer.
-                    ForEach(SizePreset.hero) { preset in
+                    // In the order of what Canvia is used for, when that was said.
+                    ForEach(UseProfile.hero(use)) { preset in
                         Button {
                             homeSheet = .start(presetId: preset.id)
                         } label: {
@@ -1113,6 +1192,10 @@ struct HomeView: View {
                 ForEach(ImportChoice.allCases) { choice in
                     Button { startImport(choice) } label: { Label(choice.title, systemImage: choice.systemImage) }
                 }
+            }
+            // The brand kit in use, laid out as a design to share.
+            Button { create(BrandGuidelines.design(BrandKit.load(), now: Date().timeIntervalSince1970 * 1000)) } label: {
+                Label("Make brand guidelines", systemImage: "book.closed")
             }
             Button { homeSheet = .help } label: { Label("How Canvia works", systemImage: "questionmark.circle") }
         } label: {
@@ -1216,6 +1299,11 @@ struct HomeView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                    if let found = snippet(for: recent) {
+                        Text(DesignLibrary.attributed(found))
+                            .font(.caption2)
+                            .lineLimit(2)
+                    }
                 }
                 .padding(10)
             }
@@ -1232,8 +1320,7 @@ struct HomeView: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(recent.starred ? tr("%@, %@, starred", recent.title, caption(for: recent).spoken)
-                                           : "\(recent.title), \(caption(for: recent).spoken)")
+        .accessibilityLabel(cardLabel(recent))
         .accessibilityValue(pickedValue(recent))
         .contextMenu {
             if !selecting {
@@ -1269,6 +1356,15 @@ struct HomeView: View {
         }
     }
 
+    /// What VoiceOver says of a card: its title, size and pages, starred,
+    /// and where its words matched a search.
+    private func cardLabel(_ recent: RecentDesign) -> String {
+        let spoken = caption(for: recent).spoken
+        let label = recent.starred ? tr("%@, %@, starred", recent.title, spoken) : "\(recent.title), \(spoken)"
+        guard let found = snippet(for: recent) else { return label }
+        return label + ", " + found.text
+    }
+
     /// Share…, Send a copy, Mockups, Present and Print…, on the design as
     /// saved, without opening the editor.
     @ViewBuilder
@@ -1285,6 +1381,9 @@ struct HomeView: View {
         Button {
             withDesign(recent.id) { presenting = $0 }
         } label: { Label("Present", systemImage: "play.rectangle") }
+        Button {
+            withDesign(recent.id) { talkRecording = $0 }
+        } label: { Label("Present and record", systemImage: "record.circle") }
         if UIPrintInteractionController.isPrintingAvailable {
             Button {
                 HomeExports.printDesign(recent.id, queue: ExportQueue.shared)
@@ -1597,8 +1696,14 @@ struct HomeView: View {
 
     private var templatesStack: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Start from a template")
-                .font(.title3.weight(.bold))
+            HStack {
+                Text("Start from a template")
+                    .font(.title3.weight(.bold))
+                Spacer()
+                TemplateFiltersButton(filter: templateFilter) { filtersOpen = true }
+            }
+            .padding(.horizontal)
+            TemplateFilterChips(filter: $templateFilter)
                 .padding(.horizontal)
             templateCategoryChips
             if templateCategory == nil {
@@ -1617,6 +1722,9 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)
                 }
+            } else if shownTemplates.isEmpty && !templateFilter.isEmpty {
+                NoTemplatesMatch { templateFilter = TemplateFilter() }
+                    .padding(.horizontal)
             } else if shownTemplates.isEmpty {
                 Text("No template matches “\(query)”.")
                     .foregroundStyle(.secondary)
@@ -1625,6 +1733,8 @@ struct HomeView: View {
                 templatesGrid
             }
         }
+        .onChange(of: templateFilter) { _, chosen in TemplateFilter.session = chosen }
+        .sheet(isPresented: $filtersOpen) { TemplateFiltersSheet(filter: $templateFilter) }
         .modifier(UserTemplateDialogs(renaming: $renamingTemplate, renameText: $templateRenameText,
                                       deleting: $deletingTemplate) { reload() })
         // A template's own page first; a new design is empty, so every
@@ -1760,6 +1870,23 @@ struct HomeView: View {
         }
         .padding(.horizontal)
         .id(favoritesVersion)
+    }
+}
+
+/// The first launch's sheets: "What will you use Canvia for?", then the
+/// welcome tour once it has gone.
+private struct FirstRunSheets: ViewModifier {
+    @Binding var touring: Bool
+    @Binding var askingUse: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $touring, onDismiss: { Onboarding.markSeen() }) {
+                WelcomeTour { touring = false }
+            }
+            .sheet(isPresented: $askingUse, onDismiss: { if Onboarding.needsTour { touring = true } }) {
+                UseChooser { askingUse = false }
+            }
     }
 }
 

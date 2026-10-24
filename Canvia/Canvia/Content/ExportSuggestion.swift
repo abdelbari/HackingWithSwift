@@ -1,5 +1,6 @@
 // The file type the export sheet opens on, read from the design itself —
-// Canva's "Suggested" — on both phones by one rule: "mp4" when a shown page
+// Canva's "Suggested" — on both phones by one rule: "html" for a design of
+// the Website type, "mp4" when a shown page
 // moves or sounds, "pdf" for a document of several pages, else "png", or
 // "jpg" for a design that is a photo. The sheet puts a remembered choice
 // before it and the Settings default after (see ExportSheet's precedence).
@@ -29,12 +30,22 @@ enum ExportSuggestion {
     /// timed with its own transition was made to play. A design with every
     /// page hidden has no shown page, and is "png".
     static func suggest(_ design: Design, presets: [SizePreset] = ContentLibrary.sizes) -> String {
+        if isWebsite(design, presets: presets) { return "html" }
         let shown = design.visiblePageIndices.map { design.pages[$0] }
         if !design.audioTracks.isEmpty || shown.contains(where: { moves(design, $0) }) { return "mp4" }
         if shown.count > 1, let kind = category(design, presets: presets), documentCategories.contains(kind) {
             return "pdf"
         }
         return !shown.isEmpty && shown.allSatisfy({ isPhoto(design, $0) }) ? "jpg" : "png"
+    }
+
+    /// The Website type's id.
+    static let website = "website"
+
+    /// Whether `design` is a website: of exactly the Website type's size,
+    /// the first type in the catalogue of its pixels.
+    static func isWebsite(_ design: Design, presets: [SizePreset] = ContentLibrary.sizes) -> Bool {
+        presets.first { $0.w == design.width && $0.h == design.height }?.id == website
     }
 
     /// Whether `page` moves: a clip or an animated picture on it — as a

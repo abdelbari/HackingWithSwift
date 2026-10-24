@@ -31,8 +31,29 @@ enum SVGExporter {
     /// photo-heavy page from becoming a 40 MB text file.
     static let bitmapScale: CGFloat = 2
 
+    /// What a test draws in place of this phone's own type engine and
+    /// views, as the Android twin's tests hand its SvgWriter a Renderer:
+    /// each text's letters as fixed path data, in its ink, and each
+    /// element sent as a picture as fixed PNG bytes. With them the shared
+    /// golden web page (website.html) compares byte for byte on both
+    /// phones, the pictures' bytes aside; glyph outlines are each phone's
+    /// own and never compared.
+    struct StandIns {
+        var letters: (Element) -> String
+        var picture: (Element) -> Data
+    }
+
+    /// With `aria`, as a web page holds it (HTMLExporter): each element
+    /// with alt text a group a screen reader reads as one picture, by its
+    /// words — role="img" and aria-label.
     @MainActor
-    static func svg(design: Design, page: Page) -> String {
+    static func svg(design: Design, page: Page, aria: Bool = false) -> String {
+        svg(design: design, page: page, aria: aria, standIns: nil)
+    }
+
+    /// `svg(design:page:aria:)`, drawn with a test's `standIns` when given.
+    @MainActor
+    static func svg(design: Design, page: Page, aria: Bool, standIns: StandIns?) -> String {
         var defs: [String] = []
         var body: [String] = []
 
@@ -45,7 +66,8 @@ enum SVGExporter {
             if ShapeText.carriesWords(el) {
                 resolved.fillPageTokens(number: number, count: design.pages.count)
             }
-            parts.append((el: el as Element?, part: elementGroup(resolved, index: index, defs: &defs)))
+            let group = elementGroup(resolved, index: index, aria: aria, standIns: standIns, defs: &defs)
+            parts.append((el: el as Element?, part: group))
         }
         // Groups, nested ones too, as <g> round their members (Groups.nested).
         body += Groups.nested(parts) { _, _, inner in "<g>" + inner.joined() + "</g>" }
@@ -62,7 +84,8 @@ enum SVGExporter {
     // MARK: elements
 
     @MainActor
-    private static func elementGroup(_ el: Element, index: Int, defs: inout [String]) -> String {
+    private static func elementGroup(_ el: Element, index: Int, aria: Bool = false, standIns: StandIns? = nil,
+                                     defs: inout [String]) -> String {
         var transforms: [String] = []
         let cx = el.x + el.w / 2, cy = el.y + el.h / 2
         if el.rotation != 0 {
@@ -90,10 +113,14 @@ enum SVGExporter {
                 attributes += " filter=\"url(#\(id))\""
             }
         }
+        if aria, let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
+            attributes += " role=\"img\" aria-label=\"\(escape(alt))\""
+        }
         // An alt text becomes the group's title, which is what screen readers
         // and browsers read for an SVG element.
         let title = el.altText.map { "<title>\(escape($0))</title>" } ?? ""
-        let group = "<g\(attributes)>\(title)\(cast)\(markup(el, index: index, defs: &defs))</g>"
+        let inner = markup(el, index: index, standIns: standIns, defs: &defs)
+        let group = "<g\(attributes)>\(title)\(cast)\(inner)</g>"
         let words = wordLinksMarkup(el, transforms: transforms)
         // A link wraps the element, so a browser follows it on a click —
         // one of the kinds a link is, never a script or a file.
@@ -178,30 +205,33 @@ enum SVGExporter {
     }
 
     @MainActor
-    private static func markup(_ el: Element, index: Int, defs: inout [String]) -> String {
+    private static func markup(_ el: Element, index: Int, standIns: StandIns? = nil, defs: inout [String]) -> String {
         switch el.type {
         case .shape:
             // The shape without its words, which a shape sent as a picture
             // would otherwise bake in, and then the words as outlines.
             var bare = el
             bare.text = nil
-            return shapeMarkup(bare, index: index, defs: &defs) + shapeWordsMarkup(el, index: index, defs: &defs)
-        case .text: return textMarkup(el, index: index, defs: &defs)
+            let shape = shapeMarkup(bare, index: index, defs: &defs)
+            return shape + shapeWordsMarkup(el, index: index, standIns: standIns, defs: &defs)
+        case .text: return textMarkup(el, index: index, standIns: standIns, defs: &defs)
         case .line: return lineMarkup(el)
         case .image:
-            if let code = CodeGenerator.vector(el) { return codeMarkup(el, code) + logoMarkup(el, code) }
+            if let code = CodeGenerator.vector(el) {
+                return codeMarkup(el, code) + logoMarkup(el, code, standIns: standIns)
+            }
             if let code = Barcodes.vector(el) {
                 // Its words outlined as any text's are.
                 let words = Barcodes.captionElement(el, code, onPage: false).map { caption -> String in
                     var placed = caption
                     placed.x += el.x
                     placed.y += el.y
-                    return textMarkup(placed, index: index, defs: &defs)
+                    return textMarkup(placed, index: index, standIns: standIns, defs: &defs)
                 } ?? ""
                 return barcodeMarkup(el, code) + words
             }
-            return bitmapMarkup(el)
-        case .sticker: return bitmapMarkup(el)
+            return bitmapMarkup(el, standIns: standIns)
+        case .sticker: return bitmapMarkup(el, standIns: standIns)
         }
     }
 
@@ -237,14 +267,14 @@ enum SVGExporter {
 
     /// A code's logo over its pad, as the picture it is.
     @MainActor
-    private static func logoMarkup(_ el: Element, _ code: CodeGenerator.Vector) -> String {
+    private static func logoMarkup(_ el: Element, _ code: CodeGenerator.Vector, standIns: StandIns? = nil) -> String {
         guard let src = code.style.logo, let box = CodeGenerator.logoBox(code.logoPad) else { return "" }
         var logo = Element.image(src, w: box.width, h: box.height)
         logo.x = el.x + box.minX
         logo.y = el.y + box.minY
         logo.radius = 0
         logo.cropFit = true
-        return bitmapMarkup(logo)
+        return bitmapMarkup(logo, standIns: standIns)
     }
 
     /// A barcode as rectangles (Barcodes.vector): its background, unless it
@@ -341,7 +371,7 @@ enum SVGExporter {
         "V\(num(r))\(arc) \(num(r)),0Z"
     }
 
-    private static func textMarkup(_ el: Element, index: Int, defs: inout [String]) -> String {
+    private static func textMarkup(_ el: Element, index: Int, standIns: StandIns? = nil, defs: inout [String]) -> String {
         // Straight lines as the canvas sets them: at the size that fits a
         // fitted box, and from where a vertically aligned box starts them —
         // which is also where gradient letters are painted from.
@@ -350,12 +380,14 @@ enum SVGExporter {
         if el.fitText == true, !TextOutliner.followsAPath(el) {
             drawn.fontSize = FontLibrary.fittingFontSize(for: el)
         }
-        guard let outlines = TextOutliner.inkedPaths(for: drawn) else { return "" }
+        // A test's stand-in letters, else this phone's own glyphs.
+        let outlines = standIns == nil ? TextOutliner.inkedPaths(for: drawn) : nil
+        guard standIns != nil || outlines != nil else { return "" }
         var shift = CGAffineTransform(translationX: 0, y: CGFloat(top))
         func data(_ outline: CGPath) -> String {
             TextOutliner.svgPathData(top > 0 ? (outline.copy(using: &shift) ?? outline) : outline)
         }
-        let d = data(outlines.whole)
+        let d = standIns?.letters(drawn) ?? outlines.map { data($0.whole) } ?? ""
         guard !d.isEmpty else { return "" }
         let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
         // Outline's stroke as a pass of its own under every fill, as the
@@ -378,9 +410,9 @@ enum SVGExporter {
             return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring + clip + picture + "</g>"
         }
         let ink = textInk(el)
-        if !gradient, el.textFill?.isPhoto != true, outlines.parts.contains(where: { $0.color != nil }) {
+        if !gradient, el.textFill?.isPhoto != true, let parts = outlines?.parts, parts.contains(where: { $0.color != nil }) {
             // Words in colours of their own: a path for each colour.
-            let paths = outlines.parts.map { part in
+            let paths = parts.map { part in
                 "<path d=\"\(data(part.path))\" fill=\"\(escape(part.color ?? ink))\" fill-rule=\"nonzero\"/>"
             }
             return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring + paths.joined() + "</g>"
@@ -425,10 +457,11 @@ enum SVGExporter {
     /// A shape's words as glyph outlines, set in its text-safe box as the
     /// canvas sets them, and turned back inside the group's flip about that
     /// box, so they read the right way round in a flipped shape.
-    private static func shapeWordsMarkup(_ el: Element, index: Int, defs: inout [String]) -> String {
+    private static func shapeWordsMarkup(_ el: Element, index: Int, standIns: StandIns? = nil,
+                                         defs: inout [String]) -> String {
         guard ShapeText.words(of: el) != nil else { return "" }
         let words = ShapeText.textElement(for: el)
-        let outline = textMarkup(words, index: index, defs: &defs)
+        let outline = textMarkup(words, index: index, standIns: standIns, defs: &defs)
         guard !outline.isEmpty, el.flipH || el.flipV else { return outline }
         let cx = words.x + words.w / 2, cy = words.y + words.h / 2
         return "<g transform=\"translate(\(num(cx)) \(num(cy))) " +
@@ -545,7 +578,7 @@ enum SVGExporter {
     /// with room round it for what the canvas draws past the box
     /// (`overflow`), or half a border would be cut away.
     @MainActor
-    private static func bitmapMarkup(_ el: Element) -> String {
+    private static func bitmapMarkup(_ el: Element, standIns: StandIns? = nil) -> String {
         guard el.w > 0, el.h > 0 else { return "" }
         var upright = el
         // The group already carries rotation, flip, opacity, the shadow and
@@ -561,10 +594,16 @@ enum SVGExporter {
         upright.y = 0
 
         let pad = overflow(el)
-        let renderer = ImageRenderer(content: ElementView(element: upright).padding(CGFloat(pad)))
-        renderer.scale = bitmapScale
-        renderer.isOpaque = false
-        guard let image = renderer.uiImage, let data = image.pngData() else { return "" }
+        let png: Data?
+        if let standIns {
+            png = standIns.picture(el)
+        } else {
+            let renderer = ImageRenderer(content: ElementView(element: upright).padding(CGFloat(pad)))
+            renderer.scale = bitmapScale
+            renderer.isOpaque = false
+            png = renderer.uiImage?.pngData()
+        }
+        guard let data = png else { return "" }
         let uri = "data:image/png;base64," + data.base64EncodedString()
         return "<image x=\"\(num(el.x - pad))\" y=\"\(num(el.y - pad))\" " +
                "width=\"\(num(el.w + 2 * pad))\" height=\"\(num(el.h + 2 * pad))\" " +

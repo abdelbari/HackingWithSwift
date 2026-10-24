@@ -148,7 +148,8 @@ enum Cmyk {
         ColorTools.documentColors(design, limit: Int.max).filter { rgb($0) != nil && outOfGamut($0) }
     }
 
-    private static func lab(_ rgb: [Double]) -> [Double] {
+    /// `rgb`, red, green and blue 0 to 1, in CIELAB under D65.
+    static func lab(_ rgb: [Double]) -> [Double] {
         func linear(_ v: Double) -> Double { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
         let r = linear(rgb[0]), g = linear(rgb[1]), b = linear(rgb[2])
         let x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047

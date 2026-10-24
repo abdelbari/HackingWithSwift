@@ -1,0 +1,37 @@
+{
+  "note": "The golden web page: HtmlWriter.html(design, its shown pages, a renderer whose letters are always the path M0 0L1 1Z and whose pictures are the bytes 1 2 3, the default settings), each clip at media/<id>.mp4. It must equal website.html once every base64 picture is emptied. Both phones read these files.",
+  "design": {
+    "id": "d-site",
+    "title": "Corner Café & Co",
+    "width": 1366,
+    "height": 768,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "pages": [
+      {
+        "id": "p1",
+        "title": "Home",
+        "background": {"type": "color", "value": "#fff8ef"},
+        "elements": [
+          {"id": "e1", "type": "shape", "shapeId": "rect", "x": 96, "y": 560, "w": 260, "h": 72, "fill": {"kind": "solid", "color": "#2b1d14"}, "link": "https://example.com/menu", "altText": "View the menu"},
+          {"id": "e2", "type": "text", "text": "Good coffee", "x": 96, "y": 230, "w": 760, "h": 80, "fontSize": 76, "fontWeight": 800, "color": "#2b1d14"},
+          {"id": "e3", "type": "image", "src": "video:clip-1", "x": 900, "y": 100, "w": 400, "h": 300, "rotation": 5, "altText": "Pouring a flat white"}
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {"type": "color", "value": "#ffffff"},
+        "elements": [
+          {"id": "e4", "type": "line", "x": 96, "y": 120, "w": 300, "h": 8, "thickness": 4, "color": "#c8742f"}
+        ]
+      },
+      {
+        "id": "p3",
+        "title": "Secret",
+        "hidden": true,
+        "background": {"type": "color", "value": "#000000"},
+        "elements": []
+      }
+    ]
+  }
+}

@@ -219,12 +219,15 @@ private struct StartGrid: View {
     @State private var ownSet: TemplateChoice?
     /// Templates of other sizes near this one's shape, made at it.
     @State private var adapted: [Templates.Adapted] = []
+    /// The Filters sheet's choices, as Home's: kept for the session.
+    @State private var filter = TemplateFilter.session
+    @State private var filtersOpen = false
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
     var body: some View {
         let bucket = ContentLibrary.sizedTemplates(for: preset)
-        let shown = category.map { c in bucket.filter { $0.category == c } } ?? bucket
+        let shown = bucket.filter { (category == nil || $0.category == category) && filter.admits($0.shownFacets) }
         VStack(alignment: .leading, spacing: 16) {
             if brandOffered {
                 Toggle("Start with my brand", isOn: $withBrand)
@@ -236,6 +239,7 @@ private struct StartGrid: View {
             if ContentLibrary.showsTopics(bucket) {
                 topicChips(bucket)
             }
+            filterRow(empty: shown.isEmpty)
             LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                 BlankCard(preset: preset) {
                     // Named for what it is, as the Android twin names it;
@@ -256,8 +260,10 @@ private struct StartGrid: View {
                                  applyAll: { onCreate(sized(UserTemplates.newDesign(from: own.design))) },
                                  usePage: { onCreate(sized(UserTemplates.newDesign(from: own.design, onlyPage: $0))) })
             }
-            if category == nil && !adapted.isEmpty { adaptedPart }
+            if category == nil && !adaptedShown.isEmpty { adaptedPart }
         }
+        .onChange(of: filter) { _, chosen in TemplateFilter.session = chosen }
+        .sheet(isPresented: $filtersOpen) { TemplateFiltersSheet(filter: $filter) }
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 24)
@@ -286,12 +292,29 @@ private struct StartGrid: View {
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
             LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                ForEach(adapted) { item in
+                ForEach(adaptedShown) { item in
                     AdaptedCard(item: item) { onCreate(CopyResize.freshCopy(of: item.design)) }
                 }
             }
         }
         .padding(.top, 8)
+    }
+
+    /// Those of other sizes the filter lets through.
+    private var adaptedShown: [Templates.Adapted] {
+        adapted.filter { filter.admits($0.template.shownFacets) }
+    }
+
+    /// The Filters button, what is set, and, when nothing is left, the way
+    /// out of it.
+    private func filterRow(empty: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TemplateFiltersButton(filter: filter) { filtersOpen = true }
+            TemplateFilterChips(filter: $filter)
+            if !filter.isEmpty && empty {
+                NoTemplatesMatch { filter = TemplateFilter() }
+            }
+        }
     }
 
     /// A new design from a fresh copy of the template, in the size's unit:

@@ -68,6 +68,9 @@ struct EditorView: View {
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
+    /// Present and record: the studio over the design, and its talks.
+    @State private var talkRecording: Design?
+    @State private var talkReviewing: Design?
     /// The Vibration switch, shared with Home.
     @AppStorage(Haptics.key) private var haptics = true
     /// Quick actions at the selection, on unless turned off (SelectionBubble).
@@ -294,6 +297,10 @@ struct EditorView: View {
         .onChange(of: presenting) { _, on in
             if on { store.stopPreview() }
         }
+        // A talk kept is the design's own, as one step Undo takes back.
+        .modifier(TalkSheets(recording: $talkRecording, reviewing: $talkReviewing) { next in
+            store.apply { $0.recordings = next.recordings }
+        })
         .customGridAlert(isPresented: $askingCustomGrid, store: store)
         .saveTemplateAlert(isPresented: $savingTemplate, store: store) { text in show(toast: text, undoable: false) }
         .namedVersionAlert(isPresented: $namingVersion, store: store) { text in show(toast: text, undoable: false) }
@@ -786,6 +793,18 @@ struct EditorView: View {
                 }
                 .disabled(everyPageHidden)
                 .accessibilityHint(everyPageHidden ? PageVisibility.everyPageHidden : "")
+
+                Button {
+                    store.finishCrop()
+                    store.endTextEdit()
+                    store.drawing = nil
+                    store.stopPreview()
+                    talkRecording = store.design
+                } label: { Label("Present and record", systemImage: "record.circle") }
+                .disabled(everyPageHidden)
+                if !Recordings.of(store.design).isEmpty {
+                    Button { talkReviewing = store.design } label: { Label("Recordings", systemImage: "waveform") }
+                }
 
                 Button {
                     if ReadAloud.shared.isSpeaking {
@@ -1519,7 +1538,7 @@ struct EditorView: View {
         case .accessibility:
             AccessibilitySheet(store: store)
         case .brand:
-            BrandKitSheet(store: store)
+            BrandKitSheet(store: store, onGuidelines: { openGuidelines($0) })
         case .settings:
             SettingsSheet(store: store)
         case .audio:
@@ -1781,6 +1800,22 @@ struct EditorView: View {
         }
         DesignLibrary.writeThumbnail(for: copy)
         openDesign(copy.id)
+    }
+
+    /// Make brand guidelines from the kit sheet: this design saved, the
+    /// guidelines saved as a new design, and opened in its place.
+    @MainActor
+    private func openGuidelines(_ design: Design) {
+        closeRename()
+        saveNow()
+        var named = design
+        named.title = Titles.unique(design.title, taken: DesignLibrary.recents().map(\.title))
+        guard DesignLibrary.save(named) else {
+            show(toast: tr("Couldn't do that"), undoable: false)
+            return
+        }
+        DesignLibrary.writeThumbnail(for: named)
+        openDesign(named.id)
     }
 
     /// Another design opened over this one — saved already — through the
