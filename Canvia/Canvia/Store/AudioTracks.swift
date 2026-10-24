@@ -106,7 +106,11 @@ extension DesignStore {
     /// your uploads, and the launch sweep takes a file nothing plays.
     func removeAudioTrack(_ id: String) {
         guard design.audioTracks.contains(where: { $0.id == id }) else { return }
-        apply { $0.audioTracks.removeAll { $0.id == id } }
+        // The last track with Beat Sync on gone, the kept holds come back.
+        apply { design in
+            design.audioTracks.removeAll { $0.id == id }
+            design = BeatSync.settled(design)
+        }
     }
 
     /// One of the built-in sound effects as a new track, last in the list,
@@ -140,14 +144,17 @@ extension DesignStore {
     }
 
     /// Beat Sync turned off for track `id`, as one step: the holds kept
-    /// when it was turned on come back (BeatSync.off).
+    /// when it was turned on come back (BeatSync.off) — once no other track
+    /// still has it on (BeatSync.settled).
     func turnBeatSyncOff(_ id: String) {
         guard let index = design.audioTracks.firstIndex(where: { $0.id == id }) else { return }
         apply { design in
             var tracks = design.audioTracks
             tracks[index].beatSync = false
             design.audioTracks = tracks
-            design = BeatSync.off(design)
+            // While another track still has it on, its holds and the kept
+            // ones stay (BeatSync.settled).
+            design = BeatSync.settled(design)
         }
     }
 

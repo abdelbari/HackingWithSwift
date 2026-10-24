@@ -186,6 +186,25 @@ enum Recordings {
         })
     }
 
+    /// Each talk's pages renamed by `pageIds` (old page id to new), as a
+    /// design's pages are when it is copied or read from a file, so a talk
+    /// still plays over the pages it was given on; a span whose page is not
+    /// among them goes. The Android twin's Recordings.withPageIds.
+    static func withPageIds(_ design: Design, _ pageIds: [String: String]) -> Design {
+        let all = of(design)
+        guard !all.isEmpty else { return design }
+        return with(design, all.map { r -> Recording in
+            var moved = r
+            moved.pages = r.pages.compactMap { span -> RecordingSpan? in
+                guard let new = pageIds[span.pageId] else { return nil }
+                var renamed = span
+                renamed.pageId = new
+                return renamed
+            }
+            return moved
+        })
+    }
+
     /// "Talk, 1:05": what the review sheet calls a recording.
     static func label(_ r: Recording) -> String { tr("Talk, %@", Presenter.clockText(r.duration)) }
 }
