@@ -429,7 +429,7 @@ struct ContextToolbar: View {
             Dictation.shared.start(language: store.design.language) { spoken, isFinal in
                 Task { @MainActor in
                     guard store.dictationTarget == target else { return }
-                    store.dictate(Dictation.merge(base, spoken))
+                    store.dictate(Dictation.merge(base, RichText.escapeLiteral(spoken)))
                     if isFinal { store.finishDictation() }
                 }
             }

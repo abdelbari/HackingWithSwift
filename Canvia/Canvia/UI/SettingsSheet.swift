@@ -104,6 +104,8 @@ struct SettingsSheet: View {
     @AppStorage(SelectionBubble.key) private var quickActions = true
     /// Typing into small words zooms them up to be read (Viewport.typingZoom).
     @AppStorage(Viewport.typingZoomKey) private var typingZoom = true
+    /// A typed "- " or "1. " starts a list (TextLists.autoStart).
+    @AppStorage(TextLists.autoListsKey) private var autoLists = true
     @AppStorage(AppDefaults.exportFormatKey) private var exportFormat = "png"
     @AppStorage(AppDefaults.unitKey) private var unit = "px"
     @State private var snapping = SnapSettings.load()
@@ -204,6 +206,7 @@ struct SettingsSheet: View {
             Toggle("Snap to page", isOn: $snapping.toPage)
             Toggle("Quick actions at the selection", isOn: $quickActions)
             Toggle("Zoom in to type small text", isOn: $typingZoom)
+            Toggle("Start lists as you type", isOn: $autoLists)
             Picker("Custom sizes start in", selection: $unit) {
                 ForEach(Units.all, id: \.self) { Text($0).tag($0) }
             }

@@ -46,7 +46,10 @@ enum CanvasDrop {
 
     static func textElement(_ string: String, page: CGSize, at point: CGPoint) -> Element {
         let size = max(18, (page.width * 0.04).rounded())
-        var el = Element.text(string.trimmingCharacters(in: .whitespacesAndNewlines), fontSize: size, w: (page.width * 0.6).rounded())
+        // Dropped words read as they are: their stars and underscores
+        // literal (RichText.escapeLiteral), as on the Android twin.
+        let words = RichText.escapeLiteral(string.trimmingCharacters(in: .whitespacesAndNewlines))
+        var el = Element.text(words, fontSize: size, w: (page.width * 0.6).rounded())
         el.align = "left"
         el.h = FontLibrary.layoutHeight(for: el)
         let frame = textFrame(page: page, at: point, height: el.h)

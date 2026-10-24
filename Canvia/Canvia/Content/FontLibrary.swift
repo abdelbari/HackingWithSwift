@@ -31,7 +31,9 @@ import CoreText
 /// both phones' own faces have — the same list on both phones. `tags` are
 /// the style words a search finds it by ("elegant", "handwritten"; see
 /// FontLibrary.tags), and `popular` its rank in the picker's Popular
-/// section, on the eight families that have one.
+/// section, on the eight families that have one. `scripts` are the letters
+/// it has (FontLibrary.scriptKeys): its regular face covers at least 98% of
+/// each.
 struct FontDef: Decodable, Identifiable, Equatable {
     var id: String
     var name: String
@@ -41,11 +43,12 @@ struct FontDef: Decodable, Identifiable, Equatable {
     var files: [String: String] = [:]
     var postScript: [String: String] = [:]
     var weights: [Int] = []
+    var scripts: [String] = []
     var tags: [String] = []
     var popular: Int?
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, category, system, licence, files, postScript, weights, tags, popular
+        case id, name, category, system, licence, files, postScript, weights, scripts, tags, popular
     }
 
     init(id: String, name: String, category: String, system: Bool = false) {
@@ -65,6 +68,7 @@ struct FontDef: Decodable, Identifiable, Equatable {
         files = (try? c.decodeIfPresent([String: String].self, forKey: .files)) ?? [:]
         postScript = (try? c.decodeIfPresent([String: String].self, forKey: .postScript)) ?? [:]
         weights = (try? c.decodeIfPresent([Int].self, forKey: .weights)) ?? []
+        scripts = (try? c.decodeIfPresent([String].self, forKey: .scripts)) ?? []
         tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? []
         popular = try? c.decodeIfPresent(Int.self, forKey: .popular)
     }
@@ -592,6 +596,112 @@ enum FontLibrary {
             attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
         }
         return attrs
+    }
+
+    // MARK: the letters a font has
+
+    /// The scripts a font may cover, in the order Fonts.json lists them.
+    static let scriptKeys = ["latin", "latin-ext", "vietnamese", "cyrillic", "greek"]
+
+    /// How much of a script's letters a face must have to cover it.
+    static let coverage = 0.98
+
+    /// The code points `ranges` hold, and `extra`.
+    private static func points(_ ranges: [ClosedRange<UInt32>], extra: [UInt32] = []) -> Set<UInt32> {
+        Set(ranges.flatMap { Array($0) } + extra)
+    }
+
+    /// Each script's code points, the sets the Android twin's
+    /// tools/generate_fonts.py holds: a face covers a script when its cmap
+    /// maps `coverage` of them. Latin is ASCII and Latin-1; latin-ext Latin
+    /// Extended-A; vietnamese the letters only Vietnamese has (Ă Đ Ĩ Ũ Ơ Ư
+    /// and the toned vowels U+1EA0–U+1EF9); cyrillic the Russian alphabet;
+    /// greek the Greek one.
+    static let scriptSets: [String: Set<UInt32>] = [
+        "latin": points([0x20...0x7E, 0xA0...0xFF]),
+        "latin-ext": points([0x100...0x17F]),
+        "vietnamese": points([0x1EA0...0x1EF9],
+                             extra: [0x102, 0x103, 0x110, 0x111, 0x128, 0x129, 0x168, 0x169, 0x1A0, 0x1A1, 0x1AF, 0x1B0]),
+        "cyrillic": points([0x410...0x44F], extra: [0x401, 0x451]),
+        "greek": points([0x391...0x3A1, 0x3A3...0x3A9, 0x3B1...0x3C9]),
+    ]
+
+    /// The Vietnamese alphabet's vowels that Latin-1 has too, with the tones
+    /// Vietnamese gives them: a text with them may be Vietnamese.
+    private static let vietnameseLatin1 = Set("àáâãèéêìíòóôõùúýÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝ".unicodeScalars.map(\.value))
+
+    /// The scripts a face whose cmap maps `codePoints` covers, in
+    /// scriptKeys' order — what the generator writes, and what a font of
+    /// your own gets when it is added (CustomFonts.scripts).
+    static func scriptsCovered(_ codePoints: Set<UInt32>) -> [String] {
+        scriptKeys.filter { key in
+            let set = scriptSets[key] ?? []
+            return Double(set.filter { codePoints.contains($0) }.count) >= coverage * Double(set.count)
+        }
+    }
+
+    /// The scripts a letter is written in, the rule both phones share: each
+    /// script whose set has it, a toned Latin-1 vowel ("à", "é") being
+    /// Vietnamese as well as Latin; past the sets, by its block — Latin
+    /// Extended-B and Additional are latin-ext, the Cyrillic blocks
+    /// cyrillic, the Greek ones greek. None for a letter of any other script.
+    static func scriptsOfLetter(_ point: UInt32) -> [String] {
+        let keys = scriptKeys.filter {
+            scriptSets[$0]?.contains(point) == true || ($0 == "vietnamese" && vietnameseLatin1.contains(point))
+        }
+        if !keys.isEmpty { return keys }
+        switch point {
+        case 0x180...0x24F, 0x1E00...0x1EFF: return ["latin-ext"]
+        case 0x400...0x52F: return ["cyrillic"]
+        case 0x370...0x3FF, 0x1F00...0x1FFF: return ["greek"]
+        default: return []
+        }
+    }
+
+    /// The letters of `text` — a letter of any script, never a digit, a
+    /// mark or a space — as code points.
+    private static func letters(_ text: String) -> [UInt32] {
+        text.unicodeScalars.filter { scalar in
+            switch scalar.properties.generalCategory {
+            case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter: return true
+            default: return false
+            }
+        }.map(\.value)
+    }
+
+    /// The scripts the letters of `text` are written in (scriptsOfLetter),
+    /// in scriptKeys' order: "Xin chào" needs latin and vietnamese.
+    static func scriptsNeeded(_ text: String) -> [String] {
+        let found = Set(letters(text).flatMap(scriptsOfLetter))
+        return scriptKeys.filter { found.contains($0) }
+    }
+
+    /// The scripts the font `key` covers: its family's, or a font of your
+    /// own's face's when this phone knows it (FontStore); nil when that is
+    /// not known — taken as covering everything.
+    static func scriptsOf(_ key: String?) -> [String]? {
+        if let sha = CustomFonts.sha(key) { return FontStore.faces().first { $0.id == sha }?.scripts }
+        let scripts = of(key).scripts
+        return scripts.isEmpty ? nil : scripts
+    }
+
+    /// Whether the font `family` has every letter of `text`: each letter is
+    /// in a script it covers (scriptsOfLetter) — "à" in latin or
+    /// vietnamese, so a Latin-only face has "Xin chào" but not "Việt". A
+    /// letter of no script here, and a font whose scripts are not known,
+    /// never count against it. The rule both phones share.
+    static func covers(_ family: String?, _ text: String) -> Bool {
+        guard let scripts = scriptsOf(family) else { return true }
+        return letters(text).allSatisfy { letter in
+            let keys = scriptsOfLetter(letter)
+            return keys.isEmpty || keys.contains { scripts.contains($0) }
+        }
+    }
+
+    /// Whether `text` needs letters past Latin's — what puts the font
+    /// picker's "Fonts for these letters" row up.
+    static func needsMoreThanLatin(_ text: String) -> Bool {
+        scriptsNeeded(text).contains { $0 != "latin" }
     }
 
     /// True when the first letter of the text is from a right-to-left

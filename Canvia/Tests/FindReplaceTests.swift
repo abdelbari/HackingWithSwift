@@ -375,9 +375,8 @@ final class FindReplaceTests: XCTestCase {
         let found = DesignStore.matches(in: design, for: "big", caseSensitive: false, wholeWord: false)
         XCTAssertEqual(found.map { [$0.range.location, NSMaxRange($0.range)] }, [[0, 7], [8, 11]])
         let units = RichText.typedUnits(text)
-        let length = (text as NSString).length
         for range in [NSRange(location: 4, length: 3), NSRange(location: 0, length: 12)] {
-            XCTAssertEqual(RichText.storedRange(of: range, units: units, length: length),
+            XCTAssertEqual(RichText.storedRange(of: range, units: units, stored: text as NSString),
                            RichText.storedRange(of: range, in: text))
         }
     }

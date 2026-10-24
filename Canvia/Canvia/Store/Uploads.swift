@@ -19,9 +19,10 @@
 // digits of "custom:<sha12>", and it also holds the font's "name" — its
 // family's, read from the file — and its "file" in fonts/ ("<sha12>.ttf"),
 // as the Android twin writes it, with its face: "family", "weight",
-// "italic" and, for a variable font, "axes": {"wght": [min, max]}. An entry
-// an earlier build wrote without them is described from its file once
-// (FontStore.installed). See CustomFonts and FontStore.
+// "italic" and, for a variable font, "axes": {"wght": [min, max]} — and the
+// "scripts" it covers (FontLibrary.scriptKeys). An entry an earlier build
+// wrote without them is described from its file once (FontStore.installed).
+// See CustomFonts and FontStore.
 
 import Foundation
 
@@ -56,9 +57,12 @@ enum Uploads {
         /// Whether the entry says its face: false for one an earlier build
         /// wrote.
         var described: Bool
+        /// The scripts it covers, when the entry says (FontLibrary.covers).
+        var scripts: [String]?
 
         init(id: String, name: String, file: String, added: Double, family: String? = nil, weight: Int = 400,
-             italic: Bool = false, wght: ClosedRange<Double>? = nil, described: Bool = true) {
+             italic: Bool = false, wght: ClosedRange<Double>? = nil, described: Bool = true,
+             scripts: [String]? = nil) {
             self.id = id
             self.name = name
             self.file = file
@@ -68,6 +72,7 @@ enum Uploads {
             self.italic = italic
             self.wght = wght
             self.described = described
+            self.scripts = scripts
         }
 
         /// The key a text set in it stores.
@@ -179,6 +184,7 @@ enum Uploads {
         item["weight"] = face.weight
         item["italic"] = face.italic
         if let axis = face.wght { item["axes"] = ["wght": [axis.min, axis.max]] }
+        if let scripts = face.scripts { item["scripts"] = scripts }
     }
 
     /// A variable font's wght axis as an entry keeps it, when it does.
@@ -207,7 +213,8 @@ enum Uploads {
                              weight: weight ?? 400,
                              italic: (item["italic"] as? Bool) ?? false,
                              wght: wghtAxis(item),
-                             described: weight != nil)
+                             described: weight != nil,
+                             scripts: item["scripts"] as? [String])
         }
         .enumerated()
         .sorted { $0.element.added != $1.element.added ? $0.element.added > $1.element.added : $0.offset > $1.offset }

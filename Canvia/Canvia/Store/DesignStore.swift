@@ -177,6 +177,9 @@ final class DesignStore {
     /// back again.
     @ObservationIgnored private var typingSteps = 0
     @ObservationIgnored private var typingRedos = 0
+    /// What the next step recorded is called, when it is named for what it
+    /// did rather than by History.label: "Paste", "Replace font".
+    @ObservationIgnored var namedStep: String?
     /// How tall a text's words stand, for a table whose words changed in a
     /// step to be laid out again as part of it (DataGraphics.settlingTables),
     /// and for the Table controls. Tests measure in round numbers.
@@ -248,6 +251,8 @@ final class DesignStore {
     func commit() {
         // Without a beginGesture() snapshot there is no pre-mutation state to
         // record — pushing the current design would make undo a no-op.
+        let named = namedStep
+        namedStep = nil
         guard let entry = pending else { return }
         // A table's rows follow its words, and connectors their ends, as
         // part of the same step.
@@ -271,7 +276,7 @@ final class DesignStore {
         adoptHeadline()
         lastWords = Self.words(of: design)
         var recorded = entry
-        recorded.label = History.label(before: entry.design, after: design)
+        recorded.label = named ?? History.label(before: entry.design, after: design)
         past.append(recorded)
         if past.count > historyLimit { past.removeFirst() }
         future.removeAll()
@@ -1667,7 +1672,8 @@ final class DesignStore {
                 guard !text.isEmpty else { self.announce(tr("No words were recognised in the strokes"), undoable: false); return }
                 let frame = rendered.frame
                 let size = max(12, (frame.height / Double(max(lines.count, 1)) * 0.6).rounded())
-                var el = Element.text(text, fontSize: size, w: max(60, frame.width.rounded()))
+                // The recognised words as they read, stars literal.
+                var el = Element.text(RichText.escapeLiteral(text), fontSize: size, w: max(60, frame.width.rounded()))
                 el.align = "left"
                 el.x = frame.minX.rounded(); el.y = frame.minY.rounded()
                 el.h = FontLibrary.layoutHeight(for: el)
@@ -1871,8 +1877,9 @@ final class DesignStore {
 
     /// Where one match lives, so a caller can jump to it.
     struct TextMatch: Equatable, Identifiable {
-        var id: String { "\(pageIndex)|\(elementId)|\(range.location)" }
+        var id: String { "\(kind.rawValue)|\(pageIndex)|\(elementId)|\(range.location)" }
         var pageIndex: Int
+        /// The box it is in; empty for the page's notes.
         var elementId: String
         /// Where it is stored, its style markers taken in
         /// (RichText.storedRange).
@@ -1881,16 +1888,23 @@ final class DesignStore {
         var plain: NSRange
         /// The line the match sits on, as it reads, for showing it in a list.
         var preview: String
+        /// In a box, or in the page's speaker notes — whose words are plain,
+        /// `range` and `plain` alike.
+        var kind: FindReplace.Kind = .element
     }
 
     /// The match Find and replace is showing, its letters marked on the
     /// canvas while it is. View state only — never saved.
     var findHighlight: TextMatch?
+    /// A match in a page's notes being shown: the sheet that showed it
+    /// opens the page's notes. View state only — never saved.
+    var notesAsked: TextMatch?
 
     /// Every occurrence of `needle` across every page, in reading order:
     /// in text boxes, and in the words shapes carry — not in a hidden or
     /// locked one (FindReplace.searches), nor on a locked page — as the
-    /// words read, style markers left out (FindReplace.matches). With
+    /// words read, style markers left out (FindReplace.matches); then in
+    /// each page's speaker notes, after its boxes, as plain text. With
     /// `wholeWord`, only where no letter or digit touches it
     /// (FindReplace.ranges).
     ///
@@ -1913,6 +1927,11 @@ final class DesignStore {
                                            plain: hit.plain, preview: line(of: plain, containing: hit.plain)))
                 }
             }
+            let notes = page.notes ?? ""
+            for hit in FindReplace.ranges(of: needle, in: notes, caseSensitive: caseSensitive, wholeWord: wholeWord) {
+                found.append(TextMatch(pageIndex: index, elementId: "", range: hit, plain: hit,
+                                       preview: line(of: notes, containing: hit), kind: .notes))
+            }
         }
         return found
     }
@@ -1930,12 +1949,16 @@ final class DesignStore {
     @discardableResult
     func replaceAll(_ needle: String, with replacement: String,
                     caseSensitive: Bool = false, wholeWord: Bool = false) -> Int {
-        let total = matches(for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord).count
+        // A chart's value labels and axis numbers are found, never replaced.
+        let total = matches(for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord).filter { match in
+            match.kind == .notes
+                || design.pages[match.pageIndex].elements.first { $0.id == match.elementId }.map(FindReplace.replaces) == true
+        }.count
         guard total > 0 else { return 0 }
         apply { design in
             for p in design.pages.indices where !PageLocks.isLocked(design.pages[p]) {
                 for i in design.pages[p].elements.indices
-                where FindReplace.searches(design.pages[p].elements[i]) {
+                where FindReplace.replaces(design.pages[p].elements[i]) {
                     guard let body = design.pages[p].elements[i].text, !body.isEmpty else { continue }
                     let found = FindReplace.ranges(of: needle, in: RichText.strip(body),
                                                    caseSensitive: caseSensitive, wholeWord: wholeWord)
@@ -1944,10 +1967,21 @@ final class DesignStore {
                     // colours, sizes, fonts and links on the words between
                     // them stay on those words, and the words as they read
                     // before each are still where they were found.
+                    let before = design.pages[p].elements[i]
                     for hit in found.reversed() {
                         Self.replaceWords(hit, with: replacement, in: &design.pages[p].elements[i])
                     }
+                    let after = design.pages[p].elements[i]
+                    DataGraphics.keepingLabel(&design.pages[p], was: before, now: after)
                 }
+                // The notes, as plain text.
+                guard let notes = design.pages[p].notes else { continue }
+                var words = notes as NSString
+                for hit in FindReplace.ranges(of: needle, in: notes, caseSensitive: caseSensitive,
+                                              wholeWord: wholeWord).reversed() {
+                    words = words.replacingCharacters(in: hit, with: replacement) as NSString
+                }
+                design.pages[p].notes = words.length == 0 ? nil : words as String
             }
         }
         findHighlight = nil
@@ -1962,15 +1996,26 @@ final class DesignStore {
     /// has been locked since.
     static func replacingOne(_ design: Design, _ match: TextMatch, with replacement: String) -> Design? {
         guard design.pages.indices.contains(match.pageIndex),
-              !PageLocks.isLocked(design.pages[match.pageIndex]),
-              let i = design.pages[match.pageIndex].elements.firstIndex(where: { $0.id == match.elementId }),
-              FindReplace.searches(design.pages[match.pageIndex].elements[i]) else { return nil }
+              !PageLocks.isLocked(design.pages[match.pageIndex]) else { return nil }
+        if match.kind == .notes {
+            let notes = (design.pages[match.pageIndex].notes ?? "") as NSString
+            guard match.range.length > 0, NSMaxRange(match.range) <= notes.length else { return nil }
+            var out = design
+            let now = notes.replacingCharacters(in: match.range, with: replacement)
+            out.pages[match.pageIndex].notes = now.isEmpty ? nil : now
+            return out
+        }
+        guard let i = design.pages[match.pageIndex].elements.firstIndex(where: { $0.id == match.elementId }),
+              FindReplace.replaces(design.pages[match.pageIndex].elements[i]) else { return nil }
         let body = design.pages[match.pageIndex].elements[i].text ?? ""
         let length = (RichText.strip(body) as NSString).length
         guard match.plain.length > 0, NSMaxRange(match.plain) <= length,
               RichText.storedRange(of: match.plain, in: body) == match.range else { return nil }
         var out = design
+        let before = out.pages[match.pageIndex].elements[i]
         replaceWords(match.plain, with: replacement, in: &out.pages[match.pageIndex].elements[i])
+        DataGraphics.keepingLabel(&out.pages[match.pageIndex], was: before,
+                                  now: out.pages[match.pageIndex].elements[i])
         return out
     }
 
@@ -2008,8 +2053,15 @@ final class DesignStore {
     }
 
     /// Show a match: switch to its page, select its element and mark its
-    /// letters there (findHighlight); the editor keeps it in sight.
+    /// letters there (findHighlight); the editor keeps it in sight. A match
+    /// in the notes opens the page's notes instead (notesAsked).
     func reveal(_ match: TextMatch) {
+        if match.kind == .notes {
+            reveal(elementId: nil, onPage: match.pageIndex)
+            findHighlight = nil
+            notesAsked = match
+            return
+        }
         reveal(elementId: match.elementId, onPage: match.pageIndex)
         findHighlight = match
     }

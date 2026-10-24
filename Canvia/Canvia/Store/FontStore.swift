@@ -34,14 +34,15 @@ enum FontStore {
 
     /// The fonts of your own whose files are here, newest first. Reads the
     /// disk, and keeps their names for record and name. One an earlier
-    /// build listed without its face is described from its file, once.
+    /// build listed without its face — or without the letters it has — is
+    /// described from its file, once.
     @discardableResult
     static func installed() -> [Uploads.FontEntry] {
         let folder = directory
         var fonts = Uploads.fonts().filter {
             FileManager.default.fileExists(atPath: folder.appendingPathComponent($0.file).path)
         }
-        for i in fonts.indices where !fonts[i].described {
+        for i in fonts.indices where !fonts[i].described || fonts[i].scripts == nil {
             guard let data = try? Data(contentsOf: folder.appendingPathComponent(fonts[i].file)),
                   let face = CustomFonts.describe(data) else { continue }
             Uploads.describeFont(fonts[i].id, face)
@@ -50,6 +51,7 @@ enum FontStore {
             fonts[i].italic = face.italic
             fonts[i].wght = face.wght.map { $0.min...$0.max }
             fonts[i].described = true
+            fonts[i].scripts = face.scripts
         }
         lock.lock()
         names = Dictionary(fonts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -226,6 +228,57 @@ enum FontStore {
         // missing, are measured and drawn again in it.
         FontLibrary.fontsChanged()
         return .success(CustomFonts.key(sha))
+    }
+
+    /// What adding the files picked came to.
+    struct AddedFonts: Sendable {
+        /// Each face added, by key, in order.
+        var keys: [String] = []
+        /// The families they are in, each once, in order.
+        var families: [String] = []
+        /// Each file left out, and why (CustomFonts.skippedLine).
+        var skipped: [String] = []
+
+        /// The one line the picker says (CustomFonts.importSummary).
+        var summary: String {
+            CustomFonts.importSummary(families: families, styles: keys.count, skipped: skipped.count)
+        }
+    }
+
+    /// The files picked, each read — a .zip or a collection opened into
+    /// its fonts (CustomFonts.expand) — and every font in them added as
+    /// one file is (add), grouped into families as they go in. Away from
+    /// the main thread.
+    static func addPicked(_ urls: [URL]) -> AddedFonts {
+        var out = AddedFonts()
+        for url in urls {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            let name = url.lastPathComponent
+            // Too big is known from the size, before a byte is read.
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            guard size <= CustomFonts.maxPickedBytes else {
+                out.skipped.append(CustomFonts.skippedLine(name, .tooBig))
+                continue
+            }
+            guard let data = try? Data(contentsOf: url) else {
+                out.skipped.append(CustomFonts.skippedLine(name, .notAFont))
+                continue
+            }
+            let faces = CustomFonts.expand(data, name: name)
+            if faces.isEmpty { out.skipped.append(CustomFonts.skippedLine(name, .notAFont)) }
+            for face in faces {
+                switch add(face.data) {
+                case .success(let key):
+                    out.keys.append(key)
+                    let family = CustomFonts.sha(key).flatMap { known()[$0]?.family } ?? face.name
+                    if !out.families.contains(family) { out.families.append(family) }
+                case .failure(let problem):
+                    out.skipped.append(CustomFonts.skippedLine(face.name, problem))
+                }
+            }
+        }
+        return out
     }
 
     /// The font `sha` gone from this phone and from the list: its texts

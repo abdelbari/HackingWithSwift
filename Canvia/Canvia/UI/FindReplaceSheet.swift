@@ -12,6 +12,9 @@
 // they read, whatever their styles (FindReplace.matches). Replace all is one undo step: forty separate steps
 // to undo a mistaken replace would be worse than no undo at all. Match case
 // and Whole words narrow the search (FindReplace), as on the Android twin.
+// The pages' speaker notes are searched too, after each page's boxes: a
+// match there is listed as "Notes, page N", and showing it opens the
+// page's notes.
 
 import SwiftUI
 
@@ -78,6 +81,12 @@ struct FindReplaceSheet: View {
         }
         .presentationDetents([.medium, .large], selection: $detent)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .sheet(isPresented: notesShown) { PageNotesSheet(store: store) }
+    }
+
+    /// The page's notes open while a match in them is showing.
+    private var notesShown: Binding<Bool> {
+        Binding(get: { store.notesAsked != nil }, set: { if !$0 { store.notesAsked = nil } })
     }
 
     /// Previous, "k of N" and Next.
@@ -128,7 +137,7 @@ struct FindReplaceSheet: View {
                         Text(entry.element.preview)
                             .lineLimit(1)
                             .foregroundStyle(.primary)
-                        Text(PageTitles.named(entry.element.pageIndex + 1, title: pageTitle(entry.element.pageIndex)))
+                        Text(whereFound(entry.element))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -181,6 +190,17 @@ struct FindReplaceSheet: View {
         } else {
             show(next, in: now)
         }
+    }
+
+    /// Where a match is: its page, by title, or "Notes, page N".
+    private func whereFound(_ match: DesignStore.TextMatch) -> String {
+        if match.kind == .notes { return Self.notesPlace(match.pageIndex) }
+        return PageTitles.named(match.pageIndex + 1, title: pageTitle(match.pageIndex))
+    }
+
+    /// "Notes, page 3", for a match in page 3's notes.
+    static func notesPlace(_ pageIndex: Int) -> String {
+        tr("Notes, page %d", pageIndex + 1)
     }
 
     /// The title of page `index`, to name a match's page by.

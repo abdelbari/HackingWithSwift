@@ -250,6 +250,129 @@ enum TextLists {
         return breaks(before: from)...breaks(before: to)
     }
 
+    // MARK: lists from the keyboard and from a paste
+
+    /// The setting that starts a list from a typed "- " or "1. " (on
+    /// unless turned off in Settings; in a backup's settings.json as
+    /// "autoLists").
+    static let autoListsKey = "canvia.autoLists"
+
+    /// Whether typed prefixes start lists on this phone.
+    static var autoListsOn: Bool {
+        UserDefaults.standard.object(forKey: autoListsKey) as? Bool ?? true
+    }
+
+    /// The list a line starts once a space is typed, `caret` UTF-16 units
+    /// into `plainLine` (the line's words as they read, the space in): when
+    /// everything before the caret is "-", "*" or "•" and the space — a
+    /// bullet — one or more digits then "." or ")" and the space — numbers
+    /// — or one letter a to z then "." or ")" and the space — letters. Nil
+    /// otherwise. The rule both phones share; the caller asks only for a
+    /// line not listed yet.
+    static func autoStart(_ plainLine: String, caret: Int) -> String? {
+        let ns = plainLine as NSString
+        guard caret >= 2, caret <= ns.length else { return nil }
+        let typed = ns.substring(to: caret)
+        let rules: [(pattern: String, list: String)] = [
+            ("^[-*•] $", "bullet"), ("^[0-9]+[.)] $", "number"), ("^[a-z][.)] $", "letter"),
+        ]
+        return rules.first { typed.range(of: $0.pattern, options: .regularExpression) != nil }?.list
+    }
+
+    /// `el` with the list `list` started on line `line` (zero-based) by a
+    /// typed prefix `prefix` UTF-16 units long at the line's start: the
+    /// prefix taken out and the line made the first level of the list —
+    /// what autoStart asked for, as one step after the prefix was typed, so
+    /// an Undo straight away brings the typed characters back.
+    static func autoStarted(_ el: Element, line: Int, prefix: Int, list: String) -> Element {
+        let text = el.text ?? ""
+        let plain = RichText.strip(text)
+        let starts = lineStarts(plain)
+        guard starts.indices.contains(line) else { return el }
+        var out = el
+        let gone = NSRange(location: starts[line], length: prefix)
+        out.setText(FindReplace.replacing(gone, in: text, with: ""))
+        out.changeLines(line...line) { p in
+            p.list = list
+            p.level = 0
+        }
+        return out
+    }
+
+    /// Where each line of `plain` starts, as UTF-16 offsets.
+    static func lineStarts(_ plain: String) -> [Int] {
+        var starts = [0]
+        for (i, unit) in plain.utf16.enumerated() where unit == 0x0A { starts.append(i + 1) }
+        return starts
+    }
+
+    /// Backspace at the very start of a listed line: one level shallower
+    /// while it is deeper than the first, else no list — the line is not
+    /// joined to the one above. The rule both phones share.
+    static func backspaced(_ p: inout TextParagraph) {
+        if p.level > 0 {
+            p.level -= 1
+        } else {
+            p.list = "none"
+        }
+    }
+
+    /// `el` after Backspace at the start of line `line`, when that line is
+    /// listed (backspaced); nil when it is not, and the key joins the lines
+    /// as ever.
+    static func backspaceAtItemStart(_ el: Element, line: Int) -> Element? {
+        let now = lines(el)
+        guard now.indices.contains(line), now[line].isListed else { return nil }
+        var out = el
+        out.changeLines(line...line, backspaced)
+        return out
+    }
+
+    /// Text from outside — a paste, a share — as a list: each line with a
+    /// bullet ("-", "*", "•", "◦", "▪"), a number ("1." or "1)") or a letter
+    /// ("a." or "a)") and a space at its start loses them and becomes an
+    /// item of that list, its leading tabs and pairs of spaces its level
+    /// (to the deepest); every other line is kept as it is, no list. When
+    /// `firstStartsLine` is false — pasted within a line, whose list the
+    /// first line cannot take — the first line is kept as it is too, its
+    /// bullet or number still in its words. The rule both phones share.
+    static func fromPasted(_ text: String, firstStartsLine: Bool = true) -> (text: String, paragraphs: [TextParagraph]) {
+        let rules: [(pattern: String, list: String)] = [
+            ("^[-*•◦▪] +", "bullet"), ("^[0-9]+[.)] +", "number"), ("^[a-z][.)] +", "letter"),
+        ]
+        var lines: [String] = []
+        var paragraphs: [TextParagraph] = []
+        for (index, line) in text.components(separatedBy: "\n").enumerated() {
+            if index == 0 && !firstStartsLine {
+                lines.append(line)
+                paragraphs.append(TextParagraph())
+                continue
+            }
+            var rest = Substring(line)
+            var level = 0
+            while true {
+                if rest.hasPrefix("\t") {
+                    rest = rest.dropFirst()
+                } else if rest.hasPrefix("  ") {
+                    rest = rest.dropFirst(2)
+                } else {
+                    break
+                }
+                level += 1
+            }
+            let body = String(rest)
+            guard let rule = rules.first(where: { body.range(of: $0.pattern, options: .regularExpression) != nil }),
+                  let found = body.range(of: rule.pattern, options: .regularExpression) else {
+                lines.append(line)
+                paragraphs.append(TextParagraph())
+                continue
+            }
+            lines.append(String(body[found.upperBound...]))
+            paragraphs.append(TextParagraph(list: rule.list, level: min(level, maxLevel)))
+        }
+        return (lines.joined(separator: "\n"), paragraphs)
+    }
+
     /// The typing bar's List: the next of none, bullets and numbers after
     /// `current` — letters go on to none.
     static func nextList(_ current: String) -> String {

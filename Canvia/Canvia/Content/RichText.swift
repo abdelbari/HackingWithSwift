@@ -8,6 +8,14 @@
 // The bar over the keyboard puts the markers round chosen words and takes
 // them off again (toggling), and a box set in capitals is uppercased here,
 // run by run, after the markers are read (inCapitals).
+//
+// A backslash before a marker character or before another backslash — \*,
+// \_, \~, \\ — is that character as typed, never a marker: hidden like a
+// marker in display and measurement, and gone from the stripped words. What
+// comes in from outside — typed keys, a paste, a share, an import, a
+// replacement — is written so (escapeLiteral), so a typed '*' is always a
+// star; only the typing bar's own styles write markers. A file with no
+// backslash reads as it always has. The Android twin's rule, row for row.
 
 import Foundation
 import UIKit
@@ -72,7 +80,26 @@ enum RichText {
     ]
 
     static func hasMarkup(_ text: String) -> Bool {
-        text.contains("*") || text.contains("_") || text.contains("~")
+        text.contains("*") || text.contains("_") || text.contains("~") || text.contains("\\")
+    }
+
+    /// The characters a backslash stands for literally: the three marker
+    /// characters and the backslash itself.
+    static func isEscapable(_ c: Character) -> Bool {
+        c == "*" || c == "_" || c == "~" || c == "\\"
+    }
+
+    /// Words from outside as they are stored to read exactly as typed: a
+    /// backslash before every '*', '_', '~' and backslash: a*b is stored
+    /// as a\*b.
+    static func escapeLiteral(_ plain: String) -> String {
+        guard plain.contains(where: isEscapable) else { return plain }
+        var out = ""
+        for c in plain {
+            if isEscapable(c) { out.append("\\") }
+            out.append(c)
+        }
+        return out
     }
 
     static func strip(_ text: String) -> String {
@@ -102,6 +129,15 @@ enum RichText {
         /// Every marker read as one: where it starts, as a character offset,
         /// how many characters it is and which style it switches.
         var markers: [(at: Int, length: Int, mark: Mark)]
+        /// Where each escaping backslash is, as a character offset: hidden,
+        /// like a marker, and always kept just before its character.
+        var escapes: Set<Int> = []
+
+        /// Where the stored form of the character at character offset `raw`
+        /// begins: its escaping backslash, when it has one.
+        func lead(_ raw: Int) -> Int {
+            escapes.contains(raw - 1) ? raw - 1 : raw
+        }
     }
 
     /// The parse, with where each plain character came from in `text`, the
@@ -115,6 +151,19 @@ enum RichText {
         var styles: [Style] = []
         var markers: [(at: Int, length: Int, mark: Mark)] = []
         let chars = Array(text)
+        // The escapes first: each backslash before a marker character or
+        // another backslash, and the character it stands for.
+        var escapes = Set<Int>(), escaped = Set<Int>()
+        var e = 0
+        while e < chars.count {
+            if chars[e] == "\\", e + 1 < chars.count, isEscapable(chars[e + 1]) {
+                escapes.insert(e)
+                escaped.insert(e + 1)
+                e += 2
+            } else {
+                e += 1
+            }
+        }
         var plain = ""
         var style = Style()
         var runs: [Run] = []
@@ -129,14 +178,26 @@ enum RichText {
             runStart = offset
         }
         func isWord(_ c: Character?) -> Bool { c.map { $0.isLetter || $0.isNumber } ?? false }
-        func rest(from j: Int) -> String { String(chars[j...]) }
         func at(_ j: Int, _ marker: String) -> Bool {
             let m = Array(marker)
-            guard j + m.count <= chars.count else { return false }
+            guard j + m.count <= chars.count, !(j..<(j + m.count)).contains(where: escaped.contains) else { return false }
             return Array(chars[j..<(j + m.count)]) == m
+        }
+        func ahead(from j: Int, _ marker: String) -> Bool {
+            (j..<max(j, chars.count)).contains { at($0, marker) }
         }
 
         while i < chars.count {
+            // An escaped character is itself, its backslash hidden.
+            if escapes.contains(i) {
+                let c = chars[i + 1]
+                plain.append(c)
+                rawAt.append(i + 1)
+                styles.append(style)
+                offset += String(c).utf16.count
+                i += 2
+                continue
+            }
             var consumed = false
             // Double markers first, so ** is bold and not two italics.
             for d in doubles where at(i, d.marker) {
@@ -146,7 +207,7 @@ enum RichText {
                 // Opening: something follows that is not a space, and a
                 // closing marker exists later. Closing: the run is on and
                 // the marker does not sit before a letter of the same word.
-                let opens = !on && after != nil && after != " " && rest(from: i + 2).contains(d.marker)
+                let opens = !on && after != nil && after != " " && ahead(from: i + 2, d.marker)
                 let closes = on && before != " "
                 if opens || closes {
                     closeRun()
@@ -173,7 +234,7 @@ enum RichText {
                         continue
                     }
                 } else if !isWord(before), let after, after != " ", after != c,
-                          closingItalic(in: chars, from: i + 1, marker: c) {
+                          closingItalic(in: chars, from: i + 1, marker: c, escaped: escaped) {
                     closeRun()
                     style.italic = true
                     markers.append((at: i, length: 1, mark: .italic))
@@ -188,7 +249,8 @@ enum RichText {
             i += 1
         }
         closeRun()
-        return Scan(parsed: Parsed(plain: plain, runs: runs), rawAt: rawAt, styles: styles, markers: markers)
+        return Scan(parsed: Parsed(plain: plain, runs: runs), rawAt: rawAt, styles: styles, markers: markers,
+                    escapes: escapes)
     }
 
     /// The text with only its first `count` characters showing — counted as
@@ -248,11 +310,12 @@ enum RichText {
     }
 
     /// Whether a single marker later in the text can close an italic run:
-    /// preceded by a non-space and not splitting a word.
-    private static func closingItalic(in chars: [Character], from start: Int, marker: Character) -> Bool {
+    /// preceded by a non-space and not splitting a word, and not escaped.
+    private static func closingItalic(in chars: [Character], from start: Int, marker: Character,
+                                      escaped: Set<Int>) -> Bool {
         var j = start
         while j < chars.count {
-            if chars[j] == marker, j > start {
+            if chars[j] == marker, j > start, !escaped.contains(j) {
                 let before = chars[j - 1], after = j + 1 < chars.count ? chars[j + 1] : nil
                 let isWord = { (c: Character?) in c.map { $0.isLetter || $0.isNumber } ?? false }
                 if before != " " && !(isWord(before) && isWord(after)) { return true }
@@ -373,7 +436,7 @@ enum RichText {
             while a <= b, plain[a].isWhitespace { a += 1 }
             while b >= a, plain[b].isWhitespace { b -= 1 }
             if a <= b {
-                opens.insert(before.rawAt[a])
+                opens.insert(before.lead(before.rawAt[a]))
                 closes.insert(before.rawAt[b])
             }
             k = end + 1
@@ -416,7 +479,7 @@ enum RichText {
         let at = characterBounds(NSRange(location: offset, length: 1), in: oldChars).lowerBound
         let ahead = a.rawAt.filter { $0 < at }.count
         guard ahead < b.rawAt.count else { return new.utf16.count }
-        return String(newChars[0..<b.rawAt[ahead]]).utf16.count
+        return String(newChars[0..<b.lead(b.rawAt[ahead])]).utf16.count
     }
 
     /// The characters of `chars` that UTF-16 range `range` touches, as
@@ -605,13 +668,23 @@ enum RichText {
     /// character, inside its style. "**Sale** today": 0 is 2, 4 is 6 (inside
     /// the bold) and 5 is 9.
     static func rawCaret(_ offset: Int, in text: String) -> Int {
-        rawCaret(offset, units: typedUnits(text), length: (text as NSString).length)
+        rawCaret(offset, units: typedUnits(text), stored: text as NSString)
     }
 
-    private static func rawCaret(_ offset: Int, units: [Int], length: Int) -> Int {
-        guard let first = units.first else { return length }
-        guard offset > 0 else { return first }
+    private static func rawCaret(_ offset: Int, units: [Int], stored: NSString) -> Int {
+        guard !units.isEmpty else { return stored.length }
+        guard offset > 0 else { return lead(0, units: units, stored: stored) }
         return units[min(offset, units.count) - 1] + 1
+    }
+
+    /// Where the stored form of plain unit `k` begins, as a UTF-16 offset:
+    /// the unit itself, or the backslash just before it when it is an
+    /// escaped character (\*) — the only hidden backslash there is — so
+    /// nothing is ever put between the two.
+    private static func lead(_ k: Int, units: [Int], stored: NSString) -> Int {
+        let u = units[k]
+        guard u > 0, k == 0 || units[k - 1] != u - 1, stored.character(at: u - 1) == 0x5C else { return u }
+        return u - 1
     }
 
     /// How many UTF-16 units of the words as they read are stored before
@@ -637,17 +710,17 @@ enum RichText {
     /// between them and the words beside them are taken in: "Big sale" in
     /// "**Big** sale" is 0..12. Find's matches are placed by this rule.
     static func storedRange(of range: NSRange, in text: String) -> NSRange {
-        storedRange(of: range, units: typedUnits(text), length: (text as NSString).length)
+        storedRange(of: range, units: typedUnits(text), stored: text as NSString)
     }
 
     /// storedRange, from `text`'s typedUnits and stored length already
     /// worked out — for many ranges of the same words, each in one step
     /// rather than a fresh pass over all of them.
-    static func storedRange(of range: NSRange, units: [Int], length: Int) -> NSRange {
+    static func storedRange(of range: NSRange, units: [Int], stored: NSString) -> NSRange {
         let lo = min(max(range.location, 0), units.count)
         let hi = min(max(NSMaxRange(range), lo), units.count)
         let start = lo == 0 ? 0 : units[lo - 1] + 1
-        let end = hi == units.count ? length : units[hi]
+        let end = hi == units.count ? stored.length : lead(hi, units: units, stored: stored)
         return NSRange(location: start, length: max(0, end - start))
     }
 
@@ -660,7 +733,7 @@ enum RichText {
     static func snapped(_ selection: NSRange, in text: String, was: NSRange?) -> NSRange {
         let scan = parseMapped(text)
         let units = Self.units(of: scan, in: text)
-        let length = (text as NSString).length
+        let stored = text as NSString
         let lo = plainCaret(selection.location, units: units)
         let hi = plainCaret(NSMaxRange(selection), units: units)
         guard hi > lo else {
@@ -669,9 +742,9 @@ enum RichText {
                plainCaret(was.location, units: units) == lo, lo < units.count {
                 at = NSMaxRange((scan.parsed.plain as NSString).rangeOfComposedCharacterSequence(at: lo))
             }
-            return NSRange(location: rawCaret(at, units: units, length: length), length: 0)
+            return NSRange(location: rawCaret(at, units: units, stored: stored), length: 0)
         }
-        let start = units[lo], end = units[hi - 1] + 1
+        let start = lead(lo, units: units, stored: stored), end = units[hi - 1] + 1
         return NSRange(location: start, length: end - start)
     }
 
@@ -719,7 +792,7 @@ enum RichText {
         if typed.isEmpty, range.length > 0, plainCaret(NSMaxRange(range), units: units) == lo {
             // Only markers in the way: the character before them goes.
             guard lo > 0 else {
-                return Typed(text: text, caret: rawCaret(0, units: units, length: (text as NSString).length))
+                return Typed(text: text, caret: rawCaret(0, units: units, stored: text as NSString))
             }
             let before = shown.rangeOfComposedCharacterSequence(at: lo - 1)
             lo = before.location
@@ -741,12 +814,13 @@ enum RichText {
         }
         guard let out = replacing(NSRange(location: start, length: hi - start), in: text,
                                   with: words, style: style) else {
-            let plainly = (text as NSString).replacingCharacters(in: range, with: typed)
-            return Typed(text: plainly, caret: range.location + (typed as NSString).length)
+            let literal = escapeLiteral(typed)
+            let plainly = (text as NSString).replacingCharacters(in: range, with: literal)
+            return Typed(text: plainly, caret: range.location + (literal as NSString).length)
         }
         let after = parseMapped(out)
         let caretAt = start + (words as NSString).length
-        let caret = rawCaret(caretAt, units: Self.units(of: after, in: out), length: (out as NSString).length)
+        let caret = rawCaret(caretAt, units: Self.units(of: after, in: out), stored: out as NSString)
         // Spaces typed after styled words that could not take the style:
         // the style waits for the next word, the spaces with it.
         var carried: Pending?
@@ -791,7 +865,7 @@ enum RichText {
             b += 1
         }
         let start = a == 0 ? 0 : scan.rawAt[a - 1] + 1
-        let end = b == plain.count ? chars.count : scan.rawAt[b]
+        let end = b == plain.count ? chars.count : scan.lead(scan.rawAt[b])
         let open = a == 0 ? Style() : scan.styles[a - 1]
         let close = b == plain.count ? Style() : scan.styles[b]
         let words = lead + replacement + trail
@@ -803,7 +877,7 @@ enum RichText {
         styles += words.map { $0.isWhitespace ? nil : style }
         styles += plain[b...].indices.map { Optional(scan.styles[$0]) }
         for italic in ["*", "_"] {
-            let middle = wrapped(words, from: open, as: style, to: close, italic: italic)
+            let middle = wrapped(escapeLiteral(words), from: open, as: style, to: close, italic: italic)
             let candidate = head + middle + tail
             let back = parseMapped(candidate)
             guard String(back.parsed.plain) == meant, back.styles.count == styles.count else { continue }
@@ -853,6 +927,94 @@ enum RichText {
         if to.bold && !from.bold { out += "**" }
         if to.italic && !from.italic { out += italic }
         return out
+    }
+
+    // MARK: words copied and pasted
+
+    /// `plain` — words as they read — written so that each character is in
+    /// `styles`' style for it (one a character): each stretch of one style
+    /// on a line wrapped in its own markers, hard against its letters, the
+    /// spaces at its ends outside, and every '*', '_', '~' and backslash of
+    /// the words escaped. Read back, it must give the same words in the
+    /// same styles; when neither italic marker can say it, the words are
+    /// written plain. What a copy puts on the clipboard, and what a paste
+    /// writes the box again as when the copied words cannot simply go in.
+    static func written(_ plain: String, styles: [Style]) -> String {
+        let chars = Array(plain)
+        guard styles.count == chars.count, !styles.allSatisfy(\.isPlain) else { return escapeLiteral(plain) }
+        func escaped(_ part: ArraySlice<Character>) -> String { escapeLiteral(String(part)) }
+        for italic in ["*", "_"] {
+            var out = ""
+            var k = 0
+            while k < chars.count {
+                let style = styles[k]
+                if style.isPlain || chars[k].isNewline {
+                    out += escaped(chars[k...k])
+                    k += 1
+                    continue
+                }
+                var e = k
+                while e < chars.count, styles[e] == style, !chars[e].isNewline { e += 1 }
+                var a = k, b = e
+                while a < b, chars[a].isWhitespace { a += 1 }
+                while b > a, chars[b - 1].isWhitespace { b -= 1 }
+                out += escaped(chars[k..<a])
+                if a < b {
+                    out += openers(style, after: Style(), italic) + escaped(chars[a..<b])
+                        + closers(style, leaving: Style(), italic)
+                }
+                out += escaped(chars[b..<e])
+                k = e
+            }
+            if reads(out, as: chars, styles: styles) { return out }
+        }
+        return escapeLiteral(plain)
+    }
+
+    /// Whether `text` reads as `chars`, each but the spaces in its style.
+    private static func reads(_ text: String, as chars: [Character], styles: [Style]) -> Bool {
+        let back = parseMapped(text)
+        guard Array(back.parsed.plain) == chars, back.styles.count == styles.count else { return false }
+        return chars.indices.allSatisfy { chars[$0].isWhitespace || back.styles[$0] == styles[$0] }
+    }
+
+    /// Words `from..<to` — UTF-16 offsets of the words as they read — of
+    /// `text` as they are stored on their own: their styles written again
+    /// so every one opens and closes inside them (written). "**Big** sale"
+    /// from 0 to 3 is "**Big**".
+    static func sliced(_ text: String, from: Int, to: Int) -> String {
+        let scan = parseMapped(text)
+        let plain = Array(scan.parsed.plain)
+        let a = characterIndex(max(0, from), in: plain, up: false)
+        let b = max(a, characterIndex(to, in: plain, up: true))
+        return written(String(plain[a..<b]), styles: Array(scan.styles[a..<b]))
+    }
+
+    /// `text` with the words in `range` — UTF-16, of the words as they
+    /// read — replaced by `marked`, words with their own markers (a copy's):
+    /// the words before and after in their own styles and the new ones in
+    /// theirs. Put in as they are where that reads so; otherwise the whole
+    /// box written again (written), reading the same.
+    static func splicing(_ marked: String, over range: NSRange, in text: String) -> String {
+        let scan = parseMapped(text)
+        let chars = Array(text)
+        let plain = Array(scan.parsed.plain)
+        let a = characterIndex(max(0, range.location), in: plain, up: false)
+        let b = max(a, characterIndex(NSMaxRange(range), in: plain, up: true))
+        let clip = parseMapped(marked)
+        let meant = Array(plain[..<a]) + Array(clip.parsed.plain) + Array(plain[b...])
+        let styles = Array(scan.styles[..<a]) + clip.styles + Array(scan.styles[b...])
+        let start = a == 0 ? 0 : scan.rawAt[a - 1] + 1
+        let end = b == plain.count ? chars.count : scan.lead(scan.rawAt[b])
+        // Put in after the markers between the words either side, before
+        // them, or in their place; a choice replaced takes its markers with it.
+        var candidates = [String(chars[..<start]) + marked + String(chars[end...])]
+        if a == b {
+            candidates = [String(chars[..<end]) + marked + String(chars[end...]),
+                          String(chars[..<start]) + marked + String(chars[start...])] + candidates
+        }
+        if let fits = candidates.first(where: { reads($0, as: meant, styles: styles) }) { return fits }
+        return written(String(meant), styles: styles)
     }
 
     /// The character of `chars` that UTF-16 offset `offset` falls at: the

@@ -99,7 +99,12 @@ enum ElementClipboard {
         }
         if pasteboard.hasStrings, let text = pasteboard.string?.trimmingCharacters(in: .whitespacesAndNewlines),
            !text.isEmpty {
-            var el = Element.text(text, fontSize: max(18, (designWidth / 24).rounded()), w: (designWidth * 0.6).rounded())
+            // Read as written, its stars stars, and its bulleted or numbered
+            // lines a list (TextLists.fromPasted).
+            let pasted = TextLists.fromPasted(text)
+            var el = Element.text(RichText.escapeLiteral(pasted.text), fontSize: max(18, (designWidth / 24).rounded()),
+                                  w: (designWidth * 0.6).rounded())
+            if pasted.paragraphs.contains(where: \.isListed) { el.setLines(pasted.paragraphs) }
             el.h = FontLibrary.layoutHeight(for: el)
             return el
         }

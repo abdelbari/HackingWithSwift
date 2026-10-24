@@ -29,6 +29,86 @@ enum DataGraphics {
         }
     }
 
+    // MARK: labels changed in place
+
+    /// The chart parts whose words are the data's own: an item's label and
+    /// the legend. Find and replace and a spelling fix change the data with
+    /// them, so the chart's next Update keeps the new words.
+    static let labelParts: Set<String> = ["label", "legend"]
+
+    /// `data` with every item labelled `old` — a line's first cell, before
+    /// its first comma, that reads `old` once trimmed, the header's aside —
+    /// labelled `new`: only that cell written again, its spaces before
+    /// kept, every other line as typed. `data` as it was when `new` would
+    /// not read back as one cell (a comma or a line break in it) or no item
+    /// has that label. The Android twin's DataGraphics.withRows, rule for
+    /// rule.
+    static func withRows(_ data: String, renaming old: String, to new: String) -> String {
+        guard fitsACell(new), old != new else { return data }
+        let lines = data.components(separatedBy: "\n")
+        let header = headerLine(lines)
+        var changed = false
+        let out = lines.enumerated().map { n, line -> String in
+            guard n != header, let comma = line.firstIndex(of: ","),
+                  line[..<comma].trimmingCharacters(in: .whitespaces) == old else { return line }
+            changed = true
+            return String(line.prefix { $0 == " " || $0 == "\t" }) + new + String(line[comma...])
+        }
+        return changed ? out.joined(separator: "\n") : data
+    }
+
+    /// `data` with every series named `old` named `new`: a cell of its
+    /// header after the first that reads `old` once trimmed — of a
+    /// scatter's, a y cell, which names its series — its spaces before
+    /// kept. `data` as it was as withRows leaves it.
+    static func withNames(_ data: String, scatter: Bool = false, renaming old: String, to new: String) -> String {
+        guard fitsACell(new), old != new else { return data }
+        var lines = data.components(separatedBy: "\n")
+        guard let header = headerLine(lines) else { return data }
+        var cells = lines[header].components(separatedBy: ",")
+        var changed = false
+        for i in cells.indices where i > 0 && (!scatter || i % 2 == 0)
+            && cells[i].trimmingCharacters(in: .whitespaces) == old {
+            cells[i] = String(cells[i].prefix { $0 == " " || $0 == "\t" }) + new
+            changed = true
+        }
+        guard changed else { return data }
+        lines[header] = cells.joined(separator: ",")
+        return lines.joined(separator: "\n")
+    }
+
+    /// Whether `text` reads back as one cell: words, and no comma or line
+    /// break.
+    private static func fitsACell(_ text: String) -> Bool {
+        !text.trimmingCharacters(in: .whitespaces).isEmpty && !text.contains { $0 == "," || $0.isNewline }
+    }
+
+    /// Which of `lines` is a chart's header, as parseChart and parseScatter
+    /// read one; nil for none.
+    private static func headerLine(_ lines: [String]) -> Int? {
+        let all = lines.map(withoutTrailingCommas)
+        guard let first = all.firstIndex(where: { !$0.isEmpty }), headerCells(all[first]) != nil else { return nil }
+        return first
+    }
+
+    /// `page` with the chart `after` belongs to drawing `after`'s words
+    /// from now on, when `after` is that chart's label or legend whose
+    /// words changed from `before`'s: a label's row (withRows), a legend's
+    /// series (withNames), in the spec every element of the chart carries.
+    /// The rule both phones share (the Android twin's labelEdited).
+    static func keepingLabel(_ page: inout Page, was before: Element, now after: Element) {
+        guard let spec = after.chart, let part = after.chartPart, labelParts.contains(part) else { return }
+        let old = RichText.strip(before.text ?? "").trimmingCharacters(in: .whitespaces)
+        let new = RichText.strip(after.text ?? "").trimmingCharacters(in: .whitespaces)
+        guard old != new, !old.isEmpty else { return }
+        let data = part == "label" ? withRows(spec.data, renaming: old, to: new)
+            : withNames(spec.data, scatter: spec.kind == ChartKind.scatter.rawValue, renaming: old, to: new)
+        guard data != spec.data else { return }
+        for i in page.elements.indices where page.elements[i].chart?.id == spec.id {
+            page.elements[i].chart?.data = data
+        }
+    }
+
     /// The first series of `parseChart`, item by item: "Label, value" per
     /// line; a line with no number is skipped, a line with only a number
     /// gets a numbered label.
@@ -391,7 +471,8 @@ enum DataGraphics {
         }
         func label(_ text: String, x: Double, y: Double, w: Double, align: String = "center",
                    part name: String = "label") -> Element {
-            var t = Element.text(text, fontSize: labelSize, w: max(w, labelSize * 2))
+            // A label reads as its data has it: its stars are stars.
+            var t = Element.text(RichText.escapeLiteral(text), fontSize: labelSize, w: max(w, labelSize * 2))
             t.align = align
             t.color = ink
             t.fontFamily = font
@@ -1026,7 +1107,7 @@ enum DataGraphics {
             var texts: [Element] = []
             for c in 0..<columns {
                 let cellText = c < row.count ? row[c] : ""
-                var t = Element.text(cellText, fontSize: size, w: max(widths[c] - 2 * pad, size))
+                var t = Element.text(RichText.escapeLiteral(cellText), fontSize: size, w: max(widths[c] - 2 * pad, size))
                 t.align = "left"
                 t.fontWeight = r == 0 ? 700 : 400
                 t.color = r == 0 ? ColorTheory.readableInk(on: accent) : ink

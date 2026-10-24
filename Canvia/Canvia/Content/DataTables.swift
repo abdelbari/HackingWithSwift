@@ -315,7 +315,7 @@ extension DataGraphics {
             guard cell.row == merged.row && cell.col == merged.col else { return nil }
             var kept = el
             kept.table = merged
-            if el.type == .text && words(el) != joined { kept.setText(joined) }
+            if el.type == .text && words(el) != joined { kept.setText(RichText.escapeLiteral(joined)) }
             if el.type == .shape {
                 kept.x = Double(box.minX)
                 kept.y = Double(box.minY)
@@ -754,8 +754,9 @@ extension DataGraphics {
                   let r = rowAt[cell.row], r < rows.count, colAt[cell.col] != nil else { return el }
             let words = cellWords(rows, cell, rowAt: rowAt, colAt: colAt)
             if plainWords(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == words { return el }
+            // The grid's words as they read, their stars literal.
             var set = el
-            set.setText(words)
+            set.setText(RichText.escapeLiteral(words))
             return set
         }
         return relaidTable(restriped(out, id: id), id: id, heightFor: heightFor)
