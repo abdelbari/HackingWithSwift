@@ -94,8 +94,10 @@ enum PageTransitions {
     }
 
     /// How long Present takes over `kind`: the page's own length, else a
-    /// quarter of a second for a fade and half a second for the rest.
+    /// quarter of a second for a fade and half a second for the rest; a cut
+    /// takes none, whatever the page says.
     static func presentSeconds(_ kind: String, own: Double?) -> Double {
+        if kind == "cut" { return 0 }
         if let own = seconds(own) { return own }
         return kind == "fade" ? 0.25 : 0.5
     }

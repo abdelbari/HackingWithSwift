@@ -76,6 +76,22 @@ final class SlidesExportTests: XCTestCase {
         XCTAssertTrue(HTMLExporter.zipped(d, pages: d.visiblePageIndices, settings: try settings()))
     }
 
+    /// Shared: a cut takes no time in the slide player, whatever length the
+    /// page has of its own.
+    @MainActor
+    func testACutSlideTakesNoTime() throws {
+        var design = try XCTUnwrap(fixture()["design"] as? [String: Any])
+        var pages = try XCTUnwrap(design["pages"] as? [[String: Any]])
+        pages[3]["transition"] = "cut"
+        pages[3]["transitionSeconds"] = 1.0
+        design["pages"] = pages
+        let cut = try JSONDecoder().decode(Design.self, from: SharedFixture.encoded(design))
+        let standIns = SVGExporter.StandIns(letters: { _ in "M0 0L1 1Z" }, picture: { _ in Data([1, 2, 3]) })
+        let html = HTMLExporter.slidePlayer(cut, pages: cut.visiblePageIndices, settings: try settings(),
+                                            clipFile: { _ in nil }, poster: nil, standIns: standIns)
+        XCTAssertTrue(html.contains("id=\"page-3\" aria-label=\"Dates\" data-t=\"cut\" data-s=\"0\">"))
+    }
+
     func testTheLayoutIsSuggestedByTheTypeAndTheSettingsKeepTheirKeys() throws {
         XCTAssertEqual(ExportSuggestion.htmlLayout(try deck()), HTMLExporter.slides)
         XCTAssertEqual(ExportSuggestion.htmlLayout(try XCTUnwrap(SizePreset.byId("presentation-4x3")).makeDesign()),

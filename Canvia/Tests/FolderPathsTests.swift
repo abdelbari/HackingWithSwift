@@ -84,6 +84,10 @@ final class FolderPathsTests: XCTestCase {
         XCTAssertEqual(DesignLibrary.renamePlan(shelf, from: "Clients/Acme", to: "Bolt")?.merges, true)
         XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Clients/Acme", to: "A/B"))
         XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Clients/Acme", to: "Acme"))
+        // A folder only uploads are filed in is a merge too.
+        XCTAssertEqual(DesignLibrary.renamePlan(shelf, from: "Clients/Acme", to: "Logos")?.merges, false)
+        XCTAssertEqual(DesignLibrary.renamePlan(shelf, from: "Clients/Acme", to: "Logos",
+                                                uploads: ["Clients/Logos"])?.merges, true)
     }
 
     /// Shared: moving a folder into another, cycles and depth refused.
@@ -134,5 +138,15 @@ final class FolderPathsTests: XCTestCase {
         // A folder renamed takes its uploads with it.
         let moved = Uploads.entries(of: Uploads.refiled(filed, from: "Clients", to: "Customers"))
         XCTAssertEqual(moved[0].folder, "Customers/Acme")
+    }
+
+    /// Shared: a font is never filed, and one with a folder written reads as
+    /// in none, so it never makes a folder on Home.
+    func testAFontIsNeverInAFolder() {
+        let font: [[String: Any]] = [["id": "abcdef012345", "kind": "font", "added": 1]]
+        XCTAssertNil(Uploads.filed(font, id: "abcdef012345", folder: "Brand")[0]["folder"])
+        let written: [[String: Any]] = [["id": "abcdef012345", "kind": "font", "added": 1, "folder": "Brand"]]
+        XCTAssertTrue(Uploads.entries(of: written).isEmpty)
+        XCTAssertEqual(Uploads.refiled(written, from: "Brand", to: "Logos")[0]["folder"] as? String, "Brand")
     }
 }

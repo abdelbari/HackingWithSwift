@@ -11,7 +11,8 @@
 // The file is a JSON array of {"id", "kind", "added"}: the id as the
 // media:, video: and audio sources name it, "image", "video" or "audio",
 // and when it came in, in epoch milliseconds — and, filed in a folder of
-// Home's, its "folder" (a path, as a design's: DesignLibrary.folderName).
+// Home's, its "folder" (a path, as a design's: DesignLibrary.folderName) —
+// a font never is, on either phone, so one is never filed or moved.
 // The Android twin keeps the same file in its filesDir. Keys this version
 // does not know are kept as they were.
 //
@@ -231,10 +232,11 @@ enum Uploads {
     static let folderKey = "folder"
 
     /// `raw` — the list as written — with upload `id` filed in `folder`: nil
-    /// takes it out of one; anything else it holds as it was.
+    /// takes it out of one; anything else it holds as it was. A font is left
+    /// as it was.
     static func filed(_ raw: [[String: Any]], id: String, folder: String?) -> [[String: Any]] {
         raw.map { item in
-            guard item["id"] as? String == id else { return item }
+            guard item["id"] as? String == id, item["kind"] as? String != fontKind else { return item }
             var out = item
             out[folderKey] = DesignLibrary.folderName(folder)
             return out
@@ -245,7 +247,8 @@ enum Uploads {
     /// upload in it, or in a folder inside it, to the same place there.
     static func refiled(_ raw: [[String: Any]], from: String, to: String?) -> [[String: Any]] {
         raw.map { item in
-            guard let folder = item[folderKey] as? String, DesignLibrary.isInside(folder, from) else { return item }
+            guard let folder = item[folderKey] as? String, DesignLibrary.isInside(folder, from),
+                  item["kind"] as? String != fontKind else { return item }
             var out = item
             out[folderKey] = DesignLibrary.movedFolder(folder, from: from, to: to)
             return out

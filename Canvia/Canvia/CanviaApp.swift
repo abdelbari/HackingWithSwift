@@ -10,6 +10,8 @@ struct CanviaApp: App {
     /// actions.
     @UIApplicationDelegateAdaptor(CanviaAppDelegate.self) private var appDelegate
     @State private var editingStore: DesignStore?
+    /// The main window, as DesignWindows knows it.
+    @State private var mainWindow = DesignWindows.Window()
     /// Why a design file handed to the app could not be opened.
     @State private var openError: String?
     /// A design file handed over, while it is being read in.
@@ -233,13 +235,15 @@ struct CanviaApp: App {
     }
 
     /// A Doc is edited as its blocks (DocEditorView), every other design
-    /// on its canvas.
-    @ViewBuilder
+    /// on its canvas — and one another window is editing on iPad is shown
+    /// read-only instead (DesignWindows).
     private func designEditor(_ store: DesignStore, onHome: @escaping () -> Void) -> some View {
-        if Docs.isDoc(store.design) {
-            DocEditorView(store: store, onHome: onHome)
-        } else {
-            EditorView(store: store, onHome: onHome)
+        WindowedDesign(designId: store.design.id, window: mainWindow, onClose: onHome) {
+            if Docs.isDoc(store.design) {
+                DocEditorView(store: store, onHome: onHome)
+            } else {
+                EditorView(store: store, onHome: onHome)
+            }
         }
     }
 

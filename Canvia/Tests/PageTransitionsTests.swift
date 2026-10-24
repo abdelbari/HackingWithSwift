@@ -150,6 +150,7 @@ final class PageTransitionsTests: XCTestCase {
         for kind in ["push", "wipe", "circle", "zoom"] {
             XCTAssertEqual(PageTransitions.presentSeconds(kind, own: nil), 0.5, kind)
         }
+        XCTAssertEqual(PageTransitions.presentSeconds("cut", own: 1.0), 0)
         XCTAssertEqual(PageTransitions.presentSeconds("fade", own: 1.0), 1.0)
         XCTAssertEqual(PageTransitions.presentSeconds("push", own: 5), 2.0, "kept to the range")
     }

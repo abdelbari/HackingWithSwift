@@ -340,7 +340,8 @@ struct InsertSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             // Your own first, every size, fitted to this page.
             EditorYourTemplates(store: store, search: search) { dismiss() }
-            if search.isEmpty { recentTemplatesRow }
+            // "Recently used" leads Home's templates and the Start sheet
+            // only, on both phones; a template used here still counts there.
             if !exactTemplates.isEmpty {
                 Toggle("Every size, fitted to this page", isOn: $everySizeTemplates)
                     .toggleStyle(.button)
@@ -374,25 +375,6 @@ struct InsertSheet: View {
                 // One page: onto this page, or as a new page when this one has
                 // something on it, as a tap did before the preview.
                 if page == nil && chosen.pageCount > 1 { applyAll(chosen) } else { usePage(chosen, page ?? 0) }
-            }
-        }
-    }
-
-    /// "Recently used": the templates used lately, newest first, as Home's
-    /// and the Start sheet's lead theirs (RecentSearches).
-    @ViewBuilder
-    private var recentTemplatesRow: some View {
-        let recent = RecentSearches.templates(RecentSearches.usedTemplates())
-        if !recent.isEmpty {
-            Text("Recently used")
-                .font(.subheadline.weight(.semibold))
-                .accessibilityAddTraits(.isHeader)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
-                    ForEach(recent) { template in
-                        templateTile(template).frame(width: 120)
-                    }
-                }
             }
         }
     }
