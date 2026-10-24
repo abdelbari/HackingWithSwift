@@ -43,6 +43,8 @@ enum EditorSheet: String, Identifiable {
     case photoInLetters
     /// More like this, for a selected icon, sticker, graphic or shape.
     case similar
+    /// A line's ends: Start, End and their size (LineEnds).
+    case lineEnds
     /// The typing bar's highlighter: marker colours for the words chosen.
     case highlightWords
     /// More's "Bulk create…": a page, or a design, for each row of a table.
@@ -1522,6 +1524,7 @@ struct EditorView: View {
                              currentPaint: store.singleSelection?.fill,
                              onPick: { c in store.updateSelected { $0 = Freehand.coloured($0, c) } },
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
+                             onPickGradientTransient: { p in store.updateSelectedTransient { $0.fill = p } },
                              onPickTransient: { c in store.updateSelectedTransient { $0 = Freehand.coloured($0, c) } },
                              swapsColours: true)
         case .colorText:
@@ -1538,6 +1541,7 @@ struct EditorView: View {
                              currentPaint: store.sharedText { $0.textFill } ?? nil,
                              onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
+                             onPickGradientTransient: { p in store.updateSelectedTransient { $0.textFill = p } },
                              onPickTransient: { c in
                                  store.updateSelectedTransient { $0.color = c; $0.textFill = nil }
                              },
@@ -1624,6 +1628,8 @@ struct EditorView: View {
             SimilarSheet(store: store)
         case .shadow:
             ShadowSheet(store: store)
+        case .lineEnds:
+            LineEndsSheet(store: store)
         case .clip:
             ClipSheet(store: store)
         case .shapeText:

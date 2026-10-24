@@ -19,7 +19,18 @@
 // (GridSplits), the lattice lines moved from the layout's own even ones,
 // written only when they differ from those. The Android twin's PhotoGrids,
 // rule for rule (PhotoGridLayoutTests).
+//
+// A layout whose cells are cut — diagonal splits, a row of circles — has a
+// `clip` in the file: a polygon a cell in its own unit square, or null for
+// the whole cell. Its cells may overlap or leave gaps, and it has no
+// dividers to drag. A cut cell's cut is read from its grid key — its
+// layout and cell — and never written, as on the Android twin: a cell with
+// a frame of its own (a maskShapeId) is clipped to that instead
+// (`clip(of:)`, ContentLibrary.frameShape(of:)), so every renderer and
+// export cuts it, and a touch finds the cell whose cut is under the finger
+// (Geometry.hits).
 
+import CoreGraphics
 import Foundation
 
 /// Where a grid's lattice lines stand, as shares of the grid's width (`x`,
@@ -44,6 +55,12 @@ enum PhotoGrids {
         var columns: Int = 1
         var rows: Int = 1
         var lattice: [[Int]] = []
+        /// Each cell's cut, in its own unit square, or nil for the whole
+        /// cell; empty for a layout with none.
+        var clips: [[CGPoint]?] = []
+
+        /// Whether any cell is cut.
+        var isCut: Bool { clips.contains { $0 != nil } }
     }
 
     /// Spacing's track, in page units.
@@ -64,15 +81,17 @@ enum PhotoGrids {
         var columns: Int
         var rows: Int
         var cells: [[Int]]
+        var clip: [[[Double]]?]?
     }
 
     /// PhotoFrames.json: the grids here, the frames in DecorativeFrames,
-    /// the letter and number frames in GlyphFrames (a file without them,
-    /// from an earlier build, has none).
+    /// the letter and number frames in GlyphFrames and the mask frames in
+    /// MaskFrames (a file without them, from an earlier build, has none).
     struct File: Decodable {
         fileprivate var photoGrids: [GridDef]
         var photoFrames: [FrameDef]
         var glyphFrames: [GlyphFrameDef]?
+        var photoMasks: [MaskFrameDef]?
     }
 
     /// Read once, on first use.
@@ -81,7 +100,7 @@ enum PhotoGrids {
               let data = try? Data(contentsOf: url),
               let decoded = try? JSONDecoder().decode(File.self, from: data) else {
             assertionFailure("PhotoFrames.json missing or invalid")
-            return File(photoGrids: [], photoFrames: [], glyphFrames: nil)
+            return File(photoGrids: [], photoFrames: [], glyphFrames: nil, photoMasks: nil)
         }
         return decoded
     }()
@@ -97,8 +116,49 @@ enum PhotoGrids {
             return CGRect(x: Double(n[0]) / cols, y: Double(n[1]) / rows,
                           width: Double(n[2]) / cols, height: Double(n[3]) / rows)
         }
+        // A cut a cell, each a polygon of three points or more; a list of
+        // the wrong length is no cut at all.
+        var clips: [[CGPoint]?] = []
+        if let clip = entry.clip, clip.count == cells.count {
+            clips = clip.map { polygon -> [CGPoint]? in
+                guard let polygon else { return nil }
+                let points = polygon.compactMap { $0.count == 2 ? CGPoint(x: $0[0], y: $0[1]) : nil }
+                return points.count >= 3 ? points : nil
+            }
+        }
         return Layout(id: entry.id, name: entry.name, cells: cells, columns: entry.columns, rows: entry.rows,
-                      lattice: entry.cells.filter { $0.count == 4 })
+                      lattice: entry.cells.filter { $0.count == 4 }, clips: clips)
+    }
+
+    // MARK: cut cells
+
+    /// The cut of grid cell `el`, from its grid key's layout and cell, in
+    /// its own unit square; nil for a photo that is not a cut cell, or one
+    /// with a frame of its own (a maskShapeId), which wins.
+    static func clip(of el: Element) -> [CGPoint]? {
+        guard el.type == .image, el.maskShapeId == nil, let grid = el.grid, let cut = layout(grid.layout),
+              cut.clips.indices.contains(grid.cell) else { return nil }
+        return cut.clips[grid.cell]
+    }
+
+    /// A cut cell's clip as a shape: its polygon in the 0…100 box, id
+    /// "grid:<layout>:<cell>" as the Android twin names it.
+    static func clipShape(of el: Element) -> ShapeDef? {
+        guard let points = clip(of: el), let first = points.first, let grid = el.grid else { return nil }
+        func at(_ p: CGPoint) -> String { "\(SVGExporter.num(Double(p.x) * 100)) \(SVGExporter.num(Double(p.y) * 100))" }
+        let d = "M" + at(first) + points.dropFirst().map { "L" + at($0) }.joined() + "Z"
+        return ShapeDef(id: "grid:\(grid.layout):\(grid.cell)", name: "Cell", category: "Frames", path: d,
+                        rectLike: false, englishName: "cell")
+    }
+
+    /// Whether `point`, as a share of cell `el`'s box (0…1 across and
+    /// down), is inside its cut; true for a photo that is not a cut cell.
+    static func clipContains(_ el: Element, _ point: CGPoint) -> Bool {
+        guard let points = clip(of: el) else { return true }
+        let path = CGMutablePath()
+        path.addLines(between: points)
+        path.closeSubpath()
+        return path.contains(point)
     }
 
     static func layout(_ id: String?) -> Layout? {
@@ -209,7 +269,8 @@ enum PhotoGrids {
     /// lattice line no cell spans across.
     static func dividers(_ layout: Layout, splits: GridSplits?) -> [GridDivider] {
         let lines = splits ?? ownSplits(layout)
-        guard !layout.lattice.isEmpty else { return [] }
+        // A cut layout's cells are not split by its lattice lines.
+        guard !layout.lattice.isEmpty, !layout.isCut else { return [] }
         var out: [GridDivider] = []
         for (i, at) in lines.x.enumerated() {
             let line = i + 1

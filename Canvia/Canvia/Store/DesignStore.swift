@@ -2335,6 +2335,7 @@ final class DesignStore {
         var dash: String?
         var startCap: String?
         var endCap: String?
+        var capScale: Double? = nil
     }
 
     private(set) var copiedStyle: Style?
@@ -2356,7 +2357,7 @@ final class DesignStore {
                           adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
                           filterStrength: el.filterStrength, opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
                           thickness: el.thickness, dash: el.dash,
-                          startCap: el.startCap, endCap: el.endCap)
+                          startCap: el.startCap, endCap: el.endCap, capScale: el.capScale)
         // A box with its own paragraphs gives its style the list and indent
         // of its first listed line (its first, with none listed) as the
         // box-wide keys, so a heading-and-bullets look pastes as bullets.
@@ -2428,6 +2429,7 @@ final class DesignStore {
             el.dash = style.dash
             el.startCap = style.startCap
             el.endCap = style.endCap
+            el.capScale = style.capScale
             // An elbow's or a curve's box is its ends padded by its weight:
             // laid round the same ends again.
             el = LineRoutes.withThickness(el, style.thickness)

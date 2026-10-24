@@ -13,7 +13,7 @@
 //
 // - Elbow: start, (corner x, y1), (corner x, y2), end.
 // - Curve: a quadratic through the bend point, halfway along.
-// - Arrowheads point along the first and the last segment.
+// - Heads (LineEnds) point along the first and the last segment.
 //
 // An end dragged (endDragged) moves anywhere, the other end holding still:
 // its angle from the other end snaps to a multiple of 15 degrees within 3,
@@ -282,32 +282,10 @@ enum LineRoutes {
         return points
     }
 
-    /// An arrowhead `size` long with its tip at `tip`, pointing `angle`: the
-    /// tip, then its two back corners, each 0.6 of `size` aside.
-    static func arrowhead(tip: CGPoint, angle: Double, size: Double) -> [CGPoint] {
-        let c = cos(angle), s = sin(angle)
-        func at(_ along: Double, _ across: Double) -> CGPoint {
-            CGPoint(x: Double(tip.x) + along * c - across * s, y: Double(tip.y) + along * s + across * c)
-        }
-        return [tip, at(-size, -size * 0.6), at(-size, size * 0.6)]
-    }
-
-    /// A dot's centre for an end at `tip` pointing `angle`: one thickness
-    /// `t` in from it, as a straight line's dot sits.
-    static func dotCentre(tip: CGPoint, angle: Double, t: Double) -> CGPoint {
-        CGPoint(x: Double(tip.x) - cos(angle) * t, y: Double(tip.y) - sin(angle) * t)
-    }
-
-    /// An arrowhead's length for a line `t` thick, as every line draws it.
-    static func arrowSize(_ t: Double) -> Double { max(t * 3, 10) }
-
-    /// A dot's radius at a line's end, for a line `t` thick.
-    static func dotRadius(_ t: Double) -> Double { max(t * 1.4, 5) }
-
-    /// How far the stroke stops short of an end with an arrowhead (`cap`):
-    /// 0.9 of the head, so the head's point is the end.
+    /// How far the stroke stops short of an end with `cap` (LineEnds.back),
+    /// so its head, not the line, is what shows there.
     static func strokeBack(_ el: Element, cap: String?) -> Double {
-        cap == "arrow" ? arrowSize(max(el.thickness ?? 4, 0.5)) * 0.9 : 0
+        LineEnds.back(LineEnds.kind(cap), thickness: max(el.thickness ?? 4, 0.5), scale: LineEnds.scale(of: el))
     }
 
     // MARK: dragging an end

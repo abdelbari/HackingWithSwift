@@ -1,0 +1,14 @@
+[
+{"bpm":128,"genre":"pop","id":"sunny-side","mood":"upbeat","name":"Sunny Side","seconds":15.0,"tags":["bright","summer","energetic","positive"]},
+{"bpm":124,"genre":"electronic","id":"city-lights","mood":"upbeat","name":"City Lights","seconds":15.484,"tags":["dance","night","club","synth"]},
+{"bpm":140,"genre":"ukulele","id":"little-wins","mood":"happy","name":"Little Wins","seconds":13.714,"tags":["cheerful","kids","playful","sunny"]},
+{"bpm":150,"genre":"pop","id":"balloon-ride","mood":"happy","name":"Balloon Ride","seconds":12.8,"tags":["fun","birthday","party","bouncy"]},
+{"bpm":120,"genre":"ambient","id":"still-water","mood":"calm","name":"Still Water","seconds":16.0,"tags":["peaceful","meditation","relax","soft"]},
+{"bpm":120,"genre":"piano","id":"soft-focus","mood":"calm","name":"Soft Focus","seconds":16.0,"tags":["gentle","reflective","quiet","keys"]},
+{"bpm":120,"genre":"lo-fi","id":"slow-sunday","mood":"chill","name":"Slow Sunday","seconds":16.0,"tags":["study","cozy","beats","relax"]},
+{"bpm":124,"genre":"synthwave","id":"night-drive","mood":"chill","name":"Night Drive","seconds":15.484,"tags":["retro","eighties","road","neon"]},
+{"bpm":120,"genre":"cinematic","id":"rising-storm","mood":"dramatic","name":"Rising Storm","seconds":16.0,"tags":["epic","trailer","tension","action"]},
+{"bpm":132,"genre":"orchestral","id":"final-hour","mood":"dramatic","name":"Final Hour","seconds":14.545,"tags":["dark","suspense","trailer","strings"]},
+{"bpm":124,"genre":"corporate","id":"forward-motion","mood":"corporate","name":"Forward Motion","seconds":15.484,"tags":["business","presentation","inspiring","technology"]},
+{"bpm":120,"genre":"acoustic","id":"big-idea","mood":"corporate","name":"Big Idea","seconds":16.0,"tags":["startup","explainer","optimistic","clean"]}
+]

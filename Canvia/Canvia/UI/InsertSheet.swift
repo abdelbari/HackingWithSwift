@@ -54,6 +54,8 @@ struct InsertSheet: View {
     /// How far up the sheet is: down to its peek while a tile is carried
     /// out of it onto the canvas (LibraryDrag).
     @State private var detent: PresentationDetent = .medium
+    /// The mask frames' category chip chosen; nil is all of them.
+    @State private var maskCategory: String?
 
     /// The sheet's height while a tile is carried out of it.
     private static let peek = PresentationDetent.height(120)
@@ -1271,14 +1273,26 @@ struct InsertSheet: View {
 
     static func layoutThumb(_ layout: PhotoGrids.Layout) -> some View {
         Canvas { context, size in
-            for cell in layout.cells {
+            for (index, cell) in layout.cells.enumerated() {
                 let r = CGRect(x: cell.minX * size.width + 1.5, y: cell.minY * size.height + 1.5,
                                width: cell.width * size.width - 3, height: cell.height * size.height - 3)
-                context.fill(Path(roundedRect: r, cornerRadius: 2), with: .color(Color(hex: "#9aa4b2")))
+                context.fill(cellPath(layout, index, in: r), with: .color(Color(hex: "#9aa4b2")))
             }
         }
         .frame(width: 64, height: 48)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray6)))
+    }
+
+    /// A cell of a layout's thumbnail: its cut when it has one, else its
+    /// box with its corners rounded.
+    private static func cellPath(_ layout: PhotoGrids.Layout, _ index: Int, in r: CGRect) -> Path {
+        guard layout.clips.indices.contains(index), let clip = layout.clips[index] else {
+            return Path(roundedRect: r, cornerRadius: 2)
+        }
+        var p = Path()
+        p.addLines(clip.map { CGPoint(x: r.minX + $0.x * r.width, y: r.minY + $0.y * r.height) })
+        p.closeSubpath()
+        return p
     }
 
     // MARK: decorative frames
@@ -1333,6 +1347,64 @@ struct InsertSheet: View {
                 }
             }
         }
+    }
+
+    /// Shaped frames (MaskFrames): brush strokes, torn paper, blobs, arches,
+    /// badges and tickets, by category chip and by the search above, each an
+    /// empty photo frame put in the middle of the page and selected.
+    private var maskFramesRow: some View {
+        let found = MaskFrames.filter(category: maskCategory, query: search)
+        return VStack(alignment: .leading, spacing: 6) {
+            sectionHeader(tr("Shaped frames"))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    maskChip(nil, tr("All"))
+                    ForEach(MaskFrames.categories, id: \.self) { maskChip($0, MaskFrames.categoryName($0)) }
+                }
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(found) { mask in maskTile(mask) }
+                }
+            }
+        }
+    }
+
+    private func maskChip(_ category: String?, _ name: String) -> some View {
+        let chosen = maskCategory == category
+        return Button { maskCategory = category } label: {
+            Text(name)
+                .font(.caption)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(chosen ? Theme.accentSubtle : Color(.systemGray6)))
+                .overlay(Capsule().stroke(chosen ? Theme.accent : Theme.hairline))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    private func maskTile(_ mask: MaskFrames.Mask) -> some View {
+        Button {
+            insertMaskFrame(mask)
+        } label: {
+            LibraryShape(definition: mask.shape, cornerRadius: 0)
+                .fill(Theme.inkSecondary)
+                .frame(width: 44, height: 44)
+                .frame(width: 56, height: 56)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray6)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tr("%@ frame", tr(mask.shape.name)))
+    }
+
+    /// On this page, as one step — on the next unlocked page when this one
+    /// is locked (DesignStore.add).
+    private func insertMaskFrame(_ mask: MaskFrames.Mask) {
+        let made = MaskFrames.element(mask, page: CGSize(width: store.pageWidth, height: store.pageHeight))
+        guard store.add(made, centered: false) else { return }
+        store.selection = [made.id]
+        dismiss()
     }
 
     /// On this page, which may be a size of its own, as one step — on the
@@ -1510,6 +1582,7 @@ struct InsertSheet: View {
                 layoutsRow
                 decorativeFramesRow
                 glyphFramesRow
+                maskFramesRow
             }
             Button {
                 importingPDF = true

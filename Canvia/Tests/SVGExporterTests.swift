@@ -263,9 +263,10 @@ final class SVGExporterTests: XCTestCase {
 
     // MARK: lines
 
-    /// Drawn as LineElementView draws them: the arrowhead's tip on the end
-    /// and the stroke stopping short of it, dots a thickness in, dashes
-    /// round-capped. The numbers the Android twin writes.
+    /// Drawn as LineElementView draws them (LineEnds): an open arrow's
+    /// point on the end and the stroke's round cap ending there, a dot's
+    /// circle filling the last head length, the stroke stopping under its
+    /// middle, dashes round-capped. The numbers the Android twin writes.
     @MainActor
     func testLineEndsAreWhereTheCanvasDrawsThem() {
         var line = Element.line(w: 300)
@@ -275,9 +276,10 @@ final class SVGExporterTests: XCTestCase {
         line.endCap = "arrow"
         let svg = markup(design(elements: [line]))
         XCTAssertTrue(svg.contains(
-            "<line x1=\"10\" y1=\"24\" x2=\"299.2\" y2=\"24\" stroke=\"#1f2430\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-dasharray=\"12 8\"/>" +
-            "<circle cx=\"14\" cy=\"24\" r=\"5.6\" fill=\"#1f2430\"/>" +
-            "<path d=\"M310 24L298 16.8L298 31.2Z\" fill=\"#1f2430\"/>"), svg)
+            "<line x1=\"16\" y1=\"24\" x2=\"308\" y2=\"24\" stroke=\"#1f2430\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-dasharray=\"12 8\"/>" +
+            "<path d=\"M22 24A6 6 0 1 1 10 24A6 6 0 1 1 22 24Z\" fill=\"#1f2430\"/>" +
+            "<path d=\"M298 16.8L310 24L298 31.2\" fill=\"none\" stroke=\"#1f2430\" stroke-width=\"4\" " +
+            "stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"), svg)
 
         var thin = Element.line(w: 300)
         thin.x = 10; thin.y = 20
@@ -287,9 +289,10 @@ final class SVGExporterTests: XCTestCase {
         thin.endCap = "dot"
         let thinSVG = markup(design(elements: [thin]))
         XCTAssertTrue(thinSVG.contains(
-            "<line x1=\"19\" y1=\"24\" x2=\"310\" y2=\"24\" stroke=\"#1f2430\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-dasharray=\"0 4.4\"/>" +
-            "<path d=\"M10 24L20 18L20 30Z\" fill=\"#1f2430\"/>" +
-            "<circle cx=\"308\" cy=\"24\" r=\"5\" fill=\"#1f2430\"/>"), thinSVG)
+            "<line x1=\"11\" y1=\"24\" x2=\"305\" y2=\"24\" stroke=\"#1f2430\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-dasharray=\"0 4.4\"/>" +
+            "<path d=\"M20 30L10 24L20 18\" fill=\"none\" stroke=\"#1f2430\" stroke-width=\"2\" " +
+            "stroke-linecap=\"round\" stroke-linejoin=\"round\"/>" +
+            "<path d=\"M310 24A5 5 0 1 1 300 24A5 5 0 1 1 310 24Z\" fill=\"#1f2430\"/>"), thinSVG)
     }
 
     @MainActor

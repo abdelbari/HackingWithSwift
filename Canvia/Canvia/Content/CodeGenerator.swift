@@ -395,7 +395,7 @@ enum CodeGenerator {
         let unfiltered = (el.filter ?? "none") == "none" && (el.adjustments ?? Adjustments()) == Adjustments()
         let unaffected = el.duotone == nil && el.focusBlur == nil && el.edge == nil
         let whole = (el.pixelate ?? 0) == 0 && (el.straighten ?? 0) == 0
-        let shaped = ContentLibrary.frameShape(el.maskShapeId) != nil
+        let shaped = ContentLibrary.frameShape(of: el) != nil
         let rounded = (el.radius ?? 0) != 0 || (el.corners ?? []).contains { $0 > 0 }
         let bordered = el.stroke != nil && (el.strokeWidth ?? 0) > 0
         return unfiltered && unaffected && whole && !shaped && !rounded && !bordered

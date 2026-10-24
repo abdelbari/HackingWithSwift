@@ -1069,6 +1069,9 @@ struct Element: Codable, Equatable, Identifiable {
     var dash: String?
     var startCap: String?
     var endCap: String?
+    /// How big both ends' heads are against the line's weight (LineEnds),
+    /// 0.5…3; nil is 1.
+    var capScale: Double?
     /// How a line runs between its ends (see LineRoutes): "elbow" or
     /// "curve"; nil is straight. An elbowed or curved line keeps rotation 0
     /// and its ends as `ends`, [x1, y1, x2, y2], fractions of its box, with
@@ -1228,6 +1231,7 @@ struct Element: Codable, Equatable, Identifiable {
         dash = try? c.decode(String.self, forKey: .dash)
         startCap = try? c.decode(String.self, forKey: .startCap)
         endCap = try? c.decode(String.self, forKey: .endCap)
+        capScale = (try? c.decode(Double.self, forKey: .capScale)).flatMap(LineEnds.written)
         lineType = try? c.decode(String.self, forKey: .lineType)
         ends = try? c.decode([Double].self, forKey: .ends)
         bend = (try? c.decode(Double.self, forKey: .bend)).flatMap { $0.isFinite ? $0 : nil }
@@ -1267,7 +1271,7 @@ struct Element: Codable, Equatable, Identifiable {
         case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch
         case qrColor, qrBackground, qrMargin, qrDots, qrEyes, qrLogo, qrEc, barcodeText, qrForm
         case glyph
-        case thickness, dash, startCap, endCap
+        case thickness, dash, startCap, endCap, capScale
         case lineType, ends, bend
         case sticky
     }

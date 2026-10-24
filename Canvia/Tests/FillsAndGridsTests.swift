@@ -78,7 +78,8 @@ final class FillsAndGridsTests: XCTestCase {
     // MARK: photo grids
 
     func testCellsFillTheInnerAreaOneGutterApartWithoutOverlap() {
-        for layout in PhotoGrids.layouts {
+        // A cut layout's cells overlap or leave gaps by design (FrameCatalogueTests).
+        for layout in PhotoGrids.layouts where !layout.isCut {
             let els = PhotoGrids.elements(for: layout, width: 1000, height: 800, margin: 40, gutter: 20)
             XCTAssertEqual(els.count, layout.cells.count)
             XCTAssertEqual(Set(els.compactMap(\.group)).count, 1, "\(layout.id) is not one group")

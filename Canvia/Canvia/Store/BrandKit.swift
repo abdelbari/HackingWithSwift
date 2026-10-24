@@ -314,9 +314,11 @@ struct BrandKit: Codable, Equatable, Identifiable {
     var graphics: [String] = []
     /// The ids of templates of your own.
     var templates: [String] = []
+    /// Gradients saved from the colour sheet's editor (GradientEditing).
+    var gradients: [Paint] = []
 
     enum CodingKeys: String, CodingKey {
-        case id, name, palettes, fonts, logos, photos, graphics, templates
+        case id, name, palettes, fonts, logos, photos, graphics, templates, gradients
     }
 
     /// What the first kit, and the one an earlier build's kit becomes, is
@@ -336,6 +338,7 @@ struct BrandKit: Codable, Equatable, Identifiable {
 
     var isEmpty: Bool {
         colors.isEmpty && fonts.isEmpty && logos.isEmpty && photos.isEmpty && graphics.isEmpty && templates.isEmpty
+            && gradients.isEmpty
     }
 
     /// Whether the Add sheet shows a Brand tab for this kit: it has a logo,
@@ -386,6 +389,15 @@ struct BrandKit: Codable, Equatable, Identifiable {
               VideoStore.split(src) == nil, AnimStore.split(src) == nil,
               !CodeGenerator.isCode(src) else { return nil }
         return src
+    }
+
+    /// A gradient saved to the kit, once, at the end of its gradients —
+    /// at most `limit` of them. Whether it was added.
+    @discardableResult
+    mutating func addGradient(_ paint: Paint) -> Bool {
+        guard paint.kind == "gradient", !gradients.contains(paint), gradients.count < BrandKit.limit else { return false }
+        gradients.append(paint)
+        return true
     }
 
     /// A source added to the end of one of the kit's lists, once.
@@ -631,9 +643,14 @@ extension BrandKit {
         photos = (try? c.decode([String].self, forKey: .photos)) ?? []
         graphics = (try? c.decode([String].self, forKey: .graphics)) ?? []
         templates = (try? c.decode([String].self, forKey: .templates)) ?? []
+        // One at a time, so a gradient that cannot be read — or is not one
+        // of two stops or more — is left out rather than losing the rest,
+        // as on the Android twin.
+        gradients = ((try? c.decode([Lossy<Paint>].self, forKey: .gradients)) ?? []).compactMap(\.value)
+            .filter { $0.kind == "gradient" && ($0.stops?.count ?? 0) >= GradientEditing.minStops }
     }
 
-    /// Photos, graphics and templates only when there are some, so a kit
+    /// Photos, graphics, templates and gradients only when there are some, so a kit
     /// without them is written as earlier builds wrote it — the rule both
     /// phones keep.
     func encode(to encoder: Encoder) throws {
@@ -646,6 +663,7 @@ extension BrandKit {
         if !photos.isEmpty { try c.encode(photos, forKey: .photos) }
         if !graphics.isEmpty { try c.encode(graphics, forKey: .graphics) }
         if !templates.isEmpty { try c.encode(templates, forKey: .templates) }
+        if !gradients.isEmpty { try c.encode(gradients, forKey: .gradients) }
     }
 }
 

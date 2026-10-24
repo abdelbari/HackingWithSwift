@@ -289,7 +289,11 @@ enum Geometry {
         if TextWarp.isWarped(el), let warp = el.warp {
             frame = TextWarp.hull(warp, w: el.w, h: el.h).offsetBy(dx: el.x, dy: el.y)
         }
-        return frame.insetBy(dx: -4, dy: -4).contains(p)
+        guard frame.insetBy(dx: -4, dy: -4).contains(p) else { return false }
+        // A grid's cut cell (a diagonal half, a circle) is touched only
+        // where its cut is, so the cell under the finger is the one found.
+        guard PhotoGrids.clip(of: el) != nil, el.w > 0, el.h > 0 else { return true }
+        return PhotoGrids.clipContains(el, CGPoint(x: (Double(p.x) - el.x) / el.w, y: (Double(p.y) - el.y) / el.h))
     }
 
     // MARK: snapping
