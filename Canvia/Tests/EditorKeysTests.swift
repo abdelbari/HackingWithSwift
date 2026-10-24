@@ -3,6 +3,7 @@
 // (Layers.neighbour), the step names the undo gestures and shake say
 // (History.label, DesignUndo), and the help that lists them.
 
+import UIKit
 import XCTest
 @testable import Canvia
 
@@ -10,8 +11,8 @@ final class EditorKeysTests: XCTestCase {
 
     // MARK: text keys
 
-    /// Shared rows: the thirteen keys, each with or without Shift, and what
-    /// each does — the Android twin's TextKeys, row for row.
+    /// Shared rows: the twenty keys, each with or without Shift and Alt,
+    /// and what each does — the Android twin's TextKeys, row for row.
     func testTheTextKeysAreCanvas() {
         // key, shift, action
         let rows: [(String, Bool, TextKeys.Command)] = [
@@ -20,14 +21,27 @@ final class EditorKeysTests: XCTestCase {
             ("l", true, .alignLeft), ("c", true, .alignCenter), ("r", true, .alignRight), ("j", true, .alignJustify),
             ("7", true, .numberedList), ("8", true, .bulletedList),
             (",", true, .smaller), (".", true, .larger),
+            ("k", false, .link),
         ]
-        XCTAssertEqual(TextKeys.all.count, rows.count)
+        let altRows: [(String, TextKeys.Command)] = [
+            (TextKeys.down, .lineTighter), (TextKeys.up, .lineLooser),
+            (TextKeys.left, .letterTighter), (TextKeys.right, .letterLooser),
+            ("c", .copyStyle), ("v", .pasteStyle),
+        ]
+        XCTAssertEqual(TextKeys.all.count, rows.count + altRows.count)
         for (key, shift, action) in rows {
             XCTAssertEqual(TextKeys.action(for: key, shift: shift), action, key)
             XCTAssertEqual(TextKeys.action(for: key.uppercased(), shift: shift), action, "\(key) in capitals")
         }
+        for (key, action) in altRows {
+            XCTAssertEqual(TextKeys.action(for: key, shift: false, alt: true), action, key)
+        }
+        // Without Alt an arrow or C is the field's own.
+        XCTAssertNil(TextKeys.action(for: TextKeys.up, shift: false))
+        XCTAssertNil(TextKeys.action(for: "c", shift: false))
+        XCTAssertNil(TextKeys.action(for: "b", shift: false, alt: true))
         // No key means two things, and Shift tells ⌘X from ⇧⌘X.
-        XCTAssertEqual(Set(TextKeys.all.map { "\($0.key)|\($0.shift)" }).count, TextKeys.all.count)
+        XCTAssertEqual(Set(TextKeys.all.map { "\($0.key)|\($0.shift)|\($0.alt)" }).count, TextKeys.all.count)
         XCTAssertNil(TextKeys.action(for: "b", shift: true))
         XCTAssertNil(TextKeys.action(for: "x", shift: false))
         XCTAssertNil(TextKeys.action(for: "z", shift: false))
@@ -44,6 +58,71 @@ final class EditorKeysTests: XCTestCase {
             XCTAssertFalse(TextKeys.keyName(action).isEmpty)
             XCTAssertTrue(TextKeys.all.contains { $0.action == action }, "\(action) has no key")
         }
+    }
+
+    /// Shared rows: both phones list the same keys, in the same order, by
+    /// the same names — the Android twin writes Ctrl where this writes ⌘.
+    func testBothPhonesListTheSameRows() {
+        let listed = TextKeys.all.map { key in
+            "Ctrl+" + (key.alt ? "Alt+" : "") + (key.shift ? "Shift+" : "") + key.key.uppercased() + " "
+                + TextKeys.keyName(key.action)
+        }
+        XCTAssertEqual(listed, [
+            "Ctrl+B Bold", "Ctrl+I Italic", "Ctrl+U Underline", "Ctrl+Shift+X Strikethrough", "Ctrl+Shift+K Uppercase",
+            "Ctrl+Shift+L Align left", "Ctrl+Shift+C Align centre", "Ctrl+Shift+R Align right", "Ctrl+Shift+J Justify",
+            "Ctrl+Shift+7 Numbered list", "Ctrl+Shift+8 Bulleted list", "Ctrl+Shift+, Smaller", "Ctrl+Shift+. Larger",
+            "Ctrl+K Add link", "Ctrl+Alt+↓ Decrease line spacing", "Ctrl+Alt+↑ Increase line spacing",
+            "Ctrl+Alt+← Decrease letter spacing", "Ctrl+Alt+→ Increase letter spacing",
+            "Ctrl+Alt+C Copy style", "Ctrl+Alt+V Paste style",
+        ])
+        XCTAssertEqual(TextKeys.shown(TextKeys.all[0]), "⌘B")
+        XCTAssertEqual(TextKeys.shown(TextKeys.all[4]), "⇧⌘K")
+        XCTAssertEqual(TextKeys.shown(TextKeys.all[15]), "⌥⌘↑")
+        XCTAssertEqual(InlineTextView.input(of: TextKeys.up), UIKeyCommand.inputUpArrow)
+        XCTAssertEqual(InlineTextView.key(of: UIKeyCommand.inputLeftArrow), TextKeys.left)
+        XCTAssertEqual(InlineTextView.key(of: "k"), "k")
+    }
+
+    /// Shared rows: spacing steps a tenth of a line and a hundredth of the
+    /// type size, within reach, and what VoiceOver says.
+    func testSpacingKeysStepWithinReach() {
+        XCTAssertEqual(TextKeys.lineHeightStepped(nil, by: 1), 1.35, accuracy: 1e-9)
+        XCTAssertEqual(TextKeys.lineHeightStepped(1.4, by: -1), 1.3, accuracy: 1e-9)
+        XCTAssertEqual(TextKeys.lineHeightStepped(2.45, by: 1), TypeReadouts.lineHeightRange.upperBound, accuracy: 1e-9)
+        XCTAssertEqual(TextKeys.lineHeightStepped(0.5, by: -1), TypeReadouts.lineHeightRange.lowerBound, accuracy: 1e-9)
+        XCTAssertEqual(TextKeys.letterSpacingStepped(nil, size: 40, by: 1), 0.4, accuracy: 1e-9)
+        XCTAssertEqual(TextKeys.letterSpacingStepped(0, size: 40, by: -1), -0.4, accuracy: 1e-9)
+        XCTAssertEqual(TextKeys.letterSpacingStepped(80, size: 100, by: 1), 80, accuracy: 1e-9)
+        XCTAssertEqual(TextKeys.lineHeightSaid(1.4), "Line spacing 1.4")
+        XCTAssertEqual(TextKeys.lineHeightSaid(1.0), "Line spacing 1")
+        XCTAssertEqual(TextKeys.lineHeightSaid(1.35), "Line spacing 1.35")
+        XCTAssertEqual(TextKeys.letterSpacingSaid(1.2, size: 40), "Letter spacing 3%")
+    }
+
+    /// A spacing key while typing is one step, said; Copy and Paste style
+    /// carry the whole box's look.
+    func testSpacingAndStyleKeysAreOneStepEach() {
+        var design = Design(title: "keys", width: 600, height: 600)
+        var a = Element.text("Hello")
+        a.id = "a"
+        a.lineHeight = 1.4
+        var b = Element.text("World")
+        b.id = "b"
+        b.fontWeight = 700
+        design.pages[0].elements = [a, b]
+        let s = DesignStore(design: design)
+        s.select("a")
+        XCTAssertEqual(s.typingBoxKey(.lineLooser), "Line spacing 1.5")
+        XCTAssertEqual(s.element("a")?.lineHeight ?? 0, 1.5, accuracy: 1e-9)
+        XCTAssertEqual(s.typingBoxKey(.letterLooser), "Letter spacing 1%")
+        s.undo()
+        XCTAssertEqual(s.element("a")?.letterSpacing ?? 0, 0, accuracy: 1e-9)
+        XCTAssertEqual(s.element("a")?.lineHeight ?? 0, 1.5, accuracy: 1e-9)
+        s.select("b")
+        XCTAssertNil(s.typingBoxKey(.copyStyle))
+        s.select("a")
+        s.typingBoxKey(.pasteStyle)
+        XCTAssertEqual(s.element("a")?.fontWeight, 700)
     }
 
     // MARK: tab
