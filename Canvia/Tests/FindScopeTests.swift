@@ -60,9 +60,11 @@ final class FindScopeTests: XCTestCase {
         let values = DesignStore.matches(in: start, for: "10", caseSensitive: false, wholeWord: true)
         XCTAssertEqual(values.count, 1)
         XCTAssertNil(DesignStore.replacingOne(start, values[0], with: "11"))
+        XCTAssertFalse(DesignStore.replaceable(start, values[0]))
         XCTAssertEqual(DesignStore(design: start).replaceAll("10", with: "11", wholeWord: true), 0)
         let found = DesignStore.matches(in: start, for: "Q1", caseSensitive: true, wholeWord: true)
         XCTAssertEqual(found.count, 1)
+        XCTAssertTrue(DesignStore.replaceable(start, found[0]))
         let after = try XCTUnwrap(DesignStore.replacingOne(start, found[0], with: "Spring"))
         let specs = after.pages[0].elements.compactMap(\.chart)
         XCTAssertEqual(specs.count, drawn.count)
@@ -85,6 +87,21 @@ final class FindScopeTests: XCTestCase {
         XCTAssertEqual(DataGraphics.withRows("Q1, 10", renaming: "Q1", to: "Q1, 2024"), "Q1, 10")
         XCTAssertEqual(DataGraphics.withNames("Quarter, North, South\nQ1, 1, 2", renaming: "Quarter", to: "Season"),
                        "Quarter, North, South\nQ1, 1, 2")
+    }
+
+    /// Shared: Replace all renaming two row labels of one chart keeps
+    /// both renames in the data of every element of that chart.
+    func testReplaceAllRenamesEveryRowLabelOfAChartInItsData() {
+        let spec = ChartSpec(id: "chart_r", kind: "column", data: "Q1, 5\nQ2, 7")
+        let drawn = DataGraphics.chart(spec, in: CGRect(x: 0, y: 0, width: 400, height: 300),
+                                       palette: ["#ff0000"], heightFor: { _ in 20 })
+        var start = Design(title: "chart", width: 800, height: 600)
+        start.pages[0].elements = drawn
+        let store = DesignStore(design: start)
+        XCTAssertEqual(store.replaceAll("Q", with: "Quarter ", caseSensitive: true), 2)
+        let specs = store.design.pages[0].elements.compactMap(\.chart)
+        XCTAssertEqual(specs.count, drawn.count)
+        XCTAssertTrue(specs.allSatisfy { $0.data == "Quarter 1, 5\nQuarter 2, 7" })
     }
 
     /// The notes' misspellings are listed after the page's boxes', and a
