@@ -629,6 +629,13 @@ enum MovieExporter {
             durations[clip.source] = seconds
             sources[clip.source] = file
         }
+        // A clip with Enhance voice on heard from its enhanced sound — its
+        // own where that cannot be made.
+        for clip in clipsByPage.joined() where clip.playback.enhance {
+            let key = AudioMix.enhancedSource(clip.source)
+            guard sources[key] == nil, let file = sources[clip.source] else { continue }
+            sources[key] = await AudioStore.enhancedURL(for: VideoStore.prefix + clip.source) ?? file
+        }
         // Each track's music once, however many tracks play it.
         var trackDurations: [String: Double] = [:]
         var heard = Set<String>()
@@ -640,6 +647,11 @@ enum MovieExporter {
             } else {
                 lost = true
             }
+        }
+        for track in design.audioTracks where track.volume > 0 && track.enhance {
+            guard let id = track.audioId, let file = sources[id] else { continue }
+            let key = AudioMix.enhancedSource(id)
+            if sources[key] == nil { sources[key] = await AudioStore.enhancedURL(for: id) ?? file }
         }
         let segments = AudioMix.plan(timeline: timings, fps: settings.fps, clipsByPage: clipsByPage,
                                      clipDurations: durations, tracks: design.audioTracks,

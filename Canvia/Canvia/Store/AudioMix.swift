@@ -23,6 +23,12 @@
 // out, at the end of what it plays. A fade is heard only on a track that
 // sounds for more than twice its length, as the old soundtrack's one-second
 // fade was, so the old soundtrack's track plays exactly as it did.
+//
+// A clip or a track with Enhance voice on is read from its enhanced sound
+// (VoiceEnhance, AudioStore.enhancedURL): its stretches name their source
+// with ".enh" after it (`enhancedSource`), which the mix finds that file by.
+// A track that is a clip's detached sound names the clip, "video:<id>", and
+// is read from the clip's file.
 
 import Foundation
 
@@ -95,6 +101,9 @@ enum AudioMix {
             return out
         }
     }
+
+    /// What a stretch of `source`'s enhanced sound names its source.
+    static func enhancedSource(_ source: String) -> String { source + ".enh" }
 
     /// `gain` at `t`, rising linearly from nothing across `fadeIn` and
     /// falling linearly to nothing across `fadeOut`.
@@ -226,6 +235,7 @@ enum AudioMix {
             for clip in clips {
                 let playback = clip.playback
                 guard playback.sounds, let duration = clipDurations[clip.source] else { continue }
+                let source = playback.enhance ? enhancedSource(clip.source) : clip.source
                 // The window clipTime plays: the trim, within the file,
                 // taking its length over its speed on the page.
                 let start = max(0, playback.start)
@@ -245,7 +255,7 @@ enum AudioMix {
                     let from = max(at, heardFrom)
                     let to = min(at + stretch, heardUntil)
                     if to - from > 0.001 {
-                        laid.append(Segment(source: clip.source, sourceStart: start + (from - at) * pace, at: from,
+                        laid.append(Segment(source: source, sourceStart: start + (from - at) * pace, at: from,
                                             duration: to - from, gain: gain, speed: pace))
                     }
                     at += stretch
@@ -266,7 +276,12 @@ enum AudioMix {
         let film = Double(timeline.last?.end ?? 0) / rate
         for track in tracks {
             let duration = track.audioId.flatMap { trackDurations[$0] }
-            if let laid = span(of: track, duration: duration, film: film) { out += laid.segments }
+            guard let laid = span(of: track, duration: duration, film: film) else { continue }
+            out += laid.segments.map { segment in
+                var heard = segment
+                if track.enhance { heard.source = enhancedSource(segment.source) }
+                return heard
+            }
         }
         return out
     }

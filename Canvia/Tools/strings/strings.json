@@ -7532,6 +7532,15 @@
     "ja": "クラシック",
     "pt-BR": "Clássico"
   },
+  "Cleans background noise and levels the voice.": {
+    "ar": "يزيل ضوضاء الخلفية ويوازن مستوى الصوت.",
+    "de": "Entfernt Hintergrundgeräusche und gleicht die Stimme an.",
+    "es": "Elimina el ruido de fondo y nivela la voz.",
+    "fr": "Supprime le bruit de fond et égalise la voix.",
+    "it": "Rimuove il rumore di fondo e livella la voce.",
+    "ja": "背景ノイズを除去し、声の音量をそろえます。",
+    "pt-BR": "Remove o ruído de fundo e nivela a voz."
+  },
   "Clear": {
     "ar": "مسح",
     "de": "Löschen",
@@ -7603,6 +7612,15 @@
     "it": "Clip",
     "ja": "クリップ",
     "pt-BR": "Clipe"
+  },
+  "Clip sound": {
+    "ar": "صوت المقطع",
+    "de": "Clip-Ton",
+    "es": "Sonido del clip",
+    "fr": "Son du clip",
+    "it": "Audio della clip",
+    "ja": "クリップの音声",
+    "pt-BR": "Som do clipe"
   },
   "Clips": {
     "ar": "المقاطع",
@@ -9821,6 +9839,15 @@
     "ja": "これを基に作成したデザインはそのままです。%@",
     "pt-BR": "Os designs criados a partir dele ficam como estão. %@"
   },
+  "Detach audio": {
+    "ar": "فصل الصوت",
+    "de": "Audio trennen",
+    "es": "Separar audio",
+    "fr": "Détacher l’audio",
+    "it": "Separa audio",
+    "ja": "オーディオを切り離す",
+    "pt-BR": "Separar áudio"
+  },
   "Detach from background": {
     "ar": "فصل عن الخلفية",
     "de": "Vom Hintergrund lösen",
@@ -11197,6 +11224,15 @@
     "it": "Inglese (Stati Uniti)",
     "ja": "英語（アメリカ）",
     "pt-BR": "Inglês (EUA)"
+  },
+  "Enhance voice": {
+    "ar": "تحسين الصوت",
+    "de": "Stimme verbessern",
+    "es": "Mejorar voz",
+    "fr": "Améliorer la voix",
+    "it": "Migliora voce",
+    "ja": "音声を補正",
+    "pt-BR": "Melhorar voz"
   },
   "Enter": {
     "ar": "إدخال",
@@ -19331,6 +19367,15 @@
     "ja": "再生",
     "pt-BR": "Reproduzir"
   },
+  "Play enhanced": {
+    "ar": "تشغيل المُحسَّن",
+    "de": "Verbessert abspielen",
+    "es": "Reproducir mejorado",
+    "fr": "Lire la version améliorée",
+    "it": "Riproduci migliorato",
+    "ja": "補正後を再生",
+    "pt-BR": "Reproduzir melhorado"
+  },
   "Play in the editor": {
     "ar": "تشغيل في المحرر",
     "de": "Im Editor abspielen",
@@ -19339,6 +19384,15 @@
     "it": "Riproduci nell’editor",
     "ja": "エディタで再生",
     "pt-BR": "Reproduzir no editor"
+  },
+  "Play original": {
+    "ar": "تشغيل الأصلي",
+    "de": "Original abspielen",
+    "es": "Reproducir original",
+    "fr": "Lire l’original",
+    "it": "Riproduci originale",
+    "ja": "オリジナルを再生",
+    "pt-BR": "Reproduzir original"
   },
   "Play this page": {
     "ar": "تشغيل هذه الصفحة",
@@ -24929,6 +24983,15 @@
     "ja": "チェックデジットは %@ のはずです",
     "pt-BR": "O dígito verificador deveria ser %@"
   },
+  "The clip's sound is now a track in Audio": {
+    "ar": "أصبح صوت المقطع الآن مسارًا في الصوت",
+    "de": "Der Clip-Ton ist jetzt eine Spur unter Audio",
+    "es": "El sonido del clip ahora es una pista en Audio",
+    "fr": "Le son du clip est maintenant une piste dans Audio",
+    "it": "L’audio della clip ora è una traccia in Audio",
+    "ja": "クリップの音声がオーディオのトラックになりました",
+    "pt-BR": "O som do clipe agora é uma faixa em Áudio"
+  },
   "The code on the page changes as you type.": {
     "ar": "يتغيّر الرمز في الصفحة أثناء الكتابة.",
     "de": "Der Code auf der Seite ändert sich beim Tippen.",
@@ -25747,6 +25810,15 @@
     "it": "Questo brano non è su questo telefono: è stato scelto su un altro. Viene riprodotto lì.",
     "ja": "この曲はこのスマートフォンにはありません。別のスマートフォンで選ばれたもので、そちらでは再生されます。",
     "pt-BR": "Esta música não está neste celular: foi escolhida em outro. Ela toca lá."
+  },
+  "This sound can't be enhanced, so it plays as it is.": {
+    "ar": "لا يمكن تحسين هذا الصوت، لذا يُشغَّل كما هو.",
+    "de": "Dieser Ton kann nicht verbessert werden und wird unverändert abgespielt.",
+    "es": "Este sonido no se puede mejorar, así que se reproduce tal cual.",
+    "fr": "Ce son ne peut pas être amélioré : il est lu tel quel.",
+    "it": "Questo suono non può essere migliorato, quindi viene riprodotto così com’è.",
+    "ja": "この音声は補正できないため、そのまま再生されます。",
+    "pt-BR": "Este som não pode ser melhorado, então é reproduzido como está."
   },
   "This version can't be opened": {
     "ar": "يتعذّر فتح هذا الإصدار",

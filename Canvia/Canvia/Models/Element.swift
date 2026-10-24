@@ -233,6 +233,9 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     /// `fadeRange` (AudioMix.clipFades).
     var fadeIn: Double = 0
     var fadeOut: Double = 0
+    /// Its sound cleaned and levelled by Enhance voice (VoiceEnhance)
+    /// wherever it is heard.
+    var enhance: Bool = false
 
     /// What the Clip sheet offers, as the Android twin's panel does.
     static let speeds: [Double] = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2]
@@ -254,10 +257,11 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     /// any speed — its sound kept at its pitch as it is sped up or slowed.
     var sounds: Bool { !muted && volume > 0 }
 
-    private enum CodingKeys: String, CodingKey { case start, end, speed, loop, volume, muted, fadeIn, fadeOut }
+    private enum CodingKeys: String, CodingKey { case start, end, speed, loop, volume, muted, fadeIn, fadeOut, enhance }
 
     init(start: Double = 0, end: Double? = nil, speed: Double = 1, loop: Bool = true,
-         volume: Double = 1, muted: Bool = false, fadeIn: Double = 0, fadeOut: Double = 0) {
+         volume: Double = 1, muted: Bool = false, fadeIn: Double = 0, fadeOut: Double = 0,
+         enhance: Bool = false) {
         self.start = start
         self.end = end
         self.speed = speed
@@ -266,6 +270,7 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         self.muted = muted
         self.fadeIn = fadeIn
         self.fadeOut = fadeOut
+        self.enhance = enhance
     }
 
     init(from decoder: Decoder) throws {
@@ -278,6 +283,7 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         muted = (try? c.decodeIfPresent(Bool.self, forKey: .muted)) ?? false
         fadeIn = (try? c.decodeIfPresent(Double.self, forKey: .fadeIn)) ?? 0
         fadeOut = (try? c.decodeIfPresent(Double.self, forKey: .fadeOut)) ?? 0
+        enhance = (try? c.decodeIfPresent(Bool.self, forKey: .enhance)) == true
     }
 
     func encode(to encoder: Encoder) throws {
@@ -290,6 +296,7 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         if muted { try c.encode(true, forKey: .muted) }
         if fadeIn > 0 { try c.encode(fadeIn, forKey: .fadeIn) }
         if fadeOut > 0 { try c.encode(fadeOut, forKey: .fadeOut) }
+        if enhance { try c.encode(true, forKey: .enhance) }
     }
 }
 

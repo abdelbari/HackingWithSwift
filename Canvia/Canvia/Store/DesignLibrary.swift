@@ -647,6 +647,8 @@ enum DesignLibrary {
         var found = Set<String>()
         for design in designs {
             for page in design.pages { collectClips(on: page, into: &found) }
+            // A clip whose sound a track plays (AudioTracks.detached).
+            for track in design.audioTracks { if let id = AudioTrack.videoId(of: track.src) { found.insert(id) } }
             // A talk's camera (Recordings).
             found.formUnion(Recordings.cameraIds(design))
         }

@@ -67,6 +67,41 @@ enum AudioTracks {
         return " " + tr("Some of the music was chosen on another phone and isn't on this one.")
     }
 
+    /// What a clip's detached sound is called.
+    static var clipSoundName: String { tr("Clip sound") }
+
+    /// `design` with clip `clipElementId`'s sound lifted into a track of
+    /// its own, last in the list, and the clip muted: the track plays the
+    /// clip's file ("video:<id>") from where the clip starts in the film —
+    /// its page's start (AudioMix.pageStart) and its own timing's start on
+    /// the page — its trim, volume, fades and Enhance voice the clip's, once
+    /// through. Its speed stays with the clip: a track plays at 1×. Nil
+    /// when there is no such clip, it is a picture from a clip's moment,
+    /// it is muted already, or its page is locked. As the Android twin's
+    /// AudioTracks.detached.
+    static func detached(_ design: Design, clipElementId: String) -> Design? {
+        for (p, page) in design.pages.enumerated() {
+            guard let i = page.elements.firstIndex(where: { $0.id == clipElementId }) else { continue }
+            let el = page.elements[i]
+            let playback = el.clip ?? ClipPlayback()
+            guard el.type == .image, let src = el.src, let parts = VideoStore.split(src), parts.time == nil,
+                  !playback.muted, !PageLocks.isLocked(page) else { return nil }
+            let start = AudioMix.pageStart(design: design, index: p) + max(el.timing?.start ?? 0, 0)
+            var track = AudioTrack(src: VideoStore.src(parts.id, at: nil), start: start,
+                                   trimStart: max(0, playback.start), trimEnd: playback.end,
+                                   volume: min(max(playback.volume, 0), 1),
+                                   fadeIn: playback.fadeIn, fadeOut: playback.fadeOut, name: clipSoundName)
+            track.enhance = playback.enhance
+            var out = design
+            var muted = playback
+            muted.muted = true
+            out.pages[p].elements[i].clip = muted
+            out.audioTracks.append(track)
+            return out
+        }
+        return nil
+    }
+
     /// A time as a fade shows it: "0.0s" to "5.0s".
     static func secondsLabel(_ seconds: Double) -> String {
         String(format: "%.1fs", seconds)
@@ -156,6 +191,20 @@ extension DesignStore {
             // ones stay (BeatSync.settled).
             design = BeatSync.settled(design)
         }
+    }
+
+    /// Clip `elementId`'s sound as a track of its own and the clip muted
+    /// (AudioTracks.detached), as one step named "Detach audio". A locked
+    /// page says so, and nothing changes.
+    func detachAudio(_ elementId: String) {
+        if let p = design.pages.firstIndex(where: { $0.elements.contains { $0.id == elementId } }),
+           refusesLockedPage(at: p) { return }
+        guard let next = AudioTracks.detached(design, clipElementId: elementId) else { return }
+        if hasPendingChanges && (editingTextId != nil || dictationTarget != nil) { commit() }
+        namedStep = tr("Detach audio")
+        apply { $0 = next }
+        buzz(.confirm)
+        announce(tr("The clip's sound is now a track in Audio"))
     }
 
     /// Whether Play has anything to show or to hear on this page: its

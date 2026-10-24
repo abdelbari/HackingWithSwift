@@ -42,6 +42,10 @@ struct ClipSheet: View {
                     trimSection(el, clip)
                     playSection(clip)
                     soundSection(clip)
+                    EnhanceVoiceRow(on: clip.enhance, source: clipId.map { VideoStore.prefix + $0 },
+                                    range: Self.heard(clip, length: length), volume: clip.volume) { on in
+                        write { $0.enhance = on }
+                    }
                     fadeSection(clip)
                     captionsSection(el, clip)
                     actionSection
@@ -188,6 +192,14 @@ struct ClipSheet: View {
         Section {
             Button("Fit page to clip") { store.fitPageToClip() }
                 .disabled((length ?? 0) <= ClipPlayback.minLength)
+            // The clip's sound as a track of its own, moved and trimmed in
+            // Audio; the clip is muted.
+            Button {
+                if let el = element { store.detachAudio(el.id) }
+            } label: {
+                Label("Detach audio", systemImage: "waveform.badge.minus")
+            }
+            .disabled(element?.clip?.muted == true)
             Button { store.playPreview() } label: {
                 Label("Play", systemImage: "play.circle")
             }
