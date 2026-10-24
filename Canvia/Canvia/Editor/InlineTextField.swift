@@ -74,6 +74,8 @@ struct InlineTextField: UIViewRepresentable {
     var onWordFont: (NSRange) -> Void = { _ in }
     /// Link, for the words chosen.
     var onWordLink: (NSRange) -> Void = { _ in }
+    /// The highlighter, the marker colours for the words chosen.
+    var onWordHighlight: (NSRange) -> Void = { _ in }
     /// ⇧⌘K: capitals on or off for the whole box, as a step of its own
     /// (TextKeys).
     var onToggle: (TextToggle) -> Void = { _ in }
@@ -543,16 +545,20 @@ struct InlineTextField: UIViewRepresentable {
         }
 
         /// Paste: words copied here keep their styles, colours, sizes and
-        /// lists; another app's plain words are pasted as they read — as one
-        /// step (DesignStore.pasteTyped). False when the store does not take
-        /// pastes here, or there is nothing to paste.
+        /// lists; another app's styled words — its HTML, else its RTF
+        /// (ForeignText) — keep theirs while Keep formatting when pasting
+        /// is on; anything else is pasted as it reads — as one step
+        /// (DesignStore.pasteTyped). Paste as plain text is in the hold
+        /// menu on the page, as on the Android twin. False when the store
+        /// does not take pastes here, or there is nothing to paste.
         func pasteWords() -> Bool {
             guard let view, view.markedTextRange == nil, let paste = parent.onPaste else { return false }
             let board = UIPasteboard.general
-            let clip = RichClipboard.decode(board.data(forPasteboardType: RichClipboard.type))
-            guard let plain = clip?.plain ?? board.string else { return false }
+            let own = RichClipboard.decode(board.data(forPasteboardType: RichClipboard.type))
+            let clip = own ?? ForeignText.clip(on: board, boxSize: parent.element.fontSize ?? 42)
+            guard let words = clip?.plain ?? board.string else { return false }
             coalescer.close()
-            paste(view.selectedRange, clip, plain)
+            paste(view.selectedRange, clip, words)
             return true
         }
 
@@ -625,6 +631,9 @@ struct InlineTextField: UIViewRepresentable {
             let well = UIBarButtonItem(image: UIImage(systemName: "circle.fill"), style: .plain,
                                        target: self, action: #selector(colourWords))
             well.accessibilityLabel = tr("Colour of the selected words")
+            let marker = UIBarButtonItem(image: UIImage(systemName: "highlighter"), style: .plain,
+                                         target: self, action: #selector(highlightWords))
+            marker.accessibilityLabel = tr("Highlight")
             let smaller = UIBarButtonItem(title: "A-", style: .plain, target: self, action: #selector(sizeWords(_:)))
             smaller.tag = 0
             smaller.accessibilityLabel = tr("Smaller")
@@ -636,7 +645,7 @@ struct InlineTextField: UIViewRepresentable {
             let link = UIBarButtonItem(image: UIImage(systemName: "link"), style: .plain,
                                        target: self, action: #selector(linkWords))
             link.accessibilityLabel = tr("Link")
-            wordItems = parent.wordStyles ? [well, smaller, larger, face, link] : []
+            wordItems = parent.wordStyles ? [well, marker, smaller, larger, face, link] : []
             let list = UIBarButtonItem(image: UIImage(systemName: "list.bullet"), style: .plain,
                                        target: self, action: #selector(cycleList))
             list.accessibilityLabel = tr("List")
@@ -683,6 +692,13 @@ struct InlineTextField: UIViewRepresentable {
             guard let view, let range = chosenWords(view) else { return }
             coalescer.close()
             parent.onWordColour(range)
+        }
+
+        /// The highlighter: the marker colours, for the words chosen.
+        @objc private func highlightWords() {
+            guard let view, let range = chosenWords(view) else { return }
+            coalescer.close()
+            parent.onWordHighlight(range)
         }
 
         /// Aa: the font sheet, for the words chosen.
@@ -823,6 +839,12 @@ struct InlineTextField: UIViewRepresentable {
                 }
                 well.tintColor = hex.map { UIColor(hex: $0) } ?? .label
             }
+            // The highlighter in the marker the words chosen share.
+            if wordItems.count > 1 {
+                let marked = picked.map { Spans.highlight(of: parent.element.liveSpans, in: $0) }
+                let hex = marked?.shared == true ? marked?.highlight : nil
+                wordItems[1].tintColor = hex.map { UIColor(hex: $0) } ?? .label
+            }
             // Link lit when the words chosen are all linked.
             if let link = wordItems.last {
                 let linked = picked.map { Spans.link(of: parent.element.liveSpans, in: $0) }
@@ -944,6 +966,9 @@ struct InlineTextField: UIViewRepresentable {
             }
             if span.link != nil {
                 storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
+            }
+            if let highlight = span.highlight {
+                storage.addAttribute(.backgroundColor, value: UIColor(hex: highlight), range: range)
             }
         }
         guard let font = attrs[.font] as? UIFont, span.font != nil || span.scale != nil else { return }

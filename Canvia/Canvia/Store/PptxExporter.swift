@@ -174,6 +174,9 @@ enum PptxExporter {
         /// A QR code drawn in its colours alone (CodeGenerator.vector):
         /// its background and its modules, free-form rectangles.
         case code
+        /// Warped words (TextWarp): their bent outlines, one free-form
+        /// shape in the text's colour.
+        case warped
     }
 
     /// The effects styled text carries over as DrawingML; the rest —
@@ -204,6 +207,12 @@ enum PptxExporter {
         switch el.type {
         case .text:
             if flipped { return .picture }
+            // Bent letters as the vectors they are drawn as, unless they
+            // are painted with a gradient or a photo, or have an effect.
+            if TextWarp.isWarped(el) {
+                let plain = el.textFill == nil && TextEffect.from(el.effect) == .none && el.shadow == nil
+                return plain ? .warped : .picture
+            }
             if styled { return isStyledText(el) ? .text : .picture }
             let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
             if gradient || TextEffect.from(el.effect) != .none || TextOutliner.followsAPath(el)
@@ -323,6 +332,19 @@ enum PptxExporter {
     /// Whether a page has notes to carry: any that are not only spaces.
     static func hasNotes(_ page: Page) -> Bool {
         !(page.notes ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// What a page's notes slide says: its own notes, then the words of
+    /// each text that goes out warped (Form.warped) — which the slide has
+    /// only as outlines — a line each, so they can still be copied and
+    /// edited; nil when there is nothing to say. The Android twin's
+    /// PptxWriter.notesOf.
+    static func notesText(design: Design, page: Page, styled: Bool = true) -> String? {
+        let warped = drawnElements(design: design, page: page).filter { form(of: $0, styled: styled) == .warped }
+            .map { RichText.strip($0.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let lines = (hasNotes(page) ? [page.notes ?? ""] : []) + warped
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
 
     /// What a page draws, bottom up — the master's elements behind its
@@ -513,6 +535,11 @@ enum PptxExporter {
                                       photo: poured, ink: average))
             case .shape(let preset):
                 shapes.append(shapeXML(el, preset: preset, id: id, link: link, frame: frame))
+            case .warped:
+                if let outline = TextOutliner.path(for: el) {
+                    shapes.append(outlineXML(el, properties: cNvPr(el, id: id, link: link), steps: steps(of: outline),
+                                             colour: el.color ?? "#1f2430", frame: frame))
+                }
             case .line:
                 shapes.append(lineXML(el, id: id, link: link, frame: frame))
             case .code:
@@ -549,9 +576,9 @@ enum PptxExporter {
         }
 
         var notes: String?
-        if hasNotes(page) {
+        if let text = notesText(design: design, page: page, styled: styled) {
             rels.add("notesSlide", "../notesSlides/notesSlide\(number).xml")
-            notes = notesXML(page.notes ?? "")
+            notes = notesXML(text)
         }
 
         let pieces: [(el: Element?, part: String)] = zip(owners, shapes).map { ($0, $1) }
@@ -730,6 +757,38 @@ enum PptxExporter {
         return "<p:sp>\(shape)<p:spPr>\(elementBox(el, frame: frame))\(geometry)\(paint)</p:spPr></p:sp>"
     }
 
+    /// `path` as the steps outlineXML writes: its lines, its curves as
+    /// cubics (a quadratic raised to one), its closes.
+    static func steps(of path: CGPath) -> [CodeGenerator.Step] {
+        var out: [CodeGenerator.Step] = []
+        var current = CGPoint.zero
+        path.applyWithBlock { element in
+            let e = element.pointee
+            switch e.type {
+            case .moveToPoint:
+                current = e.points[0]
+                out.append(.move(current))
+            case .addLineToPoint:
+                current = e.points[0]
+                out.append(.line(current))
+            case .addQuadCurveToPoint:
+                let c = e.points[0], p = e.points[1], s = current
+                let a = CGPoint(x: s.x + (c.x - s.x) * 2 / 3, y: s.y + (c.y - s.y) * 2 / 3)
+                let b = CGPoint(x: p.x + (c.x - p.x) * 2 / 3, y: p.y + (c.y - p.y) * 2 / 3)
+                out.append(.cubic(a, b, p))
+                current = p
+            case .addCurveToPoint:
+                current = e.points[2]
+                out.append(.cubic(e.points[0], e.points[1], current))
+            case .closeSubpath:
+                out.append(.close)
+            @unknown default:
+                break
+            }
+        }
+        return out
+    }
+
     /// A preset line across the middle of the element's box, with its
     /// ends — swapped when the line is flipped across.
     private static func lineXML(_ el: Element, id: Int, link: String?, frame: Frame) -> String {
@@ -815,6 +874,8 @@ enum PptxExporter {
         var link: String? = nil
         /// A weight of its own (Spans); nil is the box's.
         var weight: Int? = nil
+        /// A marker behind its words (Spans); nil is none.
+        var highlight: String? = nil
     }
 
     /// The words as typed — page numbers filled in, the inline style marks
@@ -872,11 +933,11 @@ enum PptxExporter {
             let linked = span?.link != nil ? Spans.linkColour : nil
             let run = TextRun(text: piece, style: style, color: span?.color ?? linked, scale: span?.scale,
                               font: span?.font, link: Links.followable(span?.link) ?? Links.pageId(span?.link).map(Links.pageLink),
-                              weight: span?.weight)
+                              weight: span?.weight, highlight: span?.highlight)
             let last = paragraphs.count - 1
             if var before = paragraphs[last].last, before.style == run.style, before.color == run.color,
                before.scale == run.scale, before.font == run.font, before.link == run.link,
-               before.weight == run.weight {
+               before.weight == run.weight, before.highlight == run.highlight {
                 before.text += piece
                 paragraphs[last][paragraphs[last].count - 1] = before
             } else {
@@ -1148,7 +1209,15 @@ enum PptxExporter {
         let paint = style.fill ?? "<a:solidFill>\(color(own ?? ink ?? el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
         var font = "<a:latin typeface=\"\(SVGExporter.escape(face))\"/>"
         if let link { font += "<a:hlinkClick \(link)/>" }
-        let look = style.line + paint + style.effects
+        // A word's own marker in place of the box's Highlight, which is
+        // the last of the effects (styledParts): PowerPoint takes one
+        // a:highlight a run.
+        var effects = style.effects
+        if let mark = run.highlight {
+            if let box = effects.range(of: "<a:highlight>") { effects = String(effects[..<box.lowerBound]) }
+            effects += "<a:highlight>\(color(mark))</a:highlight>"
+        }
+        let look = style.line + paint + effects
         return "<a:r><a:rPr\(attributes)>\(look)\(font)</a:rPr><a:t>\(SVGExporter.escape(run.text))</a:t></a:r>"
     }
 
@@ -1259,13 +1328,14 @@ enum PptxExporter {
     static func entryNames(design: Design, indices: [Int], styled: Bool = true,
                            photos: PhotoLookup = .stored) -> [String] {
         let pages = indices.map { design.pages[$0] }
-        var names = packageParts(design: design, noted: pages.map(hasNotes)).map(\.name)
+        let noted = pages.map { notesText(design: design, page: $0, styled: styled) != nil }
+        var names = packageParts(design: design, noted: noted).map(\.name)
         var image = 1
         for (n, page) in pages.enumerated() {
             let pictures = media(design: design, page: page, firstImage: image, styled: styled, photos: photos)
             image += pictures.count
             names += pictures.map { "ppt/media/\($0.name)" }
-            names += slideEntryNames(number: n + 1, notes: hasNotes(page))
+            names += slideEntryNames(number: n + 1, notes: noted[n])
         }
         return names
     }
@@ -1463,7 +1533,8 @@ enum PptxExporter {
         let zip = ZipWriter { try handle.write(contentsOf: $0) }
         var pacer = DesignExporter.Pacer()
         do {
-            for part in packageParts(design: design, noted: pages.map(hasNotes)) {
+            let noted = pages.map { notesText(design: design, page: $0, styled: styled) != nil }
+            for part in packageParts(design: design, noted: noted) {
                 try zip.add(part.name, Data(part.xml.utf8))
             }
             var image = 1

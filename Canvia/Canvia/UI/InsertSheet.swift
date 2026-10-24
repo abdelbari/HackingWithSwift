@@ -793,7 +793,8 @@ struct InsertSheet: View {
         let size = 12 + role.widthFraction * 160
         let weight = face?.weight ?? role.defaultWeight
         return Button {
-            store.addText(BrandFonts.element(role, face: face, pageWidth: store.pageWidth))
+            store.addText(BrandFonts.element(role, face: face, pageWidth: store.pageWidth,
+                                                 palettes: BrandKit.load().palettes))
             dismiss()
         } label: {
             Text(role.addLabel)

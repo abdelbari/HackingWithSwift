@@ -1362,6 +1362,9 @@ struct CanvasView: View {
         if voiceOver && store.canPasteAtFinger {
             Button(HoldMenu.HoldItem.paste.title) { chooseFromHoldMenu(.paste, at: centre) }
         }
+        if voiceOver && UIPasteboard.general.hasStrings {
+            Button(HoldMenu.HoldItem.pastePlain.title) { chooseFromHoldMenu(.pastePlain, at: centre) }
+        }
         if voiceOver && store.hasPageOnClipboard {
             Button(store.pastePageTitle) { chooseFromHoldMenu(.pastePage, at: centre) }
         }
@@ -2520,6 +2523,7 @@ struct CanvasView: View {
                                onWordScale: { store.scaleWords(id, range: $0, by: $1) },
                                onWordFont: { store.chooseWordFont(id, range: $0) },
                                onWordLink: { store.chooseWordLink(id, range: $0) },
+                               onWordHighlight: { store.chooseWordHighlight(id, range: $0) },
                                onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
                                onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onLines: { store.changeLines(id, covering: $0, $1) },

@@ -542,6 +542,11 @@ enum RichText {
                 out.addAttribute(.foregroundColor, value: UIColor(hex: color), range: range)
                 out.addAttribute(Spans.colourKey, value: color, range: range)
             }
+            // A marker behind the words, drawn from the lines they are set
+            // on (TextHighlights).
+            if let highlight = span.highlight {
+                out.addAttribute(Spans.highlightKey, value: highlight, range: range)
+            }
             if let link = span.link {
                 out.addAttribute(Spans.linkKey, value: link, range: range)
                 out.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)

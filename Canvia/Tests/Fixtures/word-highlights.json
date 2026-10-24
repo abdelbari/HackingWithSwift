@@ -1,0 +1,34 @@
+{
+  "about": "Marks behind highlighted spans: each line's edge before letter o is x0 + (o - start) * advance; each rect is [x, y, w, h, radius, colour].",
+  "text": "Hello big world",
+  "fontSize": 40,
+  "cases": [
+    {
+      "spans": [{"start": 6, "end": 9, "highlight": "#FFF176"}],
+      "lines": [{"start": 0, "end": 15, "top": 0, "bottom": 50, "x0": 0, "advance": 20}],
+      "rects": [[116.8, 0, 66.4, 50, 6, "#FFF176"]]
+    },
+    {
+      "spans": [{"start": 5, "end": 15, "highlight": "#FFF176"}],
+      "lines": [{"start": 0, "end": 15, "top": 0, "bottom": 50, "x0": 0, "advance": 20}],
+      "rects": [[96.8, 0, 206.4, 50, 6, "#FFF176"]]
+    },
+    {
+      "spans": [{"start": 6, "end": 15, "highlight": "#FFF176"}],
+      "lines": [
+        {"start": 0, "end": 10, "top": 0, "bottom": 50, "x0": 0, "advance": 20},
+        {"start": 10, "end": 15, "top": 50, "bottom": 100, "x0": 0, "advance": 20}
+      ],
+      "rects": [[116.8, 0, 86.4, 50, 6, "#FFF176"], [-3.2, 50, 106.4, 50, 6, "#FFF176"]]
+    },
+    {
+      "spans": [
+        {"start": 2, "end": 5, "highlight": "#FFF176"},
+        {"start": 5, "end": 7, "color": "#ff0000"},
+        {"start": 8, "end": 14, "highlight": "#90CAF980"}
+      ],
+      "lines": [{"start": 0, "end": 10, "top": 0, "bottom": 50, "x0": 0, "advance": 10}],
+      "rects": [[16.8, 0, 36.4, 50, 6, "#FFF176"], [76.8, 0, 26.4, 50, 6, "#90CAF980"]]
+    }
+  ]
+}

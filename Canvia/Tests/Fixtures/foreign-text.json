@@ -1,0 +1,246 @@
+{
+  "html": [
+    {
+      "name": "bold tag",
+      "html": "<b>Big</b> sale",
+      "boxSize": 42,
+      "clip": {
+        "text": "**Big** sale",
+        "spans": [],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "Google Docs wrapper",
+      "html": "<meta charset=\"utf-8\"><b style=\"font-weight:normal;\" id=\"docs-internal-guid-1\"><span style=\"font-size:11pt;color:#000000;font-weight:700;\">Bold</span><span style=\"font-size:11pt;color:#000000;font-weight:400;\"> and plain</span></b>",
+      "boxSize": 42,
+      "clip": {
+        "text": "**Bold** and plain",
+        "spans": [
+          {
+            "start": 0,
+            "end": 14,
+            "color": "#000000",
+            "scale": 0.35
+          }
+        ],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "nested lists",
+      "html": "<ul><li>One</li><li>Two<ul><li>Deep</li></ul></li></ul><ol><li>First</li></ol><p>After</p>",
+      "boxSize": 42,
+      "clip": {
+        "text": "One\nTwo\nDeep\nFirst\nAfter",
+        "spans": [],
+        "paragraphs": [
+          {
+            "list": "bullet"
+          },
+          {
+            "list": "bullet"
+          },
+          {
+            "list": "bullet",
+            "level": 1
+          },
+          {
+            "list": "number"
+          },
+          {}
+        ]
+      }
+    },
+    {
+      "name": "link, entities, script",
+      "html": "<p>Visit <a href=\"https://canvia.app\">our&nbsp;site</a> &amp; more</p><script>x()</script><style>p{}</style>",
+      "boxSize": 42,
+      "clip": {
+        "text": "Visit our site & more",
+        "spans": [
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://canvia.app"
+          }
+        ],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "italic, underline, strike, colour",
+      "html": "<i>a</i> <u>b</u> <s>c</s> <span style=\"color: rgb(255, 0, 0)\">d</span> <font color=\"#00F\">e</font>",
+      "boxSize": 42,
+      "clip": {
+        "text": "*a* __b__ ~~c~~ d e",
+        "spans": [
+          {
+            "start": 6,
+            "end": 7,
+            "color": "#ff0000"
+          },
+          {
+            "start": 8,
+            "end": 9,
+            "color": "#0000ff"
+          }
+        ],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "breaks and blocks",
+      "html": "<div>Line   one<br>Line two<br></div><div><p>Three</p></div>",
+      "boxSize": 42,
+      "clip": {
+        "text": "Line one\nLine two\nThree",
+        "spans": [],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "size in px and a library font",
+      "html": "<span style=\"font-size:84px;font-family:'Lora', serif\">Big</span> <span style=\"font-family:Comic Sans MS\">x</span>",
+      "boxSize": 42,
+      "clip": {
+        "text": "Big x",
+        "spans": [
+          {
+            "start": 0,
+            "end": 3,
+            "scale": 2.0,
+            "font": "lora"
+          }
+        ],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "literal stars",
+      "html": "<b>2*3</b> = 6",
+      "boxSize": 42,
+      "clip": {
+        "text": "**2\\*3** = 6",
+        "spans": [],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "headings, cite and an item outside a list",
+      "html": "<h2>Title</h2><cite>Book</cite><li>Loose</li>",
+      "boxSize": 42,
+      "clip": {
+        "text": "**Title**\n*Book*\nLoose",
+        "spans": [],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "entities, named and alpha colours, font face, no decoration",
+      "html": "<p>A&mdash;B &hellip;</p><span style=\"color:navy\">n</span> <span style=\"color:rgba(255,0,0,0.5)\">h</span> <font face=\"Lora\">f</font> <u><span style=\"text-decoration:none\">p</span></u>",
+      "boxSize": 42,
+      "clip": {
+        "text": "A—B …\nn h f p",
+        "spans": [
+          {
+            "start": 6,
+            "end": 7,
+            "color": "#000080"
+          },
+          {
+            "start": 8,
+            "end": 9,
+            "color": "#ff000080"
+          },
+          {
+            "start": 10,
+            "end": 11,
+            "font": "lora"
+          }
+        ],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "the box's own size is no span",
+      "html": "<span style=\"font-size:30pt\">Same</span> <span style=\"font-size:20px\">half</span>",
+      "boxSize": 40,
+      "clip": {
+        "text": "Same half",
+        "spans": [
+          {
+            "start": 5,
+            "end": 9,
+            "scale": 0.5
+          }
+        ],
+        "paragraphs": []
+      }
+    }
+  ],
+  "rtf": [
+    {
+      "name": "RTF bold and colour",
+      "rtf": "{\\rtf1\\ansi{\\fonttbl\\f0 Helvetica;}{\\colortbl;\\red255\\green0\\blue0;}\\f0 Plain \\b Bold\\b0  \\cf1 red\\cf0\\par Next \\i slant\\i0\\line \\ul under\\ulnone  \\strike gone\\strike0}",
+      "boxSize": 42,
+      "clip": {
+        "text": "Plain **Bold** red\nNext *slant*\n__under__ ~~gone~~",
+        "spans": [
+          {
+            "start": 11,
+            "end": 14,
+            "color": "#ff0000"
+          }
+        ],
+        "paragraphs": []
+      }
+    },
+    {
+      "name": "RTF black is the box's own",
+      "rtf": "{\\rtf1\\ansi{\\colortbl;\\red0\\green0\\blue0;\\red0\\green0\\blue255;}\\cf1 ink \\cf2 blue\\cf0}",
+      "boxSize": 42,
+      "clip": {
+        "text": "ink blue",
+        "spans": [
+          {
+            "start": 4,
+            "end": 8,
+            "color": "#0000ff"
+          }
+        ],
+        "paragraphs": []
+      }
+    }
+  ],
+  "colours": [
+    [
+      "RED",
+      "#ff0000"
+    ],
+    [
+      "#abc",
+      "#aabbcc"
+    ],
+    [
+      "rgb(16, 32, 48)",
+      "#102030"
+    ],
+    [
+      "rgba(16, 32, 48, 0.5)",
+      "#10203080"
+    ],
+    [
+      "#112233ff",
+      "#112233"
+    ],
+    [
+      "rgb(100%, 0%, 20%)",
+      "#ff0033"
+    ],
+    [
+      "inherit",
+      null
+    ]
+  ]
+}

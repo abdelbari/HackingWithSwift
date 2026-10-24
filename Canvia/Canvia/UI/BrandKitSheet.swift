@@ -286,6 +286,9 @@ struct BrandKitSheet: View {
         Section {
             ForEach(BrandFonts.Role.allCases) { role in
                 roleRow(role)
+                if kit.fonts[role] != nil {
+                    BrandRoleMore(face: faceBinding(role), palettes: kit.palettes)
+                }
             }
         } header: {
             Text("Type")
@@ -320,14 +323,21 @@ struct BrandKitSheet: View {
         .accessibilityValue(missing ?? name)
     }
 
-    /// A face picked for a role keeps the role's weight and size; None
-    /// clears it.
+    /// A face picked for a role keeps the role's weight, size and the rest
+    /// of its type; None clears it.
     private func pick(_ key: String?, for role: BrandFonts.Role) {
         editKit { kit in
             guard let key else { kit.fonts[role] = nil; return }
-            let old = kit.fonts[role]
-            kit.fonts[role] = BrandFont(family: key, weight: old?.weight ?? role.defaultWeight, size: old?.size)
+            var face = kit.fonts[role] ?? BrandFont(family: key, weight: role.defaultWeight)
+            face.family = key
+            kit.fonts[role] = face
         }
+    }
+
+    /// A role's face as its More rows change it, written back to the kit.
+    private func faceBinding(_ role: BrandFonts.Role) -> Binding<BrandFont> {
+        Binding(get: { kit.fonts[role] ?? BrandFont(family: "sans", weight: role.defaultWeight) },
+                set: { face in editKit { $0.fonts[role] = face } })
     }
 
     // MARK: logos

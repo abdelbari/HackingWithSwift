@@ -197,6 +197,34 @@ extension DesignStore {
         }
     }
 
+    // MARK: highlights on words
+
+    /// The highlighter on the typing bar: the typing so far kept as its own
+    /// step, and the marker colours asked for the words chosen.
+    func chooseWordHighlight(_ id: String, range: NSRange) {
+        guard let el = element(id), el.type == .text, !el.locked, range.length > 0 else { return }
+        commit()
+        wordHighlightTarget = WordRange(id: id, range: range)
+    }
+
+    /// The marker the words the colours are open for share — nil for none
+    /// — and whether they share one: "Mixed" when they do not.
+    var wordHighlight: (highlight: String?, shared: Bool) {
+        guard let target = wordHighlightTarget, let el = element(target.id) else { return (nil, true) }
+        let shared = Spans.highlight(of: el.liveSpans, in: target.range)
+        return (shared.highlight, shared.shared)
+    }
+
+    /// The words the colours are open for marked in `hex` — or with no
+    /// marker, with nil — as one step.
+    func highlightWords(_ hex: String?) {
+        guard let target = wordHighlightTarget else { return }
+        updateSelected { el in
+            guard el.id == target.id else { return }
+            Self.restyleWords(&el, target.range) { Spans.highlighting($0, range: $1, highlight: hex) }
+        }
+    }
+
     // MARK: links on words
 
     /// Link on the typing bar: the typing so far kept as its own step, and

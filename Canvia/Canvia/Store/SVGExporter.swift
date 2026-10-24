@@ -413,6 +413,8 @@ enum SVGExporter {
         let d = standIns?.letters(drawn) ?? outlines.map { data($0.whole) } ?? ""
         guard !d.isEmpty else { return "" }
         let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
+        // Marks behind chosen words, before the letters, so under them.
+        let marks = standIns == nil ? highlightMarkup(drawn, top: top) : ""
         // Outline's stroke as a pass of its own under every fill, as the
         // canvas strokes all the letters before it fills any.
         let stroke = outlinedStroke(drawn)
@@ -430,7 +432,7 @@ enum SVGExporter {
             let place = "x=\"\(num(window.minX))\" y=\"\(num(window.minY))\" width=\"\(num(window.width))\" height=\"\(num(window.height))\""
             let picture = "<image clip-path=\"url(#textclip\(index))\" \(place) preserveAspectRatio=\"none\" " +
                 "xlink:href=\"data:image/\(photo.type);base64,\(photo.data.base64EncodedString())\"/>"
-            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring + clip + picture + "</g>"
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring + clip + picture + "</g>"
         }
         let ink = textInk(el)
         if !gradient, el.textFill?.isPhoto != true, let parts = outlines?.parts, parts.contains(where: { $0.color != nil }) {
@@ -438,7 +440,7 @@ enum SVGExporter {
             let paths = parts.map { part in
                 "<path d=\"\(data(part.path))\" fill=\"\(escape(part.color ?? ink))\" fill-rule=\"nonzero\"/>"
             }
-            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring + paths.joined() + "</g>"
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring + paths.joined() + "</g>"
         }
         let paint: String
         if let fill = el.textFill, fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
@@ -453,8 +455,21 @@ enum SVGExporter {
         } else {
             paint = escape(ink)
         }
-        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring +
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring +
                "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
+    }
+
+    /// The marks behind highlighted words (TextHighlights), as rounded
+    /// rects in the box's space, a see-through marker as a fill-opacity.
+    static func highlightMarkup(_ drawn: Element, top: Double) -> String {
+        guard !TextOutliner.followsAPath(drawn) else { return "" }
+        return TextHighlights.rects(for: drawn, width: drawn.w, top: top).map { mark in
+            let paint = TextHighlights.split(mark.color)
+            let opacity = paint.alpha < 1 ? " fill-opacity=\"\(num(paint.alpha))\"" : ""
+            let corner = min(mark.radius, mark.w / 2, mark.h / 2)
+            return "<rect x=\"\(num(mark.x))\" y=\"\(num(mark.y))\" width=\"\(num(mark.w))\" " +
+                "height=\"\(num(mark.h))\" rx=\"\(num(corner))\" fill=\"\(escape(paint.color))\"\(opacity)/>"
+        }.joined()
     }
 
     /// The ink text is written in: its colour, or for letters full of a

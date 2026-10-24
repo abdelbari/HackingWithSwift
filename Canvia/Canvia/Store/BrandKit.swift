@@ -6,8 +6,12 @@
 //   {"activeId": "kit-1",
 //    "kits": [{"id": "kit-1", "name": "My brand",
 //              "palettes": [{"name": "Colours", "colors": ["#1f2430", …]}],
-//              "fonts": {"title": {"family", "weight", "size"?}, "heading": …,
-//                        "subheading": …, "body": …, "quote": …, "caption": …},
+//              "fonts": {"title": {"family", "weight", "size"?, "color"?,
+//                                  "letterSpacing"?, "lineHeight"?,
+//                                  "uppercase"?, "italic"?},
+//                        "subtitle": …, "heading": …, "subheading": …,
+//                        "sectionHeader": …, "body": …, "quote": …,
+//                        "caption": …},
 //              "logos": ["media:…"],
 //              "photos": ["media:…"], "graphics": ["media:…" | "svg:…"],
 //              "templates": ["<userTemplateId>"]}]}
@@ -37,45 +41,100 @@ struct BrandPalette: Codable, Equatable {
     var colors: [String]
 }
 
-/// A brand face for one text role.
+/// A brand face for one text role, and the rest of its type: a colour, a
+/// letter spacing, a line spacing, capitals and a slant, each optional, so
+/// a kit from an earlier build reads unchanged.
 struct BrandFont: Codable, Equatable {
     var family: String
     var weight: Int
     /// The size on a page 1080 wide, scaled with the page as a font
     /// pairing's sizes are; nil leaves the size to whatever uses the role.
     var size: Double?
+    /// "#rrggbb", or one of the kit's colours as "palette:<palette>:<colour>"
+    /// (both from 0), which follows the colour when it is changed.
+    var color: String?
+    /// Letter spacing on a page 1080 wide, scaled with the page as the size
+    /// is.
+    var letterSpacing: Double?
+    /// Line spacing, as a text's lineHeight: a multiple of the type size.
+    var lineHeight: Double?
+    var uppercase: Bool?
+    var italic: Bool?
 
-    init(family: String, weight: Int = 400, size: Double? = nil) {
+    init(family: String, weight: Int = 400, size: Double? = nil, color: String? = nil,
+         letterSpacing: Double? = nil, lineHeight: Double? = nil, uppercase: Bool? = nil, italic: Bool? = nil) {
         self.family = family
         self.weight = weight
         self.size = size
+        self.color = color
+        self.letterSpacing = letterSpacing
+        self.lineHeight = lineHeight
+        self.uppercase = uppercase
+        self.italic = italic
+    }
+
+    /// What a "palette:<p>:<c>" colour starts with.
+    static let paletteRef = "palette:"
+
+    /// `color` as a colour: a hex as it is, a reference to one of
+    /// `palettes`' colours as that colour, nil for none or a reference to a
+    /// colour the kit no longer has.
+    static func resolved(_ color: String?, palettes: [BrandPalette]) -> String? {
+        guard let color else { return nil }
+        guard color.hasPrefix(paletteRef) else { return color }
+        let parts = color.dropFirst(paletteRef.count).split(separator: ":").map { Int($0) }
+        guard parts.count == 2, let p = parts[0], let c = parts[1],
+              palettes.indices.contains(p), palettes[p].colors.indices.contains(c) else { return nil }
+        return palettes[p].colors[c]
     }
 }
 
 /// The kit's faces by text role, each optional.
 struct BrandFonts: Codable, Equatable {
     var title: BrandFont?
+    var subtitle: BrandFont?
     var heading: BrandFont?
     var subheading: BrandFont?
+    var sectionHeader: BrandFont?
     var body: BrandFont?
     var quote: BrandFont?
     var caption: BrandFont?
 
-    /// The roles in the order they are listed, largest type first.
+    /// The roles in the order they are listed — Canva's brand kit order, the
+    /// Android twin's BrandRoles.ORDER.
     enum Role: String, CaseIterable, Identifiable {
-        case title, heading, subheading, body, quote, caption
+        case title, subtitle, heading, subheading, sectionHeader, body, quote, caption
 
         var id: String { rawValue }
 
+        /// The roles a theme hands out by size, biggest first — in the
+        /// order they are listed, a subtitle between the title and the
+        /// heading; a quote or a caption is what a text says, not how big
+        /// it is, so neither is a rank. The Android twin's BrandRoles.BY_SIZE.
+        static let bySize: [Role] = [.title, .subtitle, .heading, .subheading, .sectionHeader, .body]
+
         /// "Title", "Heading" …
-        var label: String { tr(rawValue.prefix(1).uppercased() + rawValue.dropFirst()) }
+        var label: String {
+            switch self {
+            case .title: return tr("Title")
+            case .subtitle: return tr("Subtitle")
+            case .heading: return tr("Heading")
+            case .subheading: return tr("Subheading")
+            case .sectionHeader: return tr("Section header")
+            case .body: return tr("Body")
+            case .quote: return tr("Quote")
+            case .caption: return tr("Caption")
+            }
+        }
 
         /// What Add text calls a text in this role.
         var addLabel: String {
             switch self {
             case .title: return tr("Add a title")
+            case .subtitle: return tr("Add a subtitle")
             case .heading: return tr("Add a heading")
             case .subheading: return tr("Add a subheading")
+            case .sectionHeader: return tr("Add a section header")
             case .body: return tr("Add body text")
             case .quote: return tr("Add a quote")
             case .caption: return tr("Add a caption")
@@ -88,8 +147,10 @@ struct BrandFonts: Codable, Equatable {
         var widthFraction: Double {
             switch self {
             case .title: return 0.11
+            case .subtitle: return 0.05
             case .heading: return 0.08
             case .subheading: return 0.045
+            case .sectionHeader: return 0.035
             case .body: return 0.028
             case .quote: return 0.04
             case .caption: return 0.022
@@ -97,23 +158,34 @@ struct BrandFonts: Codable, Equatable {
         }
 
         /// Its weight when the kit sets no face for it: a title and a
-        /// heading bold, a subheading semibold, the rest regular, as on the
-        /// Android twin.
+        /// heading bold, a subheading and a section header semibold, a
+        /// subtitle medium, the rest regular, as on the Android twin.
         var defaultWeight: Int {
             switch self {
             case .title, .heading: return 700
-            case .subheading: return 600
+            case .subheading, .sectionHeader: return 600
+            case .subtitle: return 500
             default: return 400
             }
         }
+
+        /// Whether it is in capitals when its face does not say: a section
+        /// header is.
+        var defaultUppercase: Bool { self == .sectionHeader }
+
+        /// Its letter spacing in ems of its size when its face sets none: a
+        /// section header's 0.08, the rest none.
+        var defaultSpacingEm: Double { self == .sectionHeader ? 0.08 : 0 }
     }
 
     subscript(role: Role) -> BrandFont? {
         get {
             switch role {
             case .title: return title
+            case .subtitle: return subtitle
             case .heading: return heading
             case .subheading: return subheading
+            case .sectionHeader: return sectionHeader
             case .body: return body
             case .quote: return quote
             case .caption: return caption
@@ -122,8 +194,10 @@ struct BrandFonts: Codable, Equatable {
         set {
             switch role {
             case .title: title = newValue
+            case .subtitle: subtitle = newValue
             case .heading: heading = newValue
             case .subheading: subheading = newValue
+            case .sectionHeader: sectionHeader = newValue
             case .body: body = newValue
             case .quote: quote = newValue
             case .caption: caption = newValue
@@ -142,15 +216,42 @@ struct BrandFonts: Codable, Equatable {
 
     /// A text in `role` for a page `pageWidth` wide, its words what Add text
     /// calls it: the kit's face for the role, at its size scaled from a page
-    /// 1080 wide, else the role's own size and weight in the default face.
-    /// Sizes are whole numbers; the box is 72% of the page wide.
-    static func element(_ role: Role, face: BrandFont?, pageWidth: Double) -> Element {
+    /// 1080 wide, else the role's own size and weight in the default face —
+    /// and every other thing the face sets (typeSettings), its colour from
+    /// `palettes` where it names one of the kit's. Sizes are whole numbers;
+    /// the box is 72% of the page wide.
+    static func element(_ role: Role, face: BrandFont?, pageWidth: Double,
+                        palettes: [BrandPalette] = []) -> Element {
         let size = sized(face, pageWidth: pageWidth) ?? (pageWidth * role.widthFraction).rounded()
         var el = Element.text(role.addLabel, fontSize: size, w: (pageWidth * 0.72).rounded())
         el.fontWeight = face?.weight ?? role.defaultWeight
         if let face { el.fontFamily = face.family }
+        typeSettings(face, role: role, to: &el, pageWidth: pageWidth, palettes: palettes)
         el.h = FontLibrary.layoutHeight(for: el)
         return el
+    }
+
+    /// The rest of a face's type on `el`, each only when set: its colour
+    /// (resolved against `palettes`), its letter spacing scaled from a page
+    /// 1080 wide as the size is, its line spacing, capitals and slant. A
+    /// section header's face that says nothing of capitals or spacing is in
+    /// capitals, 0.08 em apart (Role.defaultUppercase, defaultSpacingEm) —
+    /// the rule both phones share. `role` nil applies the face alone.
+    static func typeSettings(_ face: BrandFont?, role: Role?, to el: inout Element, pageWidth: Double,
+                             palettes: [BrandPalette]) {
+        if let color = BrandFont.resolved(face?.color, palettes: palettes) { el.color = color }
+        if let spacing = face?.letterSpacing {
+            el.letterSpacing = spacing * pageWidth / 1080
+        } else if let role, role.defaultSpacingEm > 0 {
+            el.letterSpacing = role.defaultSpacingEm * (el.fontSize ?? 42)
+        }
+        if let line = face?.lineHeight { el.lineHeight = line }
+        if let caps = face?.uppercase {
+            el.uppercase = caps ? true : nil
+        } else if let role, role.defaultUppercase {
+            el.uppercase = true
+        }
+        if let italic = face?.italic { el.italic = italic }
     }
 
     /// The kit's size for a role, set on a page 1080 wide, on a page
@@ -161,13 +262,22 @@ struct BrandFonts: Codable, Equatable {
 
     /// A text set in a role's face — the Styles list's brand rows: its
     /// family and weight, and the kit's size for the role, scaled as
-    /// `element` scales it, when it sets one. Anything but text is left
-    /// alone; the caller measures the height again.
+    /// `element` scales it, when it sets one, and the rest of its type as
+    /// `element` sets it for `role`. Anything but text is left alone; the
+    /// caller measures the height again.
     static func apply(_ face: BrandFont, to el: inout Element, pageWidth: Double) {
+        apply(face, to: &el, pageWidth: pageWidth, role: nil, palettes: [])
+    }
+
+    /// The same, the face's type set as `role` sets it, its colour from
+    /// `palettes` where it names one of the kit's.
+    static func apply(_ face: BrandFont, to el: inout Element, pageWidth: Double,
+                      role: BrandFonts.Role?, palettes: [BrandPalette]) {
         guard el.type == .text else { return }
         el.fontFamily = face.family
         el.fontWeight = face.weight
         if let size = sized(face, pageWidth: pageWidth) { el.fontSize = size }
+        typeSettings(face, role: role, to: &el, pageWidth: pageWidth, palettes: palettes)
     }
 
     /// The face a role is set in: its own, or — when the kit leaves it out —
@@ -177,17 +287,16 @@ struct BrandFonts: Codable, Equatable {
     func fontFor(_ role: Role) -> BrandFont? {
         if let own = self[role] { return own }
         switch role {
-        case .title, .subheading, .heading: return heading ?? body
+        case .title, .subtitle, .subheading, .sectionHeader, .heading: return heading ?? body
         case .body, .quote, .caption: return body ?? heading
         }
     }
 
     /// The roles a theme sets by size rank, largest first: those with a face
-    /// among title, heading, subheading and body. A quote or a caption is
-    /// not a rank — it is what a text says, not how big it is — so the theme
-    /// leaves them to Add text.
+    /// among Role.bySize. A quote or a caption is not a rank — it is what a
+    /// text says, not how big it is — so the theme leaves them to Add text.
     var rankedRoles: [Role] {
-        [Role.title, .heading, .subheading, .body].filter { self[$0] != nil }
+        Role.bySize.filter { self[$0] != nil }
     }
 }
 

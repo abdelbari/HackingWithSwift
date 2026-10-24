@@ -68,6 +68,12 @@ final class DesignStore {
     var wordColourTarget: WordRange?
     /// The words the font sheet is open for, from the typing bar's Aa.
     var wordFontTarget: WordRange?
+    /// The words the marker colours are open for, from the typing bar's
+    /// highlighter (see WordStyles).
+    var wordHighlightTarget: WordRange?
+    /// The text whose shape Edit shape has handles on — its warp's, or its
+    /// path's points (TextWarping); nil when none.
+    var shapeEditingId: String?
     /// Edit chart asked for from the canvas — VoiceOver's Edit data on a
     /// chart — with the chart selected; the editor opens it and clears this.
     var chartEditRequested = false
@@ -1077,9 +1083,26 @@ final class DesignStore {
     /// Paste; with `point`, on the page in page units — the menu a hold on
     /// the empty page brings up — what was copied is put down centred there
     /// and kept on the page (HoldMenu.placed), in the paste's one step.
-    func paste(at point: CGPoint? = nil) {
+    /// `plain`, Paste as plain text: the words on the pasteboard as they
+    /// read, a text box, whatever else came with them.
+    func paste(at point: CGPoint? = nil, plain: Bool = false) {
         // Nothing is pasted onto a locked page.
         guard !refusesLockedPage() else { return }
+        if plain {
+            guard var words = ElementClipboard.foreign(designWidth: pageWidth, plain: true) else {
+                buzz(.reject)
+                announce(tr("Nothing to paste"), undoable: false)
+                return
+            }
+            if let point {
+                let box = Geometry.aabb(words)
+                let at = HoldMenu.placed(box.size, at: point, page: pageSize)
+                words.x += Double(at.x - box.minX)
+                words.y += Double(at.y - box.minY)
+            }
+            add(words)
+            return
+        }
         // Our own copy first; otherwise whatever another app left: a
         // picture, or some text.
         if clipboard.isEmpty {
@@ -2727,8 +2750,9 @@ final class DesignStore {
     }
 
     /// The brand face for each text size, by rank: the sizes, once each and
-    /// largest first, take the kit's ranked roles in turn — title, heading,
-    /// subheading, body, those it sets — and every size past the last role
+    /// largest first, take the kit's ranked roles in turn — title, subtitle,
+    /// heading, subheading, section header, body, those it sets
+    /// (BrandFonts.rankedRoles) — and every size past the last role
     /// takes the last. Family and weight only: the sizes stay as they are.
     /// Empty when the kit sets none of those roles.
     static func brandFaces(sizes: [Double], fonts: BrandFonts) -> [Double: BrandFont] {
@@ -2816,9 +2840,12 @@ final class DesignStore {
     /// The selected text in a brand role's face — at the kit's size for
     /// it, scaled to this page, when it sets one — one undo step, each box
     /// measured again, as the Android twin's Text panel sets it.
-    func applyBrandFace(_ face: BrandFont) {
+    /// The face's colour, spacing, capitals and slant too, as a role sets
+    /// them (BrandFonts.typeSettings).
+    func applyBrandFace(_ face: BrandFont, role: BrandFonts.Role? = nil) {
         let width = pageWidth
-        updateSelected { el in BrandFonts.apply(face, to: &el, pageWidth: width) }
+        let palettes = BrandKit.load().palettes
+        updateSelected { el in BrandFonts.apply(face, to: &el, pageWidth: width, role: role, palettes: palettes) }
     }
 
     /// Re-read the style from `element` and re-apply it to every element on
@@ -3034,20 +3061,44 @@ final class DesignStore {
         }
     }
 
+    /// Animate by: what the selected texts' text animations move as one —
+    /// "letter", "word" or "line" — as one undo step, written as `by` even
+    /// when it is the kind's own, as the Android twin writes it. Their exits
+    /// of a unit kind go by it too.
+    func animateSelected(by unit: String) {
+        guard ElementAnimation.unitChoices.contains(unit) else { return }
+        updateSelected { el in
+            guard el.type == .text else { return }
+            if var entrance = el.animation, ElementAnimation.textKinds.contains(entrance.kind) {
+                entrance.by = unit
+                el.animation = entrance
+            }
+            if var exit = el.exitAnimation, ElementAnimation.unitKinds.contains(exit.kind) {
+                exit.by = unit
+                el.exitAnimation = exit
+            }
+        }
+    }
+
     /// Give every unlocked selected element a way out as the page ends, as
     /// one undo step, staggered in layer order so the first in is the last
-    /// out; nil takes the exits away.
+    /// out; nil takes the exits away. A text's own way out (a unit kind)
+    /// leaves anything but text as it is, and keeps what a text's exit
+    /// moved by — as the Android twin's ElementAnimation.exited.
     func exitSelected(_ kind: String?) {
         guard unlockedSelectionCount > 0 else { return }
         applyToPage { page in
             var n = 0
             for i in page.elements.indices
             where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
+                defer { n += 1 }
+                let unitKind = kind.map { ElementAnimation.unitKinds.contains($0) } ?? false
+                if unitKind && page.elements[i].type != .text { continue }
+                let by = unitKind ? page.elements[i].exitAnimation?.by : nil
                 page.elements[i].exitAnimation = kind.map {
                     ElementAnimation(kind: $0, delay: Double(n) * ElementAnimation.exitStagger,
-                                     duration: ElementAnimation.exitDuration)
+                                     duration: ElementAnimation.exitDuration, by: by)
                 }
-                n += 1
             }
         }
     }

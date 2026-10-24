@@ -448,6 +448,8 @@ enum PptxReader {
         /// The cut its face names ("Montserrat Light"), as the words' own
         /// weight; nil for a family alone.
         var weight: Int? = nil
+        /// Its a:highlight's colour, "#rrggbb" or "#rrggbbaa"; nil for none.
+        var highlight: String? = nil
     }
 
     /// A box's words: with the first run's own a:rPr (`props`), where the
@@ -854,7 +856,8 @@ enum PptxReader {
                                         size: (look.size ?? PptxReader.defaultType) / PptxReader.sizePerPixel,
                                         bold: look.bold == true, italic: look.italic == true,
                                         underline: look.underline == true, colour: look.colour ?? "#000000",
-                                        font: cut?.family ?? font(look.typeface), weight: cut?.weight))
+                                        font: cut?.family ?? font(look.typeface), weight: cut?.weight,
+                                        highlight: part.child("rPr")?.child("highlight").flatMap(colour(in:))))
                     case "br":
                         plain += "\n"
                         length += 1
@@ -1465,6 +1468,13 @@ enum PptxReader {
             default: break
             }
             el = reader.styled(el, props: given.props, body: body, size: size)
+            // Every run marked alike is the box's Highlight, as the writer
+            // writes it; runs marked apart are highlights on their words
+            // (TextSpan.highlight), and the box has no Highlight then — the
+            // rule both phones share.
+            let marks = words.runs.map(\.highlight)
+            let boxMarked = !marks.isEmpty && marks.allSatisfy { $0 != nil && $0 == marks[0] }
+            if !boxMarked, el.effect?.type == "highlight" { el.effect = nil }
             // The spans are made for the plain words, which the escapes keep.
             if RichText.strip(text) == words.plain {
                 let boxWeight = bold ? 700 : 400
@@ -1477,7 +1487,8 @@ enum PptxReader {
                                     scale: size > 0 && abs(scale - 1) > Spans.scaleTolerance ? scale : nil,
                                     font: r.font == face ? nil : r.font,
                                     weight: weight == boxWeight ? nil : weight,
-                                    italic: plainOnly && r.italic && !italic ? true : nil)
+                                    italic: plainOnly && r.italic && !italic ? true : nil,
+                                    highlight: boxMarked ? nil : r.highlight)
                 })
             }
             return el

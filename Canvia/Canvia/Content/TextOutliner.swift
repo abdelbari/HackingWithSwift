@@ -76,6 +76,7 @@ enum TextOutliner {
         let curve: Double?
         let textPath: String?
         let vertical: Bool
+        let warp: TextWarpSpec?
 
         init(_ el: Element) {
             typography = FontLibrary.TypographyKey(el)
@@ -95,6 +96,7 @@ enum TextOutliner {
             curve = el.curve
             textPath = el.textPath
             vertical = el.vertical == true
+            warp = el.warp
         }
     }
 
@@ -155,6 +157,15 @@ enum TextOutliner {
         if let degrees = el.curve, abs(degrees) >= straightBelowDegrees {
             return curvedInk(for: el, degrees: degrees)
         }
+        if TextWarp.isWarped(el), let warp = el.warp {
+            // The lines as they are set straight — lower in the box as it
+            // sits them, as the canvas does — bent point by point.
+            let box = CGRect(x: 0, y: 0, width: el.w, height: el.h)
+            let slack = max(0, el.h - FontLibrary.measuredHeight(for: el))
+            let dy: Double = el.vAlign == "middle" ? slack / 2 : el.vAlign == "bottom" ? slack : 0
+            return straightInk(for: el)?.transformed(CGAffineTransform(translationX: 0, y: dy))
+                .mapped { TextWarp.warped($0, box: box, warp: warp) }
+        }
         return straightInk(for: el)
     }
 
@@ -210,6 +221,16 @@ enum TextOutliner {
             }
         }
 
+        /// The same outlines, each path changed by `change`: bent by a warp.
+        func mapped(_ change: (CGPath) -> CGPath) -> Ink {
+            let out = Ink()
+            out.all.addPath(change(all))
+            out.allRules.addPath(change(allRules))
+            for part in glyphs { Self.part(part.color, in: &out.glyphs).addPath(change(part.path)) }
+            for part in rules { Self.part(part.color, in: &out.rules).addPath(change(part.path)) }
+            return out
+        }
+
         /// The same outlines moved by `transform`.
         func transformed(_ transform: CGAffineTransform) -> Ink {
             let out = Ink()
@@ -248,7 +269,7 @@ enum TextOutliner {
     static func followsAPath(_ el: Element) -> Bool {
         if el.vertical == true { return true }
         if let data = el.textPath, !data.isEmpty { return true }
-        return el.curve.map { abs($0) >= straightBelowDegrees } ?? false
+        return el.curve.map { abs($0) >= straightBelowDegrees } ?? false || TextWarp.isWarped(el)
     }
 
     /// Glyphs set along `data`, scaled into the element's box, each by its

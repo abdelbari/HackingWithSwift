@@ -44,6 +44,8 @@ struct ElementView: View {
     @Environment(\.playsPictures) private var playsPictures
     @Environment(\.captionTime) private var captionTime
     @Environment(\.captionsPlay) private var captionsPlay
+    @Environment(\.onScreen) private var onScreen
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The element with "{page}" and "{pages}" filled in, where the page is
     /// known: what a reveal counts and cuts, so the words that appear are the
@@ -68,8 +70,15 @@ struct ElementView: View {
         guard let clock = animationTime else { return .settled }
         // A reveal counts the characters as they read, style marks left out.
         // Exits are played by their own clock where Present holds them back.
-        return Timeline.motion(of: element, time: clock.time, hold: clock.hold, exitTime: exitTime,
-                               text: resolved.text.map(RichText.strip))
+        var state = Timeline.motion(of: element, time: clock.time, hold: clock.hold, exitTime: exitTime,
+                                    text: resolved.text.map(RichText.strip))
+        // Reduce Motion: words on screen are shown whole, never cut or
+        // moving a unit at a time.
+        if reduceMotion && onScreen {
+            state.visibleCharacters = nil
+            state.unitClock = nil
+        }
+        return state
     }
 
     /// The element as drawn now: text cut to the revealed characters, a
@@ -198,7 +207,7 @@ struct ElementView: View {
         let el = shown
         switch el.type {
         case .shape: ShapeElementView(element: el)
-        case .text: TextElementView(element: el)
+        case .text: TextElementView(element: el, units: motion.unitClock)
         case .image:
             if playsPictures && animationTime == nil && AnimStore.isAnim(el.src) {
                 // Play in the editor: the picture on a clock of its own, going
@@ -437,12 +446,19 @@ extension StrokeStyle {
 
 struct TextElementView: View {
     let element: Element
+    /// Text moving a unit at a time (ElementAnimation.unitKinds): the move
+    /// and its moment; nil draws the words whole.
+    var units: ElementAnimation.UnitClock? = nil
     @Environment(\.pageNumber) private var pageNumber
 
     var body: some View {
         SwiftUI.Canvas { context, size in
             context.withCGContext { cg in
-                drawText(in: cg, size: size)
+                if let units {
+                    drawUnits(units, in: cg, size: size)
+                } else {
+                    drawText(in: cg, size: size)
+                }
             }
         }
         // Never clip: effects (shadows, glow) extend past the box.
@@ -504,6 +520,10 @@ struct TextElementView: View {
                 }
             }
         }
+
+        // Marks behind chosen words, over the bars and under the letters
+        // and whatever their effect casts.
+        TextHighlights.draw(TextHighlights.rects(for: el, width: size.width, top: rect.minY), in: cg)
 
         if fx.casts { Self.castShadow(fx, in: cg) }
 
@@ -617,6 +637,104 @@ struct TextElementView: View {
                                    flipped: true)
             }
             cg.restoreGState()
+        }
+    }
+
+    // MARK: a unit at a time
+
+    /// The words moving a unit at a time: each letter, word or line of the
+    /// words as drawn (ElementAnimation.units) clipped out of the whole
+    /// drawing — spans, lists and effects as they are — and drawn at its
+    /// frame's place, scale, turn, opacity, blur and share shown; what
+    /// belongs to no unit (a list's markers) drawn as it stands. Text round
+    /// a curve, along a path, warped or with a drop cap is drawn whole.
+    private func drawUnits(_ clock: ElementAnimation.UnitClock, in cg: CGContext, size: CGSize) {
+        var el = element
+        if let pageNumber { el.fillPageTokens(number: pageNumber.number, count: pageNumber.count) }
+        guard !TextOutliner.followsAPath(el), FontLibrary.dropCapLayout(for: el) == nil else {
+            drawText(in: cg, size: size)
+            return
+        }
+        if el.fitText == true { el.fontSize = FontLibrary.fittingFontSize(for: el) }
+        let slack = max(0, Double(size.height) - FontLibrary.measuredHeight(for: el))
+        let top: Double = el.vAlign == "middle" ? slack / 2 : el.vAlign == "bottom" ? slack : 0
+        let attributed = FontLibrary.attributedString(for: el)
+        let units = ElementAnimation.units(attributed.string, by: clock.animation.unit)
+        let frames = clock.animation.frames(units, at: clock.time, size: el.fontSize ?? 42)
+        // Every unit in place: the words whole, as they stand.
+        guard !frames.allSatisfy(clock.animation.atRest) else {
+            drawText(in: cg, size: size)
+            return
+        }
+        let lines = TextHighlights.lines(attributed, el: el, width: Double(size.width), top: top)
+        let boxes: [[CGRect]] = units.map { unit in
+            lines.compactMap { line -> CGRect? in
+                let from = max(unit.location, line.start), to = min(NSMaxRange(unit), line.end)
+                guard to > from else { return nil }
+                let left = line.x(from), right = line.x(to)
+                return CGRect(x: left, y: line.top, width: right - left, height: line.bottom - line.top)
+            }
+        }
+        // Everything outside the moving units — units at rest too — once,
+        // as it stands.
+        cg.saveGState()
+        let rest = CGMutablePath()
+        rest.addRect(CGRect(origin: .zero, size: size).insetBy(dx: -size.width, dy: -size.height))
+        for (frame, rects) in zip(frames, boxes) where !clock.animation.atRest(frame) {
+            for rect in rects { rest.addRect(rect) }
+        }
+        cg.addPath(rest)
+        cg.clip(using: .evenOdd)
+        drawText(in: cg, size: size)
+        cg.restoreGState()
+        let ink = UIColor(hex: el.color ?? "#1f2430")
+        for (frame, rects) in zip(frames, boxes) where !rects.isEmpty && !clock.animation.atRest(frame) {
+            drawUnit(frame, rects: rects, clock: clock, ink: ink, in: cg, size: size)
+        }
+    }
+
+    /// One unit at its frame, about its centre.
+    private func drawUnit(_ frame: ElementAnimation.UnitFrame, rects: [CGRect], clock: ElementAnimation.UnitClock,
+                          ink: UIColor, in cg: CGContext, size: CGSize) {
+        let bounds = rects.dropFirst().reduce(rects[0]) { $0.union($1) }
+        cg.saveGState()
+        defer { cg.restoreGState() }
+        cg.translateBy(x: bounds.midX + frame.dx, y: bounds.midY + frame.dy)
+        cg.rotate(by: frame.rotation * .pi / 180)
+        cg.scaleBy(x: frame.scale, y: frame.scale)
+        cg.translateBy(x: -bounds.midX, y: -bounds.midY)
+        let block = clock.animation.kind == "block"
+        if frame.alpha > 0 {
+            cg.saveGState()
+            // Write on: the share drawn on so far, from the left.
+            let shown = block ? rects : rects.map { CGRect(x: $0.minX, y: $0.minY, width: $0.width * frame.clip, height: $0.height) }
+            cg.clip(to: shown)
+            cg.setAlpha(frame.alpha)
+            cg.beginTransparencyLayer(auxiliaryInfo: nil)
+            if frame.blur > 0.5 {
+                // Clarify: soft copies round the letters, a stand-in blur.
+                for k in 0..<6 {
+                    let angle = Double(k) * .pi / 3
+                    cg.saveGState()
+                    cg.setAlpha(0.3)
+                    cg.translateBy(x: cos(angle) * frame.blur * 0.5, y: sin(angle) * frame.blur * 0.5)
+                    drawText(in: cg, size: size)
+                    cg.restoreGState()
+                }
+            } else {
+                drawText(in: cg, size: size)
+            }
+            cg.endTransparencyLayer()
+            cg.restoreGState()
+        }
+        // Block's bar in the text's colour: across the unit to its clip,
+        // then, from clip 1, off it from the left as the words show.
+        guard block, frame.clip > 0, frame.clip < 2 else { return }
+        cg.setFillColor(ink.cgColor)
+        let from = max(0, frame.clip - 1), to = min(1, frame.clip)
+        for rect in rects {
+            cg.fill(CGRect(x: rect.minX + rect.width * from, y: rect.minY,
+                           width: rect.width * (to - from), height: rect.height))
         }
     }
 

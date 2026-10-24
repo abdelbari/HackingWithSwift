@@ -1,0 +1,86 @@
+{
+  "about": "A brand kit with every text style key, and what the brand guidelines say each role sets, its face as Add text finds it (fontFor) on the 3508-wide page.",
+  "kits": {
+    "activeId": "kit-1",
+    "kits": [
+      {
+        "id": "kit-1",
+        "name": "My brand",
+        "palettes": [
+          {
+            "name": "Colours",
+            "colors": [
+              "#112233",
+              "#ff6600"
+            ]
+          }
+        ],
+        "fonts": {
+          "title": {
+            "family": "anton",
+            "weight": 400,
+            "size": 120.0,
+            "color": "#AA0000",
+            "letterSpacing": 4.5,
+            "lineHeight": 1.1,
+            "uppercase": true,
+            "italic": false
+          },
+          "subtitle": {
+            "family": "lora",
+            "weight": 500,
+            "color": "palette:0:1"
+          },
+          "heading": {
+            "family": "montserrat",
+            "weight": 700
+          },
+          "sectionHeader": {
+            "family": "montserrat",
+            "weight": 600,
+            "uppercase": false
+          },
+          "body": {
+            "family": "serif",
+            "weight": 400,
+            "lineHeight": 1.5,
+            "letterSpacing": -1.25,
+            "italic": true
+          }
+        },
+        "logos": []
+      }
+    ]
+  },
+  "attributes": {
+    "title": [
+      "#AA0000",
+      "Spacing 14.62",
+      "Line 1.1",
+      "Uppercase"
+    ],
+    "subtitle": [
+      "#FF6600"
+    ],
+    "heading": [],
+    "subheading": [],
+    "sectionHeader": [
+      "Spacing 9.82"
+    ],
+    "body": [
+      "Spacing -4.06",
+      "Line 1.5",
+      "Italic"
+    ],
+    "quote": [
+      "Spacing -4.06",
+      "Line 1.5",
+      "Italic"
+    ],
+    "caption": [
+      "Spacing -4.06",
+      "Line 1.5",
+      "Italic"
+    ]
+  }
+}

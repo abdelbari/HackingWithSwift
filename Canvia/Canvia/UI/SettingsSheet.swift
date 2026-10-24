@@ -109,6 +109,7 @@ struct SettingsSheet: View {
     @AppStorage(CanvasGestures.pinchSelectionKey) private var pinchSelection = true
     /// A typed "- " or "1. " starts a list (TextLists.autoStart).
     @AppStorage(TextLists.autoListsKey) private var autoLists = true
+    @AppStorage(ForeignText.keepsFormattingKey) private var keepsFormatting = true
     @AppStorage(AppDefaults.exportFormatKey) private var exportFormat = "png"
     @AppStorage(AppDefaults.unitKey) private var unit = "px"
     /// What Canvia is used for, as the first launch asked; "" for none.
@@ -213,6 +214,7 @@ struct SettingsSheet: View {
             Toggle("Zoom in to type small text", isOn: $typingZoom)
             Toggle("Pinch resizes what is selected", isOn: $pinchSelection)
             Toggle("Start lists as you type", isOn: $autoLists)
+            Toggle("Keep formatting when pasting", isOn: $keepsFormatting)
             Picker("Custom sizes start in", selection: $unit) {
                 ForEach(Units.all, id: \.self) { Text($0).tag($0) }
             }

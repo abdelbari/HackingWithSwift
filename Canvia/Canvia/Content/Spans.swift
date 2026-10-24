@@ -41,9 +41,13 @@ struct TextSpan: Codable, Equatable, Hashable {
     var weight: Int?
     /// Whether the words are slanted; nil is as the box is.
     var italic: Bool?
+    /// A marker colour behind the words, "#rrggbb" or "#rrggbbaa"; nil is
+    /// none.
+    var highlight: String?
 
     init(start: Int, end: Int, color: String? = nil, scale: Double? = nil,
-         font: String? = nil, link: String? = nil, weight: Int? = nil, italic: Bool? = nil) {
+         font: String? = nil, link: String? = nil, weight: Int? = nil, italic: Bool? = nil,
+         highlight: String? = nil) {
         self.start = start
         self.end = end
         self.color = color
@@ -52,9 +56,10 @@ struct TextSpan: Codable, Equatable, Hashable {
         self.link = link
         self.weight = weight
         self.italic = italic
+        self.highlight = highlight
     }
 
-    private enum CodingKeys: String, CodingKey { case start, end, color, scale, font, link, weight, italic }
+    private enum CodingKeys: String, CodingKey { case start, end, color, scale, font, link, weight, italic, highlight }
 
     // Each key on its own: a stretch missing its ends reads as empty and is
     // dropped when the spans are tidied, never the design.
@@ -70,6 +75,7 @@ struct TextSpan: Codable, Equatable, Hashable {
         // the Android twin.
         weight = try? c.decodeIfPresent(Int.self, forKey: .weight)
         italic = try? c.decodeIfPresent(Bool.self, forKey: .italic)
+        highlight = try? c.decodeIfPresent(String.self, forKey: .highlight)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -82,13 +88,16 @@ struct TextSpan: Codable, Equatable, Hashable {
         try c.encodeIfPresent(link, forKey: .link)
         try c.encodeIfPresent(weight, forKey: .weight)
         try c.encodeIfPresent(italic, forKey: .italic)
+        try c.encodeIfPresent(highlight, forKey: .highlight)
     }
 
     var range: NSRange { NSRange(location: start, length: max(0, end - start)) }
 
     /// Whether it says anything: a colour, a size, a font, a weight, a
-    /// slant or a link.
-    var says: Bool { color != nil || scale != nil || font != nil || link != nil || weight != nil || italic != nil }
+    /// slant, a link or a highlight.
+    var says: Bool {
+        color != nil || scale != nil || font != nil || link != nil || weight != nil || italic != nil || highlight != nil
+    }
 
     /// Whether its letters are set in a face of their own: a font, a weight
     /// or a slant.
@@ -106,7 +115,7 @@ struct TextSpan: Codable, Equatable, Hashable {
     /// link: where two differ in any of them, a run of words splits.
     func looksLike(_ other: TextSpan) -> Bool {
         color == other.color && scale == other.scale && font == other.font && link == other.link
-            && weight == other.weight && italic == other.italic
+            && weight == other.weight && italic == other.italic && highlight == other.highlight
     }
 }
 
@@ -173,6 +182,10 @@ enum Spans {
             }
             if let weight = span.weight {
                 out.weight = min(max(weight, weightRange.lowerBound), weightRange.upperBound)
+            }
+            if let highlight = span.highlight {
+                let trimmed = highlight.trimmingCharacters(in: .whitespacesAndNewlines)
+                out.highlight = trimmed.isEmpty ? nil : trimmed
             }
             guard out.end > out.start, out.says else { return nil }
             return out
@@ -300,6 +313,12 @@ enum Spans {
         restyled(spans, range) { $0.weight = weight }
     }
 
+    /// The words in `range` marked in `highlight` behind them — or with no
+    /// marker, with nil — keeping everything else they have.
+    static func highlighting(_ spans: [TextSpan], range: NSRange, highlight: String?) -> [TextSpan] {
+        restyled(spans, range) { $0.highlight = highlight }
+    }
+
     /// The words in `range` slanted or upright — or back as the box is,
     /// with nil: the font sheet's Italic toggle for the selected words.
     static func italicising(_ spans: [TextSpan], range: NSRange, italic: Bool?) -> [TextSpan] {
@@ -326,15 +345,16 @@ enum Spans {
     }
 
     /// Only the links: what Clear word colours and sizes leaves, a link not
-    /// being a look.
+    /// being a look — a highlight goes with the colours.
     static func linksOnly(_ spans: [TextSpan]) -> [TextSpan] {
         normalised(spans.map { TextSpan(start: $0.start, end: $0.end, link: $0.link) })
     }
 
-    /// Whether some words have a colour, a size, a font, a weight or a slant
-    /// of their own — what Clear word colours and sizes takes off.
+    /// Whether some words have a colour, a size, a font, a weight, a slant
+    /// or a highlight of their own — what Clear word colours and sizes
+    /// takes off.
     static func hasStyles(_ spans: [TextSpan]) -> Bool {
-        spans.contains { $0.color != nil || $0.scale != nil || $0.setsFace }
+        spans.contains { $0.color != nil || $0.scale != nil || $0.setsFace || $0.highlight != nil }
     }
 
     /// The words in `range` a step smaller or larger: each one's size times
@@ -408,6 +428,58 @@ enum Spans {
     static func italic(of spans: [TextSpan], in range: NSRange) -> (italic: Bool?, shared: Bool) {
         let shared = sharing(spans, range, \.italic)
         return (shared.value, shared.shared)
+    }
+
+    /// The same for the highlight: nil for none.
+    static func highlight(of spans: [TextSpan], in range: NSRange) -> (highlight: String?, shared: Bool) {
+        let shared = sharing(spans, range, \.highlight)
+        return (shared.value, shared.shared)
+    }
+
+    // MARK: highlight marks
+
+    /// The marker colours the typing bar offers after None, the brand's and
+    /// the recent colours, on both phones.
+    static let highlightPresets = ["#FFF176", "#A5D6A7", "#90CAF9", "#F48FB1", "#FFCC80"]
+    /// How far a mark reaches past its words at each side, and how round its
+    /// corners are, in ems of the box's type size.
+    static let highlightPadEm = 0.08
+    static let highlightRadiusEm = 0.15
+
+    /// The attribute highlighted words carry their marker colour in, as
+    /// hex, so the marks can be found on the drawn lines.
+    static let highlightKey = NSAttributedString.Key("CanviaSpanHighlight")
+
+    /// One mark behind words: a rounded rectangle in the box's space.
+    struct HighlightRect: Equatable {
+        var x: Double
+        var y: Double
+        var w: Double
+        var h: Double
+        var radius: Double
+        var color: String
+    }
+
+    /// The marks behind one drawn line holding letters `start..<end` (the
+    /// line's own, a break after it left out), from `top` to `bottom`, where
+    /// `offset` gives the x of the edge before a letter: for each span with
+    /// a highlight over some of the line's letters, one rectangle from the
+    /// first of them to the end of the last, reaching `highlightPadEm` ems
+    /// further at the left and the right — the line's full height, with no
+    /// pad above or below, so marks on lines one under the other meet and
+    /// never overlap — its corners `highlightRadiusEm` ems round. `em` is
+    /// the box's type size as drawn. The same rule on both phones.
+    static func highlightRects(_ spans: [TextSpan], start: Int, end: Int, top: Double, bottom: Double,
+                               em: Double, offset: (Int) -> Double) -> [HighlightRect] {
+        let pad = em * highlightPadEm, radius = em * highlightRadiusEm
+        return spans.compactMap { span -> HighlightRect? in
+            guard let color = span.highlight else { return nil }
+            let from = max(span.start, start), to = min(span.end, end)
+            guard to > from else { return nil }
+            let left = offset(from), right = offset(to)
+            return HighlightRect(x: left - pad, y: top, w: right - left + 2 * pad, h: bottom - top,
+                                 radius: radius, color: color)
+        }
     }
 
     /// What every letter in `range` has of `key`, nil where no span is, and

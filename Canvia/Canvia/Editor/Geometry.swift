@@ -272,14 +272,19 @@ enum Geometry {
     }
 
     /// Hit test respecting rotation: an elbowed or curved line on its
-    /// route (LineRoutes.near), anything else in its turned frame — the
-    /// part of it a crop shows (GraphicClip.visibleFrame). A hidden element
-    /// is never hit.
+    /// route (LineRoutes.near), warped words in the hull of their bent box
+    /// (TextWarp.hull), anything else in its turned frame — the part of it
+    /// a crop shows (GraphicClip.visibleFrame). A hidden element is never
+    /// hit.
     static func hits(_ el: Element, point: CGPoint) -> Bool {
         guard !el.isHidden else { return false }
         if LineRoutes.keepsLevel(el) { return LineRoutes.near(el, point, reach: 4) }
         let p = el.rotation == 0 ? point : rotate(point, around: el.center, degrees: -el.rotation)
-        return GraphicClip.visibleFrame(el).insetBy(dx: -4, dy: -4).contains(p)
+        var frame = GraphicClip.visibleFrame(el)
+        if TextWarp.isWarped(el), let warp = el.warp {
+            frame = TextWarp.hull(warp, w: el.w, h: el.h).offsetBy(dx: el.x, dy: el.y)
+        }
+        return frame.insetBy(dx: -4, dy: -4).contains(p)
     }
 
     // MARK: snapping
