@@ -30,11 +30,13 @@ struct AudioSheet: View {
     @State private var showingEffects = false
     /// The built-in music, over the list.
     @State private var showingMusic = false
+    /// The track open over the list, by id.
+    @State private var path: [String] = []
 
     private var tracks: [AudioTrack] { store.design.audioTracks }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             content
                 .navigationTitle("Audio")
                 .navigationBarTitleDisplayMode(.inline)
@@ -60,6 +62,13 @@ struct AudioSheet: View {
             bringIn(result)
         }
         .task(id: tracks.compactMap(\.audioId)) { await readLengths() }
+        // Check accessibility's Add captions on a voice-over: its track,
+        // which opens its captions (AudioTrackView).
+        .onAppear {
+            guard let asked = store.captionsAsked, asked.hasPrefix(AudioTrack.prefix) else { return }
+            let id = String(asked.dropFirst(AudioTrack.prefix.count))
+            if tracks.contains(where: { $0.id == id }) { path = [id] } else { store.captionsAsked = nil }
+        }
         .alert("That file isn't music this phone can play", isPresented: $refused) {
             Button("OK", role: .cancel) {}
         }
@@ -285,6 +294,16 @@ struct AudioTrackView: View {
             if !AudioTrack.isEffect(id) { beats = await AudioStore.beats(of: id) ?? [] }
         }
         .onDisappear { Audition.shared.stop() }
+        // Check accessibility's Add captions: this track's captions, once
+        // it is up.
+        .onAppear {
+            guard store.captionsAsked == AudioTrack.src(trackId) else { return }
+            store.captionsAsked = nil
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                captioning = true
+            }
+        }
     }
 
     /// The words said in the track, timed to this page: from where the

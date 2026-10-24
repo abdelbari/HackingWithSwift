@@ -2119,7 +2119,10 @@ private struct WordRequests: ViewModifier {
     }
 }
 
-/// The hold menu's Animate asks for Page animations.
+/// The hold menu's Animate asks for Page animations; Check accessibility's
+/// Add captions for the clip's Clip sheet, or Audio for a voice-over, in
+/// place of the sheet that asked — each opens its captions
+/// (DesignStore.captionsAsked).
 private struct PageAnimationRequest: ViewModifier {
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
@@ -2130,6 +2133,10 @@ private struct PageAnimationRequest: ViewModifier {
                 guard asked else { return }
                 store.asksPageAnimation = false
                 activeSheet = .pageAnimation
+            }
+            .onChange(of: store.captionsAsked) { _, asked in
+                guard let asked else { return }
+                activeSheet = asked.hasPrefix(AudioTrack.prefix) ? .audio : .clip
             }
     }
 }

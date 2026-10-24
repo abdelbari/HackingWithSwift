@@ -1752,6 +1752,10 @@ final class DesignStore {
     var motionRecording: MotionRecording?
     /// The hold menu's Animate, asking the editor for Page animations.
     var asksPageAnimation = false
+    /// Check accessibility's Add captions, asking the editor for the
+    /// captions of "video:<id>" — the Clip sheet's — or "audio:<trackId>" —
+    /// the track's in Audio; the sheet that opens them takes it.
+    var captionsAsked: String?
 
     func beginErasing(_ id: String) {
         if element(id)?.locked == true {

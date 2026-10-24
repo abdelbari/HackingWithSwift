@@ -524,7 +524,9 @@ struct ExportSheet: View {
     /// changes; for documents and pictures, while Settings asks for it.
     @ViewBuilder
     private var a11ySection: some View {
-        let found = AccessibilityAudit.onPages(a11yFindings ?? [], Set(sharedIndices))
+        // A film counts its captions findings alone (ExportPlan.nudgeFindings).
+        let found = ExportPlan.nudgeFindings(AccessibilityAudit.onPages(a11yFindings ?? [], Set(sharedIndices)),
+                                             format: fileType)
         if ExportPlan.showsA11yNudge(format: fileType, findings: found.count, remind: remindA11y,
                                      revision: revision, dismissed: a11yDismissed) {
             Section {
@@ -559,7 +561,11 @@ struct ExportSheet: View {
         // The drawn pictures are registered here, on the main thread,
         // before the audit reads any.
         _ = PhotoLibrary.photos
-        let found = await Task.detached(priority: .utility) { AccessibilityAudit.findings(design) }.value
+        // Clips filmed without sound are not asked captions for.
+        let silent = await AccessibilitySheet.silentClips(in: design)
+        let found = await Task.detached(priority: .utility) {
+            AccessibilityAudit.findings(design, silentClips: silent)
+        }.value
         Self.a11yKept = (id, rev, found)
         a11yFindings = found
     }

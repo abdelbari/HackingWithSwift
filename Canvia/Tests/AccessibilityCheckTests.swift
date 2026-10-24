@@ -35,7 +35,8 @@ final class AccessibilityCheckTests: XCTestCase {
         var icon = Element.shape("rect", w: 80, h: 80)
         icon.iconId = "star"
         let d = page([photo, video, sticker, icon])
-        let found = AccessibilityAudit.findings(d)
+        // The clip's sound left aside: its captions are asked about apart.
+        let found = AccessibilityAudit.findings(d).filter { $0.kind != .captions }
         XCTAssertEqual(found.map(\.kind), [.altText, .altText, .altText, .altText])
         XCTAssertEqual(found.map(\.message), ["Photo has no alt text", "Video has no alt text",
                                                "Sticker has no alt text", "Icon has no alt text"])

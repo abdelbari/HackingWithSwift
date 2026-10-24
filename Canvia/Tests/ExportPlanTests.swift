@@ -220,7 +220,9 @@ final class ExportPlanTests: XCTestCase {
         XCTAssertFalse(ExportPlan.showsA11yNudge(format: "pdf", findings: 3, remind: true, revision: 10, dismissed: 10))
         XCTAssertFalse(ExportPlan.showsA11yNudge(format: "pdf", findings: 0, remind: true, revision: 10, dismissed: nil))
         XCTAssertFalse(ExportPlan.showsA11yNudge(format: "pdf", findings: 3, remind: false, revision: 10, dismissed: nil))
-        XCTAssertFalse(ExportPlan.showsA11yNudge(format: "mp4", findings: 3, remind: true, revision: 10, dismissed: nil))
+        // A film's row counts its captions findings alone (nudgeFindings).
+        XCTAssertTrue(ExportPlan.showsA11yNudge(format: "mp4", findings: 3, remind: true, revision: 10, dismissed: nil))
+        XCTAssertFalse(ExportPlan.showsA11yNudge(format: "gif", findings: 0, remind: true, revision: 10, dismissed: nil))
         XCTAssertFalse(ExportPlan.showsA11yNudge(format: "svg", findings: 3, remind: true, revision: 10, dismissed: nil))
     }
 
