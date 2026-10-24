@@ -4,6 +4,7 @@
 // the sheet is still up, closed, or the app is in the background.
 
 import Foundation
+import UIKit
 
 @MainActor
 enum ExportJobs {
@@ -23,6 +24,23 @@ enum ExportJobs {
                 transparent: transparent && format == .png, captionTime: snapshot.captionTime,
                 compress: compress && format == .png, progress: report)
             return ExportQueue.Result(urls: made.urls, note: made.uncompressed > 0 ? compressFellBack : nil)
+        }
+    }
+
+    /// `render`'s files handed to `target`, the export sheet's Share to
+    /// (ShareTargets): saved to Photos and the app opened on its library,
+    /// where it has a URL for one; else to the share sheet, the files in
+    /// it. Nothing saved is said: "Couldn't share to Instagram".
+    static func sharedTo(_ target: ShareTargets.Target, render: @escaping Work) -> Work {
+        { report in
+            let made = try await render(report)
+            guard let library = target.library.flatMap({ URL(string: $0) }) else { return made }
+            let outcome = try await PhotoSaver.save(made.urls)
+            guard outcome.anySaved else {
+                return ExportQueue.Result(failed: tr("Couldn't share to %@", target.name))
+            }
+            _ = await UIApplication.shared.open(library)
+            return ExportQueue.Result()
         }
     }
 
