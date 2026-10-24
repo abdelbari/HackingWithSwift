@@ -166,7 +166,8 @@ final class PostPlannerTests: XCTestCase {
         defaults.removePersistentDomain(forName: "PostPlannerTests")
         XCTAssertEqual(AccessibilityPrefs.current(defaults),
                        AccessibilityPrefs.Settings(reduceMotion: "system", autoplayClips: true, altTextPrompt: false,
-                                                   underlineLinks: false, largerHandles: false))
+                                                   underlineLinks: false, largerHandles: false,
+                                                   showDistances: true))
         AccessibilityPrefs.apply(AccessibilityPrefs.Settings(reduceMotion: "off", largerHandles: true), to: defaults)
         XCTAssertEqual(AccessibilityPrefs.current(defaults).reduceMotion, "off")
         XCTAssertEqual(AccessibilityPrefs.current(defaults).largerHandles, true)

@@ -157,16 +157,16 @@ final class GroupMembershipTests: XCTestCase {
         XCTAssertEqual(LayerRows.drop(rows, from: [0], to: 6), .reorder, "a group's row reorders")
     }
 
-    /// Shared rule: a folded group is joined too, by a row dropped just
-    /// under its header, as Android joins a row let go over any header.
-    func testARowDroppedUnderAFoldedGroupsHeaderJoinsIt() throws {
+    /// A row dropped just under a folded group's header lands behind the
+    /// group, the only gap that does, so it reorders and stays out of it.
+    func testARowDroppedUnderAFoldedGroupsHeaderReorders() throws {
         // x, group:g
         let rows = LayerRows.rows([box("a", group: "g"), box("b", group: "g"), box("x")], expanded: [])
-        XCTAssertEqual(LayerRows.drop(rows, from: [0], to: 2), .join("g"), "under the folded header")
+        XCTAssertEqual(LayerRows.drop(rows, from: [0], to: 2), .reorder, "behind the folded group")
         XCTAssertEqual(LayerRows.drop(rows, from: [1], to: 0), .reorder, "a group's row reorders")
         // group:g-card, heading, group:g-logo (folded), loose
         let inner = LayerRows.rows(try card(), expanded: ["g-card"])
-        XCTAssertEqual(LayerRows.drop(inner, from: [1], to: 3), .join("g-logo"), "a member into a folded subgroup")
+        XCTAssertEqual(LayerRows.drop(inner, from: [1], to: 3), .leave, "past the folded subgroup, the last row")
         XCTAssertEqual(LayerRows.drop(inner, from: [3], to: 3), .reorder, "where it was")
         XCTAssertEqual(LayerRows.drop(inner, from: [3], to: 1), .join("g-card"), "under the opened header")
     }
