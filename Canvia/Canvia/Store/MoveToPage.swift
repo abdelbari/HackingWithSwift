@@ -53,7 +53,9 @@ extension DesignStore {
             }
         }
         apply { d in
-            d.pages[source].elements.removeAll { ids.contains($0.id) }
+            // What stays of a cropped group keeps showing what it showed.
+            let before = d.pages[source].elements
+            d.pages[source].elements = GraphicClip.regrouped(before: before, after: before.filter { !ids.contains($0.id) })
             d.pages[index].elements.append(contentsOf: moved)
         }
         pageIndex = index

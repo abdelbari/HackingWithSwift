@@ -168,6 +168,36 @@ final class LockPositionTests: XCTestCase {
         XCTAssertEqual(s.page.elements.map(\.id), ["a", "p", "l"])
     }
 
+    /// a, b and c side by side in group g, cropped to the left half.
+    private func croppedThree() -> [Element] {
+        [box("a", x: 0, y: 0, group: "g"), box("b", x: 100, y: 0, group: "g"), box("c", x: 200, y: 0, group: "g")]
+            .map { el -> Element in
+                var out = el
+                out.clipBox = ClipBox(x: 0, y: 0, w: 0.5, h: 1)
+                return out
+            }
+    }
+
+    func testCutOrMovedOutOfACroppedGroupWhatStaysShowsWhatItShowed() {
+        // The Android twin's PositionLockTest row: as with Delete, a, left
+        // alone, shows all of itself; b and c go showing their halves.
+        let quarter = ClipBox(x: 0, y: 0, w: 0.25, h: 1)
+        let s = store([(id: "p1", elements: croppedThree(), size: nil)])
+        s.selection = ["b", "c"]
+        s.cutSelected()
+        XCTAssertEqual(s.page.elements.map(\.id), ["a"])
+        XCTAssertNil(s.page.elements[0].clipBox)
+
+        var elements = croppedThree()
+        elements[0] = ElementLock.with(elements[0], .position)
+        let m = store([(id: "p1", elements: elements, size: nil), (id: "p2", elements: [], size: nil)])
+        m.selection = ["a", "b", "c"]
+        XCTAssertTrue(m.moveSelectedToPage(1, at: nil))
+        XCTAssertEqual(m.design.pages[1].elements.map(\.clipBox), [quarter, quarter])
+        XCTAssertEqual(m.design.pages[0].elements.map(\.id), ["a"])
+        XCTAssertNil(m.design.pages[0].elements[0].clipBox)
+    }
+
     func testTheLockMenuIsOneStepEachAndCopiesAreUnlocked() {
         let s = store([(id: "p1", elements: [box("a", x: 0, y: 0), box("b", x: 200, y: 0)], size: nil)])
         s.selection = ["a", "b"]
