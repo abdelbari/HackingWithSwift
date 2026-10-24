@@ -95,6 +95,23 @@ enum CustomSizes {
         return Units.format(base / ratio, unit: unit)
     }
 
+    /// Resize's Portrait | Landscape: a size turned to stand the way
+    /// chosen — its longer side down for Portrait, across for Landscape; a
+    /// square as it is. So A4 chosen Landscape is 297 × 210 mm without a
+    /// preset of its own, as on the Android twin.
+    static func turned(width: Double, height: Double, landscape: Bool) -> (width: Double, height: Double) {
+        let long = max(width, height), short = min(width, height)
+        return landscape ? (long, short) : (short, long)
+    }
+
+    /// The fields as Portrait or Landscape leaves them: swapped when what
+    /// they hold stands the other way; as they are when square, or when
+    /// either does not read as a number.
+    static func turnedFields(width: String, height: String, landscape: Bool) -> (width: String, height: String) {
+        guard let w = Double(width), let h = Double(height), w != h, (w > h) != landscape else { return (width, height) }
+        return (height, width)
+    }
+
     /// A side typed in one unit, written in another: what a field holds
     /// when the unit picker changes, so the size stays the size.
     static func convert(_ text: String, from old: String, to new: String) -> String {

@@ -2322,7 +2322,7 @@ private struct ResizeCustomSection: View {
                 }
             HStack {
                 TextField("Width", text: $customW).keyboardType(unit == "px" ? .numberPad : .decimalPad)
-                Text("×")
+                swapButton
                 TextField("Height", text: $customH).keyboardType(unit == "px" ? .numberPad : .decimalPad)
                 Text(unit).foregroundStyle(.secondary)
             }
@@ -2349,6 +2349,20 @@ private struct ResizeCustomSection: View {
             if clean != typed { customH = clean }
         }
     }
+
+    /// Between the fields: the width and the height typed, swapped.
+    private var swapButton: some View {
+        Button {
+            let width = customW
+            customW = customH
+            customH = width
+        } label: {
+            Image(systemName: "arrow.left.arrow.right")
+                .frame(width: 32, height: 32)
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel("Swap width and height")
+    }
 }
 
 /// Two ways to a new size: resize this design in place — reflowed or
@@ -2367,6 +2381,10 @@ struct ResizeSheet: View {
     @State private var unit = "px"
     @State private var reflow = true
     @State private var pageOnly = false
+    /// Portrait | Landscape: the way a preset chosen stands, and the
+    /// custom fields with it (CustomSizes.turned); nil, as each preset
+    /// stands, until one is picked.
+    @State private var landscape: Bool?
     @State private var ticked: [ResizeTarget] = []
     @State private var progress: String?
     @State private var failed = false
@@ -2460,26 +2478,56 @@ struct ResizeSheet: View {
             }
         }
         Section("Presets") {
+            orientationRow
             ForEach(SizePreset.all) { preset in
-                Button {
-                    resize(preset.w, preset.h, units: UnitChoice(unit: preset.unit, dpi: preset.dpi))
-                    dismiss()
-                } label: {
-                    HStack {
-                        Label(preset.name, systemImage: preset.icon)
-                        Spacer()
-                        Text(preset.dimensions)
-                            .foregroundStyle(.secondary)
-                            .font(.footnote)
-                    }
-                }
-                .foregroundStyle(.primary)
+                presetRow(preset)
             }
         }
         ResizeCustomSection(customW: $customW, customH: $customH, unit: $unit) { w, h in
             resize(w, h, units: .typed(unit))
             dismiss()
         }
+    }
+
+    /// Portrait | Landscape, under the Presets heading: once picked, every
+    /// preset that is not square turned to stand that way, and the custom
+    /// fields with it.
+    private var orientationRow: some View {
+        Picker(selection: $landscape) {
+            Text("Portrait").tag(Bool?.some(false))
+            Text("Landscape").tag(Bool?.some(true))
+        } label: {
+            EmptyView()
+        }
+        .pickerStyle(.segmented)
+        .onChange(of: landscape) { _, turned in
+            guard let turned else { return }
+            let fields = CustomSizes.turnedFields(width: customW, height: customH, landscape: turned)
+            customW = fields.width
+            customH = fields.height
+        }
+    }
+
+    /// A preset, turned the way chosen: a tap resizes to it — one step,
+    /// Reflow or Scale, the whole design or this page — and it joins the
+    /// recent sizes as it was made.
+    private func presetRow(_ preset: SizePreset) -> some View {
+        let size = landscape.map { CustomSizes.turned(width: preset.w, height: preset.h, landscape: $0) }
+            ?? (width: preset.w, height: preset.h)
+        return Button {
+            resize(size.width, size.height, units: UnitChoice(unit: preset.unit, dpi: preset.dpi))
+            CustomSizes.remember(width: size.width, height: size.height)
+            dismiss()
+        } label: {
+            HStack {
+                Label(preset.name, systemImage: preset.icon)
+                Spacer()
+                Text(Units.dimensions(width: size.width, height: size.height, unit: preset.unit, dpi: preset.dpi))
+                    .foregroundStyle(.secondary)
+                    .font(.footnote)
+            }
+        }
+        .foregroundStyle(.primary)
     }
 
     /// One copy per size ticked, of the design as it is on screen; this
