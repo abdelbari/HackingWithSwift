@@ -311,6 +311,7 @@ struct CanvasView: View {
             onPencilTap: { store.toggleDrawing() },
             pinchZooms: store.cropping == nil,
             claimsDoubleTap: { point in claimsDoubleTap(at: point) },
+            zoomsToSelection: { point in zoomsToSmallSelection(at: point) },
             pansFromPage: { point in pansFromPage(at: point) },
             holdsPage: { point in holdsWorkedPage(at: point) },
             request: canvasRequest(in: slot),
@@ -818,6 +819,15 @@ struct CanvasView: View {
         }
         page.elements.removeAll { hidden.contains($0.id) && $0.type != .shape }
         return page
+    }
+
+    /// A double tap on a small thing selected: the view zooms to it (Zoom
+    /// to selection), and the canvas's own zoom at the point is not done.
+    private func zoomsToSmallSelection(at point: CGPoint) -> Bool {
+        guard store.selectionIsSmallOnScreen,
+              store.selectedElements.contains(where: { Geometry.hits($0, point: point) }) else { return false }
+        store.zoomToSelection()
+        return true
     }
 
     /// Whether a double tap here belongs to the page rather than to the
@@ -2799,6 +2809,8 @@ struct CanvasView: View {
                                  serial: request.serial)
         case .page:
             return request
+        case .frame(let box):
+            return CanvasRequest(kind: .frame(slot.columnBox(box)), serial: request.serial)
         }
     }
 

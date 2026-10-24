@@ -519,8 +519,8 @@ struct EditorView: View {
 
     /// The view's keys, as Canva has them: ⌘= and ⌘- a quarter in and out
     /// about the middle of the screen, ⌘0 the whole page, ⌘1 actual size,
-    /// and ⌥↑ and ⌥↓ the page before and after, which the canvas settles on
-    /// as it brings it up.
+    /// ⌘2 the selection framed, and ⌥↑ and ⌥↓ the page before and after,
+    /// which the canvas settles on as it brings it up.
     private var viewCommands: some View {
         Group {
             Group {
@@ -538,6 +538,8 @@ struct EditorView: View {
             }
             shortcut("m", [.option, .shift], tr("Align middle")) { store.alignSelected(.centerY) }
             shortcut("b", [.option, .shift], tr("Align bottom")) { store.alignSelected(.bottom) }
+            // ⌘2 frames what is selected; ⌘0 fits the page again.
+            shortcut("2", [.command], tr("Zoom to selection")) { store.zoomToSelection() }
         }
     }
 

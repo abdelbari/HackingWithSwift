@@ -1,8 +1,9 @@
 // How the view moves on its own while a finger works the canvas: the edge
 // scroll that carries a dragged thing past the edge of the screen, how far a
 // flick of the view glides on, and the zoom typing into small words brings
-// them up to. Both phones share these rules and test rows (the Android
-// twin's Viewport.edgeScroll, Viewport.flingCarry and Viewport.typingZoom).
+// them up to, and Zoom to selection. Both phones share these rules and test
+// rows (the Android twin's Viewport.edgeScroll, Viewport.flingCarry,
+// Viewport.typingZoom and Viewport.zoomToBox).
 
 import CoreGraphics
 import Foundation
@@ -101,5 +102,37 @@ enum Viewport {
     static func typingLine(box: CGRect, fontSize: Double, tapY: Double?) -> Double {
         let line = tapY ?? Double(box.maxY) - fontSize * typingLastLine
         return max(Double(box.minY), min(Double(box.maxY), line))
+    }
+
+    // MARK: zoom to selection
+
+    /// The room Zoom to selection keeps round the selection, in points.
+    static let selectionMargin = 24.0
+    /// A selection whose longer side is less than this on screen, in
+    /// points, is small: the quick actions offer the magnifier, and a double
+    /// tap on it zooms to it rather than to the point.
+    static let smallSelection = 44.0
+
+    /// The zoom and pan that frame `box` (in page units: the selection's
+    /// turned bounds, Geometry.aabb) in `viewport` (on screen) with `margin`
+    /// round it, centred: the zoom that fits the box less the margins, held
+    /// within `fit` and `maxZoom` — never below fit, which wins if they
+    /// cross. A side of no size (a straight line) leaves the other to
+    /// decide; a box of none goes to `maxZoom`. The pan is where the page's
+    /// origin lands on screen, as Whiteboards.fit gives it.
+    static func zoomToBox(_ box: CGRect, viewport: CGSize, margin: Double = Viewport.selectionMargin,
+                          fit: Double, maxZoom: Double) -> (zoom: Double, pan: CGPoint) {
+        let roomX = Double(viewport.width) - margin * 2, roomY = Double(viewport.height) - margin * 2
+        let byX = box.width > 0 ? roomX / Double(box.width) : Double.infinity
+        let byY = box.height > 0 ? roomY / Double(box.height) : Double.infinity
+        let zoom = max(min(byX, byY, maxZoom), fit)
+        return (zoom, CGPoint(x: Double(viewport.width) / 2 - Double(box.midX) * zoom,
+                              y: Double(viewport.height) / 2 - Double(box.midY) * zoom))
+    }
+
+    /// Whether `box`, in page units, is small on screen at `zoom`: its
+    /// longer side under smallSelection.
+    static func isSmall(_ box: CGRect, zoom: Double) -> Bool {
+        Double(max(box.width, box.height)) * zoom < smallSelection
     }
 }
