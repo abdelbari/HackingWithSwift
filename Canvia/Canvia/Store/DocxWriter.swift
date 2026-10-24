@@ -99,7 +99,7 @@ enum DocxWriter {
 
     /// A stretch's w:rPr: a link with no colour of its own the Hyperlink
     /// character style (the link colour, underlined), then bold, italic,
-    /// its colour, underline, strike and highlight.
+    /// its colour, underline, strike, highlight and script (w:vertAlign).
     private static func props(_ style: RichText.Style, bold: Bool, span: TextSpan?, linked: Bool) -> String {
         var props = ""
         if linked && span?.color == nil { props += "<w:rStyle w:val=\"Hyperlink\"/>" }
@@ -110,6 +110,11 @@ enum DocxWriter {
         if style.strike { props += "<w:strike/>" }
         if let highlight = span?.highlight {
             props += "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"\(hex(highlight))\"/>"
+        }
+        if span?.script == Spans.raised {
+            props += "<w:vertAlign w:val=\"superscript\"/>"
+        } else if span?.script == Spans.lowered {
+            props += "<w:vertAlign w:val=\"subscript\"/>"
         }
         return props
     }

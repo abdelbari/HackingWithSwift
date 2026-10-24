@@ -562,8 +562,22 @@ enum RichText {
                 }
                 if scale > 1 { makeRoom(in: out, for: range, scale: scale) }
             }
+            if span.script != nil { setScript(span.script, in: out, range: range) }
         }
         return out
+    }
+
+    /// Letters in `range` of `out` raised or lowered: each at Spans'
+    /// script size of its run's size, its baseline moved by the run's size
+    /// (Spans.scriptOffset); the line keeps its height.
+    static func setScript(_ script: String?, in out: NSMutableAttributedString, range: NSRange) {
+        out.enumerateAttribute(.font, in: range) { value, part, _ in
+            guard let font = value as? UIFont else { return }
+            let size = Double(font.pointSize)
+            out.addAttribute(.font, value: font.withSize(CGFloat(Spans.scriptedSize(size, script: script))),
+                             range: part)
+            out.addAttribute(.baselineOffset, value: Spans.scriptOffset(size, script: script), range: part)
+        }
     }
 
     /// Letters `from..<to` of `out` in `span`'s face, cut where the runs'

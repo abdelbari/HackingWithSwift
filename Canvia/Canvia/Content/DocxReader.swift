@@ -21,7 +21,8 @@
 //  - runs: w:b, w:i, w:u (but "none") and w:strike — each but a w:val of
 //    "0", "false" or "off" — as RichText's markers; w:color (but "auto") a
 //    span's colour, w:highlight's named colour or w:shd's fill (but "auto")
-//    its highlight, a w:hyperlink's external target its link (a run's
+//    its highlight, w:vertAlign superscript or subscript its script, a
+//    w:hyperlink's external target its link (a run's
 //    character style, w:rStyle, such as the Hyperlink look DocxWriter gives
 //    a link, is not read: only its own properties are); a w:t its words,
 //    w:tab a tab, w:br and w:cr a line break; spans alike side by side
@@ -126,6 +127,14 @@ enum DocxReader {
         guard let node else { return false }
         guard let v = attr(node, "val")?.lowercased() else { return true }
         return v != "0" && v != "false" && v != "off" && v != "none"
+    }
+
+    /// A w:vertAlign's value as a span's script: "superscript" raised,
+    /// "subscript" lowered, anything else on the line.
+    static func script(_ vertAlign: String?) -> String? {
+        if vertAlign == "superscript" { return Spans.raised }
+        if vertAlign == "subscript" { return Spans.lowered }
+        return nil
     }
 
     fileprivate static let highlights: [String: String] = [
@@ -320,13 +329,15 @@ private final class WordReader {
             let color = DocxReader.hex(DocxReader.attr(DocxReader.child(rp, "color"), "val"))
             let highlight = DocxReader.attr(DocxReader.child(rp, "highlight"), "val").flatMap { DocxReader.highlights[$0.lowercased()] }
                 ?? DocxReader.hex(DocxReader.attr(DocxReader.child(rp, "shd"), "fill"))
+            let script = DocxReader.script(DocxReader.attr(DocxReader.child(rp, "vertAlign"), "val"))
             func add(_ s: String) {
                 let start = words.units
                 words.plain += s
                 words.units += (s as NSString).length
                 words.styles += Array(repeating: style, count: s.count)
-                if color != nil || highlight != nil || link != nil {
-                    words.spans.append(TextSpan(start: start, end: words.units, color: color, link: link, highlight: highlight))
+                if color != nil || highlight != nil || link != nil || script != nil {
+                    words.spans.append(TextSpan(start: start, end: words.units, color: color, link: link,
+                                                highlight: highlight, script: script))
                 }
             }
             for c in r.children {

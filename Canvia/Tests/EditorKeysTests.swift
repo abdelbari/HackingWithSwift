@@ -11,7 +11,7 @@ final class EditorKeysTests: XCTestCase {
 
     // MARK: text keys
 
-    /// Shared rows: the twenty keys, each with or without Shift and Alt,
+    /// Shared rows: the twenty-two keys, each with or without Shift and Alt,
     /// and what each does — the Android twin's TextKeys, row for row.
     func testTheTextKeysAreCanvas() {
         // key, shift, action
@@ -22,6 +22,7 @@ final class EditorKeysTests: XCTestCase {
             ("7", true, .numberedList), ("8", true, .bulletedList),
             (",", true, .smaller), (".", true, .larger),
             ("k", false, .link),
+            (".", false, .raise), (",", false, .lower),
         ]
         let altRows: [(String, TextKeys.Command)] = [
             (TextKeys.down, .lineTighter), (TextKeys.up, .lineLooser),

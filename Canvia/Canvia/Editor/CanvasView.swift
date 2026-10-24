@@ -2698,6 +2698,8 @@ struct CanvasView: View {
                                onWordFont: { store.chooseWordFont(id, range: $0) },
                                onWordLink: { store.chooseWordLink(id, range: $0) },
                                onWordHighlight: { store.chooseWordHighlight(id, range: $0) },
+                               onWordScript: { store.scriptWords(id, range: $0, script: $1) },
+                               onTypedScript: { store.scriptTyped(id, range: $0, script: $1) },
                                onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
                                onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onBoxKey: { store.typingBoxKey($0) },

@@ -27638,6 +27638,15 @@
     "ja": "件名",
     "pt-BR": "Assunto"
   },
+  "Subscript": {
+    "ar": "نص منخفض",
+    "de": "Tiefgestellt",
+    "es": "Subíndice",
+    "fr": "Indice",
+    "it": "Pedice",
+    "ja": "下付き",
+    "pt-BR": "Subscrito"
+  },
   "Subtitle": {
     "ar": "عنوان ثانوي",
     "de": "Untertitel",
@@ -27700,6 +27709,15 @@
     "it": "Tramonto",
     "ja": "サンセット",
     "pt-BR": "Pôr do sol"
+  },
+  "Superscript": {
+    "ar": "نص مرتفع",
+    "de": "Hochgestellt",
+    "es": "Superíndice",
+    "fr": "Exposant",
+    "it": "Apice",
+    "ja": "上付き",
+    "pt-BR": "Sobrescrito"
   },
   "Swap for %@": {
     "ar": "استبدل بـ %@",

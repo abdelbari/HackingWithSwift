@@ -5,7 +5,8 @@
 // set (TextSelection), the lines the choice covers listed (TextLists), the
 // words chosen a step smaller or larger (Spans), the words chosen linked
 // (a Spans `link`), the box's line and letter spacing a step tighter or
-// looser, and its whole look copied and pasted as Copy style does — each as
+// looser, the words chosen raised or lowered (a Spans `script`, or what is
+// typed next), and its whole look copied and pasted as Copy style does — each as
 // a step of its own between the words typed before and after.
 
 import Foundation
@@ -21,6 +22,7 @@ enum TextKeys {
         case link
         case lineTighter, lineLooser, letterTighter, letterLooser
         case copyStyle, pasteStyle
+        case raise, lower
     }
 
     /// The arrow keys, as `Key.key` names them.
@@ -47,7 +49,8 @@ enum TextKeys {
 
     /// Every key, as Canva has them: B, I and U; Shift with X to strike
     /// through, K for capitals, L, C, R and J to align, 7 and 8 for numbered
-    /// and bulleted lists, comma and full stop for smaller and larger.
+    /// and bulleted lists, comma and full stop for smaller and larger — and
+    /// without Shift, full stop to raise the words and comma to lower them.
     static let all: [Key] = [
         Key(key: "b", shift: false, action: .bold),
         Key(key: "i", shift: false, action: .italic),
@@ -69,6 +72,8 @@ enum TextKeys {
         Key(key: right, shift: false, action: .letterLooser, alt: true),
         Key(key: "c", shift: false, action: .copyStyle, alt: true),
         Key(key: "v", shift: false, action: .pasteStyle, alt: true),
+        Key(key: ".", shift: false, action: .raise),
+        Key(key: ",", shift: false, action: .lower),
     ]
 
     /// Outside typing, the one key with nothing held: T adds a text box in
@@ -147,6 +152,8 @@ enum TextKeys {
         case .letterLooser: return tr("Increase letter spacing")
         case .copyStyle: return tr("Copy style")
         case .pasteStyle: return tr("Paste style")
+        case .raise: return tr("Superscript")
+        case .lower: return tr("Subscript")
         }
     }
 
