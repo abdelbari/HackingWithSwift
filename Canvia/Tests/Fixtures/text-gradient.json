@@ -1,8 +1,50 @@
 {
-"comment": "A text whose letters carry a 4-stop gradient at 30 degrees, read and exported by both phones' tests (round 33).",
-"element": {"id":"sunset","type":"text","text":"Sunset","x":40,"y":40,"w":400,"h":120,"fontSize":72,"color":"#1f2430",
-  "textFill":{"kind":"gradient","angle":30,"stops":[{"offset":0,"color":"#ff5f6d"},{"offset":0.35,"color":"#ffc371"},{"offset":0.7,"color":"#47cacc"},{"offset":1,"color":"#3a1c71"}]}},
-"stops": 4,
-"angle": 30,
-"pptxLinAng": 18000000
+  "about": "Gradient letters of four stops at 30 degrees, as both phones write and export them. design is the file as Android writes it; svgGradient is the text's gradient as SvgWriter defines it (its outline from the top of the box); pptxGradFill is the run's fill in the slide. element is a text as the iPhone writes it (its stops' offsets), with its stop count, angle and the slide's a:lin angle (stops, angle, pptxLinAng). Android's GradientEditsTest reads design, svgGradient and pptxGradFill; the iPhone's GradientEditingTests reads element, stops, angle and pptxLinAng.",
+  "design": {
+    "id": "d-text-gradient",
+    "title": "Text gradient",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "headline",
+            "type": "text",
+            "x": 100,
+            "y": 200,
+            "w": 400,
+            "h": 100,
+            "text": "Gradient",
+            "fontSize": 64,
+            "color": "#1f2430",
+            "textFill": {
+              "kind": "gradient",
+              "angle": 30,
+              "stops": [
+                {"color": "#FF512F", "position": 0},
+                {"color": "#F9D423", "position": 0.35},
+                {"color": "#11998E", "position": 0.7},
+                {"color": "#6A82FB", "position": 1}
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "svgGradient": "<linearGradient id=\"textgrad0\" gradientUnits=\"userSpaceOnUse\" x1=\"100\" y1=\"93.30127\" x2=\"300\" y2=\"6.69873\"><stop offset=\"0\" stop-color=\"#FF512F\"/><stop offset=\"0.35\" stop-color=\"#F9D423\"/><stop offset=\"0.7\" stop-color=\"#11998E\"/><stop offset=\"1\" stop-color=\"#6A82FB\"/></linearGradient>",
+  "pptxGradFill": "<a:gradFill><a:gsLst><a:gs pos=\"0\"><a:srgbClr val=\"FF512F\"/></a:gs><a:gs pos=\"35000\"><a:srgbClr val=\"F9D423\"/></a:gs><a:gs pos=\"70000\"><a:srgbClr val=\"11998E\"/></a:gs><a:gs pos=\"100000\"><a:srgbClr val=\"6A82FB\"/></a:gs></a:gsLst><a:lin ang=\"18000000\"/></a:gradFill>",
+  "element": {"id":"sunset","type":"text","text":"Sunset","x":40,"y":40,"w":400,"h":120,"fontSize":72,"color":"#1f2430",
+    "textFill":{"kind":"gradient","angle":30,"stops":[{"offset":0,"color":"#ff5f6d"},{"offset":0.35,"color":"#ffc371"},{"offset":0.7,"color":"#47cacc"},{"offset":1,"color":"#3a1c71"}]}},
+  "stops": 4,
+  "angle": 30,
+  "pptxLinAng": 18000000
 }
