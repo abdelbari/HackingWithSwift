@@ -2742,7 +2742,10 @@ struct CanvasView: View {
                                onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
                                onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onBoxKey: { store.typingBoxKey($0) },
+                               // Lists and indents, as a text box's lines.
+                               onLines: { store.changeLines(id, covering: $0, $1) },
                                onPaste: { _ = store.pasteTyped(id, selection: $0, clip: $1, plainText: $2) },
+                               onAutoList: { store.autoStartList(id, line: $0, prefix: $1, list: $2) },
                                wordStyles: false,
                                typing: typingHooks)
             .frame(width: box.width)

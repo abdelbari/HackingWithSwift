@@ -127,13 +127,18 @@ func photoThumb(_ id: String) -> some View {
 /// The effects as tiles, and under them the chosen one's settings: sliders
 /// that draw live and are one Undo per drag, its colours, and Reset. Another
 /// effect starts from its own defaults; tapping the one on keeps its settings.
+/// With several boxes selected a tile sets every one, and the settings show
+/// while they share an effect, each "Mixed" where they differ and moved to
+/// one value on all of them (TextSelection); Warp stays one box's.
 struct EffectsSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
     private let columns = [GridItem(.adaptive(minimum: 76), spacing: 12)]
 
-    private var spec: TextEffectSpec? { store.singleSelection?.effect }
-    private var current: TextEffect { TextEffect.from(spec) }
+    /// The boxes the sheet reads: the one selected, or several.
+    private var boxes: [Element] { TextSelection.reading(store.selectedElements, .effect) }
+    private var current: TextEffect { TextSelection.effect(boxes) ?? .none }
+    private var several: Bool { boxes.count > 1 }
 
     var body: some View {
         NavigationStack {
@@ -147,7 +152,9 @@ struct EffectsSheet: View {
                     if current != .none { settings(current) }
                     // Warp: the letters bent in their box, and Edit shape,
                     // which closes the sheet to show the handles.
-                    WarpSection(store: store, onEditShape: { if store.shapeEditingId != nil { dismiss() } })
+                    if !several {
+                        WarpSection(store: store, onEditShape: { if store.shapeEditingId != nil { dismiss() } })
+                    }
                 }
                 .padding()
             }
@@ -163,13 +170,10 @@ struct EffectsSheet: View {
     }
 
     private func tile(_ effect: TextEffect) -> some View {
-        let active = current == effect
+        let active = TextSelection.effect(boxes) == effect
         return Button {
             settleColour()
-            store.updateSelected {
-                guard $0.effect?.type != effect.rawValue else { return }
-                $0.effect = TextEffectSpec(type: effect.rawValue)
-            }
+            store.setTextEffect(effect)
         } label: {
             VStack(spacing: 6) {
                 effectPreview(effect)
@@ -210,7 +214,7 @@ struct EffectsSheet: View {
                     }
                 }
                 .font(.callout)
-                .disabled(spec?.isAtDefaults ?? true)
+                .disabled(boxes.allSatisfy { $0.effect?.isAtDefaults ?? true })
             }
             ForEach(effect.params) { param in
                 dial(param, of: effect)
@@ -242,8 +246,10 @@ struct EffectsSheet: View {
     }
 
     private func dial(_ param: TextEffectParam, of effect: TextEffect) -> some View {
-        let value = TextEffect.value(spec, param, for: effect)
-        let readout = param == .direction ? "\(Int(value.rounded()))°" : "\(Int(value.rounded()))"
+        let shared = TextSelection.effectValue(boxes, param)
+        let value = shared ?? effect.defaultValue(param) ?? 0
+        let number = param == .direction ? "\(Int(value.rounded()))°" : "\(Int(value.rounded()))"
+        let readout = shared == nil ? TypeReadouts.mixed : number
         return VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text(param.label).font(.subheadline)
@@ -266,9 +272,9 @@ struct EffectsSheet: View {
     /// A colour of the effect's own (shadow, glitch), or one that follows
     /// the text until Auto is turned off (splice, echo, highlight).
     private func colorRow(_ label: String, of effect: TextEffect, second: Bool) -> some View {
-        let held = second ? spec?.color2 : spec?.color
+        let held = TypeReadouts.shared(boxes.map { second ? $0.effect?.color2 : $0.effect?.color }) ?? nil
         let optional = !second && effect.defaultColor == nil
-        let ink = store.singleSelection?.color ?? "#1f2430"
+        let ink = TypeReadouts.shared(boxes.map(\.color)).flatMap { $0 } ?? "#1f2430"
         let auto = effect == .highlight ? TextEffect.highlightHex(for: ink) : ink
         let shown = held ?? (second ? effect.defaultColor2 : effect.defaultColor) ?? auto
         return HStack {
@@ -341,6 +347,8 @@ struct SpacingSheet: View {
                     spacingSections(el)
                     textBoxSection(el)
                     if TextRoles.hasRole(el) { roleSection(el) }
+                } else if store.textSelection != nil {
+                    severalSections(store.selectedElements)
                 }
             })
             .navigationTitle("Spacing")
@@ -378,6 +386,51 @@ struct SpacingSheet: View {
             .onChange(of: typing != nil) { _, open in store.textFieldOpen = open }
     }
 
+    /// Several boxes' line height, letter spacing — a share of each box's
+    /// own type size, so 4% stays 4% at every size — and paragraph spacing,
+    /// "Mixed" where they differ, moved or typed to one value on all of them
+    /// (TextSelection).
+    @ViewBuilder
+    private func severalSections(_ boxes: [Element]) -> some View {
+        let line = TextSelection.lineHeight(boxes)
+        let letter = TextSelection.sharedLetterPercent(boxes)
+        let paragraph = TextSelection.paragraphSpacing(boxes)
+        let share = TypeReadouts.letterSpacingShare
+        Section("Line height") {
+            valueSlider(tr("Line height"), value: line ?? 1.25, in: TypeReadouts.lineHeightRange,
+                        readout: line.map(TypeReadouts.lineHeight) ?? TypeReadouts.mixed,
+                        onReadout: { startTypingSeveral(.line, line.map(TypeReadouts.lineHeight)) }) { v, e in
+                e.lineHeight = v
+            }
+        }
+        Section("Letter spacing") {
+            valueSlider(tr("Letter spacing"), value: letter ?? 0, in: share.lowerBound * 100...share.upperBound * 100,
+                        readout: letter.map { "\(Int($0.rounded()))%" } ?? TypeReadouts.mixed,
+                        onReadout: { startTypingSeveral(.letter, letter.map { "\(Int($0.rounded()))" }) }) { v, e in
+                e.letterSpacing = TextSelection.letterSpacing(percent: v, for: e)
+            }
+        }
+        Section {
+            valueSlider(tr("Paragraph spacing"), value: min(paragraph ?? 0, TypeReadouts.paragraphSpacingRange.upperBound),
+                        in: TypeReadouts.paragraphSpacingRange,
+                        readout: paragraph.map(TypeReadouts.paragraphSpacing) ?? TypeReadouts.mixed,
+                        onReadout: { startTypingSeveral(.paragraph, paragraph.map { "\(Double(($0 * 10).rounded()) / 10)" }) }) { v, e in
+                e.paragraphSpacing = v < 0.01 ? nil : v
+            }
+        } header: {
+            Text("Paragraph spacing")
+        } footer: {
+            Text("Extra space after each line break, in ems.")
+        }
+    }
+
+    /// A readout tapped with several boxes selected: what they share, to
+    /// type over, or nothing while they differ.
+    private func startTypingSeveral(_ spacing: TypedSpacing, _ shared: String?) {
+        typedDraft = shared ?? ""
+        typing = spacing
+    }
+
     /// The readout tapped: its value as it reads, to type over.
     private func startTyping(_ spacing: TypedSpacing, _ el: Element) {
         let size = FontLibrary.effectiveFontSize(for: el)
@@ -391,7 +444,8 @@ struct SpacingSheet: View {
 
     /// The value typed set on the box, as one step, the box measured again.
     private func setTyped() {
-        guard let spacing = typing, let el = store.singleSelection else { return }
+        guard let spacing = typing else { return }
+        guard let el = store.singleSelection else { return setTypedSeveral(spacing) }
         let size = FontLibrary.effectiveFontSize(for: el)
         switch spacing {
         case .line:
@@ -403,6 +457,23 @@ struct SpacingSheet: View {
         case .paragraph:
             guard let value = TypeReadouts.typedParagraphSpacing(typedDraft) else { return }
             setSpacing { $0.paragraphSpacing = value < 0.01 ? nil : value }
+        }
+    }
+
+    /// The value typed set on every box selected, as one step: letter
+    /// spacing typed in percent, each box's share of its own size.
+    private func setTypedSeveral(_ spacing: TypedSpacing) {
+        switch spacing {
+        case .line:
+            guard let value = TypeReadouts.typedLineHeight(typedDraft) else { return }
+            store.formatTexts(.spacing) { $0.lineHeight = value }
+        case .letter:
+            // Typed against a size of 100, the spacing is the percentage.
+            guard let percent = TypeReadouts.typedLetterSpacing(typedDraft, size: 100) else { return }
+            store.formatTexts(.spacing) { $0.letterSpacing = TextSelection.letterSpacing(percent: percent, for: $0) }
+        case .paragraph:
+            guard let value = TypeReadouts.typedParagraphSpacing(typedDraft) else { return }
+            store.formatTexts(.spacing) { $0.paragraphSpacing = value < 0.01 ? nil : value }
         }
     }
 

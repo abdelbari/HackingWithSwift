@@ -6,9 +6,11 @@
 // double tap on the shape — and until there are some, Add words and a note
 // are all there is: the look comes with the first words, so a shape with
 // none is given none of its keys. Each change is one undo step, and words
-// that no longer fit grow the shape down. Effects, curves and paths are a
-// text box's. The Android twin's text panel, scoped to a shape's words,
-// offers the same, in the same words.
+// that no longer fit grow the shape down. Spacing — line, letter and
+// paragraph — and lists with their indent are a text box's too, written to
+// the same keys; effects, curves and paths stay a text box's. The Android
+// twin's text panel, scoped to a shape's words, offers the same, in the same
+// words.
 
 import SwiftUI
 
@@ -112,6 +114,8 @@ struct ShapeTextSheet: View {
                             .pickerStyle(.segmented)
                             .accessibilityValue(TypeReadouts.alignment(words.align))
                         }
+                        spacingSection(el, words: words)
+                        listSection(el)
                     }
                 }
             }
@@ -155,6 +159,104 @@ struct ShapeTextSheet: View {
         .buttonStyle(.plain)
         .accessibilityLabel(name)
         .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    /// Line height, letter spacing — a share of the words' type size — and
+    /// paragraph spacing, in a text box's ranges: live as a slider moves,
+    /// the shape grown down when the words need it, one step a drag.
+    private func spacingSection(_ el: Element, words: Element) -> some View {
+        let line = words.lineHeight ?? 1.25
+        let letter = TextSelection.letterPercent(el)
+        let paragraph = min(el.paragraphSpacing ?? 0, TypeReadouts.paragraphSpacingRange.upperBound)
+        let share = TypeReadouts.letterSpacingShare
+        return Section("Spacing") {
+            spacingSlider(tr("Line height"), value: line, in: TypeReadouts.lineHeightRange,
+                          readout: TypeReadouts.lineHeight(line)) { v, e in e.lineHeight = v }
+            spacingSlider(tr("Letter spacing"), value: letter, in: share.lowerBound * 100...share.upperBound * 100,
+                          readout: "\(Int(letter.rounded()))%") { v, e in
+                e.letterSpacing = TextSelection.letterSpacing(percent: v, for: e)
+            }
+            spacingSlider(tr("Paragraph spacing"), value: paragraph, in: TypeReadouts.paragraphSpacingRange,
+                          readout: TypeReadouts.paragraphSpacing(paragraph)) { v, e in
+                e.paragraphSpacing = v < 0.01 ? nil : v
+            }
+        }
+    }
+
+    /// A spacing's name over its slider, its value beside it, named and
+    /// valued for VoiceOver.
+    private func spacingSlider(_ name: String, value: Double, in range: ClosedRange<Double>, readout: String,
+                               _ set: @escaping (Double, inout Element) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(name).font(.subheadline)
+                Spacer()
+                Text(readout).font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            .accessibilityHidden(true)
+            Slider(value: Binding(get: { value }, set: { v in
+                store.formatTextsLive(.spacing) { e in
+                    e = ShapeText.starting(e)
+                    set(v, &e)
+                }
+            }), in: range, onEditingChanged: { editing in
+                if !editing { store.commit() }
+            })
+            .accessibilityLabel(name)
+            .accessibilityValue(readout)
+        }
+    }
+
+    /// No list, bullets, numbers or letters on every paragraph, and Outdent
+    /// and Indent for them all — the keys a text box's list writes.
+    private func listSection(_ el: Element) -> some View {
+        let lines = TextLists.lines(el)
+        let shared = TypeReadouts.shared(lines.map(\.list))
+        let deepest = lines.map(\.level).max() ?? 0
+        let shallowest = lines.map(\.level).min() ?? 0
+        return Section("List") {
+            Picker("List", selection: Binding(get: { shared ?? TypeReadouts.mixed },
+                                              set: { style in writeList { $0.setListStyle(style) } })) {
+                ForEach(Self.lists, id: \.self) { style in
+                    Image(systemName: Self.listIcon(style))
+                        .accessibilityLabel(TypeReadouts.listStyle(style))
+                        .tag(style)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityValue(shared.map { TypeReadouts.listStyle($0) } ?? TypeReadouts.mixed)
+            HStack(spacing: 12) {
+                Button { writeList { $0.stepIndent(by: -1) } } label: {
+                    Label("Outdent", systemImage: "decrease.indent")
+                }
+                .disabled(deepest == 0)
+                Spacer()
+                Button { writeList { $0.stepIndent(by: 1) } } label: {
+                    Label("Indent", systemImage: "increase.indent")
+                }
+                .disabled(shallowest >= FontLibrary.maxIndent)
+            }
+            .buttonStyle(.borderless)
+        }
+    }
+
+    private static let lists = ["none", "bullet", "number", "letter"]
+
+    static func listIcon(_ style: String) -> String {
+        switch style {
+        case "bullet": return "list.bullet"
+        case "number": return "list.number"
+        case "letter": return "character"
+        default: return "text.alignleft"
+        }
+    }
+
+    /// A list change to the words as one step, the shape grown to them.
+    private func writeList(_ change: (inout Element) -> Void) {
+        store.formatTexts(.list) { e in
+            e = ShapeText.starting(e)
+            change(&e)
+        }
     }
 
     /// One change to the words' look as one step, on a shape that has taken

@@ -1,0 +1,34 @@
+{
+  "about": "Words in shapes with lists and spacing: a five-pointed star and a rectangle, each holding a nested list in its own paragraphs, with line, letter and paragraph spacing on the shape. The keys are a text box's — lineHeight, letterSpacing, paragraphSpacing (an extra), paragraphs and paragraphsText — and the words set in the shape's text-safe box (ShapeText) carry them, so each line's marker is a text box's: markers per line, null for none.",
+  "id": "d-shape-lists",
+  "title": "Shape lists",
+  "width": 1080,
+  "height": 1080,
+  "createdAt": 0,
+  "updatedAt": 0,
+  "pages": [
+    {
+      "id": "p1",
+      "background": { "type": "color", "value": "#ffffff" },
+      "elements": [
+        {
+          "id": "star", "type": "shape", "shapeId": "star-5", "x": 100, "y": 100, "w": 500, "h": 500,
+          "text": "Goals\nRead\nWrite\nDaily", "fontSize": 24, "lineHeight": 1.4, "letterSpacing": 1.2,
+          "paragraphSpacing": 0.5,
+          "paragraphs": [{}, { "list": "number" }, { "list": "number" }, { "list": "number", "level": 1 }],
+          "paragraphsText": "Goals\nRead\nWrite\nDaily"
+        },
+        {
+          "id": "card", "type": "shape", "shapeId": "rect", "x": 100, "y": 650, "w": 600, "h": 300,
+          "text": "Plan\nOne\nTwo\nDeep", "fontSize": 30, "lineHeight": 1.2, "letterSpacing": 3,
+          "paragraphs": [{}, { "list": "bullet" }, { "list": "bullet" }, { "list": "bullet", "level": 1 }],
+          "paragraphsText": "Plan\nOne\nTwo\nDeep"
+        }
+      ]
+    }
+  ],
+  "markers": {
+    "star": [null, "1.  ", "2.  ", "a.  "],
+    "card": [null, "•  ", "•  ", "◦  "]
+  }
+}

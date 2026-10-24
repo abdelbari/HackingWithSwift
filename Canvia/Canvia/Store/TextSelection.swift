@@ -214,3 +214,172 @@ extension DesignStore {
         }
     }
 }
+
+// MARK: several boxes' format
+
+/// Effects, spacing, lists, curve and transparency for several text boxes
+/// at once — and the words in a shape, for the properties that are theirs
+/// too. A change reaches every box it may, in one step, and each box is
+/// measured again; where the boxes read differently, the controls say
+/// "Mixed", and moving one writes its value to all of them. Pure, so the
+/// Android twin's TextSelection runs the same rows over the same fixture
+/// (Fixtures/multi-text.json).
+enum TextSelection {
+
+    /// What a control changes.
+    enum Property: CaseIterable {
+        case effect, curve, spacing, list, opacity
+    }
+
+    /// Whether `property` is `el`'s at all, locked or not: an effect or a
+    /// curve only a text box's — a shape's words take neither — spacing
+    /// and lists any words, transparency anything.
+    static func has(_ el: Element, _ property: Property) -> Bool {
+        switch property {
+        case .effect, .curve: return el.type == .text
+        case .spacing, .list: return ShapeText.carriesWords(el)
+        case .opacity: return true
+        }
+    }
+
+    /// Whether a change of `property` reaches `el`: it has it, and is not
+    /// locked.
+    static func takes(_ el: Element, _ property: Property) -> Bool {
+        !el.locked && has(el, property)
+    }
+
+    /// `boxes` with `change` made to each one a change of `property`
+    /// reaches; the rest as they are.
+    static func applied(_ boxes: [Element], _ property: Property, change: (inout Element) -> Void) -> [Element] {
+        boxes.map { el in
+            guard takes(el, property) else { return el }
+            var next = el
+            change(&next)
+            return next
+        }
+    }
+
+    /// The boxes a control for `property` reads: those a change reaches —
+    /// or, when every one is locked, all those that have it, as the type
+    /// controls read (DesignStore.textsRead).
+    static func reading(_ boxes: [Element], _ property: Property) -> [Element] {
+        let having = boxes.filter { has($0, property) }
+        let reached = having.filter { !$0.locked }
+        return reached.isEmpty ? having : reached
+    }
+
+    /// The type size a box's spacing is a share of: its own, or a shape's
+    /// words' (ShapeText.textElement).
+    static func typeSize(_ el: Element) -> Double {
+        let words = el.type == .shape ? ShapeText.textElement(for: el) : el
+        return max(words.fontSize ?? 42, 1)
+    }
+
+    /// A box's letter spacing as a percentage of its own type size, to a
+    /// tenth — so 4% reads 4 at every size.
+    static func letterPercent(_ el: Element) -> Double {
+        ((el.letterSpacing ?? 0) / typeSize(el) * 1000).rounded() / 10
+    }
+
+    /// Letter spacing of `percent` of `el`'s own type size, in points.
+    static func letterSpacing(percent: Double, for el: Element) -> Double {
+        percent / 100 * typeSize(el)
+    }
+
+    // MARK: readouts — nil reads "Mixed"
+
+    /// The effect every box has; nil when they differ.
+    static func effect(_ boxes: [Element]) -> TextEffect? {
+        TypeReadouts.shared(reading(boxes, .effect).map { TextEffect.from($0.effect) })
+    }
+
+    /// A setting of the effect every box has, as drawn; nil when the boxes
+    /// have different effects or different values.
+    static func effectValue(_ boxes: [Element], _ param: TextEffectParam) -> Double? {
+        guard let kind = effect(boxes) else { return nil }
+        return TypeReadouts.shared(reading(boxes, .effect).map { TextEffect.value($0.effect, param, for: kind) })
+    }
+
+    static func sharedLetterPercent(_ boxes: [Element]) -> Double? {
+        TypeReadouts.shared(reading(boxes, .spacing).map { letterPercent($0) })
+    }
+
+    static func lineHeight(_ boxes: [Element]) -> Double? {
+        TypeReadouts.shared(reading(boxes, .spacing).map { $0.lineHeight ?? 1.25 })
+    }
+
+    static func paragraphSpacing(_ boxes: [Element]) -> Double? {
+        TypeReadouts.shared(reading(boxes, .spacing).map { $0.paragraphSpacing ?? 0 })
+    }
+
+    /// The list every line of every box is in — "none" for none — nil
+    /// when any two lines differ.
+    static func list(_ boxes: [Element]) -> String? {
+        TypeReadouts.shared(reading(boxes, .list).flatMap { TextLists.lines($0).map(\.list) })
+    }
+
+    static func curve(_ boxes: [Element]) -> Double? {
+        TypeReadouts.shared(reading(boxes, .curve).map { $0.curve ?? 0 })
+    }
+
+    static func opacity(_ boxes: [Element]) -> Double? {
+        TypeReadouts.shared(reading(boxes, .opacity).map(\.opacity))
+    }
+
+    /// The deepest and the shallowest level any line of the boxes is at,
+    /// for Outdent and Indent.
+    static func levels(_ boxes: [Element]) -> (deepest: Int, shallowest: Int) {
+        let levels = reading(boxes, .list).flatMap { TextLists.lines($0).map(\.level) }
+        return (levels.max() ?? 0, levels.min() ?? 0)
+    }
+}
+
+extension DesignStore {
+
+    /// Every selected box a change of `property` reaches, changed by
+    /// `change` as one step, each measured again — a shape grown down for
+    /// its words when they need it.
+    func formatTexts(_ property: TextSelection.Property, _ change: (inout Element) -> Void) {
+        updateSelected { el in
+            guard TextSelection.takes(el, property) else { return }
+            change(&el)
+        }
+    }
+
+    /// The same while a slider moves, the step closed as it lets go
+    /// (commit). Words that no longer fit grow their shape as they go.
+    func formatTextsLive(_ property: TextSelection.Property, _ change: (inout Element) -> Void) {
+        updateSelectedTransient { el in
+            guard TextSelection.takes(el, property) else { return }
+            let before = el
+            change(&el)
+            el = Self.remeasured(el, was: before)
+        }
+    }
+
+    /// An effect tile tapped with several boxes selected: that effect on
+    /// every text box — a box that has it already keeps its settings.
+    func setTextEffect(_ effect: TextEffect) {
+        formatTexts(.effect) { el in
+            guard el.effect?.type != effect.rawValue else { return }
+            el.effect = TextEffectSpec(type: effect.rawValue)
+        }
+    }
+
+    /// Letter spacing of `percent` of each box's own type size.
+    func setLetterPercentLive(_ percent: Double) {
+        formatTextsLive(.spacing) { el in
+            el.letterSpacing = TextSelection.letterSpacing(percent: percent, for: el)
+        }
+    }
+
+    /// Every paragraph of every box in `style` ("none" for no list).
+    func setTextList(_ style: String) {
+        formatTexts(.list) { $0.setListStyle(style) }
+    }
+
+    /// Every paragraph of every box a level deeper, or shallower.
+    func indentTexts(by delta: Int) {
+        formatTexts(.list) { $0.stepIndent(by: delta) }
+    }
+}

@@ -1,0 +1,34 @@
+{
+  "about": "TextSelection over several selected boxes: which boxes a change of each property reaches (never a locked one; an effect or a curve only a text box, never a shape's words) and what the controls read, null for Mixed. A locked box is read only when every box is locked. Letter spacing reads as a percentage of each box's own type size, to a tenth; a box with no lineHeight reads 1.25, no paragraphSpacing 0, no curve 0, an effect setting not stored its effect's default.",
+  "boxes": [
+    { "id": "a", "type": "text", "x": 0, "y": 0, "w": 300, "h": 40, "text": "Alpha", "fontSize": 20,
+      "letterSpacing": 0.8, "lineHeight": 1.4, "listStyle": "bullet",
+      "effect": { "type": "shadow", "offset": 30 } },
+    { "id": "b", "type": "text", "x": 0, "y": 60, "w": 300, "h": 80, "text": "Beta", "fontSize": 50,
+      "letterSpacing": 2, "lineHeight": 1.4, "paragraphSpacing": 0.5, "listStyle": "bullet", "curve": 90, "opacity": 0.5,
+      "effect": { "type": "shadow", "offset": 30, "blur": 10 } },
+    { "id": "c", "type": "text", "x": 0, "y": 160, "w": 300, "h": 20, "text": "Gamma", "fontSize": 10, "locked": true,
+      "letterSpacing": 5, "lineHeight": 2, "effect": { "type": "neon" } },
+    { "id": "d", "type": "shape", "shapeId": "rect", "x": 0, "y": 200, "w": 200, "h": 100, "text": "Hi", "fontSize": 30,
+      "letterSpacing": 1.2, "lineHeight": 1.4, "listStyle": "bullet" }
+  ],
+  "readouts": {
+    "effect": "shadow",
+    "offset": 30,
+    "blur": null,
+    "direction": 45,
+    "letterPercent": 4,
+    "lineHeight": 1.4,
+    "paragraphSpacing": null,
+    "list": "bullet",
+    "curve": null,
+    "opacity": null
+  },
+  "reaches": {
+    "effect": ["a", "b"],
+    "curve": ["a", "b"],
+    "spacing": ["a", "b", "d"],
+    "list": ["a", "b", "d"],
+    "opacity": ["a", "b", "d"]
+  }
+}
