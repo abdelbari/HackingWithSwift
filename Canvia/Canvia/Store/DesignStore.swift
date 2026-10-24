@@ -2792,6 +2792,15 @@ final class DesignStore {
                 }
             }
         }
+        // A table given a design (TableCell.design) takes it again in the
+        // palette's first two colours, so its header follows the theme.
+        if let palette, let accent = palette.first {
+            let accent2 = palette.count > 1 ? palette[1] : accent
+            for p in out.pages.indices {
+                out.pages[p].elements = Tables.redesigned(out.pages[p].elements, accent: accent, accent2: accent2,
+                                                          heightFor: { FontLibrary.layoutHeight(for: $0) })
+            }
+        }
         // A locked page is kept as it was, its background and words alike.
         for p in out.pages.indices where PageLocks.isLocked(design.pages[p]) {
             out.pages[p] = design.pages[p]

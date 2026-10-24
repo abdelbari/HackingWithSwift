@@ -471,6 +471,9 @@ struct ShapeElementView: View {
             if let stroke = element.stroke, let sw = element.strokeWidth, sw > 0 {
                 if Freehand.isMarker(element) {
                     MarkerInk(element: element, shape: shape, ink: stroke, width: sw)
+                } else if let lines = Tables.sideLines(element) {
+                    // A table cell strokes only the sides its borders show.
+                    TableSides(lines: lines).stroke(Color(hex: stroke), style: .border(element.dash, width: sw))
                 } else {
                     shape.stroke(Color(hex: stroke), style: .border(element.dash, width: sw))
                 }
@@ -485,6 +488,21 @@ struct ShapeElementView: View {
                     .position(x: box.midX, y: box.midY)
             }
         }
+    }
+}
+
+/// The sides a table cell's rectangle strokes (Tables.sideLines), each a
+/// line along its edge in its own box.
+struct TableSides: Shape {
+    let lines: [[Double]]
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        for l in lines where l.count == 4 {
+            p.move(to: CGPoint(x: l[0], y: l[1]))
+            p.addLine(to: CGPoint(x: l[2], y: l[3]))
+        }
+        return p
     }
 }
 

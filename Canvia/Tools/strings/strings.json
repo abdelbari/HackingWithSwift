@@ -944,6 +944,15 @@
     "ja": "%@のサンバースト",
     "pt-BR": "Raios de sol (%@)"
   },
+  "%@ table": {
+    "ar": "جدول %@",
+    "de": "Tabelle %@",
+    "es": "Tabla %@",
+    "fr": "Tableau %@",
+    "it": "Tabella %@",
+    "ja": "%@ の表",
+    "pt-BR": "Tabela %@"
+  },
   "%@ tag": {
     "ar": "وسم (%@)",
     "de": "Etikett (%@)",
@@ -4478,6 +4487,15 @@
     "ja": "約 %d KB",
     "pt-BR": "Cerca de %d KB"
   },
+  "Accent bands": {
+    "ar": "أشرطة مميزة",
+    "de": "Akzentstreifen",
+    "es": "Franjas de acento",
+    "fr": "Bandes d'accent",
+    "it": "Bande d'accento",
+    "ja": "アクセントの縞",
+    "pt-BR": "Faixas de destaque"
+  },
   "Accessibility": {
     "ar": "إمكانية الوصول",
     "de": "Barrierefreiheit",
@@ -5344,6 +5362,15 @@
     "it": "Centra",
     "ja": "中央揃え",
     "pt-BR": "Centralizar"
+  },
+  "Align in cell": {
+    "ar": "المحاذاة داخل الخلية",
+    "de": "In Zelle ausrichten",
+    "es": "Alinear en la celda",
+    "fr": "Aligner dans la cellule",
+    "it": "Allinea nella cella",
+    "ja": "セル内の配置",
+    "pt-BR": "Alinhar na célula"
   },
   "Align left": {
     "ar": "محاذاة لليسار",
@@ -6362,6 +6389,15 @@
     "ja": "バッジ",
     "pt-BR": "Selo"
   },
+  "Bagel": {
+    "ar": "بيغل",
+    "de": "Bagel",
+    "es": "Bagel",
+    "fr": "Bagel",
+    "it": "Bagel",
+    "ja": "ベーグル",
+    "pt-BR": "Bagel"
+  },
   "Banner": {
     "ar": "لافتة",
     "de": "Banner",
@@ -6730,6 +6766,15 @@
     "it": "Spessore bordo",
     "ja": "枠線の太さ",
     "pt-BR": "Espessura da borda"
+  },
+  "Bordered": {
+    "ar": "بحدود",
+    "de": "Mit Rahmen",
+    "es": "Con bordes",
+    "fr": "Bordé",
+    "it": "Con bordi",
+    "ja": "枠線あり",
+    "pt-BR": "Com bordas"
   },
   "Borders": {
     "ar": "الحدود",
@@ -7502,6 +7547,15 @@
     "ja": "字幕",
     "pt-BR": "Legendas"
   },
+  "Card": {
+    "ar": "بطاقة",
+    "de": "Karte",
+    "es": "Tarjeta",
+    "fr": "Carte",
+    "it": "Scheda",
+    "ja": "カード",
+    "pt-BR": "Cartão"
+  },
   "Card %d of %d": {
     "ar": "البطاقة %d من %d",
     "de": "Karte %d von %d",
@@ -8179,6 +8233,15 @@
     "it": "Colore del codice",
     "ja": "コードの色",
     "pt-BR": "Cor do código"
+  },
+  "Coffee": {
+    "ar": "قهوة",
+    "de": "Kaffee",
+    "es": "Café",
+    "fr": "Café",
+    "it": "Caffè",
+    "ja": "コーヒー",
+    "pt-BR": "Café"
   },
   "Collapse": {
     "ar": "طي",
@@ -9703,6 +9766,15 @@
     "it": "Scuro",
     "ja": "ダーク",
     "pt-BR": "Escuro"
+  },
+  "Dark header": {
+    "ar": "ترويسة داكنة",
+    "de": "Dunkle Kopfzeile",
+    "es": "Encabezado oscuro",
+    "fr": "En-tête foncé",
+    "it": "Intestazione scura",
+    "ja": "濃いヘッダー",
+    "pt-BR": "Cabeçalho escuro"
   },
   "Dark skin tone": {
     "ar": "لون بشرة داكن",
@@ -13754,6 +13826,15 @@
     "ja": "グリッド",
     "pt-BR": "Grade"
   },
+  "Grid lines": {
+    "ar": "خطوط الشبكة",
+    "de": "Gitterlinien",
+    "es": "Líneas de cuadrícula",
+    "fr": "Quadrillage",
+    "it": "Linee della griglia",
+    "ja": "格子線",
+    "pt-BR": "Linhas de grade"
+  },
   "Grid spacing, %d to %d px.": {
     "ar": "تباعد الشبكة، من %d إلى %d بكسل.",
     "de": "Rasterabstand, %d bis %d px.",
@@ -14804,6 +14885,15 @@
     "ja": "インクの色",
     "pt-BR": "Cor da tinta"
   },
+  "Inner": {
+    "ar": "داخلي",
+    "de": "Innen",
+    "es": "Interior",
+    "fr": "Intérieur",
+    "it": "Interno",
+    "ja": "内側",
+    "pt-BR": "Interna"
+  },
   "Instagram post (1080)": {
     "ar": "منشور Instagram (1080)",
     "de": "Instagram-Beitrag (1080)",
@@ -15010,6 +15100,15 @@
     "it": "Corsivo: %@",
     "ja": "斜体: %@",
     "pt-BR": "Itálico: %@"
+  },
+  "Item": {
+    "ar": "الصنف",
+    "de": "Artikel",
+    "es": "Artículo",
+    "fr": "Article",
+    "it": "Articolo",
+    "ja": "品目",
+    "pt-BR": "Item"
   },
   "Its %d design can stay, out of any folder, or go to Recently deleted.|Its %d designs can stay, out of any folder, or go to Recently deleted.": {
     "ar": {
@@ -15574,6 +15673,15 @@
     "it": "Luce",
     "ja": "ライト",
     "pt-BR": "Luz"
+  },
+  "Light header": {
+    "ar": "ترويسة فاتحة",
+    "de": "Helle Kopfzeile",
+    "es": "Encabezado claro",
+    "fr": "En-tête clair",
+    "it": "Intestazione chiara",
+    "ja": "淡いヘッダー",
+    "pt-BR": "Cabeçalho claro"
   },
   "Light skin tone": {
     "ar": "لون بشرة فاتح",
@@ -17741,6 +17849,15 @@
     "ja": "次：ページ %d",
     "pt-BR": "A seguir: página %d"
   },
+  "Night": {
+    "ar": "ليلي",
+    "de": "Nacht",
+    "es": "Noche",
+    "fr": "Nuit",
+    "it": "Notte",
+    "ja": "ナイト",
+    "pt-BR": "Noite"
+  },
   "No %@ combinations match “%@”.": {
     "ar": "لا توجد تشكيلات %@ تطابق «%@».",
     "de": "Keine %@-Kombinationen passen zu „%@“.",
@@ -19405,6 +19522,15 @@
     "it": "Riduci rientro",
     "ja": "インデントを解除",
     "pt-BR": "Diminuir recuo"
+  },
+  "Outer": {
+    "ar": "خارجي",
+    "de": "Außen",
+    "es": "Exterior",
+    "fr": "Extérieur",
+    "it": "Esterno",
+    "ja": "外枠",
+    "pt-BR": "Externa"
   },
   "Outline": {
     "ar": "الإطار الخارجي",
@@ -21137,6 +21263,15 @@
     "ja": "前の値",
     "pt-BR": "Valor anterior"
   },
+  "Price": {
+    "ar": "السعر",
+    "de": "Preis",
+    "es": "Precio",
+    "fr": "Prix",
+    "it": "Prezzo",
+    "ja": "価格",
+    "pt-BR": "Preço"
+  },
   "Primary, Seasonal, Accents…": {
     "ar": "أساسية، موسمية، ألوان مميزة…",
     "de": "Primär, Saisonal, Akzente …",
@@ -21325,6 +21460,15 @@
     "it": "Codice QR in questa immagine → elemento codice",
     "ja": "この画像の QR コード → コード素材",
     "pt-BR": "Código QR nesta imagem → elemento de código"
+  },
+  "Qty": {
+    "ar": "الكمية",
+    "de": "Menge",
+    "es": "Cant.",
+    "fr": "Qté",
+    "it": "Qtà",
+    "ja": "数量",
+    "pt-BR": "Qtd."
   },
   "Quality %d% — about %@": {
     "ar": "الجودة %d% — حوالي %@",
@@ -25808,6 +25952,15 @@
     "ja": "取り消し線",
     "pt-BR": "Tachado"
   },
+  "Striped": {
+    "ar": "مخطط",
+    "de": "Gestreift",
+    "es": "A rayas",
+    "fr": "Rayé",
+    "it": "A righe",
+    "ja": "ストライプ",
+    "pt-BR": "Listrado"
+  },
   "Stripes": {
     "ar": "خطوط مقلّمة",
     "de": "Streifen",
@@ -26005,6 +26158,15 @@
     "it": "Tabella",
     "ja": "表",
     "pt-BR": "Tabela"
+  },
+  "Table designs": {
+    "ar": "تصاميم الجداول",
+    "de": "Tabellendesigns",
+    "es": "Diseños de tabla",
+    "fr": "Styles de tableau",
+    "it": "Stili di tabella",
+    "ja": "表のデザイン",
+    "pt-BR": "Estilos de tabela"
   },
   "Tabloid": {
     "ar": "Tabloid",

@@ -375,6 +375,14 @@ enum SVGExporter {
         // Even-odd only when asked for: nonzero is SVG's own default.
         let rule = el.fillRule == "evenodd" ? " fill-rule=\"evenodd\"" : ""
 
+        // A table's cell strokes only the sides its borders show, as <line>s.
+        if let sides = Tables.sideLines(el) {
+            let lines = stroke.isEmpty ? "" : sides.map { l in
+                "<line x1=\"\(num(l[0]))\" y1=\"\(num(l[1]))\" x2=\"\(num(l[2]))\" y2=\"\(num(l[3]))\"\(stroke)/>"
+            }.joined()
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
+                   "<path d=\"\(d)\" fill=\"\(paint)\"\(rule)/>" + lines + "</g>"
+        }
         return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
                "<path d=\"\(d)\" fill=\"\(paint)\"\(rule)\(stroke)/></g>"
     }

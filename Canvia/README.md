@@ -345,6 +345,16 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   longest cell. Both arrive as ordinary grouped elements — pie slices and
   line paths are shapes with their own path data — so they recolour,
   export and read aloud like anything else.
+- Table looks: the Table sheet's Align in cell sets the selected cells'
+  words top, middle or bottom (each text's `vAlign`), and a row of six
+  border choices — all, outer, inner, horizontal, vertical, none — keeps
+  `borders` on the table key, each cell rectangle stroking only its
+  derived `sides` (Tables.sides) on the canvas and as SVG `<line>`s. Add >
+  Table and the sheet's Design row offer sixteen designs from the shared
+  `Content/tables.json` (`Tools/generate_tables.py`), restyling a table's
+  look while keeping its words, merges, column widths and row heights; the
+  table keeps its `design`, so a theme or the brand applied gives it again
+  in the new colours, and search finds each by name.
 - Read a picture: Live Text turns the words in a photo into editable text
   elements where they were; a QR code in a photo comes back as a clean
   code element with its payload.

@@ -199,7 +199,7 @@ struct DataSheet: View {
                         }
                         .pickerStyle(.segmented)
                     }
-                    if mode == 0 { chartSections } else { tableSection }
+                    if mode == 0 { chartSections } else { tableSections }
                 }
             }
             .navigationTitle(editing != nil ? tr("Edit chart") : (mode == 0 ? tr("Chart") : tr("Table")))
@@ -324,6 +324,25 @@ struct DataSheet: View {
         case .scatter: return DataGraphics.scatterHint
         case .bubble: return DataGraphics.bubbleHint
         default: return DataGraphics.seriesHint
+        }
+    }
+
+    /// The table's cells, and for a new one the designs it can go on in.
+    @ViewBuilder
+    private var tableSections: some View {
+        tableSection
+        if !editingTable { designsSection }
+    }
+
+    /// A look from the gallery: a table of the rows typed above, or of its
+    /// sample while there are none, in that design — as the Android twin's
+    /// Add > Table row.
+    private var designsSection: some View {
+        Section("Table designs") {
+            TableDesignRow(accents: store.tableAccents, selected: nil) { look in
+                let rows = tableRows.isEmpty ? TableDesigns.sample : tableRows
+                if store.addTable(rows, header: tableHeader, look: look) { dismiss() }
+            }
         }
     }
 

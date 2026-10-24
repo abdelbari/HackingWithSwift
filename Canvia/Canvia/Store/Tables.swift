@@ -5,6 +5,7 @@
 // DataGraphics for what each change does to it), as the Android twin's
 // editor works it.
 
+import CoreGraphics
 import Foundation
 
 /// The table the selection is in, as the Table sheet reads it: its id, the
@@ -515,6 +516,104 @@ extension DesignStore {
             let set = DataGraphics.withTableBands(els, id: t.id, on: on, colour: chosen)
             return set == els ? nil : set
         }
+    }
+
+    // MARK: lines, alignment in cells and designs
+
+    /// Which of the selected table's lines show (Tables.borderMode).
+    var tableBorderMode: String? {
+        tableSelection.map { Tables.borderMode(page.elements, id: $0.id) }
+    }
+
+    /// The selected table's lines shown as `mode` — all, outer, inner,
+    /// horizontal, vertical or none (Tables.withBorderMode) — one step.
+    /// Whether they changed.
+    @discardableResult
+    func setTableBorderMode(_ mode: String) -> Bool {
+        editTable { els, t in Tables.withBorderMode(els, id: t.id, mode: mode) }
+    }
+
+    /// The cells Align in cell acts on: the selected ones, or every cell
+    /// when the whole table is selected (nil).
+    private func alignedCells(_ table: TableSelection) -> Set<[Int]>? {
+        guard !table.whole else { return nil }
+        return Set(selectedElements.compactMap(\.table).filter { $0.id == table.id }.map { [$0.row, $0.col] })
+    }
+
+    /// Where the words of the cells Align in cell acts on sit, when they
+    /// share a place (Tables.cellAlignment).
+    var tableCellAlignment: String? {
+        tableSelection.flatMap { Tables.cellAlignment(page.elements, id: $0.id, cells: alignedCells($0)) }
+    }
+
+    /// Those cells' words set top, middle or bottom in their cells
+    /// (Tables.aligned), one step. Whether they moved.
+    @discardableResult
+    func setTableCellAlignment(_ align: String) -> Bool {
+        let measure = self.measure
+        return editTable { els, t in
+            Tables.aligned(els, id: t.id, cells: alignedCells(t), align: align, heightFor: measure)
+        }
+    }
+
+    /// The colours a table design's "accent" and "accent2" stand for here:
+    /// the brand kit's, else the design's own (TableDesigns.accents).
+    var tableAccents: (String, String) {
+        TableDesigns.accents(brand: BrandKit.load().colors, palette: DataGraphics.palette(for: design, page: page))
+    }
+
+    /// The design the selected table was last given, when it was.
+    var tableDesignId: String? {
+        tableSelection.flatMap { Tables.designOf(DataGraphics.tableMembers(page.elements, id: $0.id)) }
+    }
+
+    /// The selected table in `look` (Tables.withDesign): its words, merged
+    /// cells, column widths and row heights kept — one step. Whether it
+    /// changed.
+    @discardableResult
+    func setTableDesign(_ look: TableDesigns.TableDesign) -> Bool {
+        let (accent, accent2) = tableAccents
+        let measure = self.measure
+        return editTable { els, t in
+            Tables.withDesign(els, id: t.id, design: look, accent: accent, accent2: accent2, heightFor: measure)
+        }
+    }
+
+    /// A new table of `rows` across the middle of the page on screen — the
+    /// next unlocked one when this one is locked — its first row the header
+    /// unless `header` is off, in `look` when one is given: one step,
+    /// selected, and remembered in Add's Recently used. Whether it went on.
+    @discardableResult
+    func addTable(_ rows: [[String]], header: Bool = true, look: TableDesigns.TableDesign? = nil) -> Bool {
+        endTextEdit()
+        let cells = rows.map { row in row.map { $0.trimmingCharacters(in: .whitespaces) } }
+        guard cells.contains(where: { row in row.contains { !$0.isEmpty } }) else { return false }
+        guard landsOnUnlockedPage() else { return false }
+        let made = newTable(cells, header: header, look: look)
+        guard !made.isEmpty else { return false }
+        applyToPage { $0.elements.append(contentsOf: made) }
+        selection = Set(made.map(\.id))
+        ElementSearch.remember(.table, look?.id ?? "table")
+        buzz(.confirm)
+        return true
+    }
+
+    /// A table of `rows` for the page on screen, across its middle, in the
+    /// design's colours that show on it: header off when asked, and in
+    /// `look` when given.
+    func newTable(_ rows: [[String]], header: Bool, look: TableDesigns.TableDesign?,
+                  frame given: CGRect? = nil) -> [Element] {
+        let w = pageWidth, h = pageHeight
+        let frame = given ?? CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(),
+                                    height: (h * 0.6).rounded())
+        let accent = DataGraphics.palette(for: design, page: page).first ?? "#5a31f4"
+        let measure = self.measure
+        var made = DataGraphics.table(rows, in: frame, accent: accent, heightFor: measure)
+        guard let id = made.lazy.compactMap({ $0.table?.id }).first else { return made }
+        if !header { made = DataGraphics.withTableHeader(made, id: id, on: false, accent: accent, heightFor: measure) }
+        guard let look else { return made }
+        let (a, b) = tableAccents
+        return Tables.withDesign(made, id: id, design: look, accent: a, accent2: b, heightFor: measure) ?? made
     }
 
     // MARK: Tab between cells

@@ -280,6 +280,11 @@ struct InsertSheet: View {
     /// its own tab puts it; a chart or the table opens the data sheet on
     /// it, and the QR code its field, where what it is made from is typed.
     private func insertHit(_ hit: ElementSearch.Hit) {
+        // A table design found by its name goes on as that look.
+        if hit.kind == .table, let look = TableDesigns.design(hit.id) {
+            if store.addTable(TableDesigns.sample, look: look) { dismiss() }
+            return
+        }
         switch hit.kind {
         case .shape: addShape(hit.id)
         case .icon: if let icon = IconLibrary.icon(hit.id) { addIcon(icon) }
