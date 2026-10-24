@@ -3,7 +3,7 @@
 // your own, the brand kit's, the gradients, your own photos, the built-in
 // pictures and the generated motion loops, which play behind the page as it
 // does — and a picture already behind the page, taken back out as a photo;
-// a clip playing behind the page, its Clip controls — trim, speed, volume —
+// a clip playing behind the page, its Clip controls — trim, speed, loop, volume —
 // over the rest. As the Android twin's background panel offers them.
 
 import SwiftUI
@@ -290,6 +290,8 @@ struct BackgroundClipControls: View {
             Text("Clip").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
             trim
             speed
+            Toggle("Loop", isOn: Binding(get: { clip.playback.loop },
+                                         set: { on in store.updateBackgroundClip { $0.loop = on } }))
             StepSlider(label: tr("Volume"), stored: min(max(clip.playback.volume, 0), 1), range: 0...1, step: 0.1,
                        draft: $draftVolume, readout: ClipSheet.percentLabel) { v in
                 store.updateBackgroundClip { $0.volume = (min(max(v, 0), 1) * 100).rounded() / 100 }
