@@ -305,7 +305,7 @@ struct PresentationView: View {
         Button("Next page") { go(1) }
         Button("Previous page") { go(-1) }
         ForEach(Self.links(on: page, in: design), id: \.self) { url in
-            Button(Links.pageId(url) == nil ? tr("Open %@", Links.shown(url)) : Links.spoken(url, in: design)) {
+            Button(Links.spoken(url, in: design) ?? tr("Open %@", Links.shown(url))) {
                 follow(url)
             }
         }

@@ -27,7 +27,10 @@ final class PageLinksTests: XCTestCase {
     func testAPageLinkIsReadOnlyWhileThePageIsThere() {
         let d = deck()
         XCTAssertEqual(Links.normalized("page:p3", in: d), "page:p3")
-        XCTAssertEqual(Links.normalized(" PAGE:p2 ", in: d), "page:p2")
+        XCTAssertEqual(Links.normalized(" page:p2 ", in: d), "page:p2")
+        // "page:" in small letters only, on both phones.
+        XCTAssertNil(Links.normalized("PAGE:p2", in: d))
+        XCTAssertNil(Links.pageId("Page:p3"))
         XCTAssertNil(Links.normalized("page:gone", in: d))
         XCTAssertNil(Links.normalized("page:", in: d))
         XCTAssertNil(Links.normalized("page:a b", in: d))
@@ -51,6 +54,7 @@ final class PageLinksTests: XCTestCase {
         XCTAssertEqual(Links.spoken("page:p3", in: d), "Link to page 3, Pricing")
         XCTAssertEqual(Links.spoken("page:p2", in: d), "Link to page 2")
         XCTAssertEqual(Links.spoken("page:gone", in: d), "Page removed")
+        XCTAssertNil(Links.spoken("https://canvia.app", in: d))
         XCTAssertEqual(Links.label("page:p3", in: d), "Page 3 · Pricing")
         XCTAssertEqual(Links.label("page:gone", in: d), "Page removed")
         XCTAssertEqual(Links.label("https://canvia.app/", in: d), "canvia.app")

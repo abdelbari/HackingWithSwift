@@ -34,11 +34,29 @@ final class PinchSelectionTests: XCTestCase {
         XCTAssertFalse(pinches(CGPoint(x: 120, y: 120), CGPoint(x: 400, y: 400), [one]), "one finger off it")
         XCTAssertFalse(pinches(CGPoint(x: 120, y: 120), CGPoint(x: 180, y: 180), []), "nothing selected")
 
-        // Something small is grown to the fingertip's 44 points on screen.
+        // Widened by the fingertip's 44 points on screen, 22 each side.
         let small = box("s", x: 100, y: 100, w: 10, h: 10)
-        XCTAssertTrue(pinches(CGPoint(x: 90, y: 90), CGPoint(x: 120, y: 120), [small]))
-        XCTAssertFalse(pinches(CGPoint(x: 90, y: 90), CGPoint(x: 120, y: 120), [small], zoom: 2),
+        XCTAssertTrue(pinches(CGPoint(x: 85, y: 85), CGPoint(x: 120, y: 120), [small]))
+        XCTAssertFalse(pinches(CGPoint(x: 85, y: 85), CGPoint(x: 120, y: 120), [small], zoom: 2),
                        "zoomed in, the same target is half as much of the page")
+
+        // Android's GesturesTest rows: a 100 x 50 box turned 90°, standing
+        // 50 wide and 100 tall about 150,125, with a reach of 20 (44 points
+        // at 2.2 times).
+        let upright = box("u", x: 100, y: 100, w: 100, h: 50, rotation: 90)
+        let rows: [(CGPoint, CGPoint, Bool)] = [
+            (CGPoint(x: 150, y: 85), CGPoint(x: 150, y: 165), true),
+            // Off its turned body, though inside its upright box.
+            (CGPoint(x: 150, y: 85), CGPoint(x: 195, y: 125), false),
+            // Within the fingertip's reach (20: 10 either side) of its edge.
+            (CGPoint(x: 134, y: 125), CGPoint(x: 150, y: 184), true),
+            (CGPoint(x: 134, y: 125), CGPoint(x: 150, y: 186), false),
+            // One finger off it altogether.
+            (CGPoint(x: 150, y: 125), CGPoint(x: 400, y: 400), false),
+        ]
+        for (a, b, expected) in rows {
+            XCTAssertEqual(pinches(a, b, [upright], zoom: 2.2), expected, "\(a) \(b)")
+        }
 
         // In its turned frame.
         let turned = box("t", x: 100, y: 100, w: 200, h: 100, rotation: 90)
@@ -83,6 +101,8 @@ final class PinchSelectionTests: XCTestCase {
         XCTAssertEqual(out.y, -15, accuracy: 1e-9)
         XCTAssertEqual(out.fontSize, 48)
         XCTAssertEqual(out.letterSpacing ?? 0, 4, accuracy: 1e-9)
+        // The type to a tenth of a point, on both phones: 24 by 1.3333 is 32.
+        XCTAssertEqual(Geometry.pinched([text], centre: text.center, scale: 1.3333, turnDeg: 0)[0].fontSize, 32)
 
         // Never under 4 points of type: a pinch to a quarter stops at half.
         var tiny = text
@@ -122,6 +142,12 @@ final class PinchSelectionTests: XCTestCase {
         XCTAssertEqual(grown[0].w, 200, accuracy: 1e-9)
         XCTAssertEqual(grown[1].x, 250, accuracy: 1e-9)
         XCTAssertEqual(grown.map(\.groupTurn), [nil, nil], "not turned, no turn written")
+
+        // Two things of no one group keep their turns — Android's row.
+        var tilted = a
+        tilted.groupTurn = 10
+        let loose = box("c", x: 400, y: 0)
+        XCTAssertEqual(Geometry.pinched([tilted, loose], centre: CGPoint(x: 150, y: 50), scale: 1, turnDeg: 90)[0].groupTurn, 10)
     }
 
     func testSomethingLockedStaysPut() {

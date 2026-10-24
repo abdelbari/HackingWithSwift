@@ -4878,7 +4878,7 @@
     "fr": "Ajouter au cadre sélectionné",
     "it": "Aggiungi alla cornice selezionata",
     "ja": "選択中のフレームに追加",
-    "pt-BR": "Adicionar ao quadro selecionado"
+    "pt-BR": "Adicionar à moldura selecionada"
   },
   "Add to this design": {
     "ar": "أضف إلى هذا التصميم",
@@ -8825,6 +8825,15 @@
     "ja": "トンボ",
     "pt-BR": "Marcas de corte"
   },
+  "Cropping the graphic. Pull the corners and edges to show only part of it. Done and Cancel are in the bar below.": {
+    "ar": "جارٍ اقتصاص الرسم. اسحب الزوايا والحواف لإظهار جزء منه فقط. «تم» و«إلغاء» في الشريط بالأسفل.",
+    "de": "Grafik wird zugeschnitten. Ziehe an Ecken und Kanten, um nur einen Teil zu zeigen. „Fertig“ und „Abbrechen“ sind in der Leiste unten.",
+    "es": "Recortando el gráfico. Arrastra las esquinas y los bordes para mostrar solo una parte. Listo y Cancelar están en la barra de abajo.",
+    "fr": "Recadrage du graphique. Tirez les coins et les bords pour n’en montrer qu’une partie. OK et Annuler sont dans la barre en bas.",
+    "it": "Ritaglio della grafica. Trascina angoli e bordi per mostrarne solo una parte. Fine e Annulla sono nella barra in basso.",
+    "ja": "グラフィックをトリミング中です。角や辺をドラッグすると一部だけを表示できます。「完了」と「キャンセル」は下のバーにあります。",
+    "pt-BR": "Cortando o gráfico. Puxe os cantos e as bordas para mostrar só uma parte dele. Concluído e Cancelar estão na barra abaixo."
+  },
   "Cropping the photo": {
     "ar": "اقتصاص الصورة",
     "de": "Foto zuschneiden",
@@ -12678,10 +12687,10 @@
     "pt-BR": "Funil"
   },
   "Gap %@": {
-    "ar": "الفجوة %@",
+    "ar": "المسافة %@",
     "de": "Abstand %@",
-    "es": "Separación %@",
-    "fr": "Espace %@",
+    "es": "Espacio %@",
+    "fr": "Écart %@",
     "it": "Spazio %@",
     "ja": "間隔 %@",
     "pt-BR": "Espaço %@"
@@ -14849,15 +14858,6 @@
     "ja": "リンクまたはテキスト",
     "pt-BR": "Link ou texto"
   },
-  "Link to %@": {
-    "ar": "رابط إلى %@",
-    "de": "Link zu %@",
-    "es": "Enlace a %@",
-    "fr": "Lien vers %@",
-    "it": "Link a %@",
-    "ja": "%@ へのリンク",
-    "pt-BR": "Link para %@"
-  },
   "Link to page %d": {
     "ar": "رابط إلى الصفحة %d",
     "de": "Link zu Seite %d",
@@ -14866,6 +14866,15 @@
     "it": "Link alla pagina %d",
     "ja": "%d ページへのリンク",
     "pt-BR": "Link para a página %d"
+  },
+  "Link to page %d, %@": {
+    "ar": "رابط إلى الصفحة %d، %@",
+    "de": "Link zu Seite %d, %@",
+    "es": "Enlace a la página %d, %@",
+    "fr": "Lien vers la page %d, %@",
+    "it": "Link alla pagina %d, %@",
+    "ja": "%d ページへのリンク、%@",
+    "pt-BR": "Link para a página %d, %@"
   },
   "Linked": {
     "ar": "مرتبط",
@@ -18576,7 +18585,7 @@
     "pt-BR": "Menu da página"
   },
   "Page removed": {
-    "ar": "أزيلت الصفحة",
+    "ar": "أُزيلت الصفحة",
     "de": "Seite entfernt",
     "es": "Página eliminada",
     "fr": "Page supprimée",
@@ -19312,15 +19321,6 @@
     "it": "Pizzica ovunque per lo zoom, anche sopra gli elementi. Scorri con due dita, o con un dito sulla pagina vuota o sull’area di lavoro grigia. Tocca due volte l’area di lavoro per ingrandire un punto, e di nuovo per adattare la pagina. L’indicatore in alto a destra mostra il livello di zoom; toccalo per passare dalla pagina intera alle dimensioni reali. Se ciò che hai selezionato esce dalla vista, Ripristinalo lo ritrova.",
     "ja": "素材の上でも、どこでもピンチでズームできます。2 本指、またはページの空いている所やグレーの作業領域を 1 本指でドラッグしてパンします。作業領域をダブルタップするとその場所を拡大し、もう一度ダブルタップするとページ全体を表示します。右上の表示が現在の倍率で、タップするとページ全体と実際のサイズを切り替えます。選択中のものが画面外にスクロールした場合は、「表示に戻す」で見つけられます。",
     "pt-BR": "Faça o gesto de pinça em qualquer lugar para ampliar, até sobre elementos. Mova a tela com dois dedos, ou com um dedo na página vazia ou na área cinza. Toque duas vezes na área de trabalho para ampliar um ponto, e de novo para ajustar a página. O indicador no canto superior direito mostra o zoom; toque nele para alternar entre a página inteira e o tamanho real. Se o que você selecionou sair da tela, Trazer de volta o encontra."
-  },
-  "Pinch on what is selected to resize it, and twist two fingers to turn it. Pinch on the empty page to zoom.": {
-    "ar": "اقرص على المحدد لتغيير حجمه، وأدر إصبعين لتدويره. اقرص على الصفحة الفارغة للتكبير.",
-    "de": "Ziehe die Auswahl mit zwei Fingern auf oder zu, um ihre Größe zu ändern, und drehe zwei Finger, um sie zu drehen. Auf der leeren Seite zoomt die Geste.",
-    "es": "Pellizca sobre lo seleccionado para cambiar su tamaño y gira dos dedos para girarlo. Pellizca en la página vacía para hacer zoom.",
-    "fr": "Pincez la sélection pour la redimensionner, et faites pivoter deux doigts pour la faire tourner. Pincez la page vide pour zoomer.",
-    "it": "Pizzica la selezione per ridimensionarla e ruota due dita per girarla. Pizzica la pagina vuota per lo zoom.",
-    "ja": "選択中のものをピンチしてサイズを変え、2本指をひねって回転します。何もないページでピンチするとズームします。",
-    "pt-BR": "Faça o gesto de pinça sobre o que está selecionado para redimensionar e gire dois dedos para girar. Faça a pinça na página vazia para dar zoom."
   },
   "Pinch resizes what is selected": {
     "ar": "القرص يغيّر حجم المحدد",
@@ -25775,6 +25775,15 @@
     "ja": "この写真は開けないため、切り抜けません。",
     "pt-BR": "Não é possível abrir esta foto, então não dá para cortá-la."
   },
+  "This photo can't be opened, so its colours can't be read.": {
+    "ar": "تعذّر فتح هذه الصورة، لذا لا يمكن قراءة ألوانها.",
+    "de": "Dieses Foto lässt sich nicht öffnen, daher können seine Farben nicht gelesen werden.",
+    "es": "No se puede abrir esta foto, así que no se pueden leer sus colores.",
+    "fr": "Impossible d’ouvrir cette photo : ses couleurs ne peuvent pas être lues.",
+    "it": "Impossibile aprire questa foto, quindi non se ne possono leggere i colori.",
+    "ja": "この写真を開けないため、色を読み取れません。",
+    "pt-BR": "Não é possível abrir esta foto, então as cores dela não podem ser lidas."
+  },
   "This photo is locked. Tap Unlock to crop it.": {
     "ar": "هذه الصورة مقفلة. انقر على «إلغاء القفل» لاقتصاصها.",
     "de": "Dieses Foto ist gesperrt. Tippe auf „Entsperren“, um es zuzuschneiden.",
@@ -26053,6 +26062,15 @@
     "it": "Troppo lungo per questa correzione degli errori",
     "ja": "この誤り訂正には長すぎます",
     "pt-BR": "Longo demais para esta correção de erros"
+  },
+  "Too small for its handles? Pinch on it with two fingers to resize it, and twist them to turn it.": {
+    "ar": "أصغر من أن تستخدم مقابضه؟ اقرصه بإصبعين لتغيير حجمه، وأدرهما لتدويره.",
+    "de": "Zu klein für die Griffe? Ziehe zwei Finger darauf zusammen, um die Größe zu ändern, und drehe sie, um es zu drehen.",
+    "es": "¿Demasiado pequeño para sus tiradores? Pellízcalo con dos dedos para cambiar su tamaño y gíralos para rotarlo.",
+    "fr": "Trop petit pour ses poignées ? Pincez-le à deux doigts pour le redimensionner, et tournez-les pour le faire pivoter.",
+    "it": "Troppo piccolo per le maniglie? Pizzicalo con due dita per ridimensionarlo e ruotale per girarlo.",
+    "ja": "小さくてハンドルを使いにくいときは、2 本指でピンチしてサイズを変え、ひねって回転できます。",
+    "pt-BR": "Pequeno demais para as alças? Pince com dois dedos sobre ele para redimensioná-lo e gire-os para girá-lo."
   },
   "Top": {
     "ar": "أعلى",

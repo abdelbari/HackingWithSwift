@@ -25,12 +25,14 @@ struct GraphicCropSession: Equatable {
 extension DesignStore {
 
     /// Whether Crop is offered for the selection as a graphic: one shape or
-    /// sticker, or one whole group of things that are not photos, nothing
-    /// in it locked or held in place, on a page that is not locked.
+    /// sticker in no group — a member's crop is a share of its group's
+    /// frame, so a member alone is not cropped, as on Android — or one
+    /// whole group of shapes, stickers and lines, nothing in it locked or
+    /// held in place, on a page that is not locked.
     var canCropGraphic: Bool {
         let members = selectedElements
         if members.count == 1, let el = members.first {
-            return GraphicClip.croppable(el) && !el.holdsPlace
+            return el.group == nil && GraphicClip.croppable(el) && !el.holdsPlace
         }
         return Groups.whole(page.elements, selection: selection) != nil && GraphicClip.croppableGroup(members)
     }

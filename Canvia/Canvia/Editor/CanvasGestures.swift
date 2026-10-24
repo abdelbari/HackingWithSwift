@@ -69,10 +69,11 @@ enum CanvasGestures {
 
     static func action(_ input: Input, on target: Target) -> Action {
         switch (input, target) {
-        // A pinch that starts on the selection works the selection; every
-        // other two-finger touch moves the view.
-        case (.twoFingersOnSelection, .selectedBody): return .transformSelection
-        case (.twoFingers, _), (.twoFingersOnSelection, _): return .panAndZoom
+        // Both fingers on the selection is what the input says, whatever the
+        // first of them landed on: it scales and turns what is selected.
+        // Every other two-finger touch moves the view.
+        case (.twoFingersOnSelection, _): return .transformSelection
+        case (.twoFingers, _): return .panAndZoom
         // A tap is the same everywhere: what is on top there, or nothing.
         // Inside the selection it still picks the topmost thing, so the
         // element covering it can be tapped as before.
@@ -103,23 +104,23 @@ enum CanvasGestures {
 
     /// Whether two fingers first touching at `a` and `b`, in page units,
     /// scale and turn the selection rather than the view: both inside its
-    /// body — one thing's turned frame, several things' box — grown about
-    /// its middle to at least the fingertip target across (Touch.minTarget,
-    /// twice handleReach, on screen; the Android twin's 2 ×
-    /// HANDLE_TOUCH_RADIUS) at `zoom`. Refused when anything selected is
-    /// locked or holds its place, when the page is locked, and while
-    /// cropping, typing, drawing, erasing or brushing (`busy`).
+    /// body — one thing's turned frame, several things' box — widened by
+    /// the fingertip target (Touch.minTarget, twice handleReach, on screen;
+    /// the Android twin's 2 × HANDLE_TOUCH_RADIUS) at `zoom`: the target
+    /// added to its width and to its height, half on each side, as
+    /// Android's Gestures.onBody. Refused when anything selected is locked
+    /// or holds its place, when the page is locked, and while cropping,
+    /// typing, drawing, erasing or brushing (`busy`).
     static func pinchesSelection(_ a: CGPoint, _ b: CGPoint, selected: [Element], zoom: Double,
                                  pageLocked: Bool, busy: Bool) -> Bool {
-        guard !busy, !pageLocked, !selected.isEmpty,
-              !selected.contains(where: { $0.holdsPlace || $0.isHidden }) else { return false }
-        let target = Touch.pageUnits(Touch.minTarget, zoom: zoom)
+        guard !busy, !pageLocked, !selected.isEmpty, !selected.contains(where: \.holdsPlace) else { return false }
+        let reach = Touch.pageUnits(Touch.minTarget, zoom: zoom)
         func inside(_ p: CGPoint) -> Bool {
             if selected.count == 1, let el = selected.first {
                 let local = el.rotation == 0 ? p : Geometry.rotate(p, around: el.center, degrees: -el.rotation)
-                return grown(el.frame, to: target).contains(local)
+                return widened(el.frame, by: reach).contains(local)
             }
-            return bodyBox(selected).map { grown($0, to: target).contains(p) } ?? false
+            return bodyBox(selected).map { widened($0, by: reach).contains(p) } ?? false
         }
         return inside(a) && inside(b)
     }
@@ -132,9 +133,9 @@ enum CanvasGestures {
             ? .twoFingersOnSelection : .twoFingers
     }
 
-    /// `box` grown about its middle to at least `target` across and down.
-    private static func grown(_ box: CGRect, to target: Double) -> CGRect {
-        box.insetBy(dx: -max(0, target - box.width) / 2, dy: -max(0, target - box.height) / 2)
+    /// `box` widened by `reach` across and down, half on each side.
+    private static func widened(_ box: CGRect, by reach: Double) -> CGRect {
+        box.insetBy(dx: -reach / 2, dy: -reach / 2)
     }
 
     // MARK: a swipe to the next page

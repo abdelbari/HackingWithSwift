@@ -37,6 +37,7 @@ struct GraphicCropLayer: View {
         .gesture(drag)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Crop"))
+        .accessibilityHint(Text("Cropping the graphic. Pull the corners and edges to show only part of it. Done and Cancel are in the bar below."))
         .accessibilityValue(store.badge ?? Units.readout(width: Double(window.width).rounded(),
                                                           height: Double(window.height).rounded(), store.design))
     }
@@ -127,16 +128,19 @@ struct GraphicCropLayer: View {
     }
 
     /// `start` with the side or corner `handle` moved by (dx, dy), never
-    /// narrower than the least share of the frame, nor out of it.
+    /// narrower than the least share of the frame on that side or 8 units,
+    /// as on Android, nor out of it.
     private func trimmed(_ start: CGRect, handle: Handle, dx: Double, dy: Double) -> CGRect {
         let frame = crop.frame.upright
-        let least = ClipBox.minShare * Double(max(frame.width, frame.height))
+        let fw = Double(frame.width), fh = Double(frame.height)
+        let leastX = min(max(ClipBox.minShare * fw, 8), fw)
+        let leastY = min(max(ClipBox.minShare * fh, 8), fh)
         var minX = Double(start.minX), maxX = Double(start.maxX)
         var minY = Double(start.minY), maxY = Double(start.maxY)
-        if handle.unit.x == 0 { minX = min(max(minX + dx, Double(frame.minX)), maxX - least) }
-        if handle.unit.x == 1 { maxX = max(min(maxX + dx, Double(frame.maxX)), minX + least) }
-        if handle.unit.y == 0 { minY = min(max(minY + dy, Double(frame.minY)), maxY - least) }
-        if handle.unit.y == 1 { maxY = max(min(maxY + dy, Double(frame.maxY)), minY + least) }
+        if handle.unit.x == 0 { minX = min(max(minX + dx, Double(frame.minX)), maxX - leastX) }
+        if handle.unit.x == 1 { maxX = max(min(maxX + dx, Double(frame.maxX)), minX + leastX) }
+        if handle.unit.y == 0 { minY = min(max(minY + dy, Double(frame.minY)), maxY - leastY) }
+        if handle.unit.y == 1 { maxY = max(min(maxY + dy, Double(frame.maxY)), minY + leastY) }
         return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 

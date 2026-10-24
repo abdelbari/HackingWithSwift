@@ -1274,12 +1274,12 @@ struct PageRenderView: View {
         // The master page's elements, behind this page's own. Not on
         // the master itself, and not on a page that opted out.
         // A group's crop is put into each member's own box (GraphicClip).
-        ForEach(GraphicClip.shown(design.masterElements(behind: page))) { el in
+        ForEach(GraphicClip.shown(design.masterElements(behind: page), in: design.masterPage?.elements ?? [])) { el in
             ElementView(element: el).equatable()
         }
         // A hidden element is never drawn, here or in anything that
         // renders through this view: exports, thumbnails, Present, video.
-        ForEach(GraphicClip.shown(page.elements.filter { !$0.isHidden })) { el in
+        ForEach(GraphicClip.shown(page.elements.filter { !$0.isHidden }, in: page.elements)) { el in
             // .equatable() so a drag re-renders the element that moved
             // rather than every element on the page. The store is
             // @Observable and a gesture mutates the document each frame,

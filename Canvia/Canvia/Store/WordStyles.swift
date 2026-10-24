@@ -217,7 +217,7 @@ extension DesignStore {
     /// The words in `target` linked to `link` — as Links reads what was
     /// typed — or unlinked with nil, as one step.
     func linkWords(_ link: String?, in target: WordRange) {
-        let url = link.flatMap(Links.normalized)
+        let url = link.flatMap { Links.normalized($0, in: design) }
         updateSelected { el in
             guard el.id == target.id else { return }
             Self.restyleWords(&el, target.range) { Spans.linking($0, range: $1, link: url) }

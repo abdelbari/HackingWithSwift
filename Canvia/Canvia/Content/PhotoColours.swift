@@ -68,8 +68,10 @@ enum PhotoColours {
     /// at the same share of the way along — the theme's lightness mapping —
     /// on the background and on what is recoloured; then any words of those
     /// that fall under AA on what is behind them now given ContrastAudit's
-    /// fix. The page as it was for an empty palette or nothing to recolour.
+    /// fix. The page as it was for an empty palette, nothing to recolour,
+    /// or a locked page, as Android's PhotoPalette.recoloured.
     static func applied(_ page: Page, palette: [String], turn: Int, photo: String) -> Page {
+        guard page.locked != true else { return page }
         let colours = turned(palette, by: turn)
         let used = pageColours(page, photo: photo).sorted { ColorTools.luminance($0) < ColorTools.luminance($1) }
         guard !colours.isEmpty, !used.isEmpty else { return page }

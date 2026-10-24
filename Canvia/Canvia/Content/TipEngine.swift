@@ -57,7 +57,7 @@ final class TipEngine {
                          systemImage: "pencil.tip"),
         .dropped: Tip(id: "drop", text: tr("Dropped in place. Pictures, text and links from other apps can be dragged straight onto the page."),
                       systemImage: "square.and.arrow.down.on.square"),
-        .smallSelected: Tip(id: "pinch", text: tr("Pinch on what is selected to resize it, and twist two fingers to turn it. Pinch on the empty page to zoom."),
+        .smallSelected: Tip(id: "pinch", text: tr("Too small for its handles? Pinch on it with two fingers to resize it, and twist them to turn it."),
                             systemImage: "arrow.up.left.and.arrow.down.right"),
     ]
 

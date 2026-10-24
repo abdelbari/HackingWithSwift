@@ -721,8 +721,10 @@ struct Design: Codable, Equatable, Identifiable {
     /// the page's own — hidden elements left out. What every renderer,
     /// exporter, link, voice and sound reads.
     func drawnElements(on page: Page) -> [Element] {
-        // A group's crop put into each member's own box, as drawn.
-        GraphicClip.shown(masterElements(behind: page) + page.elements.filter { !$0.isHidden })
+        // A group's crop put into each member's own box, as drawn — its
+        // frame round every member, hidden ones too, as on Android.
+        GraphicClip.shown(masterElements(behind: page) + page.elements.filter { !$0.isHidden },
+                          in: (masterPage?.elements ?? []) + page.elements)
     }
 
     /// The numbering `page` shows — its number, counting from one, and the

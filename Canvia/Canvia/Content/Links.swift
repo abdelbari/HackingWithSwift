@@ -33,12 +33,13 @@ enum Links {
     /// link's scheme to the app that opens it letter for letter, so there
     /// "Https://canvia.app" opened nothing. The rest is kept as typed.
     ///
-    /// A page link ("page:<id>") is kept when `design` has that page; with
-    /// no design — a file being read — when it names one at all, so it
-    /// comes back to the phone that wrote it unchanged.
+    /// A page link ("page:<id>", "page:" in small letters only, as Android
+    /// reads it) is kept when `design` has that page; with no design — a
+    /// file being read — when it names one at all, so it comes back to the
+    /// phone that wrote it unchanged.
     static func normalized(_ input: String, in design: Design? = nil) -> String? {
         let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        if typed.lowercased().hasPrefix(pageScheme) {
+        if typed.hasPrefix(pageScheme) {
             guard let id = pageId(typed) else { return nil }
             if let design, !design.pages.contains(where: { page in page.id == id }) { return nil }
             return pageLink(id)
@@ -86,9 +87,11 @@ enum Links {
     /// The link to the page `id`.
     static func pageLink(_ id: String) -> String { pageScheme + id }
 
-    /// The id of the page a page link names; nil for any other link.
+    /// The id of the page a page link names; nil for any other link. The
+    /// scheme is "page:" exactly — "Page:p3" is no page link, on either
+    /// phone.
     static func pageId(_ link: String?) -> String? {
-        guard let link, link.lowercased().hasPrefix(pageScheme) else { return nil }
+        guard let link, link.hasPrefix(pageScheme) else { return nil }
         let id = String(link.dropFirst(pageScheme.count))
         return id.isEmpty || id.contains(where: \.isWhitespace) ? nil : id
     }
@@ -119,14 +122,14 @@ enum Links {
         return PageTitles.named(index + 1, title: design.pages[index].title)
     }
 
-    /// A link as VoiceOver reads it: "Link to page 3, Pricing", "Link to
-    /// page 3" untitled, "Page removed" gone, "Link to canvia.app".
-    static func spoken(_ link: String, in design: Design) -> String {
-        guard pageId(link) != nil else { return tr("Link to %@", shown(link)) }
+    /// A link to a page as VoiceOver reads it: "Link to page 3, Pricing",
+    /// "Link to page 3" untitled, "Page removed" gone; nil for a link that
+    /// is not to a page, as on Android.
+    static func spoken(_ link: String, in design: Design) -> String? {
+        guard pageId(link) != nil else { return nil }
         guard let index = pageIndex(link, in: design) else { return tr("Page removed") }
-        let said = tr("Link to page %d", index + 1)
-        guard let title = design.pages[index].title.flatMap(PageTitles.kept) else { return said }
-        return said + ", " + title
+        guard let title = design.pages[index].title.flatMap(PageTitles.kept) else { return tr("Link to page %d", index + 1) }
+        return tr("Link to page %d, %@", index + 1, title)
     }
 
     /// Where an exported link goes: an address, or a page of the file, by

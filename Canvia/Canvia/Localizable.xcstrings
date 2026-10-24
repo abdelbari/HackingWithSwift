@@ -26626,7 +26626,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adicionar ao quadro selecionado"
+            "value" : "Adicionar à moldura selecionada"
           }
         }
       }
@@ -49268,6 +49268,59 @@
         }
       }
     },
+    "Cropping the graphic. Pull the corners and edges to show only part of it. Done and Cancel are in the bar below." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ اقتصاص الرسم. اسحب الزوايا والحواف لإظهار جزء منه فقط. «تم» و«إلغاء» في الشريط بالأسفل."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafik wird zugeschnitten. Ziehe an Ecken und Kanten, um nur einen Teil zu zeigen. „Fertig“ und „Abbrechen“ sind in der Leiste unten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cropping the graphic. Pull the corners and edges to show only part of it. Done and Cancel are in the bar below."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recortando el gráfico. Arrastra las esquinas y los bordes para mostrar solo una parte. Listo y Cancelar están en la barra de abajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recadrage du graphique. Tirez les coins et les bords pour n’en montrer qu’une partie. OK et Annuler sont dans la barre en bas."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ritaglio della grafica. Trascina angoli e bordi per mostrarne solo una parte. Fine e Annulla sono nella barra in basso."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グラフィックをトリミング中です。角や辺をドラッグすると一部だけを表示できます。「完了」と「キャンセル」は下のバーにあります。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cortando o gráfico. Puxe os cantos e as bordas para mostrar só uma parte dele. Concluído e Cancelar estão na barra abaixo."
+          }
+        }
+      }
+    },
     "Cropping the photo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -71712,7 +71765,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الفجوة %@"
+            "value" : "المسافة %@"
           }
         },
         "de" : {
@@ -71730,13 +71783,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Separación %@"
+            "value" : "Espacio %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Espace %@"
+            "value" : "Écart %@"
           }
         },
         "it" : {
@@ -84360,59 +84413,6 @@
         }
       }
     },
-    "Link to %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "رابط إلى %@"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link zu %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link to %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enlace a %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lien vers %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link a %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ へのリンク"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link para %@"
-          }
-        }
-      }
-    },
     "Link to page %lld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -84462,6 +84462,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Link para a página %lld"
+          }
+        }
+      }
+    },
+    "Link to page %lld, %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رابط إلى الصفحة %lld، %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link zu Seite %lld, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link to page %lld, %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enlace a la página %lld, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lien vers la page %lld, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link alla pagina %lld, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ページへのリンク、%@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link para a página %lld, %@"
           }
         }
       }
@@ -106144,7 +106197,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أزيلت الصفحة"
+            "value" : "أُزيلت الصفحة"
           }
         },
         "de" : {
@@ -110480,59 +110533,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Faça o gesto de pinça em qualquer lugar para ampliar, até sobre elementos. Mova a tela com dois dedos, ou com um dedo na página vazia ou na área cinza. Toque duas vezes na área de trabalho para ampliar um ponto, e de novo para ajustar a página. O indicador no canto superior direito mostra o zoom; toque nele para alternar entre a página inteira e o tamanho real. Se o que você selecionou sair da tela, Trazer de volta o encontra."
-          }
-        }
-      }
-    },
-    "Pinch on what is selected to resize it, and twist two fingers to turn it. Pinch on the empty page to zoom." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اقرص على المحدد لتغيير حجمه، وأدر إصبعين لتدويره. اقرص على الصفحة الفارغة للتكبير."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ziehe die Auswahl mit zwei Fingern auf oder zu, um ihre Größe zu ändern, und drehe zwei Finger, um sie zu drehen. Auf der leeren Seite zoomt die Geste."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pinch on what is selected to resize it, and twist two fingers to turn it. Pinch on the empty page to zoom."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pellizca sobre lo seleccionado para cambiar su tamaño y gira dos dedos para girarlo. Pellizca en la página vacía para hacer zoom."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincez la sélection pour la redimensionner, et faites pivoter deux doigts pour la faire tourner. Pincez la page vide pour zoomer."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pizzica la selezione per ridimensionarla e ruota due dita per girarla. Pizzica la pagina vuota per lo zoom."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選択中のものをピンチしてサイズを変え、2本指をひねって回転します。何もないページでピンチするとズームします。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Faça o gesto de pinça sobre o que está selecionado para redimensionar e gire dois dedos para girar. Faça a pinça na página vazia para dar zoom."
           }
         }
       }
@@ -148128,6 +148128,59 @@
         }
       }
     },
+    "This photo can't be opened, so its colours can't be read." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر فتح هذه الصورة، لذا لا يمكن قراءة ألوانها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Foto lässt sich nicht öffnen, daher können seine Farben nicht gelesen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This photo can't be opened, so its colours can't be read."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede abrir esta foto, así que no se pueden leer sus colores."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ouvrir cette photo : ses couleurs ne peuvent pas être lues."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aprire questa foto, quindi non se ne possono leggere i colori."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この写真を開けないため、色を読み取れません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não é possível abrir esta foto, então as cores dela não podem ser lidas."
+          }
+        }
+      }
+    },
     "This photo is locked. Tap Unlock to crop it." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -149767,6 +149820,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Longo demais para esta correção de erros"
+          }
+        }
+      }
+    },
+    "Too small for its handles? Pinch on it with two fingers to resize it, and twist them to turn it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أصغر من أن تستخدم مقابضه؟ اقرصه بإصبعين لتغيير حجمه، وأدرهما لتدويره."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu klein für die Griffe? Ziehe zwei Finger darauf zusammen, um die Größe zu ändern, und drehe sie, um es zu drehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too small for its handles? Pinch on it with two fingers to resize it, and twist them to turn it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Demasiado pequeño para sus tiradores? Pellízcalo con dos dedos para cambiar su tamaño y gíralos para rotarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trop petit pour ses poignées ? Pincez-le à deux doigts pour le redimensionner, et tournez-les pour le faire pivoter."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Troppo piccolo per le maniglie? Pizzicalo con due dita per ridimensionarlo e ruotale per girarlo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小さくてハンドルを使いにくいときは、2 本指でピンチしてサイズを変え、ひねって回転できます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pequeno demais para as alças? Pince com dois dedos sobre ele para redimensioná-lo e gire-os para girá-lo."
           }
         }
       }

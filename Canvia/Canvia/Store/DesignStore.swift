@@ -856,8 +856,9 @@ final class DesignStore {
             return
         }
         askingDelete = false
+        // What is left of a cropped group keeps its crop where it shows.
         applyToPage { page in
-            page.elements.removeAll { ids.contains($0.id) }
+            page.elements = GraphicClip.regrouped(before: page.elements, after: page.elements.filter { !ids.contains($0.id) })
         }
         selection.subtract(ids)   // anything locked stays selected, visibly
         // The Android twin's words, so both phones say the same.

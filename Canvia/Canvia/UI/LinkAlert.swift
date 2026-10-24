@@ -143,7 +143,7 @@ struct LinkSheet: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Links.spoken(link, in: design))
+        .accessibilityLabel(Links.spoken(link, in: design) ?? PageTitles.named(index + 1, title: page.title))
         .accessibilityAddTraits(chosen ? [.isButton, .isSelected] : .isButton)
     }
 

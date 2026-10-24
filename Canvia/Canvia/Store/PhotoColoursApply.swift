@@ -21,6 +21,7 @@ extension DesignStore {
         let palette = PhotoPalette.top(photo)
         guard !palette.isEmpty else {
             buzz(.reject)
+            announce(tr("This photo can't be opened, so its colours can't be read."), undoable: false)
             return
         }
         let next = PhotoColours.applied(page, palette: palette, turn: photoColourTurn, photo: photo.id)

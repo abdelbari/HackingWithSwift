@@ -304,8 +304,9 @@ struct ClipBox: Codable, Equatable, Hashable {
     var w: Double
     var h: Double
 
-    /// The least share of the box a crop keeps across or down.
-    static let minShare = 0.01
+    /// The least share of the box a crop keeps across or down: a
+    /// twentieth, Android's Clips.MIN_FRACTION.
+    static let minShare = 0.05
 
     static let whole = ClipBox(x: 0, y: 0, w: 1, h: 1)
 
@@ -318,13 +319,14 @@ struct ClipBox: Codable, Equatable, Hashable {
 
     private enum CodingKeys: String, CodingKey { case x, y, w, h }
 
-    /// A key it lacks, or cannot give, is the whole box's.
+    /// All four keys as numbers, or no crop at all (the whole graphic), as
+    /// Android's Clips.of reads it.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        x = (try? c.decode(Double.self, forKey: .x)) ?? 0
-        y = (try? c.decode(Double.self, forKey: .y)) ?? 0
-        w = (try? c.decode(Double.self, forKey: .w)) ?? 1
-        h = (try? c.decode(Double.self, forKey: .h)) ?? 1
+        x = try c.decode(Double.self, forKey: .x)
+        y = try c.decode(Double.self, forKey: .y)
+        w = try c.decode(Double.self, forKey: .w)
+        h = try c.decode(Double.self, forKey: .h)
     }
 
     /// Whether it shows the whole box, within a millionth.
@@ -369,7 +371,7 @@ extension ElementClip: Codable {
 }
 
 extension ClipBox {
-    /// Whether an object carries all four of a crop's keys.
+    /// Whether an object carries all four of a crop's keys, as numbers.
     fileprivate struct Probe: Decodable {
         var complete: Bool
 
@@ -377,7 +379,7 @@ extension ClipBox {
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            complete = c.contains(.x) && c.contains(.y) && c.contains(.w) && c.contains(.h)
+            complete = [CodingKeys.x, .y, .w, .h].allSatisfy { (try? c.decode(Double.self, forKey: $0)) != nil }
         }
     }
 }

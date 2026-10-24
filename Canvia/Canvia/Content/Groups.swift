@@ -50,9 +50,10 @@ enum Groups {
     /// outermost, and the group each was in, if any, goes to the front of
     /// its `subgroups` — so a group grouped with something else is still a
     /// group inside the new one. Any turn of a group is let go
-    /// (groupTurn): the new group starts upright.
+    /// (groupTurn): the new group starts upright. A crop stays where it
+    /// shows (GraphicClip.regrouped).
     static func grouped(_ elements: [Element], ids: Set<String>, into id: String) -> [Element] {
-        elements.map { el in
+        let out = elements.map { el in
             guard ids.contains(el.id) else { return el }
             var e = el
             let levels = chain(el)
@@ -61,13 +62,17 @@ enum Groups {
             e.groupTurn = nil
             return e
         }
+        return GraphicClip.regrouped(before: elements, after: out)
     }
 
     /// Ungroup: each of the elements `ids` takes off its outermost group —
     /// its first subgroup becomes its group, or it is in none — so the group
-    /// inside comes back as it was. Its turn is let go too.
+    /// inside comes back as it was. Its turn is let go too. A group's crop
+    /// stays where it shows, put into each member's own box or its inner
+    /// group's frame (GraphicClip.regrouped), so ungrouping a cropped
+    /// graphic changes nothing on the page.
     static func ungrouped(_ elements: [Element], ids: Set<String>) -> [Element] {
-        elements.map { el in
+        let out = elements.map { el in
             guard ids.contains(el.id), el.group != nil else { return el }
             var e = el
             let inner = Array((el.subgroups ?? []).dropFirst())
@@ -76,6 +81,7 @@ enum Groups {
             e.groupTurn = nil
             return e
         }
+        return GraphicClip.regrouped(before: elements, after: out)
     }
 
     /// A tap on `tapped` while `selection` is one of its groups, at any

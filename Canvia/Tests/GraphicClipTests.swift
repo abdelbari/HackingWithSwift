@@ -44,7 +44,10 @@ final class GraphicClipTests: XCTestCase {
         }
         XCTAssertNil(try read("{\"x\":0,\"y\":0,\"w\":1,\"h\":1}").clipBox, "the whole: no clip")
         XCTAssertEqual(try read("{\"x\":-0.5,\"y\":0.5,\"w\":2,\"h\":0.25}").clipBox, ClipBox(x: 0, y: 0.5, w: 1, h: 0.25))
-        XCTAssertEqual(try read("{\"x\":0.5,\"y\":0,\"w\":0,\"h\":1}").clipBox?.w, ClipBox.minShare)
+        XCTAssertEqual(try read("{\"x\":0.5,\"y\":0,\"w\":0,\"h\":1}").clipBox?.w, 0.05)
+        // Without all four keys as numbers, no crop — Android's rows.
+        XCTAssertNil(try read("{\"x\":0.2,\"y\":0,\"w\":0.6}").clipBox)
+        XCTAssertNil(try read("{\"x\":\"0.2\",\"y\":0,\"w\":0.6,\"h\":1}").clipBox)
         XCTAssertNil(try read("{\"start\":2}").clipBox, "a playback on a sticker is no crop")
         XCTAssertEqual(ClipBox.kept(ClipBox(x: 0.2, y: 0.2, w: 0.5, h: 0.5)), ClipBox(x: 0.2, y: 0.2, w: 0.5, h: 0.5))
         XCTAssertNil(ClipBox.kept(.whole))
@@ -91,6 +94,37 @@ final class GraphicClipTests: XCTestCase {
         d.pages = [Page(id: "p1", elements: [a, b])]
         XCTAssertEqual(d.drawnElements(on: d.pages[0]).map(\.clipBox), shown.map(\.clipBox))
         XCTAssertEqual(d.pages[0].elements[1].clipBox, crop)
+    }
+
+    /// Android's ClipsTest rows: a member leaving its cropped group keeps
+    /// what shows where it was.
+    func testACroppedGroupsMembersKeepWhatShowsWhenTheyLeaveIt() {
+        var a = Element.shape("rect", w: 100, h: 100)
+        a.id = "a"
+        a.group = "g"
+        var b = a
+        b.id = "b"
+        b.x = 100
+        a.clipBox = ClipBox(x: 0, y: 0, w: 0.75, h: 1)
+        b.clipBox = a.clipBox
+        // Ungrouped: all of a showed, so no crop; half of b.
+        let out = Groups.ungrouped([a, b], ids: ["a", "b"])
+        XCTAssertNil(out[0].group)
+        XCTAssertNil(out[0].clipBox)
+        XCTAssertEqual(out[1].clipBox, ClipBox(x: 0, y: 0, w: 0.5, h: 1))
+        XCTAssertEqual(GraphicClip.visibleFrame(out[1]), CGRect(x: 100, y: 0, width: 50, height: 100))
+        // A member cropped wholly away has its crop let go.
+        var halfA = a, halfB = b
+        halfA.clipBox = ClipBox(x: 0, y: 0, w: 0.5, h: 1)
+        halfB.clipBox = halfA.clipBox
+        XCTAssertNil(Groups.ungrouped([halfA, halfB], ids: ["a", "b"])[1].clipBox)
+        // One deleted: what is left keeps what showed.
+        XCTAssertEqual(GraphicClip.regrouped(before: [a, b], after: [b])[0].clipBox, ClipBox(x: 0, y: 0, w: 0.5, h: 1))
+        // Moved as a group, the same members: the crop moves with it.
+        var movedA = a, movedB = b
+        movedA.x = 10
+        movedB.x = 110
+        XCTAssertEqual(GraphicClip.regrouped(before: [a, b], after: [movedA, movedB]), [movedA, movedB])
     }
 
     @MainActor

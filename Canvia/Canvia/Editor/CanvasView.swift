@@ -621,7 +621,7 @@ struct CanvasView: View {
             let charts = CanvasAccessibility.chartStops(store.page.elements.filter { !$0.isHidden }, order: order)
             // A group's crop put into each member's own box, so a hit is
             // taken on what shows (GraphicClip).
-            ForEach(GraphicClip.shown(store.page.elements.filter { !$0.isHidden })) { el in
+            ForEach(GraphicClip.shown(store.page.elements.filter { !$0.isHidden }, in: store.page.elements)) { el in
                 elementHitArea(el)
                     .accessibilitySortPriority(Double(order.count - (order.firstIndex(of: el.id) ?? 0)))
                     .accessibilityHidden(charts.hidden.contains(el.id))

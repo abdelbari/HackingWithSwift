@@ -52,6 +52,15 @@ final class TidySpacingTests: XCTestCase {
             if let found, row.1 != nil { XCTAssertEqual(found.gap, row.2, accuracy: 0.5, "row \(n)") }
         }
         XCTAssertEqual(Geometry.tidyTolerance, 0.5)
+
+        // Android's TidySpacingTest row: gaps of 20 and 20.4 are within half
+        // a unit, and the gap is their mean.
+        let near = [box("a", x: 0, y: 0, w: 100, h: 50), box("b", x: 120, y: 0, w: 100, h: 50),
+                    box("c", x: 240.4, y: 0, w: 100, h: 50)]
+        XCTAssertEqual(layout(near)?.mode, .row)
+        XCTAssertEqual(layout(near)?.gap ?? 0, 20.2, accuracy: 1e-9)
+        XCTAssertNil(layout([box("a", x: 0, y: 0, w: 100, h: 50), box("b", x: 120, y: 0, w: 100, h: 50),
+                             box("c", x: 241, y: 0, w: 100, h: 50)]))
     }
 
     func testTidyUpIsRecognisedAtItsGap() {

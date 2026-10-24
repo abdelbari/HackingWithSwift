@@ -163,11 +163,12 @@ extension Geometry {
         return values.allSatisfy { abs($0 - first) <= tidyTolerance }
     }
 
-    /// The gap, when every one is the first within tidyTolerance and none
-    /// is under 0 by more than it: the first, 0 at the least.
+    /// The gap, when the widest and the narrowest are within tidyTolerance
+    /// of each other and none is under 0 by more than it: their mean, 0 at
+    /// the least — Android's Geometry.tidyLayout, the same rule.
     private static func equalGap(_ gaps: [Double]) -> Double? {
-        guard let first = gaps.first, first >= -tidyTolerance,
-              gaps.allSatisfy({ abs($0 - first) <= tidyTolerance }) else { return nil }
-        return max(0, first)
+        guard let least = gaps.min(), let most = gaps.max(), least >= -tidyTolerance,
+              most - least <= tidyTolerance else { return nil }
+        return max(0, gaps.reduce(0, +) / Double(gaps.count))
     }
 }

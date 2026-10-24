@@ -20,6 +20,7 @@ final class HelpAndTipsTests: XCTestCase {
         XCTAssertEqual(byTitle.first?.id, "export")
         let byKeyword = HelpTopics.search("pinch")
         XCTAssertTrue(byKeyword.contains { $0.id == "zoom" })
+        XCTAssertEqual(HelpTopics.search("Pinching").first?.id, "pinch")
         XCTAssertEqual(HelpTopics.search("   ").count, HelpTopics.all.count)
         XCTAssertTrue(HelpTopics.search("zzzz").isEmpty)
         // Title hits come before body-only hits even when both match.

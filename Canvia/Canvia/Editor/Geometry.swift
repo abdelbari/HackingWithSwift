@@ -924,8 +924,10 @@ enum Geometry {
     /// (the Android twin's Resize.Kind.SCALE). Text scales its type and
     /// letter spacing; photos, stickers and shapes scale evenly, a photo's
     /// crop being all proportions; a straight line changes its length and
-    /// keeps its thickness; a group scales and turns about its middle, its
-    /// members keeping their groupTurn turned with them. One factor for
+    /// keeps its thickness; a group scales and turns about its middle — when
+    /// they are all one group's members, more than one, its groupTurn goes
+    /// on with them, as on Android; anything else keeps its own. One
+    /// factor for
     /// them all, never so small that a side goes under `minSize` or type
     /// under minFontSize (nor forced up for what is already smaller). What
     /// holds its place stays as it is. The Android twin's Geometry.pinched.
@@ -935,6 +937,8 @@ enum Geometry {
         guard !free.isEmpty, scale.isFinite, scale > 0, turnDeg.isFinite else { return elements }
         let floor = free.map { pinchFloor($0, minSize: minSize) }.max() ?? 0
         let s = max(scale, min(floor, 1))
+        let group = elements.first?.group
+        let wholeGroup = elements.count > 1 && group != nil && elements.allSatisfy { $0.group == group }
         return elements.map { el in
             guard !el.holdsPlace else { return el }
             var e = el
@@ -953,7 +957,7 @@ enum Geometry {
             }
             if turnDeg != 0 {
                 e.rotation = Groups.normalisedTurn(el.rotation + turnDeg)
-                if el.group != nil { e.groupTurn = Groups.keptTurn(Groups.normalisedTurn((el.groupTurn ?? 0) + turnDeg)) }
+                if wholeGroup { e.groupTurn = Groups.keptTurn(Groups.normalisedTurn((el.groupTurn ?? 0) + turnDeg)) }
             }
             return e
         }
