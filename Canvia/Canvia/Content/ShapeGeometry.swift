@@ -125,7 +125,7 @@ enum ShapeGeometry {
             let n = Int(value(id, params, "points"))
             let inner = value(id, params, "inner")
             return (0..<(2 * n)).map { k -> CGPoint in
-                let a = (-90 + Double(k) * 180 / Double(n)) * .pi / 180
+                let a = (-90 + Double(k) * 180 / Double(n)) * (Double.pi / 180)
                 let r = k % 2 == 0 ? 0.5 : 0.5 * inner
                 return CGPoint(x: 0.5 + r * cos(a), y: 0.5 + r * sin(a))
             }
@@ -135,7 +135,7 @@ enum ShapeGeometry {
             let n = Int(value(id, params, "sides"))
             let start = n % 2 == 1 ? -90.0 : -90.0 + 180.0 / Double(n)
             return (0..<n).map { k -> CGPoint in
-                let a = (start + Double(k) * 360 / Double(n)) * .pi / 180
+                let a = (start + Double(k) * 360 / Double(n)) * (Double.pi / 180)
                 return CGPoint(x: 0.5 + 0.5 * cos(a), y: 0.5 + 0.5 * sin(a))
             }
         }
@@ -290,7 +290,7 @@ enum ShapeGeometry {
     static func handles(_ id: String, _ params: [String: Double]?) -> [CGPoint] {
         if stars[id] != nil {
             let n = value(id, params, "points"), inner = value(id, params, "inner")
-            let a = (-90 + 180 / n) * .pi / 180
+            let a = (-90 + 180 / n) * (Double.pi / 180)
             return [CGPoint(x: 0.5 + 0.5 * inner * cos(a), y: 0.5 + 0.5 * inner * sin(a))]
         }
         if arrows[id] != nil {
