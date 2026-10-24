@@ -97,7 +97,7 @@ final class CmykTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(ExportLast.read(kept.json)).colourProfile, "cmyk")
         // Round 31's web page settings are written after it, as on Android.
         XCTAssertTrue(kept.json.hasSuffix(
-            #","colourProfile":"cmyk","html":{"nav":true,"mobileStack":true,"embedMedia":true}}"#))
+            #","colourProfile":"cmyk","html":{"nav":true,"mobileStack":true,"embedMedia":true},"zip":false,"pngCompress":false}"#))
         let odd = kept.json.replacingOccurrences(of: "cmyk", with: "hsv")
         XCTAssertEqual(try XCTUnwrap(ExportLast.read(odd)).colourProfile, "rgb")
         let older = try XCTUnwrap(ExportLast.read(#"{"format":"pdf","scale":2,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all"}"#))

@@ -10,6 +10,9 @@ import SwiftUI
 
 struct AccessibilitySheet: View {
     @Bindable var store: DesignStore
+    /// The pages it looks at, by index — the pages an export makes, when
+    /// the Export sheet opens it; nil for every page.
+    var pages: Set<Int>? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var findings: [AccessibilityAudit.Finding] = []
     /// The finding whose alt text is being written, kept while the alert
@@ -96,7 +99,10 @@ struct AccessibilitySheet: View {
         }
     }
 
-    private func refresh() { findings = AccessibilityAudit.findings(store.design) }
+    private func refresh() {
+        let all = AccessibilityAudit.findings(store.design)
+        findings = pages.map { AccessibilityAudit.onPages(all, $0) } ?? all
+    }
 
     /// "Page 2 · 3 things".
     private func pageTitle(_ index: Int, count: Int) -> String {

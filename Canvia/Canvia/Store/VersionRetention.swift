@@ -110,17 +110,23 @@ extension DesignLibrary {
 
     // MARK: pinned versions
 
-    /// history/<designId>/meta.json: the pinned versions and their names.
+    /// history/<designId>/meta.json: the pinned versions and their names,
+    /// and the revision of the design — its updatedAt, in whole
+    /// milliseconds — the Export sheet's accessibility row was put away at
+    /// ("a11yNudgeDismissed", written only once it has been), so it comes
+    /// back only after an edit.
     struct VersionMeta: Codable, Equatable, Sendable {
         var version = 1
         /// Version file stem → its name; "" is pinned without one.
         var pinned: [String: String] = [:]
+        var a11yNudgeDismissed: Int64?
 
-        init(pinned: [String: String] = [:]) {
+        init(pinned: [String: String] = [:], a11yNudgeDismissed: Int64? = nil) {
             self.pinned = pinned
+            self.a11yNudgeDismissed = a11yNudgeDismissed
         }
 
-        private enum CodingKeys: String, CodingKey { case version, pinned }
+        private enum CodingKeys: String, CodingKey { case version, pinned, a11yNudgeDismissed }
 
         /// Lenient: a name that is not text is passed over, and a file from
         /// another build keeps what it can.
@@ -129,6 +135,7 @@ extension DesignLibrary {
             version = (try? c.decode(Int.self, forKey: .version)) ?? 1
             let raw = (try? c.decode([String: PinnedName].self, forKey: .pinned)) ?? [:]
             pinned = raw.compactMapValues(\.name)
+            a11yNudgeDismissed = try? c.decodeIfPresent(Int64.self, forKey: .a11yNudgeDismissed)
         }
 
         private struct PinnedName: Decodable {
@@ -148,6 +155,15 @@ extension DesignLibrary {
         static func read(_ data: Data) -> VersionMeta? {
             try? JSONDecoder().decode(VersionMeta.self, from: data)
         }
+    }
+
+    /// The Export sheet's accessibility row put away for design `id` at
+    /// `revision`, kept in its meta.json with its pins.
+    @discardableResult
+    static func dismissA11yNudge(_ id: String, revision: Int64) -> Bool {
+        var meta = versionMeta(for: id)
+        meta.a11yNudgeDismissed = revision
+        return saveVersionMeta(meta, for: id)
     }
 
     static func versionMetaURL(for id: String) -> URL {

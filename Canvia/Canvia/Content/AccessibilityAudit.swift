@@ -291,6 +291,18 @@ enum AccessibilityAudit {
         return trn("%d thing on %@|%d things on %@", findings.count, trn("%d page|%d pages", pages))
     }
 
+    /// The Export sheet's row: "3 accessibility suggestions" — the
+    /// findings counted as the sheet counts them (`summary`), in the
+    /// Android twin's words.
+    static func suggestions(_ findings: [Finding]) -> String {
+        trn("%d accessibility suggestion|%d accessibility suggestions", findings.count)
+    }
+
+    /// The findings on `pages` alone, in their order.
+    static func onPages(_ findings: [Finding], _ pages: Set<Int>) -> [Finding] {
+        findings.filter { pages.contains($0.pageIndex) }
+    }
+
     /// One page's findings, for a section of the sheet.
     struct PageGroup: Identifiable, Equatable {
         var pageIndex: Int

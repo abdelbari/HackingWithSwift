@@ -140,6 +140,17 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   design of its own for every row titled by its first cell; the rows stay
   on the design (`bulk`), at most 500, and words that no longer fit are
   said row by row (`BulkCreate`)
+- Export extras: several PNGs, JPGs or SVGs can go out as one ZIP named
+  after the design ("Save as one ZIP", `ExportPlan.zipName`, the files
+  inside named as ever), through Share and Save to Files, with Save to
+  Photos put away; a PNG can be compressed to 256 colours (`PngWriter`,
+  median cut with alpha, an indexed PNG with tRNS and pHYs), kept only when
+  15% smaller, the sizes before and after said; both are remembered
+  ("zip", "pngCompress"). Before a PDF, web page, PowerPoint or picture, the
+  sheet says how many accessibility suggestions the pages going out have,
+  with Review, until put away for that revision of the design
+  (`a11yNudgeDismissed` in its meta.json) — Settings ▸ Export's "Remind me
+  to check accessibility" (`exportA11yNudge`, in a backup too)
 - Mockups: from the Export sheet's Share row and a design's card on Home,
   a page shown on a phone, laptop, tablet, framed print, poster, business
   card, T-shirt, mug and more — twenty-one vector scenes

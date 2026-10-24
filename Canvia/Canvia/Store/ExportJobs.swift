@@ -10,16 +10,62 @@ enum ExportJobs {
 
     typealias Work = ExportQueue.Work
 
-    /// PNG or JPEG, a file a page.
+    /// PNG or JPEG, a file a page — each PNG in 256 colours with
+    /// `compress` where that is enough smaller (PngWriter), and said where
+    /// it was not.
     static func pictures(_ snapshot: ExportSnapshot, format: DesignExporter.RasterFormat, scale: Double,
-                         longEdge: Double, quality: Double, transparent: Bool) -> Work {
+                         longEdge: Double, quality: Double, transparent: Bool, compress: Bool = false) -> Work {
         { report in
-            let urls = try await DesignExporter.exportPages(
+            let made = try await DesignExporter.exportPictures(
                 design: snapshot.design, range: snapshot.range, current: snapshot.current,
                 format: format, scale: scale, longEdge: longEdge, quality: quality,
                 // JPEG has no alpha channel to be transparent in.
-                transparent: transparent && format == .png, captionTime: snapshot.captionTime, progress: report)
-            return ExportQueue.Result(urls: urls)
+                transparent: transparent && format == .png, captionTime: snapshot.captionTime,
+                compress: compress && format == .png, progress: report)
+            return ExportQueue.Result(urls: made.urls, note: made.uncompressed > 0 ? compressFellBack : nil)
+        }
+    }
+
+    /// Said when a compressed PNG would not have been enough smaller.
+    static var compressFellBack: String {
+        tr("Compressing wouldn't have made it at least %d%% smaller, so it's a normal PNG.",
+           Int((ExportPlan.compressGain * 100).rounded()))
+    }
+
+    /// `work`'s files put together in one ZIP named after the design
+    /// (ExportPlan.zipName), each under the name it had, in order, and the
+    /// files themselves let go. Stored, as every ZIP the app writes is
+    /// (ZipWriter); the pictures in it are compressed already.
+    static func zipped(_ work: @escaping Work, design: Design) -> Work {
+        { report in
+            var made = try await work(report)
+            guard made.urls.count > 1 else { return made }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(ExportPlan.zipName(design.title))
+            try writeZip(made.urls, to: url)
+            for file in made.urls { try? FileManager.default.removeItem(at: file) }
+            made.urls = [url]
+            return made
+        }
+    }
+
+    /// `files` as one ZIP at `url`, each under its own name.
+    nonisolated static func writeZip(_ files: [URL], to url: URL) throws {
+        try? FileManager.default.removeItem(at: url)
+        guard FileManager.default.createFile(atPath: url.path, contents: nil),
+              let handle = try? FileHandle(forWritingTo: url) else { throw DesignExporter.ExportError.encodeFailed }
+        defer { try? handle.close() }
+        let zip = ZipWriter { try handle.write(contentsOf: $0) }
+        do {
+            for file in files {
+                try autoreleasepool {
+                    try zip.add(file.lastPathComponent, Data(contentsOf: file))
+                }
+            }
+            try zip.finish()
+        } catch {
+            try? handle.close()
+            try? FileManager.default.removeItem(at: url)
+            throw error
         }
     }
 

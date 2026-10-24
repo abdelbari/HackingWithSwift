@@ -107,6 +107,8 @@ struct SettingsSheet: View {
     /// A typed "- " or "1. " starts a list (TextLists.autoStart).
     @AppStorage(TextLists.autoListsKey) private var autoLists = true
     @AppStorage(AppDefaults.exportFormatKey) private var exportFormat = "png"
+    /// The Export sheet's row of accessibility suggestions (ExportPlan).
+    @AppStorage(ExportPlan.a11yNudgeKey) private var remindA11y = true
     @AppStorage(AppDefaults.unitKey) private var unit = "px"
     /// What Canvia is used for, as the first launch asked; "" for none.
     @AppStorage(UseProfile.key) private var use = ""
@@ -226,6 +228,7 @@ struct SettingsSheet: View {
             Picker("Default export format", selection: $exportFormat) {
                 ForEach(AppDefaults.exportFormats, id: \.self) { Text(AppDefaults.formatLabel($0)).tag($0) }
             }
+            Toggle("Remind me to check accessibility", isOn: $remindA11y)
         } header: {
             Text("Export")
         } footer: {

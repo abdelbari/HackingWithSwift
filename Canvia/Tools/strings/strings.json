@@ -1823,6 +1823,39 @@
       "other": "%d SmartArt"
     }
   },
+  "%d accessibility suggestion|%d accessibility suggestions": {
+    "ar": {
+      "few": "%d اقتراحات لإمكانية الوصول",
+      "many": "%d اقتراح لإمكانية الوصول",
+      "one": "%d اقتراح لإمكانية الوصول",
+      "other": "%d اقتراح لإمكانية الوصول",
+      "two": "%d اقتراحان لإمكانية الوصول",
+      "zero": "%d اقتراح لإمكانية الوصول"
+    },
+    "de": {
+      "one": "%d Vorschlag zur Barrierefreiheit",
+      "other": "%d Vorschläge zur Barrierefreiheit"
+    },
+    "es": {
+      "one": "%d sugerencia de accesibilidad",
+      "other": "%d sugerencias de accesibilidad"
+    },
+    "fr": {
+      "one": "%d suggestion d’accessibilité",
+      "other": "%d suggestions d’accessibilité"
+    },
+    "it": {
+      "one": "%d suggerimento di accessibilità",
+      "other": "%d suggerimenti di accessibilità"
+    },
+    "ja": {
+      "other": "アクセシビリティの提案 %d 件"
+    },
+    "pt-BR": {
+      "one": "%d sugestão de acessibilidade",
+      "other": "%d sugestões de acessibilidade"
+    }
+  },
   "%d adapted from other sizes|%d adapted from other sizes": {
     "ar": {
       "few": "%d مُكيَّفة من مقاسات أخرى",
@@ -8023,6 +8056,33 @@
     "it": "Comprimi",
     "ja": "圧縮",
     "pt-BR": "Comprimir"
+  },
+  "Compress file": {
+    "ar": "ضغط الملف",
+    "de": "Datei komprimieren",
+    "es": "Comprimir archivo",
+    "fr": "Compresser le fichier",
+    "it": "Comprimi file",
+    "ja": "ファイルを圧縮",
+    "pt-BR": "Compactar arquivo"
+  },
+  "Compressed: %@": {
+    "ar": "مضغوط: %@",
+    "de": "Komprimiert: %@",
+    "es": "Comprimido: %@",
+    "fr": "Compressé : %@",
+    "it": "Compresso: %@",
+    "ja": "圧縮後: %@",
+    "pt-BR": "Compactado: %@"
+  },
+  "Compressing wouldn't have made it at least %d%% smaller, so it's a normal PNG.": {
+    "ar": "لن يجعله الضغط أصغر بنسبة %d%% على الأقل، لذا فهو ملف PNG عادي.",
+    "de": "Komprimieren hätte es nicht um mindestens %d %% verkleinert, daher ist es ein normales PNG.",
+    "es": "Comprimirlo no lo habría reducido al menos un %d%%, así que es un PNG normal.",
+    "fr": "La compression ne l’aurait pas allégé d’au moins %d %%, c’est donc un PNG normal.",
+    "it": "La compressione non l’avrebbe ridotto di almeno il %d%%, quindi è un PNG normale.",
+    "ja": "圧縮しても %d%% 以上小さくならないため、通常の PNG になりました。",
+    "pt-BR": "Compactar não o deixaria pelo menos %d%% menor, então é um PNG normal."
   },
   "Confetti": {
     "ar": "قصاصات ملونة",
@@ -17369,6 +17429,15 @@
     "ja": "標準",
     "pt-BR": "Normal"
   },
+  "Normal: %@": {
+    "ar": "عادي: %@",
+    "de": "Normal: %@",
+    "es": "Normal: %@",
+    "fr": "Normal : %@",
+    "it": "Normale: %@",
+    "ja": "通常: %@",
+    "pt-BR": "Normal: %@"
+  },
   "Not animated": {
     "ar": "غير متحرك",
     "de": "Nicht animiert",
@@ -20567,6 +20636,15 @@
     "ja": "この設定を記憶する",
     "pt-BR": "Lembrar estas configurações"
   },
+  "Remind me to check accessibility": {
+    "ar": "ذكّرني بفحص إمكانية الوصول",
+    "de": "An Barrierefreiheitsprüfung erinnern",
+    "es": "Recordarme revisar la accesibilidad",
+    "fr": "Me rappeler de vérifier l’accessibilité",
+    "it": "Ricordami di controllare l’accessibilità",
+    "ja": "アクセシビリティの確認を促す",
+    "pt-BR": "Lembrar de verificar a acessibilidade"
+  },
   "Remove": {
     "ar": "إزالة",
     "de": "Entfernen",
@@ -21311,6 +21389,15 @@
     "ja": "レトロ",
     "pt-BR": "Retrô"
   },
+  "Review": {
+    "ar": "مراجعة",
+    "de": "Prüfen",
+    "es": "Revisar",
+    "fr": "Vérifier",
+    "it": "Rivedi",
+    "ja": "確認",
+    "pt-BR": "Revisar"
+  },
   "Ribbon": {
     "ar": "شريط",
     "de": "Band",
@@ -21706,6 +21793,15 @@
     "it": "Salva come componente…",
     "ja": "コンポーネントとして保存…",
     "pt-BR": "Salvar como componente…"
+  },
+  "Save as one ZIP": {
+    "ar": "حفظ كملف ZIP واحد",
+    "de": "Als eine ZIP-Datei sichern",
+    "es": "Guardar como un solo ZIP",
+    "fr": "Enregistrer en un seul ZIP",
+    "it": "Salva come un unico ZIP",
+    "ja": "1 つの ZIP として保存",
+    "pt-BR": "Salvar como um único ZIP"
   },
   "Save as template": {
     "ar": "حفظ كقالب",
@@ -22915,6 +23011,15 @@
     "it": "Condividi SVG",
     "ja": "SVG を共有",
     "pt-BR": "Compartilhar SVG"
+  },
+  "Share ZIP": {
+    "ar": "مشاركة ملف ZIP",
+    "de": "ZIP teilen",
+    "es": "Compartir ZIP",
+    "fr": "Partager le ZIP",
+    "it": "Condividi ZIP",
+    "ja": "ZIP を共有",
+    "pt-BR": "Compartilhar ZIP"
   },
   "Share a PNG, a JPG, a PDF, a video or an animated GIF — or a print-ready PDF with bleed and crop marks. Present full screen from the top bar.": {
     "ar": "شارك PNG أو JPG أو PDF أو فيديو أو GIF متحركًا — أو PDF جاهزًا للطباعة مع هامش النزف وعلامات القص. واعرض بملء الشاشة من الشريط العلوي.",
@@ -27058,6 +27163,15 @@
     "it": "Fino a %d caratteri. Lascia vuoto per il nome che gli dà Canvia.",
     "ja": "最大 %d 文字。空欄にすると Canvia が付けた名前になります。",
     "pt-BR": "Até %d caracteres. Deixe vazio para usar o nome que o Canvia dá."
+  },
+  "Up to 256 colours, for flat graphics; kept only when at least %d%% smaller.": {
+    "ar": "حتى 256 لونًا للرسومات المسطحة؛ يُستخدم فقط إذا صار أصغر بنسبة %d%% على الأقل.",
+    "de": "Bis zu 256 Farben, für flächige Grafiken; nur verwendet, wenn mindestens %d %% kleiner.",
+    "es": "Hasta 256 colores, para gráficos planos; solo se usa si es al menos un %d%% más pequeño.",
+    "fr": "Jusqu’à 256 couleurs, pour les graphismes en aplat ; conservé seulement s’il est au moins %d %% plus léger.",
+    "it": "Fino a 256 colori, per grafiche piatte; usato solo se almeno il %d%% più piccolo.",
+    "ja": "最大 256 色。フラットなグラフィック向けで、%d%% 以上小さくなる場合のみ使われます。",
+    "pt-BR": "Até 256 cores, para gráficos chapados; usado só se ficar pelo menos %d%% menor."
   },
   "Update": {
     "ar": "تحديث",

@@ -42,6 +42,9 @@ final class ExportQueue {
         /// Said beside the share: the designs of several that could not be
         /// exported ("Couldn't export 1 of 5").
         var skipped: String?
+        /// Said beside the share, as a matter of fact: a PNG that could
+        /// not be compressed enough and went out as a normal one.
+        var note: String?
         /// Why it could not finish, said in its turn as any other result
         /// is — as the Android twin's ExportHandoff.Say — so a second
         /// failure does not replace the first.

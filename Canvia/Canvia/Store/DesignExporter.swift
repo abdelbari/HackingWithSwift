@@ -277,11 +277,17 @@ enum DesignExporter {
         return design.effectiveDPI * effectiveScale(size: design.size(for: page), requested: requested)
     }
 
+    /// The page as a picture at `url`. A PNG with `compress` is written in
+    /// at most 256 colours (PngWriter) when that comes out at least
+    /// ExportPlan.compressGain smaller, and as ever otherwise; returns
+    /// false when it was asked to compress and could not save enough.
     @MainActor
+    @discardableResult
     static func exportRaster(design: Design, page: Page, format: RasterFormat,
                              scale: Double, quality: Double = 0.92,
-                             transparent: Bool = false, captionTime: Double? = .none, to url: URL) throws {
-        try autoreleasepool {
+                             transparent: Bool = false, captionTime: Double? = .none, compress: Bool = false,
+                             to url: URL) throws -> Bool {
+        try autoreleasepool { () throws -> Bool in
             guard let cg = render(design: design, page: page, scale: scale, transparent: transparent,
                                   captionTime: captionTime) else { throw ExportError.renderFailed }
             guard let destination = CGImageDestinationCreateWithURL(
@@ -301,7 +307,19 @@ enum DesignExporter {
             guard CGImageDestinationFinalize(destination) else {
                 throw ExportError.encodeFailed
             }
+            guard compress && format == .png else { return true }
+            return keptCompressed(cg, dpi: imageDPI(design: design, page: page, requested: scale), at: url)
         }
+    }
+
+    /// The PNG at `url` written again in 256 colours when that is enough
+    /// smaller (ExportPlan.keepsCompressed); whether it was.
+    private static func keptCompressed(_ cg: CGImage, dpi: Double?, at url: URL) -> Bool {
+        let normal = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        guard normal > 0, let rgba = PngWriter.rgba(of: cg),
+              let small = PngWriter.png(rgba: rgba, width: cg.width, height: cg.height, dpi: dpi),
+              ExportPlan.keepsCompressed(compressed: small.count, normal: normal) else { return false }
+        return (try? small.write(to: url, options: .atomic)) != nil
     }
 
     /// Which pages an export covers.
@@ -351,6 +369,19 @@ enum DesignExporter {
                             format: RasterFormat, scale: Double, longEdge: Double = 0,
                             quality: Double = 0.92, transparent: Bool = false, captionTime: Double? = .none,
                             progress: ((Double) -> Void)? = nil) async throws -> [URL] {
+        try await exportPictures(design: design, range: range, current: current, format: format, scale: scale,
+                                 longEdge: longEdge, quality: quality, transparent: transparent,
+                                 captionTime: captionTime, compress: false, progress: progress).urls
+    }
+
+    /// The pages as `exportPages` writes them; with `compress`, each PNG in
+    /// 256 colours where that is enough smaller, and how many were not.
+    @MainActor
+    static func exportPictures(design: Design, range: PageRange, current: Int, format: RasterFormat,
+                               scale: Double, longEdge: Double, quality: Double, transparent: Bool,
+                               captionTime: Double?, compress: Bool,
+                               progress: ((Double) -> Void)? = nil) async throws -> (urls: [URL], uncompressed: Int) {
+        var uncompressed = 0
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
         var urls: [URL] = []
@@ -366,9 +397,10 @@ enum DesignExporter {
             let url = fileURL(for: design, ext: format.ext, suffix: suffix)
             let page = design.pages[index]
             let pageScale = longEdge > 0 ? DesignExporter.scale(forLongEdge: longEdge, size: design.size(for: page)) : scale
-            try exportRaster(design: design, page: page, format: format,
-                             scale: pageScale, quality: quality, transparent: transparent,
-                             captionTime: index == current ? captionTime : nil, to: url)
+            let kept = try exportRaster(design: design, page: page, format: format,
+                                        scale: pageScale, quality: quality, transparent: transparent,
+                                        captionTime: index == current ? captionTime : nil, compress: compress, to: url)
+            if !kept { uncompressed += 1 }
             urls.append(url)
             progress?(Double(n + 1) / Double(indices.count))
         }
@@ -376,7 +408,7 @@ enum DesignExporter {
             for url in urls { try? FileManager.default.removeItem(at: url) }
             throw error
         }
-        return urls
+        return (urls, uncompressed)
     }
 
     // MARK: pacing
