@@ -11,10 +11,10 @@ final class HomeStartAndShareTests: XCTestCase {
     // MARK: import
 
     /// The rows both phones show, in order, under one heading.
-    func testImportOffersFourRowsInOrder() {
+    func testImportOffersFiveRowsInOrder() {
         XCTAssertEqual(ImportChoice.groupTitle, "Import")
         XCTAssertEqual(ImportChoice.allCases.map(\.title),
-                       ["Photo or video…", "PDF…", "PowerPoint…", "Canvia design file…"])
+                       ["Photo or video…", "PDF…", "PowerPoint…", "Word document", "Canvia design file…"])
     }
 
     /// A shelf of only the samples — or nothing — offers "Start from a

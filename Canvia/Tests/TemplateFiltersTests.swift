@@ -102,7 +102,8 @@ final class TemplateFiltersTests: XCTestCase {
 
     private func filter(_ o: [String: Any]) -> TemplateFilter {
         TemplateFilter(colors: Set(o["colors"] as? [String] ?? []), animated: o["animated"] as? Bool,
-                       photo: o["photo"] as? Bool, multiPage: o["multiPage"] as? Bool)
+                       photo: o["photo"] as? Bool, multiPage: o["multiPage"] as? Bool,
+                       style: o["style"] as? String)
     }
 
     /// Shared: the facets the generator wrote, and what each filter lets

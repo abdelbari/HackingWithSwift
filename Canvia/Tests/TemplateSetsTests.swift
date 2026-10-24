@@ -55,6 +55,8 @@ final class TemplateSetsTests: XCTestCase {
             // Round 31's Website type: three-section sites.
             ("website-studio-portfolio", 3), ("website-cafe-landing", 3), ("website-app-launch", 3),
             ("website-wedding-day", 3), ("website-consultancy", 3), ("website-workshop-course", 3),
+            // Round 33's animated decks.
+            ("animated-deck-1", 5), ("animated-deck-2", 5), ("animated-deck-3", 5),
         ]
         for (id, count) in rows {
             let t = ContentLibrary.templates.first { $0.id == id }
