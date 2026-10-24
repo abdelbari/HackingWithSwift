@@ -1178,7 +1178,8 @@ struct CanvasView: View {
         let width = ObjectEraser.pageWidth(share: brush.size, element: photo, imageSize: brush.imageSize)
         return ZStack {
             Color.clear.contentShape(Rectangle())
-            if !strokePoints.isEmpty {
+            // Clear a colour takes a tap, and shows no stroke.
+            if !strokePoints.isEmpty && !brush.clearing {
                 Path(Freehand.cgPath(strokePoints))
                     .stroke(Self.brushInk(brush).opacity(0.45),
                             style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
@@ -1202,7 +1203,18 @@ struct CanvasView: View {
         )
         .accessibilityLabel("Brush")
         .accessibilityHint("Drag over the photo to paint, then tap Done")
+        .accessibilityActions { keyActions(brush) }
         .onDisappear { strokePoints = []; strokeStart = nil }
+    }
+
+    /// For the Erase and Restore brush, VoiceOver's taps of Clear a colour:
+    /// at the photo's centre, and at its four corners.
+    @ViewBuilder
+    private func keyActions(_ brush: BrushSession) -> some View {
+        if !brush.retouching {
+            Button("Clear the colour at the centre") { store.clearColour(at: DesignStore.keyCentre) }
+            Button("Clear the colour at the corners") { store.clearColour(at: DesignStore.keyCorners) }
+        }
     }
 
     /// The colour a brush's stroke shows in under the finger.

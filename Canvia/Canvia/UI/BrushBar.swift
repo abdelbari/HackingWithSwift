@@ -1,6 +1,7 @@
 // Brush mode's bar, in place of the insert button while a photo is brushed
-// (BrushMode.swift): for the Erase and Restore brush, the two as chips, the
-// brush's Size and Softness; for a blur or pixelate brush, Size, Strength
+// (BrushMode.swift): for the Erase and Restore brush, the two as chips with
+// Clear a colour beside them, the brush's Size and Softness — or, clearing
+// a colour, Tolerance and Everywhere; for a blur or pixelate brush, Size, Strength
 // and Erase from effect. Then Show original, held to compare, Undo stroke,
 // Cancel and Done — the whole session one Undo.
 
@@ -34,14 +35,41 @@ struct BrushBar: View {
                 .font(.subheadline)
         } else {
             HStack(spacing: 8) {
-                chip(tr("Erase"), on: !session.reverse) { store.brushing?.reverse = false }
-                chip(tr("Restore"), on: session.reverse) { store.brushing?.reverse = true }
+                chip(tr("Erase"), on: !session.reverse && !session.clearing) { pick(clearing: false, reverse: false) }
+                chip(tr("Restore"), on: session.reverse && !session.clearing) { pick(clearing: false, reverse: true) }
+                chip(tr("Clear a colour"), on: session.clearing) { pick(clearing: true, reverse: false) }
                 Spacer(minLength: 0)
             }
         }
     }
 
+    private func pick(clearing: Bool, reverse: Bool) {
+        store.brushing?.clearing = clearing
+        store.brushing?.reverse = reverse
+    }
+
+    @ViewBuilder
     private var sliders: some View {
+        if session.clearing && !session.retouching {
+            keySliders
+        } else {
+            brushSliders
+        }
+    }
+
+    /// Clear a colour's Tolerance, 0 to 100, and Everywhere: each redoes the
+    /// last tap, live.
+    private var keySliders: some View {
+        HStack(spacing: 14) {
+            slider(tr("Tolerance"), value: session.tolerance * 100, in: 0...100,
+                   readout: "\(Int((session.tolerance * 100).rounded()))") { store.setKeyTolerance($0 / 100) }
+            Toggle("Everywhere", isOn: Binding(get: { session.everywhere }, set: { store.setKeyEverywhere($0) }))
+                .font(.subheadline)
+                .fixedSize()
+        }
+    }
+
+    private var brushSliders: some View {
         HStack(spacing: 14) {
             slider(tr("Size"), value: session.size, in: BrushSession.sizeRange,
                    readout: Self.percent(session.size)) { store.brushing?.size = $0 }

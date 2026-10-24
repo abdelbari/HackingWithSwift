@@ -1,5 +1,7 @@
 // Brush mode: a photo painted on where it sits. The Erase and Restore brush
-// (Photo bar ▸ Erase) makes parts of it clear and brings them back; the
+// (Photo bar ▸ Erase) makes parts of it clear and brings them back, and its
+// Clear a colour takes a tap instead of a stroke, clearing the colour
+// tapped (a key in the mask, MaskRaster.keyCoverage); the
 // Blur and Pixelate brushes (Filters ▸ Effects) blur or block out the parts
 // painted. Every stroke is kept on the element (MaskRaster), never in the
 // picture, so any of it can be taken back or painted over later.
@@ -41,6 +43,15 @@ struct BrushSession: Equatable {
     var painted = 0
     /// Show original is held.
     var comparing = false
+    /// Clear a colour: a tap keys out the colour under it, for the mask.
+    var clearing = false
+    /// Clear a colour's Tolerance, 0…1 (the slider's 0…100), and whether it
+    /// clears the colour everywhere.
+    var tolerance = MaskStroke.defaultTolerance
+    var everywhere = false
+    /// The last tap of Clear a colour this session, by its place in the
+    /// mask, which Tolerance and Everywhere redo live.
+    var lastKey: Int?
 
     static let defaultSize = 0.05
     static let defaultSoftness = 0.3
@@ -111,6 +122,12 @@ extension DesignStore {
     /// strength, by the first stroke when the photo has none of its kind.
     func brushStroke(_ stroke: [CGPoint]) {
         guard var session = brushing, let photo = brushElement, !stroke.isEmpty else { return }
+        // Clear a colour takes the tap — where the finger lifted.
+        if session.clearing, !session.retouching, let tap = stroke.last {
+            let at = ObjectEraser.picturePoints([tap], element: photo, imageSize: session.imageSize)
+            if let point = at.first { clearColour(at: [(Double(point.x), Double(point.y))]) }
+            return
+        }
         let points = MaskStroke.written(ObjectEraser.picturePoints(stroke, element: photo, imageSize: session.imageSize))
         guard !points.isEmpty else { return }
         let width = min(max(session.size, BrushSession.sizeRange.lowerBound), BrushSession.sizeRange.upperBound)
@@ -152,10 +169,82 @@ extension DesignStore {
         } else {
             guard var mask = photo.mask, !mask.strokes.isEmpty else { return }
             mask.strokes.removeLast()
+            if session.lastKey == mask.strokes.count { session.lastKey = nil }
             brushEdit { $0.mask = ImageMask.kept(mask) }
         }
         session.painted -= 1
         brushing = session
+    }
+
+    // MARK: clear a colour
+
+    /// Taps of Clear a colour at `points` — shares of the picture across and
+    /// down, before its turn, flip and crop — at the session's Tolerance
+    /// and Everywhere, added to the mask in order, the last of them the one
+    /// the two redo. Part of the session's step; each tap one Undo stroke.
+    func clearColour(at points: [(x: Double, y: Double)]) {
+        guard var session = brushing, !session.retouching, let photo = brushElement, !points.isEmpty else { return }
+        var mask = photo.mask ?? ImageMask()
+        for point in points {
+            mask.strokes.append(MaskStroke(keyAt: point.x, point.y, tol: session.tolerance, all: session.everywhere))
+        }
+        session.lastKey = mask.strokes.count - 1
+        session.painted += points.count
+        brushing = session
+        brushEdit { $0.mask = mask }
+    }
+
+    /// Tolerance moved, 0…1: the last tap redone at it, live.
+    func setKeyTolerance(_ tolerance: Double) {
+        guard var session = brushing else { return }
+        session.tolerance = (min(max(tolerance, 0), 1) * 100).rounded() / 100
+        brushing = session
+        redoLastKey()
+    }
+
+    /// Everywhere turned on or off: the last tap redone so.
+    func setKeyEverywhere(_ everywhere: Bool) {
+        guard var session = brushing else { return }
+        session.everywhere = everywhere
+        brushing = session
+        redoLastKey()
+    }
+
+    /// The last tap of this session at the session's Tolerance and
+    /// Everywhere, where it is in the mask.
+    private func redoLastKey() {
+        guard let session = brushing, let at = session.lastKey, var mask = brushElement?.mask,
+              mask.strokes.indices.contains(at), mask.strokes[at].keys else { return }
+        let tap = mask.strokes[at]
+        mask.strokes[at] = MaskStroke(keyAt: tap.x, tap.y, tol: session.tolerance, all: session.everywhere)
+        brushEdit { $0.mask = mask }
+    }
+
+    /// The picture points VoiceOver's Clear the colour at the centre and at
+    /// the corners tap.
+    static let keyCentre: [(x: Double, y: Double)] = [(0.5, 0.5)]
+    static let keyCorners: [(x: Double, y: Double)] = [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+    /// Whether the selected photo can take Remove white background: one
+    /// unlocked still photo, not a code, a clip or an animated picture.
+    var canClearWhiteBackground: Bool {
+        guard let photo = singleSelection, photo.type == .image, !photo.locked, let src = photo.src else { return false }
+        return !CodeGenerator.isCode(src) && !VideoStore.isVideo(src) && !AnimStore.isAnim(src)
+            && !MotionLibrary.isMotion(src)
+    }
+
+    /// Remove white background (the More menu): taps of Clear a colour at
+    /// the photo's four corners at tolerance 0.12 (MaskRaster
+    /// .whiteBackgroundTaps), added to its mask as one step — none on a
+    /// locked page.
+    func removeWhiteBackground() {
+        guard canClearWhiteBackground, !refusesLockedPage() else { return }
+        updateSelected { el in
+            guard el.type == .image else { return }
+            var mask = el.mask ?? ImageMask()
+            mask.strokes += MaskRaster.whiteBackgroundTaps
+            el.mask = mask
+        }
     }
 
     /// The blur's or the blocks' strength, live; part of the session's step.

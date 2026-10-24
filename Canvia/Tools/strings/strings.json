@@ -8708,6 +8708,15 @@
     "ja": "クリア",
     "pt-BR": "Limpar"
   },
+  "Clear a colour": {
+    "ar": "مسح لون",
+    "de": "Eine Farbe entfernen",
+    "es": "Borrar un color",
+    "fr": "Effacer une couleur",
+    "it": "Rimuovi un colore",
+    "ja": "色を消す",
+    "pt-BR": "Remover uma cor"
+  },
   "Clear caches": {
     "ar": "مسح ذاكرات التخزين المؤقت",
     "de": "Caches leeren",
@@ -8752,6 +8761,24 @@
     "it": "Cancella la cronologia delle ricerche",
     "ja": "検索履歴を消去",
     "pt-BR": "Limpar histórico de pesquisa"
+  },
+  "Clear the colour at the centre": {
+    "ar": "مسح اللون في المنتصف",
+    "de": "Farbe in der Mitte entfernen",
+    "es": "Borrar el color del centro",
+    "fr": "Effacer la couleur au centre",
+    "it": "Rimuovi il colore al centro",
+    "ja": "中央の色を消す",
+    "pt-BR": "Remover a cor do centro"
+  },
+  "Clear the colour at the corners": {
+    "ar": "مسح اللون في الزوايا",
+    "de": "Farbe an den Ecken entfernen",
+    "es": "Borrar el color de las esquinas",
+    "fr": "Effacer la couleur aux coins",
+    "it": "Rimuovi il colore agli angoli",
+    "ja": "四隅の色を消す",
+    "pt-BR": "Remover a cor dos cantos"
   },
   "Clear word colours and sizes": {
     "ar": "مسح ألوان الكلمات وأحجامها",
@@ -13240,6 +13267,15 @@
     "it": "Tutto ciò che aggiungi sarà elencato qui, dall’alto verso il basso, e potrà essere trascinato in un nuovo ordine.",
     "ja": "追加したものはすべて、最前面から順にここに表示され、ドラッグで並べ替えられます。",
     "pt-BR": "Tudo o que você adicionar vai aparecer aqui, de cima para baixo, e pode ser arrastado para outra ordem."
+  },
+  "Everywhere": {
+    "ar": "في كل مكان",
+    "de": "Überall",
+    "es": "En todas partes",
+    "fr": "Partout",
+    "it": "Ovunque",
+    "ja": "すべての場所",
+    "pt-BR": "Em todo lugar"
   },
   "Exact": {
     "ar": "دقيق",
@@ -23390,6 +23426,15 @@
     "ja": "停止点を削除",
     "pt-BR": "Remover parada"
   },
+  "Remove white background": {
+    "ar": "إزالة الخلفية البيضاء",
+    "de": "Weißen Hintergrund entfernen",
+    "es": "Quitar fondo blanco",
+    "fr": "Supprimer le fond blanc",
+    "it": "Rimuovi sfondo bianco",
+    "ja": "白い背景を削除",
+    "pt-BR": "Remover fundo branco"
+  },
   "Remove “%@”": {
     "ar": "إزالة «%@»",
     "de": "„%@“ entfernen",
@@ -29647,6 +29692,15 @@
     "it": "Oggi",
     "ja": "今日",
     "pt-BR": "Hoje"
+  },
+  "Tolerance": {
+    "ar": "التفاوت",
+    "de": "Toleranz",
+    "es": "Tolerancia",
+    "fr": "Tolérance",
+    "it": "Tolleranza",
+    "ja": "許容値",
+    "pt-BR": "Tolerância"
   },
   "Tone curve": {
     "ar": "منحنى الدرجات",

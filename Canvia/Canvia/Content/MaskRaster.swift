@@ -8,6 +8,12 @@
 // strokes keep their place whatever size the picture is drawn at, on
 // either phone.
 //
+// A mask may also hold taps of Clear a colour, kept in order with the
+// strokes: {"mode": "key", x, y, tol, all} clears what is within `tol` of
+// the colour tapped at (x, y) — the patch round it, or with `all` that
+// colour everywhere (keyCoverage). They read the picture's pixels where a
+// stroke needs only its shape; an older build reads one as no stroke.
+//
 // MaskRaster turns strokes into a grid of coverage — pure, by rules written
 // for both phones alike, row for row in the tests. The drawing is
 // the filter engine's (ImageMasking): the retouch after the filter and the
@@ -29,25 +35,44 @@ import Foundation
 /// or no point that reads, and the stroke is left out; `w` is held to
 /// widthRange and `soft` to 0…1, 0 when it is not a number; a pair that
 /// is short or not numbers is left out, a third number dropped.
+///
+/// A tap of Clear a colour is an entry of mode "key" instead: the point
+/// tapped, `x` and `y` in shares of the picture across and down (as a
+/// stroke's points), `tol` the tolerance 0…1 and `all` whether the colour
+/// goes everywhere or only where it joins the tap. It has no width,
+/// softness or points; its x and y must be numbers (held to 0…1), a `tol`
+/// that is not one is the default and an `all` that is not true or false
+/// is false.
 struct MaskStroke: Codable, Equatable, Hashable {
     var mode: String = MaskStroke.erase
     var w: Double = 0.05
     var soft: Double = 0
     /// [x, y] each, as written.
     var pts: [[Double]] = []
+    /// A key's point, tolerance and reach.
+    var x: Double = 0
+    var y: Double = 0
+    var tol: Double = MaskStroke.defaultTolerance
+    var all: Bool = false
 
     static let erase = "erase"
     static let restore = "restore"
+    static let key = "key"
 
     /// What the brush's width is read within.
     static let widthRange = 0.005...0.2
+    /// A new Clear a colour's tolerance: 25 on the slider's 0…100.
+    static let defaultTolerance = 0.25
 
     var restores: Bool { mode == Self.restore }
+
+    /// Whether it is a tap of Clear a colour.
+    var keys: Bool { mode == Self.key }
 
     /// Its points.
     var points: [CGPoint] { MaskStroke.points(pts) }
 
-    private enum CodingKeys: String, CodingKey { case mode, w, soft, pts }
+    private enum CodingKeys: String, CodingKey { case mode, w, soft, pts, x, y, tol, all }
 
     init(mode: String = MaskStroke.erase, w: Double = 0.05, soft: Double = 0, points: [CGPoint] = []) {
         self.mode = mode
@@ -56,10 +81,35 @@ struct MaskStroke: Codable, Equatable, Hashable {
         self.pts = MaskStroke.pairs(points)
     }
 
+    /// A tap of Clear a colour at (`x`, `y`), held to the picture and to
+    /// the ten-thousandth as a stroke's points are written, its tolerance
+    /// to the hundredth.
+    init(keyAt x: Double, _ y: Double, tol: Double = MaskStroke.defaultTolerance, all: Bool = false) {
+        func fourth(_ v: Double) -> Double { (min(max(v.isFinite ? v : 0, 0), 1) * 10_000).rounded() / 10_000 }
+        mode = Self.key
+        self.x = fourth(x)
+        self.y = fourth(y)
+        self.tol = (min(max(tol.isFinite ? tol : 0, 0), 1) * 100).rounded() / 100
+        self.all = all
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         // No mode is Erase; one that is there but not text is no mode.
         let named: String? = c.contains(.mode) ? (try? c.decode(String.self, forKey: .mode)) : Self.erase
+        if named == Self.key {
+            guard let x = try? c.decode(Double.self, forKey: .x), let y = try? c.decode(Double.self, forKey: .y),
+                  x.isFinite, y.isFinite else {
+                throw DecodingError.dataCorruptedError(forKey: .x, in: c, debugDescription: "No point")
+            }
+            mode = Self.key
+            self.x = min(max(x, 0), 1)
+            self.y = min(max(y, 0), 1)
+            let tol = (try? c.decode(Double.self, forKey: .tol)).flatMap { $0.isFinite ? $0 : nil }
+            self.tol = min(max(tol ?? Self.defaultTolerance, 0), 1)
+            all = (try? c.decode(Bool.self, forKey: .all)) ?? false
+            return
+        }
         guard let mode = named, mode == Self.erase || mode == Self.restore else {
             throw DecodingError.dataCorruptedError(forKey: .mode, in: c, debugDescription: "Not a mask stroke")
         }
@@ -76,6 +126,13 @@ struct MaskStroke: Codable, Equatable, Hashable {
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(mode, forKey: .mode)
+        if keys {
+            try c.encode(x, forKey: .x)
+            try c.encode(y, forKey: .y)
+            try c.encode(tol, forKey: .tol)
+            try c.encode(all, forKey: .all)
+            return
+        }
         try c.encode(w, forKey: .w)
         try c.encode(soft, forKey: .soft)
         try c.encode(pts, forKey: .pts)
@@ -371,12 +428,21 @@ enum MaskRaster {
     /// down by what it covers of it, a Restore bringing it up as far. A
     /// stroke's points are at x × width, y × height and its reach (reach)
     /// in shares of the grid's shorter side.
+    ///
+    /// A tap of Clear a colour takes each cell down as an Erase does, by
+    /// what `keyed` gives for it — its keyCoverage over the grid's own
+    /// pixels — and is passed over when there is none to give.
     static func raster(_ strokes: [MaskStroke], width: Int, height: Int, start: Float = 1,
-                       initial: [Float]? = nil) -> [Float] {
+                       initial: [Float]? = nil, keyed: Keyed = { _ in nil }) -> [Float] {
         let w = max(1, width), h = max(1, height)
         var grid = initial.flatMap { $0.count == w * h ? $0 : nil } ?? [Float](repeating: start, count: w * h)
         let short = Double(min(w, h))
         for stroke in strokes {
+            if stroke.keys {
+                guard let cover = keyed(stroke), cover.count == w * h else { continue }
+                for k in 0..<(w * h) where cover[k] > 0 { grid[k] *= 1 - cover[k] }
+                continue
+            }
             let (share, fade) = reach(stroke)
             let radius = share * short, feather = fade * short
             let points = stroke.points.map { CGPoint(x: Double($0.x) * Double(w), y: Double($0.y) * Double(h)) }
@@ -442,6 +508,108 @@ enum MaskRaster {
         var t = 0.0
         if length > 0 { t = min(max((Double(p.x - a.x) * dx + Double(p.y - a.y) * dy) / length, 0), 1) }
         return hypot(Double(p.x) - (Double(a.x) + t * dx), Double(p.y) - (Double(a.y) + t * dy))
+    }
+
+    // MARK: clear a colour
+
+    /// What a tap of Clear a colour clears of the grid, one value a cell;
+    /// nil when there is no picture to read.
+    typealias Keyed = (MaskStroke) -> [Float]?
+
+    /// The squared Lab distance (CIE76 ΔE) within which a colour is the
+    /// one tapped, for a tolerance `tol` 0…1: (100 × tol)².
+    static func keyLimit(_ tol: Double) -> Double {
+        let e = min(max(tol, 0), 1) * 100
+        return e * e
+    }
+
+    /// sRGB channels 0…255 in CIE Lab (D65): linear light, then XYZ, then
+    /// L*, a* and b* by the textbook formulas both phones write out.
+    static func lab(_ red: Int, _ green: Int, _ blue: Int) -> (l: Double, a: Double, b: Double) {
+        let r = linear[min(max(red, 0), 255)], g = linear[min(max(green, 0), 255)], b = linear[min(max(blue, 0), 255)]
+        let x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+        let y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        let z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+        let fx = labF(x), fy = labF(y), fz = labF(z)
+        return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
+    }
+
+    private static func labF(_ t: Double) -> Double {
+        t > 0.008856 ? cbrt(t) : 7.787 * t + 16.0 / 116.0
+    }
+
+    /// Each sRGB level 0…255 as linear light, 0…1.
+    private static let linear: [Double] = (0...255).map { v in
+        let c = Double(v) / 255
+        return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+
+    /// What a tap of Clear a colour clears of a picture `width` × `height`
+    /// — `pixels` RGBA, not premultiplied, top row first; the grid's own
+    /// proxy of the picture, at most maxSide on its longer side, so the
+    /// coverage is scaled up with the rest of the mask — one value a pixel,
+    /// 0…1. The tapped pixel is the one (x, y) falls in (x × width and y ×
+    /// height rounded down, held within the picture); a pixel is its
+    /// colour when it is not clear and lies within keyLimit(tol) of it in
+    /// Lab. Those joined to the tapped pixel through its four neighbours
+    /// are cleared (1) — or with `all`, every such pixel — and a pixel not
+    /// cleared with a cleared one among its four neighbours is half cleared
+    /// (0.5): the one-pixel feathered edge. A clear tapped pixel clears
+    /// nothing. The Android twin's rule, pixel for pixel.
+    static func keyCoverage(_ pixels: [UInt8], width: Int, height: Int, entry: MaskStroke) -> [Float] {
+        let w = max(0, width), h = max(0, height)
+        var out = [Float](repeating: 0, count: w * h)
+        guard w > 0, h > 0, pixels.count >= w * h * 4, entry.keys else { return out }
+        let tx = min(max(Int((entry.x * Double(w)).rounded(.down)), 0), w - 1)
+        let ty = min(max(Int((entry.y * Double(h)).rounded(.down)), 0), h - 1)
+        let tapped = ty * w + tx
+        guard pixels[tapped * 4 + 3] > 0 else { return out }
+        let ref = lab(Int(pixels[tapped * 4]), Int(pixels[tapped * 4 + 1]), Int(pixels[tapped * 4 + 2]))
+        let limit = keyLimit(entry.tol)
+        func within(_ p: Int) -> Bool {
+            let i = p * 4
+            guard pixels[i + 3] > 0 else { return false }
+            let c = lab(Int(pixels[i]), Int(pixels[i + 1]), Int(pixels[i + 2]))
+            let dl = c.l - ref.l, da = c.a - ref.a, db = c.b - ref.b
+            return dl * dl + da * da + db * db <= limit
+        }
+        var cleared = [Bool](repeating: false, count: w * h)
+        if entry.all {
+            for p in 0..<(w * h) where within(p) { cleared[p] = true }
+        } else {
+            cleared[tapped] = true
+            var waiting = [tapped]
+            while let p = waiting.popLast() {
+                let x = p % w, y = p / w
+                for (nx, ny) in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+                where nx >= 0 && nx < w && ny >= 0 && ny < h {
+                    let n = ny * w + nx
+                    guard !cleared[n], within(n) else { continue }
+                    cleared[n] = true
+                    waiting.append(n)
+                }
+            }
+        }
+        for p in 0..<(w * h) {
+            if cleared[p] {
+                out[p] = 1
+                continue
+            }
+            let x = p % w, y = p / w
+            let touches = (x > 0 && cleared[p - 1]) || (x + 1 < w && cleared[p + 1])
+                || (y > 0 && cleared[p - w]) || (y + 1 < h && cleared[p + w])
+            if touches { out[p] = 0.5 }
+        }
+        return out
+    }
+
+    /// Remove white background's taps: the four corners, at tolerance 0.12,
+    /// each clearing the white joined to it.
+    static let whiteBackgroundTolerance = 0.12
+    static var whiteBackgroundTaps: [MaskStroke] {
+        [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)].map {
+            MaskStroke(keyAt: $0.0, $0.1, tol: whiteBackgroundTolerance)
+        }
     }
 
     // MARK: retouch
