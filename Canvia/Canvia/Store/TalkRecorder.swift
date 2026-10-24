@@ -15,7 +15,7 @@ import UIKit
 final class TalkRecorder: NSObject, @unchecked Sendable,
     AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
 
-    enum Problem: Error {
+    enum TalkProblem: Error {
         case microphone
         case writer
     }
@@ -63,7 +63,7 @@ final class TalkRecorder: NSObject, @unchecked Sendable,
         session.sessionPreset = .medium
         guard let mic = AVCaptureDevice.default(for: .audio),
               let input = try? AVCaptureDeviceInput(device: mic), session.canAddInput(input) else {
-            throw Problem.microphone
+            throw TalkProblem.microphone
         }
         session.addInput(input)
         if session.canAddOutput(audioOutput) {
@@ -122,9 +122,9 @@ final class TalkRecorder: NSObject, @unchecked Sendable,
         let writer = try AVAssetWriter(outputURL: audioURL, fileType: .m4a)
         let input = AVAssetWriterInput(mediaType: .audio, outputSettings: Self.audioSettings)
         input.expectsMediaDataInRealTime = true
-        guard writer.canAdd(input) else { throw Problem.writer }
+        guard writer.canAdd(input) else { throw TalkProblem.writer }
         writer.add(input)
-        guard writer.startWriting() else { throw Problem.writer }
+        guard writer.startWriting() else { throw TalkProblem.writer }
         let camera = hasCamera
         queue.sync {
             audioWriter = writer
