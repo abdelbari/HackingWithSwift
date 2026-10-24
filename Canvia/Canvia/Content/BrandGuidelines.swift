@@ -148,8 +148,10 @@ enum BrandGuidelines {
             sample.fontWeight = weight
             sample.lineHeight = leading
             sample.color = ink
-            // The rest of the role's type, as Add text sets it.
+            // The rest of the role's type, as Add text sets it; its line
+            // height is said, the row keeping its own, as on the Android twin.
             BrandFonts.typeSettings(face, role: role, to: &sample, pageWidth: width, palettes: kit.palettes)
+            sample.lineHeight = leading
             els.append(sample)
         }
         return page(els)

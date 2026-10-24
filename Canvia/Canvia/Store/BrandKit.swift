@@ -240,10 +240,11 @@ struct BrandFonts: Codable, Equatable {
     static func typeSettings(_ face: BrandFont?, role: Role?, to el: inout Element, pageWidth: Double,
                              palettes: [BrandPalette]) {
         if let color = BrandFont.resolved(face?.color, palettes: palettes) { el.color = color }
+        // To the hundredth, as the Android twin's BrandRoles.spacing has it.
         if let spacing = face?.letterSpacing {
-            el.letterSpacing = spacing * pageWidth / 1080
+            el.letterSpacing = (spacing * pageWidth / 1080 * 100).rounded() / 100
         } else if let role, role.defaultSpacingEm > 0 {
-            el.letterSpacing = role.defaultSpacingEm * (el.fontSize ?? 42)
+            el.letterSpacing = (role.defaultSpacingEm * (el.fontSize ?? 42) * 100).rounded() / 100
         }
         if let line = face?.lineHeight { el.lineHeight = line }
         if let caps = face?.uppercase {

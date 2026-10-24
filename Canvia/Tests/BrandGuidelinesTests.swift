@@ -105,6 +105,18 @@ final class BrandGuidelinesTests: XCTestCase {
         XCTAssertEqual(page.elements[3].fontWeight, 700)
     }
 
+    /// Shared: a type sample keeps the row's line height, its line spacing
+    /// said in the label, and its letter spacing to the hundredth — the
+    /// Android twin's test of the same name.
+    func testATypeSampleKeepsTheRowsLineHeight() {
+        var kit = BrandKit()
+        kit.name = "Tall"
+        kit.fonts.heading = BrandFont(family: "lato", weight: 700, size: 96, letterSpacing: 3.33, lineHeight: 2)
+        let sample = BrandGuidelines.design(kit, now: 0).pages.last?.elements[3]
+        XCTAssertEqual(sample?.lineHeight ?? 0, 1.25, accuracy: 1e-9)
+        XCTAssertEqual(sample?.letterSpacing ?? 0, 10.82, accuracy: 1e-9)
+    }
+
     func testLogosOnLightAndDarkWithClearSpace() {
         let d = BrandGuidelines.design(kit(), now: 0)
         let first = d.pages[3]
