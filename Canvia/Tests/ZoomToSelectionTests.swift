@@ -74,4 +74,25 @@ final class ZoomToSelectionTests: XCTestCase {
         XCTAssertEqual(DesignStore.zoomedToSelectionNote(2.5), "Zoomed to selection, 250 percent")
         XCTAssertEqual(s.selectionFrameZoom ?? 0, Geometry.zoomRange(fit: 0.36).upperBound, accuracy: 1e-9)
     }
+
+    /// A whole group turned as one frames the upright box round its turned
+    /// frame, as the Android twin's selectionBounds, not the members' boxes.
+    @MainActor
+    func testATurnedGroupFramesItsTurnedFrame() {
+        var d = Design(title: "zoom", width: 1080, height: 1080)
+        var a = Element.shape("rect", w: 100, h: 20)
+        a.id = "a"; a.x = 100; a.y = 100; a.group = "g"; a.groupTurn = 30
+        var b = Element.shape("rect", w: 100, h: 20)
+        b.id = "b"; b.x = 300; b.y = 100; b.group = "g"; b.groupTurn = 30
+        d.pages = [Page(elements: [a, b])]
+        let s = DesignStore(design: d)
+        s.select("a")
+        XCTAssertEqual(s.selection, ["a", "b"])
+        let frame = Geometry.groupFrame([a, b], angle: 30)
+        XCTAssertEqual(s.selectionMeasureBox, Geometry.aabb(frame.element))
+        XCTAssertNotEqual(s.selectionMeasureBox, s.selectionBox)
+        XCTAssertTrue(s.selectionIsMeasurable)
+        s.selection = ["a"]
+        XCTAssertEqual(s.selectionMeasureBox, s.selectionBox, "one member: its own box")
+    }
 }

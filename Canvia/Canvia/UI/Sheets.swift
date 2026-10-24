@@ -1322,11 +1322,11 @@ struct CropSheet: View {
     /// chips, dial, Rotate 90 and Flip carry on and Done keeps it all as one
     /// step or Cancel puts it all back, as the Android twin's Photo panel
     /// does.
-    private func intoCrop(_ el: Element, _ aspect: CropAspect? = nil) {
+    private func intoCrop(_ el: Element, _ aspect: CropAspect? = nil, turned: Bool = false) {
         if store.hasPendingChanges { store.commit() }
         dismiss()
         guard store.startCrop(el.id) else { return }
-        if let aspect { store.setCropAspect(aspect) }
+        if let aspect { store.setCropAspect(aspect, turned: turned) }
     }
 
     /// The frame's shapes, as the crop bar's chips have them (CropAspect):
@@ -1334,18 +1334,26 @@ struct CropSheet: View {
     /// (intoCrop) — Free opens it with the frame as it is.
     private func aspectRow(_ el: Element) -> some View {
         let image = PhotoLibrary.resolve(el.src)?.size ?? .zero
-        let lit = CropAspect.matching(el, image: image)
+        let match = CropAspect.matched(el, image: image)
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(CropAspect.allCases, id: \.self) { aspect in
-                    Button(aspect.name) { intoCrop(el, aspect) }
-                    .buttonStyle(.bordered)
-                    .tint(aspect == lit ? Theme.accent : .secondary)
-                    .controlSize(.small)
-                    .accessibilityAddTraits(aspect == lit ? .isSelected : [])
+                    aspectButton(el, aspect, match: match)
                 }
             }
         }
+    }
+
+    /// One of aspectRow's chips: the lit one named the way round the frame
+    /// has it, as the crop bar names it (CropRatioChips), and kept that way.
+    private func aspectButton(_ el: Element, _ aspect: CropAspect, match: CropAspect.Match) -> some View {
+        let lit = aspect == match.aspect
+        let turned = lit && match.turned
+        return Button(aspect.name(turned: turned)) { intoCrop(el, aspect, turned: turned) }
+            .buttonStyle(.bordered)
+            .tint(lit ? Theme.accent : .secondary)
+            .controlSize(.small)
+            .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
     /// Put the crop's focus where Vision says the subject is, and zoom in a

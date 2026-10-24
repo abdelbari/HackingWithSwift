@@ -55,7 +55,8 @@ struct CropRatioChips: View {
             .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
-    /// Portrait or landscape, as the frame is: the lit ratio turned.
+    /// Portrait or landscape, as the frame is: the lit ratio turned. Said
+    /// as what it does, "Turn to landscape", as on the Android twin.
     private var turnChip: some View {
         Button(action: onTurn) {
             Image(systemName: portrait ? "rectangle.portrait" : "rectangle")
@@ -64,9 +65,7 @@ struct CropRatioChips: View {
         .tint(.secondary)
         .controlSize(.small)
         .disabled(!match.aspect.turns)
-        .accessibilityLabel("Orientation")
-        .accessibilityValue(portrait ? tr("Portrait") : tr("Landscape"))
-        .accessibilityHint("Turns the ratio the other way round")
+        .accessibilityLabel(portrait ? tr("Turn to landscape") : tr("Turn to portrait"))
     }
 
     private var customChip: some View {

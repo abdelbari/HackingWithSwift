@@ -1828,7 +1828,7 @@ struct CanvasView: View {
         // Hold to measure: held still on the one thing or the one group
         // selected, its distances show until the finger lifts, rather than
         // taking it out and leaving nothing selected.
-        if showDistances && store.selection.contains(el.id) && (store.selection.count == 1 || store.selectionIsGrouped) {
+        if showDistances && store.selection.contains(el.id) && store.selectionIsMeasurable {
             store.measureSelection(true)
             store.buzz(.tick)
             return
@@ -2101,7 +2101,7 @@ struct CanvasView: View {
             gesture.siblingRows = Geometry.neighbours(gesture.siblingBoxes, alongX: true)
             gesture.siblingColumns = Geometry.neighbours(gesture.siblingBoxes, alongX: false)
             // One thing or one group moved measures its distances.
-            if showDistances && (store.selection.count == 1 || store.selectionIsGrouped) {
+            if showDistances && store.selectionIsMeasurable {
                 gesture.distanceBoxes = store.distanceNeighbours(excluding: Set(gesture.dragOriginals.keys))
             }
             // One photo on its own may be going into a frame.

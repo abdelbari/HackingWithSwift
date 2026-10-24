@@ -19,9 +19,24 @@ extension DesignStore {
         return boxes.filter { $0.intersects(reach) }
     }
 
+    /// Whether the selection is one thing to measure from: one element, or
+    /// the whole of an outermost group (Groups.whole) — not part of one. The
+    /// Android twin's EditorViewModel.measurable.
+    var selectionIsMeasurable: Bool {
+        selection.count == 1 || Groups.whole(page.elements, selection: selection) != nil
+    }
+
+    /// The box the selection measures and frames from: its upright box, or
+    /// for a whole group turned as one the upright box round its turned
+    /// frame (turnedGroupFrame) — the Android twin's selectionBounds.
+    var selectionMeasureBox: CGRect? {
+        if let frame = turnedGroupFrame { return Geometry.aabb(frame.element) }
+        return selectionBox
+    }
+
     /// The selection's distances, as it stands.
     var selectionDistances: [Geometry.Distance] {
-        guard let box = selectionBox else { return [] }
+        guard let box = selectionMeasureBox else { return [] }
         return Geometry.nearestDistances(moving: box, others: distanceNeighbours(excluding: selection), page: pageSize)
     }
 

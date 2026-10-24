@@ -37571,7 +37571,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Base %@"
+            "value" : "Abaixo %@"
           }
         }
       }
@@ -111213,59 +111213,6 @@
         }
       }
     },
-    "Orientation" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الاتجاه"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ausrichtung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orientation"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orientación"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orientation"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orientamento"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "向き"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orientação"
-          }
-        }
-      }
-    },
     "Original" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -120121,59 +120068,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Populares"
-          }
-        }
-      }
-    },
-    "Portrait" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "عمودي"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hochformat"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Portrait"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vertical"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Portrait"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verticale"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "縦向き"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retrato"
           }
         }
       }
@@ -140716,59 +140610,6 @@
         }
       }
     },
-    "Show hidden" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إظهار المخفي"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ausgeblendete einblenden"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show hidden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar ocultos"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher les masqués"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra nascosti"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "非表示を表示"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar ocultos"
-          }
-        }
-      }
-    },
     "Show hidden (%lld)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -151234,6 +151075,59 @@
         }
       }
     },
+    "Tap with two fingers to undo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انقر بإصبعين للتراجع"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit zwei Fingern tippen zum Rückgängigmachen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap with two fingers to undo"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocar con dos dedos para deshacer"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toucher avec deux doigts pour annuler"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca con due dita per annullare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 本指タップで元に戻す"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocar com dois dedos para desfazer"
+          }
+        }
+      }
+    },
     "Teacher" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -160785,7 +160679,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Topo %@"
+            "value" : "Acima %@"
           }
         }
       }
@@ -162857,6 +162751,112 @@
         }
       }
     },
+    "Turn to landscape" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحويل إلى أفقي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ins Querformat drehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn to landscape"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar a horizontal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer en paysage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruota in orizzontale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横向きにする"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virar para paisagem"
+          }
+        }
+      }
+    },
+    "Turn to portrait" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحويل إلى عمودي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ins Hochformat drehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn to portrait"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar a vertical"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer en portrait"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruota in verticale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縦向きにする"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Virar para retrato"
+          }
+        }
+      }
+    },
     "Turning snaps at every 45° with a tick; keep turning to leave the snap." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -162906,59 +162906,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ao girar, encaixa a cada 45° com um clique; continue girando para sair do encaixe."
-          }
-        }
-      }
-    },
-    "Turns the ratio the other way round" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يقلب النسبة إلى الاتجاه الآخر"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dreht das Seitenverhältnis um"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turns the ratio the other way round"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gira la proporción al otro sentido"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inverse le sens des proportions"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inverte il verso delle proporzioni"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "比率の向きを入れ替えます"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inverte o sentido da proporção"
           }
         }
       }
@@ -164341,55 +164288,55 @@
         }
       }
     },
-    "Undo and redo are at the bottom; hold Undo to rewind. Version history, under ⋮, brings back how the design was earlier." : {
+    "Undo and redo are at the bottom; hold Undo to rewind. Tap the canvas with two fingers to undo, and with three to redo. Version history, under ⋮, brings back how the design was earlier." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "التراجع والإعادة في الأسفل؛ اضغط مطولًا على «تراجع» للإرجاع. ويعيد «سجل الإصدارات»، ضمن ⋮، التصميم إلى ما كان عليه سابقًا."
+            "value" : "التراجع والإعادة في الأسفل؛ اضغط مطولًا على «تراجع» للإرجاع. انقر على اللوحة بإصبعين للتراجع، وبثلاثة أصابع للإعادة. ويعيد «سجل الإصدارات»، ضمن ⋮، التصميم إلى ما كان عليه سابقًا."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„Rückgängig“ und „Wiederholen“ sind unten; halte „Rückgängig“ gedrückt, um zurückzuspulen. „Versionsverlauf“ unter ⋮ holt einen früheren Stand des Designs zurück."
+            "value" : "„Rückgängig“ und „Wiederholen“ sind unten; halte „Rückgängig“ gedrückt, um zurückzuspulen. Tippe mit zwei Fingern auf die Arbeitsfläche, um rückgängig zu machen, und mit drei, um zu wiederholen. „Versionsverlauf“ unter ⋮ holt einen früheren Stand des Designs zurück."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Undo and redo are at the bottom; hold Undo to rewind. Version history, under ⋮, brings back how the design was earlier."
+            "value" : "Undo and redo are at the bottom; hold Undo to rewind. Tap the canvas with two fingers to undo, and with three to redo. Version history, under ⋮, brings back how the design was earlier."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deshacer y rehacer están abajo; mantén pulsado Deshacer para rebobinar. Historial de versiones, en ⋮, recupera cómo era el diseño antes."
+            "value" : "Deshacer y rehacer están abajo; mantén pulsado Deshacer para rebobinar. Toca el lienzo con dos dedos para deshacer y con tres para rehacer. Historial de versiones, en ⋮, recupera cómo era el diseño antes."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Annuler et Rétablir sont en bas ; maintenez Annuler pour revenir en arrière. Historique des versions, sous ⋮, restaure un état antérieur du design."
+            "value" : "Annuler et Rétablir sont en bas ; maintenez Annuler pour revenir en arrière. Touchez le canevas avec deux doigts pour annuler, et avec trois pour rétablir. Historique des versions, sous ⋮, restaure un état antérieur du design."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Annulla e Ripeti sono in basso; tieni premuto Annulla per riavvolgere. Cronologia versioni, in ⋮, riporta il design com’era prima."
+            "value" : "Annulla e Ripeti sono in basso; tieni premuto Annulla per riavvolgere. Tocca l’area di lavoro con due dita per annullare e con tre per ripetere. Cronologia versioni, in ⋮, riporta il design com’era prima."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "元に戻すとやり直しは下部にあります。元に戻すを長押しすると巻き戻せます。⋮ にある「バージョン履歴」で、以前のデザインの状態に戻せます。"
+            "value" : "元に戻すとやり直しは下部にあります。元に戻すを長押しすると巻き戻せます。キャンバスを 2 本指でタップすると元に戻し、3 本指でタップするとやり直します。⋮ にある「バージョン履歴」で、以前のデザインの状態に戻せます。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Desfazer e refazer ficam embaixo; segure Desfazer para retroceder. Histórico de versões, em ⋮, traz de volta como o design era antes."
+            "value" : "Desfazer e refazer ficam embaixo; segure Desfazer para retroceder. Toque na tela com dois dedos para desfazer e com três para refazer. Histórico de versões, em ⋮, traz de volta como o design era antes."
           }
         }
       }
@@ -165132,59 +165079,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desbloquear %lld"
-          }
-        }
-      }
-    },
-    "Unlock all" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إلغاء قفل الكل"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle entsperren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unlock all"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desbloquear todo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tout déverrouiller"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sblocca tutto"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すべてロック解除"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desbloquear tudo"
           }
         }
       }
@@ -171560,7 +171454,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con un teclado físico: ⌘Z deshacer, ⇧⌘Z o ⌘Y rehacer, ⌘C/⌘X/⌘V copiar, cortar, pegar, ⌘D duplicar, ⌘A seleccionar todo, ⌘G agrupar, ⌘F buscar, ⌘E exportar. ⌘= y ⌘- acercan y alejan, ⌘0 ajusta la página, ⌘1 es el tamaño real y ⌘2 amplía la selección. Re Pág y Av Pág (o ⌥↑ y ⌥↓) van a la página anterior y siguiente. Tab y ⇧Tab seleccionan el elemento siguiente y anterior, ⇧H y ⇧V voltean, ⌥⇧L, C, R, T, M y B alinean a la izquierda, al centro, a la derecha, arriba, al medio y abajo, y T añade un cuadro de texto. Al escribir: ⌘B, ⌘I y ⌘U negrita, cursiva y subrayado, ⇧⌘X tachado, ⇧⌘K mayúsculas, ⇧⌘L, C, R y J alinean, ⇧⌘7 y ⇧⌘8 listas numeradas y con viñetas, ⇧⌘, y ⇧⌘. más pequeño y más grande. Mantén ⌘ para verlos todos."
+            "value" : "Con un teclado físico: ⌘Z deshacer, ⇧⌘Z o ⌘Y rehacer, ⌘C/⌘X/⌘V copiar, cortar, pegar, ⌘D duplicar, ⌘A seleccionar todo, ⌘G agrupar, ⌘F buscar, ⌘E exportar. ⌘= y ⌘- acercan y alejan, ⌘0 ajusta la página, ⌘1 es el tamaño real y ⌘2 hace zoom a la selección. Re Pág y Av Pág (o ⌥↑ y ⌥↓) van a la página anterior y siguiente. Tab y ⇧Tab seleccionan el elemento siguiente y anterior, ⇧H y ⇧V voltean, ⌥⇧L, C, R, T, M y B alinean a la izquierda, al centro, a la derecha, arriba, al medio y abajo, y T añade un cuadro de texto. Al escribir: ⌘B, ⌘I y ⌘U negrita, cursiva y subrayado, ⇧⌘X tachado, ⇧⌘K mayúsculas, ⇧⌘L, C, R y J alinean, ⇧⌘7 y ⇧⌘8 listas numeradas y con viñetas, ⇧⌘, y ⇧⌘. más pequeño y más grande. Mantén ⌘ para verlos todos."
           }
         },
         "fr" : {
@@ -171584,60 +171478,60 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Com um teclado físico: ⌘Z desfaz, ⇧⌘Z ou ⌘Y refaz, ⌘C/⌘X/⌘V copiam, recortam, colam, ⌘D duplica, ⌘A seleciona tudo, ⌘G agrupa, ⌘F localiza, ⌘E exporta. ⌘= e ⌘- aproximam e afastam, ⌘0 ajusta a página, ⌘1 é o tamanho real e ⌘2 aproxima a seleção. Page Up e Page Down (ou ⌥↑ e ⌥↓) vão para a página anterior e a seguinte. Tab e ⇧Tab selecionam o elemento seguinte e o anterior, ⇧H e ⇧V espelham, ⌥⇧L, C, R, T, M e B alinham à esquerda, ao centro, à direita, ao topo, ao meio e à base, e T adiciona uma caixa de texto. Ao digitar: ⌘B, ⌘I e ⌘U negrito, itálico e sublinhado, ⇧⌘X tachado, ⇧⌘K maiúsculas, ⇧⌘L, C, R e J alinham, ⇧⌘7 e ⇧⌘8 listas numeradas e com marcadores, ⇧⌘, e ⇧⌘. menor e maior. Segure ⌘ para ver todos."
+            "value" : "Com um teclado físico: ⌘Z desfaz, ⇧⌘Z ou ⌘Y refaz, ⌘C/⌘X/⌘V copiam, recortam, colam, ⌘D duplica, ⌘A seleciona tudo, ⌘G agrupa, ⌘F localiza, ⌘E exporta. ⌘= e ⌘- aproximam e afastam, ⌘0 ajusta a página, ⌘1 é o tamanho real e ⌘2 faz zoom na seleção. Page Up e Page Down (ou ⌥↑ e ⌥↓) vão para a página anterior e a seguinte. Tab e ⇧Tab selecionam o elemento seguinte e o anterior, ⇧H e ⇧V espelham, ⌥⇧L, C, R, T, M e B alinham à esquerda, ao centro, à direita, ao topo, ao meio e à base, e T adiciona uma caixa de texto. Ao digitar: ⌘B, ⌘I e ⌘U negrito, itálico e sublinhado, ⇧⌘X tachado, ⇧⌘K maiúsculas, ⇧⌘L, C, R e J alinham, ⇧⌘7 e ⇧⌘8 listas numeradas e com marcadores, ⇧⌘, e ⇧⌘. menor e maior. Segure ⌘ para ver todos."
           }
         }
       }
     },
-    "With a keyboard: Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+C, X, V and D copy, cut, paste and duplicate, the arrows nudge, Ctrl+K lists the page, Ctrl+E shares, Ctrl+F finds, and Ctrl+/ opens this help. Ctrl+= and Ctrl+- zoom in and out, Ctrl+0 fits the page and Ctrl+1 shows it at actual size. Page Up and Page Down, or Alt+Up and Alt+Down, go to the previous and next page. Tab and Shift+Tab select the next and previous thing on the page, a group as one. Shift+H and Shift+V flip, and Alt+Shift with L, C, R, T, M or B aligns left, centre, right, top, middle or bottom. T adds a text box. While typing, Ctrl+B, I and U are bold, italic and underline, Ctrl+Shift+X strikes through, Ctrl+Shift+K is uppercase, Ctrl+Shift+L, C, R and J align, Ctrl+Shift+7 and 8 are numbered and bulleted lists, and Ctrl+Shift+, and . make the selected words smaller and larger. On an iPhone the three-finger undo gestures and Shake to Undo step the same history. Hold Meta and / to see them all." : {
+    "With a keyboard: Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+C, X, V and D copy, cut, paste and duplicate, the arrows nudge, Ctrl+K lists the page, Ctrl+E shares, Ctrl+F finds, and Ctrl+/ opens this help. Ctrl+= and Ctrl+- zoom in and out, Ctrl+0 fits the page, Ctrl+1 shows it at actual size and Ctrl+2 zooms to the selection. Page Up and Page Down, or Alt+Up and Alt+Down, go to the previous and next page. Tab and Shift+Tab select the next and previous thing on the page, a group as one. Shift+H and Shift+V flip, and Alt+Shift with L, C, R, T, M or B aligns left, centre, right, top, middle or bottom. T adds a text box. While typing, Ctrl+B, I and U are bold, italic and underline, Ctrl+Shift+X strikes through, Ctrl+Shift+K is uppercase, Ctrl+Shift+L, C, R and J align, Ctrl+Shift+7 and 8 are numbered and bulleted lists, and Ctrl+Shift+, and . make the selected words smaller and larger. Two fingers tapped on the canvas undo and three redo. Hold Meta and / to see them all." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مع لوحة مفاتيح: Ctrl+Z وCtrl+Shift+Z للتراجع والإعادة، وCtrl+C وX وV وD للنسخ والقص واللصق والتكرار، والأسهم للتحريك الطفيف، وCtrl+K يسرد محتوى الصفحة، وCtrl+E للمشاركة، وCtrl+F للبحث، وCtrl+/ يفتح هذه المساعدة. Ctrl+= وCtrl+- للتكبير والتصغير، وCtrl+0 يلائم الصفحة، وCtrl+1 يعرضها بالحجم الفعلي. Page Up وPage Down، أو Alt+أعلى وAlt+أسفل، للانتقال إلى الصفحة السابقة والتالية. Tab وShift+Tab يحددان العنصر التالي والسابق في الصفحة، والمجموعة كعنصر واحد. Shift+H وShift+V للقلب، وAlt+Shift مع L أو C أو R أو T أو M أو B للمحاذاة يسارًا أو وسطًا أو يمينًا أو أعلى أو منتصفًا أو أسفل. T يضيف مربع نص. أثناء الكتابة، Ctrl+B وI وU للغامق والمائل والتسطير، وCtrl+Shift+X للشطب، وCtrl+Shift+K للأحرف الكبيرة، وCtrl+Shift+L وC وR وJ للمحاذاة، وCtrl+Shift+7 و8 للقوائم المرقمة والنقطية، وCtrl+Shift+, و. لتصغير الكلمات المحددة وتكبيرها. على iPhone، تمر إيماءات التراجع بثلاثة أصابع وهزّ الجهاز للتراجع عبر السجل نفسه. اضغط مطولًا على Meta و/ لرؤيتها كلها."
+            "value" : "مع لوحة مفاتيح: Ctrl+Z وCtrl+Shift+Z للتراجع والإعادة، وCtrl+C وX وV وD للنسخ والقص واللصق والتكرار، والأسهم للتحريك الطفيف، وCtrl+K يسرد محتوى الصفحة، وCtrl+E للمشاركة، وCtrl+F للبحث، وCtrl+/ يفتح هذه المساعدة. Ctrl+= وCtrl+- للتكبير والتصغير، وCtrl+0 يلائم الصفحة، وCtrl+1 يعرضها بالحجم الفعلي، وCtrl+2 يكبّر إلى التحديد. Page Up وPage Down، أو Alt+أعلى وAlt+أسفل، للانتقال إلى الصفحة السابقة والتالية. Tab وShift+Tab يحددان العنصر التالي والسابق في الصفحة، والمجموعة كعنصر واحد. Shift+H وShift+V للقلب، وAlt+Shift مع L أو C أو R أو T أو M أو B للمحاذاة يسارًا أو وسطًا أو يمينًا أو أعلى أو منتصفًا أو أسفل. T يضيف مربع نص. أثناء الكتابة، Ctrl+B وI وU للغامق والمائل والتسطير، وCtrl+Shift+X للشطب، وCtrl+Shift+K للأحرف الكبيرة، وCtrl+Shift+L وC وR وJ للمحاذاة، وCtrl+Shift+7 و8 للقوائم المرقمة والنقطية، وCtrl+Shift+, و. لتصغير الكلمات المحددة وتكبيرها. النقر على اللوحة بإصبعين يتراجع، وبثلاثة أصابع يعيد. اضغط مطولًا على Meta و/ لرؤيتها كلها."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit einer Tastatur: Strg+Z und Strg+Umschalt+Z für Rückgängig und Wiederholen, Strg+C, X, V und D für Kopieren, Ausschneiden, Einfügen und Duplizieren, die Pfeiltasten verschieben, Strg+K listet die Seite auf, Strg+E teilt, Strg+F sucht und Strg+/ öffnet diese Hilfe. Strg+= und Strg+- zoomen hinein und heraus, Strg+0 passt die Seite ein und Strg+1 zeigt sie in Originalgröße. Bild auf und Bild ab, oder Alt+Auf und Alt+Ab, gehen zur vorherigen und nächsten Seite. Tab und Umschalt+Tab wählen das nächste und vorherige Element auf der Seite aus, eine Gruppe als eines. Umschalt+H und Umschalt+V spiegeln, und Alt+Umschalt mit L, C, R, T, M oder B richtet links, mittig, rechts, oben, in der Mitte oder unten aus. T fügt ein Textfeld hinzu. Beim Tippen sind Strg+B, I und U fett, kursiv und unterstrichen, Strg+Umschalt+X streicht durch, Strg+Umschalt+K ist Großbuchstaben, Strg+Umschalt+L, C, R und J richten aus, Strg+Umschalt+7 und 8 sind nummerierte Listen und Aufzählungen, und Strg+Umschalt+, und . machen die ausgewählten Wörter kleiner und größer. Auf einem iPhone gehen die Drei-Finger-Gesten zum Rückgängigmachen und Schütteln zum Widerrufen durch dieselbe Chronik. Halte Meta und / gedrückt, um alle zu sehen."
+            "value" : "Mit einer Tastatur: Strg+Z und Strg+Umschalt+Z für Rückgängig und Wiederholen, Strg+C, X, V und D für Kopieren, Ausschneiden, Einfügen und Duplizieren, die Pfeiltasten verschieben, Strg+K listet die Seite auf, Strg+E teilt, Strg+F sucht und Strg+/ öffnet diese Hilfe. Strg+= und Strg+- zoomen hinein und heraus, Strg+0 passt die Seite ein, Strg+1 zeigt sie in Originalgröße und Strg+2 zoomt auf die Auswahl. Bild auf und Bild ab, oder Alt+Auf und Alt+Ab, gehen zur vorherigen und nächsten Seite. Tab und Umschalt+Tab wählen das nächste und vorherige Element auf der Seite aus, eine Gruppe als eines. Umschalt+H und Umschalt+V spiegeln, und Alt+Umschalt mit L, C, R, T, M oder B richtet links, mittig, rechts, oben, in der Mitte oder unten aus. T fügt ein Textfeld hinzu. Beim Tippen sind Strg+B, I und U fett, kursiv und unterstrichen, Strg+Umschalt+X streicht durch, Strg+Umschalt+K ist Großbuchstaben, Strg+Umschalt+L, C, R und J richten aus, Strg+Umschalt+7 und 8 sind nummerierte Listen und Aufzählungen, und Strg+Umschalt+, und . machen die ausgewählten Wörter kleiner und größer. Mit zwei Fingern auf die Arbeitsfläche getippt wird rückgängig gemacht, mit drei wiederholt. Halte Meta und / gedrückt, um alle zu sehen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "With a keyboard: Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+C, X, V and D copy, cut, paste and duplicate, the arrows nudge, Ctrl+K lists the page, Ctrl+E shares, Ctrl+F finds, and Ctrl+/ opens this help. Ctrl+= and Ctrl+- zoom in and out, Ctrl+0 fits the page and Ctrl+1 shows it at actual size. Page Up and Page Down, or Alt+Up and Alt+Down, go to the previous and next page. Tab and Shift+Tab select the next and previous thing on the page, a group as one. Shift+H and Shift+V flip, and Alt+Shift with L, C, R, T, M or B aligns left, centre, right, top, middle or bottom. T adds a text box. While typing, Ctrl+B, I and U are bold, italic and underline, Ctrl+Shift+X strikes through, Ctrl+Shift+K is uppercase, Ctrl+Shift+L, C, R and J align, Ctrl+Shift+7 and 8 are numbered and bulleted lists, and Ctrl+Shift+, and . make the selected words smaller and larger. On an iPhone the three-finger undo gestures and Shake to Undo step the same history. Hold Meta and / to see them all."
+            "value" : "With a keyboard: Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+C, X, V and D copy, cut, paste and duplicate, the arrows nudge, Ctrl+K lists the page, Ctrl+E shares, Ctrl+F finds, and Ctrl+/ opens this help. Ctrl+= and Ctrl+- zoom in and out, Ctrl+0 fits the page, Ctrl+1 shows it at actual size and Ctrl+2 zooms to the selection. Page Up and Page Down, or Alt+Up and Alt+Down, go to the previous and next page. Tab and Shift+Tab select the next and previous thing on the page, a group as one. Shift+H and Shift+V flip, and Alt+Shift with L, C, R, T, M or B aligns left, centre, right, top, middle or bottom. T adds a text box. While typing, Ctrl+B, I and U are bold, italic and underline, Ctrl+Shift+X strikes through, Ctrl+Shift+K is uppercase, Ctrl+Shift+L, C, R and J align, Ctrl+Shift+7 and 8 are numbered and bulleted lists, and Ctrl+Shift+, and . make the selected words smaller and larger. Two fingers tapped on the canvas undo and three redo. Hold Meta and / to see them all."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con un teclado: Ctrl+Z y Ctrl+Mayús+Z deshacen y rehacen; Ctrl+C, X, V y D copian, cortan, pegan y duplican; las flechas desplazan; Ctrl+K muestra el contenido de la página; Ctrl+E comparte; Ctrl+F busca, y Ctrl+/ abre esta ayuda. Ctrl+= y Ctrl+- acercan y alejan, Ctrl+0 ajusta la página y Ctrl+1 la muestra a tamaño real. Re Pág y Av Pág, o Alt+Arriba y Alt+Abajo, van a la página anterior y siguiente. Tab y Mayús+Tab seleccionan el elemento siguiente y anterior de la página, un grupo como uno solo. Mayús+H y Mayús+V voltean, y Alt+Mayús con L, C, R, T, M o B alinea a la izquierda, al centro, a la derecha, arriba, en medio o abajo. T añade un cuadro de texto. Al escribir, Ctrl+B, I y U son negrita, cursiva y subrayado; Ctrl+Mayús+X tacha; Ctrl+Mayús+K es mayúsculas; Ctrl+Mayús+L, C, R y J alinean; Ctrl+Mayús+7 y 8 son listas numeradas y con viñetas, y Ctrl+Mayús+, y . hacen las palabras seleccionadas más pequeñas y más grandes. En un iPhone, los gestos de deshacer con tres dedos y Agitar para deshacer recorren el mismo historial. Mantén pulsadas Meta y / para verlos todos."
+            "value" : "Con un teclado: Ctrl+Z y Ctrl+Mayús+Z deshacen y rehacen; Ctrl+C, X, V y D copian, cortan, pegan y duplican; las flechas desplazan; Ctrl+K muestra el contenido de la página; Ctrl+E comparte; Ctrl+F busca, y Ctrl+/ abre esta ayuda. Ctrl+= y Ctrl+- acercan y alejan, Ctrl+0 ajusta la página, Ctrl+1 la muestra a tamaño real y Ctrl+2 hace zoom a la selección. Re Pág y Av Pág, o Alt+Arriba y Alt+Abajo, van a la página anterior y siguiente. Tab y Mayús+Tab seleccionan el elemento siguiente y anterior de la página, un grupo como uno solo. Mayús+H y Mayús+V voltean, y Alt+Mayús con L, C, R, T, M o B alinea a la izquierda, al centro, a la derecha, arriba, en medio o abajo. T añade un cuadro de texto. Al escribir, Ctrl+B, I y U son negrita, cursiva y subrayado; Ctrl+Mayús+X tacha; Ctrl+Mayús+K es mayúsculas; Ctrl+Mayús+L, C, R y J alinean; Ctrl+Mayús+7 y 8 son listas numeradas y con viñetas, y Ctrl+Mayús+, y . hacen las palabras seleccionadas más pequeñas y más grandes. Un toque con dos dedos en el lienzo deshace y con tres rehace. Mantén pulsadas Meta y / para verlos todos."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec un clavier : Ctrl+Z et Ctrl+Maj+Z annulent et rétablissent, Ctrl+C, X, V et D copient, coupent, collent et dupliquent, les flèches décalent, Ctrl+K liste la page, Ctrl+E partage, Ctrl+F recherche, et Ctrl+/ ouvre cette aide. Ctrl+= et Ctrl+- zooment avant et arrière, Ctrl+0 ajuste la page et Ctrl+1 l'affiche en taille réelle. Page précédente et Page suivante, ou Alt+Haut et Alt+Bas, vont à la page précédente et suivante. Tab et Maj+Tab sélectionnent l'élément suivant et précédent de la page, un groupe comme un seul. Maj+H et Maj+V retournent, et Alt+Maj avec L, C, R, T, M ou B aligne à gauche, au centre, à droite, en haut, au milieu ou en bas. T ajoute une zone de texte. Pendant la saisie, Ctrl+B, I et U mettent en gras, en italique et souligné, Ctrl+Maj+X barre, Ctrl+Maj+K met en majuscules, Ctrl+Maj+L, C, R et J alignent, Ctrl+Maj+7 et 8 font des listes numérotées et à puces, et Ctrl+Maj+, et . rendent les mots sélectionnés plus petits et plus grands. Sur un iPhone, les gestes d'annulation à trois doigts et Secouer pour annuler parcourent le même historique. Maintenez Méta et / pour tous les voir."
+            "value" : "Avec un clavier : Ctrl+Z et Ctrl+Maj+Z annulent et rétablissent, Ctrl+C, X, V et D copient, coupent, collent et dupliquent, les flèches décalent, Ctrl+K liste la page, Ctrl+E partage, Ctrl+F recherche, et Ctrl+/ ouvre cette aide. Ctrl+= et Ctrl+- zooment avant et arrière, Ctrl+0 ajuste la page, Ctrl+1 l'affiche en taille réelle et Ctrl+2 zoome sur la sélection. Page précédente et Page suivante, ou Alt+Haut et Alt+Bas, vont à la page précédente et suivante. Tab et Maj+Tab sélectionnent l'élément suivant et précédent de la page, un groupe comme un seul. Maj+H et Maj+V retournent, et Alt+Maj avec L, C, R, T, M ou B aligne à gauche, au centre, à droite, en haut, au milieu ou en bas. T ajoute une zone de texte. Pendant la saisie, Ctrl+B, I et U mettent en gras, en italique et souligné, Ctrl+Maj+X barre, Ctrl+Maj+K met en majuscules, Ctrl+Maj+L, C, R et J alignent, Ctrl+Maj+7 et 8 font des listes numérotées et à puces, et Ctrl+Maj+, et . rendent les mots sélectionnés plus petits et plus grands. Un toucher à deux doigts sur le canevas annule, à trois doigts il rétablit. Maintenez Méta et / pour tous les voir."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con una tastiera: Ctrl+Z e Ctrl+Maiusc+Z annullano e ripetono, Ctrl+C, X, V e D copiano, tagliano, incollano e duplicano, le frecce spostano di poco, Ctrl+K elenca la pagina, Ctrl+E condivide, Ctrl+F trova e Ctrl+/ apre questo aiuto. Ctrl+= e Ctrl+- ingrandiscono e riducono, Ctrl+0 adatta la pagina e Ctrl+1 la mostra a dimensioni reali. Pag su e Pag giù, o Alt+Su e Alt+Giù, vanno alla pagina precedente e successiva. Tab e Maiusc+Tab selezionano l'elemento successivo e precedente della pagina, un gruppo come uno solo. Maiusc+H e Maiusc+V capovolgono, e Alt+Maiusc con L, C, R, T, M o B allinea a sinistra, al centro, a destra, in alto, al centro verticale o in basso. T aggiunge una casella di testo. Mentre scrivi, Ctrl+B, I e U sono grassetto, corsivo e sottolineato, Ctrl+Maiusc+X barra, Ctrl+Maiusc+K è maiuscolo, Ctrl+Maiusc+L, C, R e J allineano, Ctrl+Maiusc+7 e 8 sono elenchi numerati e puntati, e Ctrl+Maiusc+, e . rendono le parole selezionate più piccole e più grandi. Su un iPhone i gesti di annullamento a tre dita e Agita per annullare percorrono la stessa cronologia. Tieni premuti Meta e / per vederle tutte."
+            "value" : "Con una tastiera: Ctrl+Z e Ctrl+Maiusc+Z annullano e ripetono, Ctrl+C, X, V e D copiano, tagliano, incollano e duplicano, le frecce spostano di poco, Ctrl+K elenca la pagina, Ctrl+E condivide, Ctrl+F trova e Ctrl+/ apre questo aiuto. Ctrl+= e Ctrl+- ingrandiscono e riducono, Ctrl+0 adatta la pagina, Ctrl+1 la mostra a dimensioni reali e Ctrl+2 ingrandisce sulla selezione. Pag su e Pag giù, o Alt+Su e Alt+Giù, vanno alla pagina precedente e successiva. Tab e Maiusc+Tab selezionano l'elemento successivo e precedente della pagina, un gruppo come uno solo. Maiusc+H e Maiusc+V capovolgono, e Alt+Maiusc con L, C, R, T, M o B allinea a sinistra, al centro, a destra, in alto, al centro verticale o in basso. T aggiunge una casella di testo. Mentre scrivi, Ctrl+B, I e U sono grassetto, corsivo e sottolineato, Ctrl+Maiusc+X barra, Ctrl+Maiusc+K è maiuscolo, Ctrl+Maiusc+L, C, R e J allineano, Ctrl+Maiusc+7 e 8 sono elenchi numerati e puntati, e Ctrl+Maiusc+, e . rendono le parole selezionate più piccole e più grandi. Un tocco con due dita sull’area di lavoro annulla e con tre ripete. Tieni premuti Meta e / per vederle tutte."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "キーボードでは：Ctrl+Z と Ctrl+Shift+Z で元に戻す・やり直し、Ctrl+C、X、V、D でコピー・切り取り・貼り付け・複製、矢印キーで微調整、Ctrl+K でページの一覧、Ctrl+E で共有、Ctrl+F で検索、Ctrl+/ でこのヘルプを開きます。Ctrl+= と Ctrl+- で拡大・縮小、Ctrl+0 でページを合わせ、Ctrl+1 で実際のサイズで表示します。Page Up と Page Down、または Alt+上 と Alt+下 で前後のページへ移動します。Tab と Shift+Tab でページ上の次と前の要素を選択します（グループは一つとして）。Shift+H と Shift+V で反転、Alt+Shift と L、C、R、T、M、B で左、中央、右、上、中、下に揃えます。T でテキストボックスを追加します。入力中は、Ctrl+B、I、U で太字・斜体・下線、Ctrl+Shift+X で取り消し線、Ctrl+Shift+K で大文字、Ctrl+Shift+L、C、R、J で揃え、Ctrl+Shift+7 と 8 で番号付きリストと箇条書き、Ctrl+Shift+, と . で選択した文字を小さく・大きくします。iPhone では、3 本指の取り消しジェスチャとシェイクで取り消しが同じ履歴をたどります。Meta と / を長押しするとすべて表示されます。"
+            "value" : "キーボードでは：Ctrl+Z と Ctrl+Shift+Z で元に戻す・やり直し、Ctrl+C、X、V、D でコピー・切り取り・貼り付け・複製、矢印キーで微調整、Ctrl+K でページの一覧、Ctrl+E で共有、Ctrl+F で検索、Ctrl+/ でこのヘルプを開きます。Ctrl+= と Ctrl+- で拡大・縮小、Ctrl+0 でページを合わせ、Ctrl+1 で実際のサイズで表示し、Ctrl+2 で選択範囲にズームします。Page Up と Page Down、または Alt+上 と Alt+下 で前後のページへ移動します。Tab と Shift+Tab でページ上の次と前の要素を選択します（グループは一つとして）。Shift+H と Shift+V で反転、Alt+Shift と L、C、R、T、M、B で左、中央、右、上、中、下に揃えます。T でテキストボックスを追加します。入力中は、Ctrl+B、I、U で太字・斜体・下線、Ctrl+Shift+X で取り消し線、Ctrl+Shift+K で大文字、Ctrl+Shift+L、C、R、J で揃え、Ctrl+Shift+7 と 8 で番号付きリストと箇条書き、Ctrl+Shift+, と . で選択した文字を小さく・大きくします。キャンバスを 2 本指でタップすると元に戻し、3 本指でタップするとやり直します。Meta と / を長押しするとすべて表示されます。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Com um teclado: Ctrl+Z e Ctrl+Shift+Z desfazem e refazem, Ctrl+C, X, V e D copiam, recortam, colam e duplicam, as setas fazem ajustes finos, Ctrl+K lista a página, Ctrl+E compartilha, Ctrl+F localiza e Ctrl+/ abre esta ajuda. Ctrl+= e Ctrl+- aproximam e afastam, Ctrl+0 ajusta a página e Ctrl+1 a mostra em tamanho real. Page Up e Page Down, ou Alt+Cima e Alt+Baixo, vão para a página anterior e a seguinte. Tab e Shift+Tab selecionam o elemento seguinte e o anterior da página, um grupo como um só. Shift+H e Shift+V espelham, e Alt+Shift com L, C, R, T, M ou B alinha à esquerda, ao centro, à direita, ao topo, ao meio ou à base. T adiciona uma caixa de texto. Ao digitar, Ctrl+B, I e U são negrito, itálico e sublinhado, Ctrl+Shift+X tacha, Ctrl+Shift+K é maiúsculas, Ctrl+Shift+L, C, R e J alinham, Ctrl+Shift+7 e 8 são listas numeradas e com marcadores, e Ctrl+Shift+, e . deixam as palavras selecionadas menores e maiores. No iPhone, os gestos de desfazer com três dedos e Agitar para desfazer percorrem o mesmo histórico. Segure Meta e / para ver todos."
+            "value" : "Com um teclado: Ctrl+Z e Ctrl+Shift+Z desfazem e refazem, Ctrl+C, X, V e D copiam, recortam, colam e duplicam, as setas fazem ajustes finos, Ctrl+K lista a página, Ctrl+E compartilha, Ctrl+F localiza e Ctrl+/ abre esta ajuda. Ctrl+= e Ctrl+- aproximam e afastam, Ctrl+0 ajusta a página, Ctrl+1 a mostra em tamanho real e Ctrl+2 faz zoom na seleção. Page Up e Page Down, ou Alt+Cima e Alt+Baixo, vão para a página anterior e a seguinte. Tab e Shift+Tab selecionam o elemento seguinte e o anterior da página, um grupo como um só. Shift+H e Shift+V espelham, e Alt+Shift com L, C, R, T, M ou B alinha à esquerda, ao centro, à direita, ao topo, ao meio ou à base. T adiciona uma caixa de texto. Ao digitar, Ctrl+B, I e U são negrito, itálico e sublinhado, Ctrl+Shift+X tacha, Ctrl+Shift+K é maiúsculas, Ctrl+Shift+L, C, R e J alinham, Ctrl+Shift+7 e 8 são listas numeradas e com marcadores, e Ctrl+Shift+, e . deixam as palavras selecionadas menores e maiores. Um toque com dois dedos na tela desfaz e com três refaz. Segure Meta e / para ver todos."
           }
         }
       }
@@ -173709,6 +173603,59 @@
         }
       }
     },
+    "Zoom options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خيارات التكبير"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoomoptionen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom options"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opciones de zoom"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Options de zoom"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opzioni di zoom"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ズームのオプション"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opções de zoom"
+          }
+        }
+      }
+    },
     "Zoom out" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -173892,7 +173839,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ampliar la selección"
+            "value" : "Zoom a la selección"
           }
         },
         "fr" : {
@@ -173916,7 +173863,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aproximar da seleção"
+            "value" : "Zoom na seleção"
           }
         }
       }
@@ -173998,7 +173945,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ampliado a la selección, %lld por ciento"
+            "value" : "Zoom a la selección, %lld por ciento"
           }
         },
         "fr" : {
@@ -174022,7 +173969,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aproximado da seleção, %lld por cento"
+            "value" : "Zoom na seleção, %lld por cento"
           }
         }
       }

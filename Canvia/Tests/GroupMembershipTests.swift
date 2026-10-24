@@ -94,6 +94,31 @@ final class GroupMembershipTests: XCTestCase {
         XCTAssertEqual(out.map(\.groupTurn), [45, 45, 45, 45, nil])
     }
 
+    /// Shared rows: c joins g, and k, left with d alone, lets d go — no
+    /// group of one, and no turn of a group d is no longer in.
+    func testAJoinersOldGroupOfOneGoes() {
+        let els = [box("a", group: "g", turn: 20), box("b", group: "g", turn: 20),
+                   box("c", group: "k", turn: 10), box("d", group: "k", turn: 10)]
+        let out = Groups.addedToGroup(els, ids: ["c"], groupId: "g")
+        XCTAssertEqual(out.map(\.id), ["a", "b", "c", "d"])
+        XCTAssertEqual(out.map(Groups.chain), [["g"], ["g"], ["g"], []])
+        XCTAssertEqual(out.map(\.groupTurn), [20, 20, 20, nil])
+    }
+
+    /// Shared rows: only the groups the edit left are tidied — a group of
+    /// one already on the page keeps its member and its turn either way.
+    func testAGroupOfOneTheEditDidNotTouchStays() {
+        let els = [box("a", group: "g"), box("b", group: "g"), box("c", group: "g"), box("x"),
+                   box("w", group: "k", turn: 15)]
+        let removed = Groups.removedFromGroup(els, ids: ["a"])
+        XCTAssertEqual(removed.last.map(Groups.chain), ["k"])
+        XCTAssertEqual(removed.last?.groupTurn, 15)
+        let added = Groups.addedToGroup(els, ids: ["x"], groupId: "g")
+        XCTAssertEqual(added.first { $0.id == "x" }.map(Groups.chain), ["g"])
+        XCTAssertEqual(added.first { $0.id == "w" }.map(Groups.chain), ["k"])
+        XCTAssertEqual(added.first { $0.id == "w" }?.groupTurn, 15)
+    }
+
     func testAddingAMemberOrToNoGroupChangesNothing() throws {
         let els = try card()
         XCTAssertEqual(Groups.addedToGroup(els, ids: ["mark"], groupId: "g-card"), els)

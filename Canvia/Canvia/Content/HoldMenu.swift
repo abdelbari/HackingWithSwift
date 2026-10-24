@@ -22,8 +22,10 @@ enum HoldMenu {
             case .pastePlain: return tr("Paste as plain text")
             case .pastePage: return tr("Paste page")
             case .selectAll: return tr("Select all")
-            case .unlockAll: return tr("Unlock all")
-            case .showHidden: return tr("Show hidden")
+            // Never offered at 0: the pill and the menus name how many
+            // (unlockAllTitle, showHiddenTitle), the Android twin's words.
+            case .unlockAll: return HoldMenu.unlockAllTitle(0)
+            case .showHidden: return HoldMenu.showHiddenTitle(0)
             case .addText: return tr("Add text here")
             case .background: return tr("Background")
             case .animate: return tr("Animate")

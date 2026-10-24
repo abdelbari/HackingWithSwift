@@ -1,6 +1,7 @@
 // Zoom to selection: the view framing what is selected, from the zoom
 // pill's menu, Command-2, the quick actions' magnifier on something small,
-// or a double tap on it (Viewport.zoomToBox). The view only — nothing is
+// or a double tap on it (Viewport.zoomToBox), its box the upright one round
+// a turned group's frame (selectionMeasureBox). The view only — nothing is
 // written to the design — and Fit takes it back, as on the Android twin.
 
 import SwiftUI
@@ -10,7 +11,7 @@ extension DesignStore {
     /// Whether what is selected is small on screen (Viewport.isSmall): the
     /// quick actions offer the magnifier, and a double tap on it frames it.
     var selectionIsSmallOnScreen: Bool {
-        guard let box = selectionBox else { return false }
+        guard let box = selectionMeasureBox else { return false }
         return Viewport.isSmall(box, zoom: zoom)
     }
 
@@ -18,7 +19,7 @@ extension DesignStore {
     /// out with the screen it has: the part of the page on screen at the
     /// zoom it is, fit and the canvas's furthest zoom.
     var selectionFrameZoom: Double? {
-        guard let box = selectionBox, viewport.width > 0, viewport.height > 0 else { return nil }
+        guard let box = selectionMeasureBox, viewport.width > 0, viewport.height > 0 else { return nil }
         let screen = CGSize(width: viewport.width * zoom, height: viewport.height * zoom)
         return Viewport.zoomToBox(box, viewport: screen, fit: fitZoom,
                                   maxZoom: Geometry.zoomRange(fit: fitZoom).upperBound).zoom
@@ -27,7 +28,7 @@ extension DesignStore {
     /// The view brought to the selection, and said: "Zoomed to selection,
     /// 250 percent". Nothing, with nothing selected.
     func zoomToSelection() {
-        guard let box = selectionBox else { return }
+        guard let box = selectionMeasureBox else { return }
         requestCanvas(.frame(box))
         guard let wanted = selectionFrameZoom else { return }
         AccessibilityNotification.Announcement(Self.zoomedToSelectionNote(wanted)).post()
