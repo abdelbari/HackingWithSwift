@@ -127,6 +127,10 @@ struct ElementView: View {
         if let clock = animationTime, AnimStore.isAnim(el.src) {
             el.src = AnimStore.playing(el.src, at: clock.time)
         }
+        // A generated loop likewise, round and round (MotionLibrary).
+        if let clock = animationTime, MotionLibrary.isMotion(el.src) {
+            el.src = MotionLibrary.playing(el.src, at: clock.time)
+        }
         return el
     }
 
@@ -134,7 +138,8 @@ struct ElementView: View {
     /// round from the start of the hour.
     private static func playing(_ el: Element, at date: Date) -> Element {
         var out = el
-        out.src = AnimStore.playing(el.src, at: date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
+        let time = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600)
+        out.src = MotionLibrary.isMotion(el.src) ? MotionLibrary.playing(el.src, at: time) : AnimStore.playing(el.src, at: time)
         return out
     }
 
@@ -236,7 +241,7 @@ struct ElementView: View {
             }
         case .text: TextElementView(element: el, units: motion.unitClock)
         case .image:
-            if playsPictures && animationTime == nil && AnimStore.isAnim(el.src) {
+            if playsPictures && animationTime == nil && (AnimStore.isAnim(el.src) || MotionLibrary.isMotion(el.src)) {
                 // Play in the editor: the picture on a clock of its own, going
                 // round for as long as it is on the canvas.
                 TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
@@ -1545,6 +1550,9 @@ struct PageBackgroundFill: View {
     var reach: Double = 0
     /// How far past the trim a photo is laid: the design's bleed.
     var cover: Double = 0
+    /// The page's clock while it plays, which a generated loop behind it
+    /// goes round on (MotionLibrary).
+    @Environment(\.animationTime) private var animationTime
 
     var body: some View {
         fill.frame(width: Double(size.width) + 2 * reach, height: Double(size.height) + 2 * reach)
@@ -1560,7 +1568,7 @@ struct PageBackgroundFill: View {
         case .image(let src):
             ZStack {
                 Color.white
-                if let ui = PhotoLibrary.resolve(src) {
+                if let ui = PhotoLibrary.resolve(shown(src)) {
                     Image(uiImage: ui)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -1568,6 +1576,13 @@ struct PageBackgroundFill: View {
                 }
             }
         }
+    }
+
+    /// The background picture's source as it shows now: a loop at the
+    /// page's moment while it plays.
+    private func shown(_ src: String) -> String {
+        guard let clock = animationTime, MotionLibrary.isMotion(src) else { return src }
+        return MotionLibrary.playing(src, at: clock.time) ?? src
     }
 
     /// A gradient laid over the page in the middle of this view, as

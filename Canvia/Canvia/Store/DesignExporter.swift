@@ -277,11 +277,16 @@ enum DesignExporter {
         return design.effectiveDPI * effectiveScale(size: design.size(for: page), requested: requested)
     }
 
+    /// The page as a picture at `url`, and the picture drawn — which a PNG's
+    /// Compress file writes again in 256 colours away from the main actor
+    /// (exportPictures, keptCompressed).
     @MainActor
+    @discardableResult
     static func exportRaster(design: Design, page: Page, format: RasterFormat,
                              scale: Double, quality: Double = 0.92,
-                             transparent: Bool = false, captionTime: Double? = .none, to url: URL) throws {
-        try autoreleasepool {
+                             transparent: Bool = false, captionTime: Double? = .none,
+                             to url: URL) throws -> CGImage {
+        try autoreleasepool { () throws -> CGImage in
             guard let cg = render(design: design, page: page, scale: scale, transparent: transparent,
                                   captionTime: captionTime) else { throw ExportError.renderFailed }
             guard let destination = CGImageDestinationCreateWithURL(
@@ -301,7 +306,21 @@ enum DesignExporter {
             guard CGImageDestinationFinalize(destination) else {
                 throw ExportError.encodeFailed
             }
+            return cg
         }
+    }
+
+    /// The PNG at `url` written again in 256 colours (PngWriter) when that
+    /// comes out at least ExportPlan.compressGain smaller
+    /// (ExportPlan.keepsCompressed); whether it was. Seconds of work for a
+    /// large page — the colours counted, cut and deflated — so never on the
+    /// main actor.
+    private static func keptCompressed(_ cg: CGImage, dpi: Double?, at url: URL) -> Bool {
+        let normal = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        guard normal > 0, let rgba = PngWriter.rgba(of: cg),
+              let small = PngWriter.png(rgba: rgba, width: cg.width, height: cg.height, dpi: dpi),
+              ExportPlan.keepsCompressed(compressed: small.count, normal: normal) else { return false }
+        return (try? small.write(to: url, options: .atomic)) != nil
     }
 
     /// Which pages an export covers.
@@ -351,6 +370,19 @@ enum DesignExporter {
                             format: RasterFormat, scale: Double, longEdge: Double = 0,
                             quality: Double = 0.92, transparent: Bool = false, captionTime: Double? = .none,
                             progress: ((Double) -> Void)? = nil) async throws -> [URL] {
+        try await exportPictures(design: design, range: range, current: current, format: format, scale: scale,
+                                 longEdge: longEdge, quality: quality, transparent: transparent,
+                                 captionTime: captionTime, compress: false, progress: progress).urls
+    }
+
+    /// The pages as `exportPages` writes them; with `compress`, each PNG in
+    /// 256 colours where that is enough smaller, and how many were not.
+    @MainActor
+    static func exportPictures(design: Design, range: PageRange, current: Int, format: RasterFormat,
+                               scale: Double, longEdge: Double, quality: Double, transparent: Bool,
+                               captionTime: Double?, compress: Bool,
+                               progress: ((Double) -> Void)? = nil) async throws -> (urls: [URL], uncompressed: Int) {
+        var uncompressed = 0
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
         var urls: [URL] = []
@@ -366,9 +398,18 @@ enum DesignExporter {
             let url = fileURL(for: design, ext: format.ext, suffix: suffix)
             let page = design.pages[index]
             let pageScale = longEdge > 0 ? DesignExporter.scale(forLongEdge: longEdge, size: design.size(for: page)) : scale
-            try exportRaster(design: design, page: page, format: format,
-                             scale: pageScale, quality: quality, transparent: transparent,
-                             captionTime: index == current ? captionTime : nil, to: url)
+            let cg = try exportRaster(design: design, page: page, format: format,
+                                      scale: pageScale, quality: quality, transparent: transparent,
+                                      captionTime: index == current ? captionTime : nil, to: url)
+            if compress && format == .png {
+                // Drawn here; counted, cut, deflated and written away from
+                // the main actor, so the screen keeps moving.
+                let dpi = imageDPI(design: design, page: page, requested: pageScale)
+                let kept = await Task.detached(priority: .userInitiated) {
+                    DesignExporter.keptCompressed(cg, dpi: dpi, at: url)
+                }.value
+                if !kept { uncompressed += 1 }
+            }
             urls.append(url)
             progress?(Double(n + 1) / Double(indices.count))
         }
@@ -376,7 +417,7 @@ enum DesignExporter {
             for url in urls { try? FileManager.default.removeItem(at: url) }
             throw error
         }
-        return urls
+        return (urls, uncompressed)
     }
 
     // MARK: pacing

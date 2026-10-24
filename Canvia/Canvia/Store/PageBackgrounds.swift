@@ -75,8 +75,8 @@ extension DesignStore {
 
     /// Whether photo `el` can become the page's background: unlocked, with a
     /// picture in it — not an empty frame — a still, a clip or an animated
-    /// picture; not a code, which would be cropped to the page and stop
-    /// scanning.
+    /// picture, or a generated loop, which plays behind the page as it does;
+    /// not a code, which would be cropped to the page and stop scanning.
     static func canBecomeBackground(_ el: Element) -> Bool {
         guard el.type == .image, !el.locked, let src = el.src, !src.isEmpty else { return false }
         return !CodeGenerator.isCode(src)

@@ -233,6 +233,9 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     /// `fadeRange` (AudioMix.clipFades).
     var fadeIn: Double = 0
     var fadeOut: Double = 0
+    /// Its sound cleaned and levelled by Enhance voice (VoiceEnhance)
+    /// wherever it is heard.
+    var enhance: Bool = false
 
     /// What the Clip sheet offers, as the Android twin's panel does.
     static let speeds: [Double] = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2]
@@ -254,10 +257,11 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     /// any speed — its sound kept at its pitch as it is sped up or slowed.
     var sounds: Bool { !muted && volume > 0 }
 
-    private enum CodingKeys: String, CodingKey { case start, end, speed, loop, volume, muted, fadeIn, fadeOut }
+    private enum CodingKeys: String, CodingKey { case start, end, speed, loop, volume, muted, fadeIn, fadeOut, enhance }
 
     init(start: Double = 0, end: Double? = nil, speed: Double = 1, loop: Bool = true,
-         volume: Double = 1, muted: Bool = false, fadeIn: Double = 0, fadeOut: Double = 0) {
+         volume: Double = 1, muted: Bool = false, fadeIn: Double = 0, fadeOut: Double = 0,
+         enhance: Bool = false) {
         self.start = start
         self.end = end
         self.speed = speed
@@ -266,6 +270,7 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         self.muted = muted
         self.fadeIn = fadeIn
         self.fadeOut = fadeOut
+        self.enhance = enhance
     }
 
     init(from decoder: Decoder) throws {
@@ -278,6 +283,7 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         muted = (try? c.decodeIfPresent(Bool.self, forKey: .muted)) ?? false
         fadeIn = (try? c.decodeIfPresent(Double.self, forKey: .fadeIn)) ?? 0
         fadeOut = (try? c.decodeIfPresent(Double.self, forKey: .fadeOut)) ?? 0
+        enhance = (try? c.decodeIfPresent(Bool.self, forKey: .enhance)) == true
     }
 
     func encode(to encoder: Encoder) throws {
@@ -290,6 +296,7 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         if muted { try c.encode(true, forKey: .muted) }
         if fadeIn > 0 { try c.encode(fadeIn, forKey: .fadeIn) }
         if fadeOut > 0 { try c.encode(fadeOut, forKey: .fadeOut) }
+        if enhance { try c.encode(true, forKey: .enhance) }
     }
 }
 
@@ -839,6 +846,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// of, each of its parts naming it: what More like this offers alike.
     /// A build without the pack draws the parts as any SVG graphic's.
     var graphicId: String?
+    /// The Bulk create column whose cell this text's words or this photo's
+    /// picture become on each page made (BulkCreate); nil, and not
+    /// written, when it takes none.
+    var bulkField: String?
     var fill: Paint?
     var stroke: String?
     var strokeWidth: Double?
@@ -1105,6 +1116,7 @@ struct Element: Codable, Equatable, Identifiable {
         pathData = try? c.decode(String.self, forKey: .pathData)
         iconId = try? c.decode(String.self, forKey: .iconId)
         graphicId = try? c.decode(String.self, forKey: .graphicId)
+        bulkField = (try? c.decode(String.self, forKey: .bulkField)).flatMap { $0.isEmpty ? nil : $0 }
         fill = try? c.decode(Paint.self, forKey: .fill)
         stroke = try? c.decode(String.self, forKey: .stroke)
         strokeWidth = try? c.decode(Double.self, forKey: .strokeWidth)
@@ -1226,7 +1238,7 @@ struct Element: Codable, Equatable, Identifiable {
         case subgroups, groupTurn
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
-        case shapeId, pathData, iconId, graphicId, fill, stroke, strokeWidth, radius, corners, fillRule, pen
+        case shapeId, pathData, iconId, graphicId, bulkField, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical, warp
         case spans, spansText, paragraphs, paragraphsText, captions

@@ -10,9 +10,11 @@
 //
 // A chart's Text section sets its labels' font, colour and size, and for a
 // kind drawn against a scale Smooth line and the Axis range — all kept in
-// its spec, so Update keeps them. Import CSV reads a CSV, TSV or text file
-// of up to 1 MB into the grid to look over before Add or Update (DataGrid
-// .fromCsv), saying what it left out, as the Android twin's does.
+// its spec, so Update keeps them. Import data reads a CSV, TSV or text file
+// of up to 1 MB (DataGrid.fromCsv), or an Excel workbook of up to 10 MB
+// (XlsxReader, a sheet chosen when it has several), into the grid to look
+// over before Add or Update, saying what it left out, as the Android twin's
+// does.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -66,11 +68,19 @@ struct DataSheet: View {
     @State private var format: ChartSpec
     @State private var choosingFont = false
     @State private var choosingInk = false
-    /// Import CSV's file picker, and what the last import left out — or why
-    /// it brought nothing in.
+    /// Import data's file picker, and what the last import left out — or
+    /// why it brought nothing in.
     @State private var importingCsv = false
     @State private var imported: String?
     @State private var importRefused = false
+    /// A workbook's sheets with rows, while one is being chosen.
+    @State private var sheetChoices: [XlsxReader.Sheet] = []
+
+    /// What Import data opens: CSV, TSV and text files, and Excel
+    /// workbooks.
+    static var importTypes: [UTType] {
+        [.commaSeparatedText, .tabSeparatedText, .plainText, Spreadsheets.contentType]
+    }
 
     private static let sampleTable = "Item, Qty, Price\nCoffee, 2, 3.50\nBagel, 1, 2.25\nJuice, 3, 4.00"
 
@@ -415,11 +425,12 @@ struct DataSheet: View {
         }
     }
 
-    /// Import CSV, and under it what the last import left out, if anything.
+    /// Import data, and under it what the last import left out, if
+    /// anything; a workbook with several sheets asks which.
     private var importRow: some View {
         VStack(alignment: .leading, spacing: 4) {
             Button { importingCsv = true } label: {
-                Label("Import CSV", systemImage: "square.and.arrow.down")
+                Label("Import data", systemImage: "square.and.arrow.down")
             }
             if let imported {
                 Text(imported)
@@ -427,34 +438,51 @@ struct DataSheet: View {
                     .foregroundStyle(importRefused ? Color(.systemRed) : .secondary)
             }
         }
+        .confirmationDialog("Choose a sheet", isPresented: Binding(
+            get: { !sheetChoices.isEmpty }, set: { if !$0 { sheetChoices = [] } }), titleVisibility: .visible) {
+            ForEach(Array(sheetChoices.enumerated()), id: \.offset) { _, sheet in
+                Button(sheet.name) {
+                    sheetChoices = []
+                    take(DataGrid.fromRows(sheet.cells))
+                }
+            }
+            Button("Cancel", role: .cancel) { sheetChoices = [] }
+        }
     }
 
     /// A file's rows into the grid — the chart's or the table's — to look
-    /// over before Add or Update, the grid shown rather than the text; or
-    /// why not, under the button.
+    /// over before Add or Update, the grid shown rather than the text; a
+    /// workbook's sheet once one is chosen; or why not, under the button.
     private func importCsv(_ url: URL) {
         Task {
-            let outcome = await Task.detached(priority: .userInitiated) { DataGrid.read(csvAt: url) }.value
+            let outcome = await Task.detached(priority: .userInitiated) { DataGrid.read(dataAt: url) }.value
             switch outcome {
             case .rows(let read):
-                if mode == 0 {
-                    chartGrid = read.cells
-                    chartText = DataGrid.chartText(read.cells)
-                    chartGridOpened = chartGrid
-                } else {
-                    tableGrid = read.cells
-                    tableText = DataGrid.tableText(read.cells)
-                }
-                asText = false
-                imported = read.note
-                importRefused = false
-                store.buzz(.confirm)
+                take(read)
+            case .sheets(let sheets):
+                sheetChoices = sheets
             case .refused(let why):
                 imported = why
                 importRefused = true
                 store.buzz(.reject)
             }
         }
+    }
+
+    /// Rows read in, into the grid, and what was left out said.
+    private func take(_ read: DataGrid.CsvImport) {
+        if mode == 0 {
+            chartGrid = read.cells
+            chartText = DataGrid.chartText(read.cells)
+            chartGridOpened = chartGrid
+        } else {
+            tableGrid = read.cells
+            tableText = DataGrid.tableText(read.cells)
+        }
+        asText = false
+        imported = read.note
+        importRefused = false
+        store.buzz(.confirm)
     }
 
     /// Why Add or Update did nothing. Rows typed for a table being edited
@@ -521,7 +549,7 @@ struct DataSheet: View {
     }
 }
 
-/// The data sheet's font and colour pickers and Import CSV's file picker,
+/// The data sheet's font and colour pickers and Import data's file picker,
 /// apart from its body so the type checker takes each chain in reasonable
 /// time.
 private struct DataSheetPickers: ViewModifier {
@@ -545,8 +573,7 @@ private struct DataSheetPickers: ViewModifier {
                 ColorPickerSheet(store: store, title: tr("Text colour"), current: inkShown,
                                  onPick: { hex in ink = hex.lowercased() })
             }
-            .fileImporter(isPresented: $importingCsv,
-                          allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]) { result in
+            .fileImporter(isPresented: $importingCsv, allowedContentTypes: DataSheet.importTypes) { result in
                 guard case .success(let url) = result else { return }
                 onImport(url)
             }

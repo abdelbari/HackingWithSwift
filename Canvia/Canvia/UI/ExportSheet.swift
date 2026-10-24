@@ -79,6 +79,24 @@ struct ExportSheet: View {
     @State private var pdfPixelSizes: [String: CGSize] = [:]
     /// Close asked with an export running: keep it going, or stop it.
     @State private var askingKeep = false
+    /// Save as one ZIP, and the PNG's Compress file (ExportPlan).
+    @State private var zip = false
+    @State private var pngCompress = false
+    /// Said beside the share: a PNG that went out uncompressed.
+    @State private var exportNote: String?
+    /// What Check accessibility finds in the design as it stands, read off
+    /// the main thread as the sheet opens; nil until it is.
+    @State private var a11yFindings: [AccessibilityAudit.Finding]?
+    /// The revision the accessibility row was put away at, from the
+    /// design's meta.json.
+    @State private var a11yDismissed: Int64?
+    @State private var reviewingA11y = false
+    @State private var a11yAnnounced = false
+    /// Settings' "Remind me to check accessibility".
+    @AppStorage(ExportPlan.a11yNudgeKey) private var remindA11y = true
+    /// The last audit, by design and revision, so opening the sheet again
+    /// on an unchanged design reads nothing again.
+    @MainActor private static var a11yKept: (id: String, revision: Int64, findings: [AccessibilityAudit.Finding])?
 
     private struct PhotosNote: Equatable {
         var text: String
@@ -188,6 +206,7 @@ struct ExportSheet: View {
             shareSection
             fileTypeSection
             if store.design.pages.count > 1 && !selectionOnly { pagesSection }
+            a11ySection
             if offersSelection { selectionSection }
             typeOptions
             designFileSection
@@ -246,6 +265,10 @@ struct ExportSheet: View {
         if let skipped = result.skipped {
             errorMessage = skipped
             announce(skipped)
+        }
+        if let note = result.note {
+            exportNote = note
+            announce(note)
         }
     }
 
@@ -435,6 +458,11 @@ struct ExportSheet: View {
             if pageRange == .chosen {
                 Button("Choose pages… (\(chosenText))") { choosingPages = true }
             }
+            if ExportPlan.offersZip(format: fileType, files: exportedIndices.count) {
+                Toggle("Save as one ZIP", isOn: $zip)
+                Text(tr("%@, with a file for each page inside.", ExportPlan.zipName(store.design.title)))
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
         } header: {
             Text("Pages")
         } footer: {
@@ -449,6 +477,86 @@ struct ExportSheet: View {
             Text(tr("PNG only. Drops the page's own background rather than "
                     + "flattening it, so the export really has nothing behind it."))
         }
+    }
+
+    /// Compress file: the PNG in at most 256 colours, kept only when it
+    /// comes out enough smaller (ExportPlan), with the sizes before and
+    /// after for the page shown.
+    private var compressSection: some View {
+        let design = exportedDesign
+        let size = DesignExporter.outputSize(size: design.size(at: shownIndex),
+                                             requested: pageScale(shownIndex, in: design))
+        let w = Int(size.width), h = Int(size.height)
+        let before = ExportChoices.sizeText(ExportPlan.estimatedPngBytes(width: w, height: h))
+        let after = ExportChoices.sizeText(ExportPlan.estimatedCompressedPngBytes(width: w, height: h))
+        return Section {
+            Toggle("Compress file", isOn: $pngCompress)
+        } footer: {
+            Text(tr("About %@, or about %@ compressed (lower quality)", before, after))
+        }
+    }
+
+    // MARK: accessibility
+
+    /// The design's revision: when it last changed.
+    private var revision: Int64 { Int64(store.design.updatedAt.rounded()) }
+
+    /// "3 accessibility suggestions", with Review — Check accessibility on
+    /// the pages going out — and a way to put it away until the design
+    /// changes; for documents and pictures, while Settings asks for it.
+    @ViewBuilder
+    private var a11ySection: some View {
+        let found = AccessibilityAudit.onPages(a11yFindings ?? [], Set(sharedIndices))
+        if ExportPlan.showsA11yNudge(format: fileType, findings: found.count, remind: remindA11y,
+                                     revision: revision, dismissed: a11yDismissed) {
+            Section {
+                HStack(spacing: 12) {
+                    Label(AccessibilityAudit.suggestions(found), systemImage: "accessibility")
+                    Spacer(minLength: 0)
+                    Button("Review") { reviewingA11y = true }
+                        .buttonStyle(.borderless)
+                    Button { dismissA11y() } label: { Image(systemName: "xmark") }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Dismiss")
+                }
+            }
+            .onAppear { announceA11y(found) }
+            .sheet(isPresented: $reviewingA11y) {
+                AccessibilitySheet(store: store, pages: Set(sharedIndices))
+            }
+        }
+    }
+
+    /// The audit, once per revision of the design, off the main thread.
+    @MainActor
+    private func readA11y() async {
+        let design = store.design
+        let id = design.id
+        let rev = revision
+        a11yDismissed = DesignLibrary.versionMeta(for: id).a11yNudgeDismissed
+        if let kept = Self.a11yKept, kept.id == id, kept.revision == rev {
+            a11yFindings = kept.findings
+            return
+        }
+        // The drawn pictures are registered here, on the main thread,
+        // before the audit reads any.
+        _ = PhotoLibrary.photos
+        let found = await Task.detached(priority: .utility) { AccessibilityAudit.findings(design) }.value
+        Self.a11yKept = (id, rev, found)
+        a11yFindings = found
+    }
+
+    /// The row said once to VoiceOver, as it first shows.
+    private func announceA11y(_ found: [AccessibilityAudit.Finding]) {
+        guard !a11yAnnounced else { return }
+        a11yAnnounced = true
+        announce(AccessibilityAudit.suggestions(found))
+    }
+
+    /// The row put away until the design changes, in its meta.json.
+    private func dismissA11y() {
+        a11yDismissed = revision
+        DesignLibrary.dismissA11yNudge(store.design.id, revision: revision)
     }
 
     // MARK: share
@@ -489,9 +597,12 @@ struct ExportSheet: View {
         Button(Self.shareLabel(fileType, count: shareCount)) { shareNow() }
             .buttonStyle(.borderedProminent)
             .disabled(!canShare)
-        Button(fileType == "mp4" || fileType == "gif" ? tr("Save the video to photos") : tr("Save to photos")) { saveNow() }
-            .buttonStyle(.bordered)
-            .disabled(!savesToPhotos || !canShare)
+        // A ZIP is no picture for Photos.
+        if !zipping {
+            Button(fileType == "mp4" || fileType == "gif" ? tr("Save the video to photos") : tr("Save to photos")) { saveNow() }
+                .buttonStyle(.bordered)
+                .disabled(!savesToPhotos || !canShare)
+        }
         Button(copied ? tr("Copied") : tr("Copy as image")) { copyNow() }
             .buttonStyle(.bordered)
         if UIPrintInteractionController.isPrintingAvailable {
@@ -517,6 +628,7 @@ struct ExportSheet: View {
                 Label(musicNote, systemImage: "speaker.slash.fill")
                     .foregroundStyle(.orange)
             }
+            if let exportNote { Text(exportNote) }
         }
     }
 
@@ -558,7 +670,7 @@ struct ExportSheet: View {
                 ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: false, bookmarks: pdfBookmarks)
             }
         case "svg":
-            run(tr("Rendering"), format: "svg") { ExportJobs.svg(exportedSnapshot) }
+            run(tr("Rendering"), format: "svg") { zipped(ExportJobs.svg(exportedSnapshot)) }
         case "pptx":
             run(tr("Making the PowerPoint"), format: "pptx") {
                 ExportJobs.powerPoint(designSnapshot, styled: pptxStyledText != ExportLast.styledPicture)
@@ -573,8 +685,19 @@ struct ExportSheet: View {
             run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gif(designSnapshot, settings: movieSettings) }
         default:
             let format = fileType
-            run(tr("Rendering"), format: format) { picturesWork(format == "jpg" ? .jpeg : .png) }
+            run(tr("Rendering"), format: format) { zipped(picturesWork(format == "jpg" ? .jpeg : .png)) }
         }
+    }
+
+    /// Whether the files go out as one ZIP: asked for, where the type
+    /// writes several.
+    private var zipping: Bool {
+        zip && ExportPlan.offersZip(format: fileType, files: exportedIndices.count)
+    }
+
+    /// `work`, its files put in one ZIP when they go out as one.
+    private func zipped(_ work: @escaping ExportQueue.Work) -> ExportQueue.Work {
+        zipping ? ExportJobs.zipped(work, design: exportedDesign) : work
     }
 
     /// The chosen type straight into Photos: the pictures, or the film.
@@ -636,6 +759,7 @@ struct ExportSheet: View {
         } footer: {
             Text(Self.typeNote(fileType))
         }
+        .task(id: revision) { await readA11y() }
     }
 
     private func fileTypeRow(_ type: String) -> some View {
@@ -692,6 +816,7 @@ struct ExportSheet: View {
         case "png":
             qualitySection
             transparencySection
+            compressSection
         case "jpg":
             qualitySection
             jpegSection
@@ -936,7 +1061,7 @@ struct ExportSheet: View {
                                 pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
                                 pptxStyledText: pptxStyledText, suggested: format == suggested,
                                 pdfBookmarks: pdfBookmarks, colourProfile: paper.colourProfile.rawValue,
-                                html: htmlSettings).json
+                                html: htmlSettings, zip: zip, pngCompress: pngCompress).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -964,6 +1089,8 @@ struct ExportSheet: View {
         htmlNav = last.html.nav
         htmlStack = last.html.mobileStack
         htmlMedia = last.html.embedMedia
+        zip = last.zip
+        pngCompress = last.pngCompress
         paper.colourProfile = PrintLayout.ColourProfile.of(last.colourProfile)
         pageRange = RangeChoice(rawValue: last.pages) ?? .all
         // After the scale's own change has cleared the field, which it does
@@ -1298,6 +1425,7 @@ struct ExportSheet: View {
     private func run(_ working: String, format: String?, job: @MainActor () -> ExportQueue.Work) {
         errorMessage = nil
         musicNote = nil
+        exportNote = nil
         queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, work: job()))
         // Kept for next time, when asked to be.
         if let format { rememberSettings(format) }
@@ -1336,7 +1464,7 @@ struct ExportSheet: View {
 
     private func picturesWork(_ format: DesignExporter.RasterFormat) -> ExportQueue.Work {
         ExportJobs.pictures(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
-                            quality: jpegQuality, transparent: transparent)
+                            quality: jpegQuality, transparent: transparent, compress: pngCompress)
     }
 
     /// How many pages are hidden, and so left out of "All pages" and the

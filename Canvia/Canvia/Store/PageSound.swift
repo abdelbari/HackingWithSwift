@@ -8,7 +8,9 @@
 // waits for its place in the film (AudioMix.span), plays its window once
 // or round and round, and its level follows its fades every tenth of a
 // second. Once a second a player more than 150 ms off the clock is put
-// right — as the Android twin's PageSound keeps its players.
+// right — as the Android twin's PageSound keeps its players. A clip or a
+// track with Enhance voice on plays its enhanced sound (AudioStore
+// .enhancedURL), made before it starts the first time.
 //
 // Play shares the phone's sound, and the silent switch mutes it; a
 // presentation takes the sound, switch or not. The session is let go, and
@@ -195,7 +197,12 @@ final class PageSound {
         let wanted = sounding.compactMap { clip in VideoStore.url(for: clip.source).map { (clip, $0) } }
         guard !wanted.isEmpty else { return }
         Task { @MainActor in
-            for (clip, url) in wanted {
+            for (clip, own) in wanted {
+                var url = own
+                if clip.playback.enhance {
+                    url = await AudioStore.enhancedURL(for: VideoStore.prefix + clip.source) ?? own
+                    guard turn == self.clipTurn else { return }
+                }
                 // Its length, and whether it has sound at all, read without
                 // holding up the page.
                 let length = await VideoStore.soundLength(of: clip.source)
@@ -250,9 +257,16 @@ final class PageSound {
                 guard let id = track.audioId, lengths[id] == nil else { continue }
                 if let length = await AudioStore.duration(of: id) { lengths[id] = length }
             }
+            // Each enhanced sound made, the first time, before any starts.
+            var enhanced: [String: URL] = [:]
+            for (track, _) in wanted where track.enhance {
+                guard let id = track.audioId, enhanced[id] == nil else { continue }
+                if let file = await AudioStore.enhancedURL(for: id) { enhanced[id] = file }
+            }
             guard turn == self.trackTurn else { return }
             self.tracksLoading = false
-            for (track, url) in wanted {
+            for (track, own) in wanted {
+                let url = track.enhance ? (track.audioId.flatMap { enhanced[$0] } ?? own) : own
                 let length = track.audioId.flatMap { lengths[$0] }
                 guard let span = AudioMix.span(of: track, duration: length, film: film) else { continue }
                 let lasts: Double? = span.until.isFinite ? span.until - span.at : nil

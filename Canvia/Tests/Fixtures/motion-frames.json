@@ -1,0 +1,306 @@
+{
+ "frames": {
+  "motion-bokeh-1": [
+   "83bb412f",
+   "162884cf"
+  ],
+  "motion-bokeh-2": [
+   "07dd47d8",
+   "330f8e28"
+  ],
+  "motion-bokeh-3": [
+   "76705e02",
+   "f89b85ef"
+  ],
+  "motion-bokeh-4": [
+   "01092b11",
+   "6daa5e71"
+  ],
+  "motion-confetti-1": [
+   "bcbfe63a",
+   "caf62457"
+  ],
+  "motion-confetti-2": [
+   "552253cb",
+   "e2dde5c5"
+  ],
+  "motion-confetti-3": [
+   "2da354e4",
+   "1f37b71c"
+  ],
+  "motion-dots-1": [
+   "fba2fc8f",
+   "9648eaeb"
+  ],
+  "motion-dots-2": [
+   "f41e9443",
+   "b49b3c69"
+  ],
+  "motion-dots-3": [
+   "244af2f2",
+   "8a47a76d"
+  ],
+  "motion-grain-1": [
+   "dcfcab4a",
+   "11117655"
+  ],
+  "motion-grain-2": [
+   "a88ebf82",
+   "11d10581"
+  ],
+  "motion-grain-3": [
+   "8f85153a",
+   "061e21f7"
+  ],
+  "motion-grain-4": [
+   "f52f510d",
+   "3c090735"
+  ],
+  "motion-mesh-1": [
+   "4eb987cd",
+   "4dde9097"
+  ],
+  "motion-mesh-2": [
+   "75ae292c",
+   "97af5e57"
+  ],
+  "motion-mesh-3": [
+   "5c13db1c",
+   "d6f32d0c"
+  ],
+  "motion-mesh-4": [
+   "b52c318a",
+   "f8544ea1"
+  ],
+  "motion-mesh-5": [
+   "711d3601",
+   "d59ef42f"
+  ],
+  "motion-paper-1": [
+   "8d9ad426",
+   "380e6729"
+  ],
+  "motion-paper-2": [
+   "323998ff",
+   "bf026598"
+  ],
+  "motion-rays-1": [
+   "de725820",
+   "6e4a1390"
+  ],
+  "motion-rays-2": [
+   "bcf1f307",
+   "c56c1c33"
+  ],
+  "motion-rays-3": [
+   "938fe844",
+   "8062ef70"
+  ],
+  "motion-stars-1": [
+   "2fd13ade",
+   "73f23554"
+  ],
+  "motion-stars-2": [
+   "919abb8f",
+   "344de064"
+  ],
+  "motion-waves-1": [
+   "efad5b66",
+   "9619c936"
+  ],
+  "motion-waves-2": [
+   "772b9ebd",
+   "ca5c0e6d"
+  ],
+  "motion-waves-3": [
+   "3d53c8a5",
+   "4f09ddf5"
+  ],
+  "motion-waves-4": [
+   "15468f91",
+   "956cf671"
+  ],
+  "still-bokeh-1": [
+   "8bd4eafe"
+  ],
+  "still-bokeh-2": [
+   "642b83b0"
+  ],
+  "still-bokeh-3": [
+   "17052e35"
+  ],
+  "still-bokeh-4": [
+   "e1f9dc59"
+  ],
+  "still-bokeh-5": [
+   "fdba4b95"
+  ],
+  "still-bokeh-6": [
+   "b8ba6d9f"
+  ],
+  "still-grain-1": [
+   "f4c17fde"
+  ],
+  "still-grain-2": [
+   "ad084561"
+  ],
+  "still-grain-3": [
+   "bbe279fd"
+  ],
+  "still-grain-4": [
+   "16cdfc85"
+  ],
+  "still-grain-5": [
+   "c36b1833"
+  ],
+  "still-grain-6": [
+   "c00dddfd"
+  ],
+  "still-halftone-1": [
+   "7df7b279"
+  ],
+  "still-halftone-2": [
+   "244166e5"
+  ],
+  "still-halftone-3": [
+   "8143c0c5"
+  ],
+  "still-halftone-4": [
+   "19f72ec9"
+  ],
+  "still-halftone-5": [
+   "e5626c71"
+  ],
+  "still-halftone-6": [
+   "1967c1b9"
+  ],
+  "still-halftone-7": [
+   "27a2e7c5"
+  ],
+  "still-halftone-8": [
+   "545d1de5"
+  ],
+  "still-linen-1": [
+   "cbc963fb"
+  ],
+  "still-linen-2": [
+   "47ce8b1d"
+  ],
+  "still-linen-3": [
+   "c4665391"
+  ],
+  "still-linen-4": [
+   "ff3e8259"
+  ],
+  "still-linen-5": [
+   "00498ee2"
+  ],
+  "still-linen-6": [
+   "0f01a34f"
+  ],
+  "still-linen-7": [
+   "4ce5feb0"
+  ],
+  "still-marble-1": [
+   "102bee08"
+  ],
+  "still-marble-2": [
+   "65c55445"
+  ],
+  "still-marble-3": [
+   "95a0d0b0"
+  ],
+  "still-marble-4": [
+   "4a511494"
+  ],
+  "still-marble-5": [
+   "8adf0676"
+  ],
+  "still-marble-6": [
+   "1fae5373"
+  ],
+  "still-marble-7": [
+   "9879a851"
+  ],
+  "still-marble-8": [
+   "144c837d"
+  ],
+  "still-paper-1": [
+   "e57a4bf6"
+  ],
+  "still-paper-2": [
+   "b9cf6964"
+  ],
+  "still-paper-3": [
+   "bd24fa68"
+  ],
+  "still-paper-4": [
+   "2ddfe153"
+  ],
+  "still-paper-5": [
+   "d536232c"
+  ],
+  "still-paper-6": [
+   "259f8d6c"
+  ],
+  "still-paper-7": [
+   "c9839566"
+  ],
+  "still-sky-1": [
+   "1ad497a1"
+  ],
+  "still-sky-10": [
+   "ff31b42c"
+  ],
+  "still-sky-2": [
+   "d0a85676"
+  ],
+  "still-sky-3": [
+   "3a36b6ef"
+  ],
+  "still-sky-4": [
+   "489552a0"
+  ],
+  "still-sky-5": [
+   "65a15513"
+  ],
+  "still-sky-6": [
+   "8dfa7ad0"
+  ],
+  "still-sky-7": [
+   "d79aabd5"
+  ],
+  "still-sky-8": [
+   "43ef84e7"
+  ],
+  "still-sky-9": [
+   "c3ae6d89"
+  ],
+  "still-terrazzo-1": [
+   "42c66fb7"
+  ],
+  "still-terrazzo-2": [
+   "9e06d41b"
+  ],
+  "still-terrazzo-3": [
+   "3ad37ec1"
+  ],
+  "still-terrazzo-4": [
+   "fffb0fbb"
+  ],
+  "still-terrazzo-5": [
+   "a0b7d973"
+  ],
+  "still-terrazzo-6": [
+   "2be41fbc"
+  ],
+  "still-terrazzo-7": [
+   "6c4f4c9c"
+  ],
+  "still-terrazzo-8": [
+   "c055de67"
+  ]
+ },
+ "height": 36,
+ "width": 48
+}

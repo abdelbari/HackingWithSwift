@@ -65,7 +65,8 @@ enum DesignPackage {
 
     /// Ids of the clips a design shows: on a photo, filling a shape, or
     /// behind a page — each of which the file has to carry, as a clip or as
-    /// a still. Counted as the Android twin counts them, so the two phones
+    /// a still — and the clips an audio track plays the sound of
+    /// (AudioTracks.detached). Counted as the Android twin counts them, so the two phones
     /// weigh the same clips against the total.
     static func videoIDs(in design: Design) -> Set<String> {
         var ids = Set<String>()
@@ -78,6 +79,7 @@ enum DesignPackage {
                 }
             }
         }
+        for track in design.audioTracks { if let id = AudioTrack.videoId(of: track.src) { ids.insert(id) } }
         return ids
     }
 
@@ -699,8 +701,13 @@ enum DesignPackage {
             design.masterPageId = pageIds[master]
         }
         design.audioTracks = design.audioTracks.map { track in
-            guard let old = track.audioId, let moved = music[old] else { return track }
             var next = track
+            // A clip's sound follows its clip.
+            if let old = AudioTrack.videoId(of: track.src) {
+                if let moved = clips[old] { next.src = VideoStore.src(moved, at: nil) }
+                return next
+            }
+            guard let old = track.audioId, let moved = music[old] else { return track }
             next.src = AudioTrack.src(moved)
             return next
         }

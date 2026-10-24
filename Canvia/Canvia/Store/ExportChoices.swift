@@ -256,7 +256,8 @@ enum ExportChoices {
 ///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
 ///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,
 ///  "colourProfile":"rgb","html":{"nav":true,"mobileStack":true,
-///  "embedMedia":true}}. A missing "pptxStyledText" is "editable".
+///  "embedMedia":true},"zip":false,"pngCompress":false}. A missing
+///  "pptxStyledText" is "editable"; a missing "zip" or "pngCompress" off.
 struct ExportLast: Codable, Equatable {
     /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html".
     var format: String
@@ -286,6 +287,11 @@ struct ExportLast: Codable, Equatable {
     /// The web page's menu, narrow-screen wrapping and clips
     /// (HTMLExporter.Settings); missing is every one on.
     var html = HTMLExporter.Settings()
+    /// Save as one ZIP, for a type that writes several files
+    /// (ExportPlan.offersZip).
+    var zip = false
+    /// The PNG's Compress file (PngWriter).
+    var pngCompress = false
 
     static let key = "exportLast"
     static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html"]
@@ -300,13 +306,13 @@ struct ExportLast: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText,
-             suggested, pdfBookmarks, colourProfile, html
+             suggested, pdfBookmarks, colourProfile, html, zip, pngCompress
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
          pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable,
          suggested: Bool = false, pdfBookmarks: Bool = true, colourProfile: String = "rgb",
-         html: HTMLExporter.Settings = HTMLExporter.Settings()) {
+         html: HTMLExporter.Settings = HTMLExporter.Settings(), zip: Bool = false, pngCompress: Bool = false) {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -320,6 +326,8 @@ struct ExportLast: Codable, Equatable {
         self.pdfBookmarks = pdfBookmarks
         self.colourProfile = PrintLayout.ColourProfile.of(colourProfile).rawValue
         self.html = html
+        self.zip = zip
+        self.pngCompress = pngCompress
     }
 
     /// Whether styled text goes out editable, as the setting says.
@@ -348,6 +356,8 @@ struct ExportLast: Codable, Equatable {
         pdfBookmarks = (try? c.decode(Bool.self, forKey: .pdfBookmarks)) ?? true
         colourProfile = PrintLayout.ColourProfile.of(try? c.decode(String.self, forKey: .colourProfile)).rawValue
         html = (try? c.decode(HTMLExporter.Settings.self, forKey: .html)) ?? HTMLExporter.Settings()
+        zip = (try? c.decode(Bool.self, forKey: .zip)) ?? false
+        pngCompress = (try? c.decode(Bool.self, forKey: .pngCompress)) ?? false
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -367,6 +377,8 @@ struct ExportLast: Codable, Equatable {
         try c.encode(pdfBookmarks, forKey: .pdfBookmarks)
         try c.encode(colourProfile, forKey: .colourProfile)
         try c.encode(html, forKey: .html)
+        try c.encode(zip, forKey: .zip)
+        try c.encode(pngCompress, forKey: .pngCompress)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -389,6 +401,8 @@ struct ExportLast: Codable, Equatable {
             "\"pdfBookmarks\":" + String(pdfBookmarks),
             "\"colourProfile\":" + Self.quoted(colourProfile),
             "\"html\":" + html.json,
+            "\"zip\":" + String(zip),
+            "\"pngCompress\":" + String(pngCompress),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

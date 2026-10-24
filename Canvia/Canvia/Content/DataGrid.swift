@@ -167,9 +167,10 @@ enum DataGrid {
     /// A quote opens a quoted cell only where the cell begins, spaces
     /// before it aside; anywhere else it is a quote. Each cell's spaces are
     /// trimmed, as cells trims them, and rows with no words are left out.
-    /// The first csvRows rows and csvColumns columns are kept, every row as
-    /// wide as the widest kept.
-    static func fromCsv(_ text: String) -> CsvImport {
+    /// The first csvRows rows and csvColumns columns are kept — or
+    /// `maxRows` and `maxColumns`, for Bulk create — every row as wide as
+    /// the widest kept.
+    static func fromCsv(_ text: String, maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvImport {
         var body = Array(text.unicodeScalars)
         if body.first == "\u{FEFF}" { body.removeFirst() }
         let firstLine = body.prefix { $0 != "\n" && $0 != "\r" }
@@ -219,7 +220,22 @@ enum DataGrid {
         }
         if !cell.isEmpty || started || !row.isEmpty { endRow() }
         let columns = rows.map(\.count).max() ?? 0
-        let kept = padded(rows.prefix(csvRows).map { Array($0.prefix(csvColumns)) })
+        let kept = padded(rows.prefix(maxRows).map { Array($0.prefix(maxColumns)) })
+        return CsvImport(cells: kept, rows: rows.count, columns: columns)
+    }
+
+    /// Rows read some other way — a workbook's sheet (XlsxReader) — into
+    /// the grid as a CSV file's are: each cell's spaces trimmed, rows with
+    /// no words left out, the first csvRows rows of the first csvColumns
+    /// columns kept, every row as wide as the widest kept, and how many of
+    /// each there were for the same note of what was left out. A sheet's
+    /// rows come padded, so its trailing empty cells are no columns of
+    /// their own, as on Android.
+    static func fromRows(_ cells: [[String]], maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvImport {
+        let rows = cells.map { row in row.map { $0.trimmingCharacters(in: .whitespaces) } }
+            .filter { row in row.contains { !$0.isEmpty } }
+        let columns = rows.map { row in (row.lastIndex { !$0.isEmpty } ?? -1) + 1 }.max() ?? 0
+        let kept = padded(rows.prefix(maxRows).map { Array($0.prefix(min(maxColumns, columns))) })
         return CsvImport(cells: kept, rows: rows.count, columns: columns)
     }
 
@@ -232,21 +248,73 @@ enum DataGrid {
     /// A file's bytes for the grid, in the Android twin's words when they
     /// will not do: none read, more than csvBytes, or no rows with words.
     /// Read as UTF-8, anything that is not standing in for a character.
-    static func read(csv data: Data?) -> CsvRead {
+    static func read(csv data: Data?, maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvRead {
         guard let data else { return .refused(tr("That file could not be read")) }
         guard data.count <= csvBytes else { return .refused(tr("That file is over 1 MB")) }
-        let read = fromCsv(String(decoding: data, as: UTF8.self))
+        let read = fromCsv(String(decoding: data, as: UTF8.self), maxRows: maxRows, maxColumns: maxColumns)
         return read.cells.isEmpty ? .refused(tr("No rows to import in that file")) : .rows(read)
     }
 
     /// The file at `url` — one the file picker handed over — read for the
     /// grid, no more of it than one byte past csvBytes.
-    static func read(csvAt url: URL) -> CsvRead {
+    static func read(csvAt url: URL, maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvRead {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let handle = try? FileHandle(forReadingFrom: url) else { return read(csv: nil) }
         defer { try? handle.close() }
-        return read(csv: (try? handle.read(upToCount: csvBytes + 1)) ?? Data())
+        return read(csv: (try? handle.read(upToCount: csvBytes + 1)) ?? Data(), maxRows: maxRows,
+                    maxColumns: maxColumns)
+    }
+
+    // MARK: Import data
+
+    /// The largest workbook Import data opens: 20 MB, as on Android.
+    static let xlsxBytes = 20 * 1024 * 1024
+
+    /// What Import data makes of a file: its rows, a workbook's sheets to
+    /// choose from — each with rows — or why it brought none.
+    enum DataRead: Equatable {
+        case rows(CsvImport)
+        case sheets([XlsxReader.Sheet])
+        case refused(String)
+    }
+
+    /// Whether `data` is a ZIP, as a workbook is.
+    static func isZip(_ data: Data) -> Bool {
+        data.count >= 4 && data.prefix(4).elementsEqual([0x50, 0x4b, 0x03, 0x04])
+    }
+
+    /// A workbook's bytes for the grid: its one sheet with rows, or its
+    /// sheets with rows to choose from; why not, in the Android twin's
+    /// words, when none is read, it is too big or none has rows.
+    static func read(xlsx data: Data?) -> DataRead {
+        guard let data else { return .refused(tr("That file isn't a spreadsheet Canvia can read.")) }
+        guard data.count <= xlsxBytes else { return .refused(tr("That spreadsheet is too big to open.")) }
+        let sheets = XlsxReader.read(data)
+        guard !sheets.isEmpty else { return .refused(tr("That file isn't a spreadsheet Canvia can read.")) }
+        let withRows = sheets.filter { !fromRows($0.cells).cells.isEmpty }
+        guard let first = withRows.first else { return .refused(tr("No rows to import in that file")) }
+        return withRows.count == 1 ? .rows(fromRows(first.cells)) : .sheets(withRows)
+    }
+
+    /// The file at `url` — one the file picker handed over — for the grid:
+    /// a workbook (named .xlsx, or a ZIP) as `read(xlsx:)` reads it, any
+    /// other as a CSV, TSV or text file.
+    static func read(dataAt url: URL) -> DataRead {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return .refused(tr("That file could not be read")) }
+        defer { try? handle.close() }
+        let head = (try? handle.read(upToCount: 4)) ?? Data()
+        if url.pathExtension.lowercased() == "xlsx" || isZip(head) {
+            try? handle.seek(toOffset: 0)
+            return read(xlsx: (try? handle.read(upToCount: xlsxBytes + 1)) ?? Data())
+        }
+        try? handle.seek(toOffset: 0)
+        switch read(csv: (try? handle.read(upToCount: csvBytes + 1)) ?? Data()) {
+        case .rows(let rows): return .rows(rows)
+        case .refused(let why): return .refused(why)
+        }
     }
 
     /// Every row as wide as the widest.

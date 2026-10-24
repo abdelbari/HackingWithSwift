@@ -95,14 +95,31 @@ enum Backup {
 
     private struct Settings: Codable {
         var autoLists: Bool?
+        var exportA11yNudge: Bool?
     }
 
     /// The one settings file: "autoLists", and "canvia.use" when `use` is
     /// not nil.
     static func encodeSettings(autoLists: Bool, use: String?) -> Data {
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: nil)
+    }
+
+    /// The same, with Export's "exportA11yNudge" too.
+    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool) -> Data {
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge)
+    }
+
+    private static func settingsData(autoLists: Bool, use: String?, exportA11yNudge: Bool?) -> Data {
         var object: [String: Any] = ["autoLists": autoLists]
         if let use { object[UseProfile.key] = use }
+        if let exportA11yNudge { object[ExportPlan.a11yNudgeKey] = exportA11yNudge }
         return (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data("{}".utf8)
+    }
+
+    /// The backup's "exportA11yNudge"; nil when it has none.
+    static func decodeA11yNudge(_ data: Data?) -> Bool? {
+        guard let data, let settings = try? JSONDecoder().decode(Settings.self, from: data) else { return nil }
+        return settings.exportA11yNudge
     }
 
     /// The backup's "autoLists"; nil when it has none, as an older backup.
@@ -292,7 +309,8 @@ enum Backup {
         if !dictionary.isEmpty { try writer.add(Proofreader.dictionaryFile, Proofreader.encodeDictionary(dictionary)) }
         // The settings that travel, what Canvia is used for among them when
         // it was answered: one settings.json for both.
-        try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn, use: UseProfile.current()))
+        try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn, use: UseProfile.current(),
+                                                    exportA11yNudge: ExportPlan.remindsA11y()))
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
@@ -490,6 +508,9 @@ enum Backup {
         // The settings that travel, as the backup has them.
         if let autoLists = decodeSettings(reader.file(settingsFile)) {
             UserDefaults.standard.set(autoLists, forKey: TextLists.autoListsKey)
+        }
+        if let remind = decodeA11yNudge(reader.file(settingsFile)) {
+            UserDefaults.standard.set(remind, forKey: ExportPlan.a11yNudgeKey)
         }
         // What Canvia is used for, on a phone with no answer yet.
         if UseProfile.current() == nil, let use = UseProfile.decodeSettings(reader.file(UseProfile.settingsFile)) {

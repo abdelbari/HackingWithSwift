@@ -463,10 +463,12 @@ struct PresentationView: View {
     /// goes on the page's clock, so it plays until the last of those.
     private func motionEnd(_ page: Page) -> Double {
         // The page's own animation plays in its elements; a clip behind the
-        // page plays while it is up.
+        // page, or a generated loop behind it, plays while it is up.
         let elements = design.drawnElements(on: PageAnimation.playing(page))
-        if page.backgroundClip != nil { return .infinity }
-        if elements.contains(where: { VideoStore.isVideo($0.src) || AnimStore.isAnim($0.src) }) { return .infinity }
+        if page.backgroundClip != nil || MotionLibrary.isBackground(page) { return .infinity }
+        if elements.contains(where: { VideoStore.isVideo($0.src) || AnimStore.isAnim($0.src) || MotionLibrary.isMotion($0.src) }) {
+            return .infinity
+        }
         var end = elements.compactMap { el in el.animation.map { (el.timing?.start ?? 0) + $0.end } }.max() ?? 0
         // A caption box's words change through the page's whole hold, and a
         // photo's motion moves through it.

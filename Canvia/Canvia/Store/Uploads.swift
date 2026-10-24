@@ -37,6 +37,9 @@ enum Uploads {
         var kind: Kind
         /// When it came in, in epoch milliseconds.
         var added: Double
+        /// Its file's name, where the entry keeps one ("name"): what a
+        /// Bulk create photo cell may name it by.
+        var fileName: String? = nil
     }
 
     /// A font of your own, as uploads.json lists it.
@@ -383,7 +386,7 @@ enum Uploads {
             guard let id = item["id"] as? String, !id.isEmpty,
                   let name = item["kind"] as? String, let kind = Kind(rawValue: name) else { return nil }
             let added = (item["added"] as? NSNumber)?.doubleValue ?? 0
-            return Entry(id: id, kind: kind, added: added)
+            return Entry(id: id, kind: kind, added: added, fileName: item["name"] as? String)
         }
     }
 

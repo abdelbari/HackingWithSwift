@@ -251,6 +251,10 @@ struct AudioTrackView: View {
                 placeSection(track)
                 trimSection(track)
                 levelSection(track)
+                EnhanceVoiceRow(on: track.enhance, source: track.audioId.flatMap { AudioStore.url(for: $0) == nil ? nil : $0 },
+                                range: Self.heard(track, length: length), volume: track.volume) { on in
+                    write { $0.enhance = on }
+                }
                 beatSection(track)
                 captionsSection(track)
                 Section {

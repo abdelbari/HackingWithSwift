@@ -505,7 +505,11 @@ struct PresentSettings: Codable, Equatable {
 /// design's `audio` array, with the Android twin's keys; each read
 /// leniently, as a clip's are, and a track with no "audio:" or "sfx:"
 /// source is none. `beatSync` is true while Beat Sync holds the pages to
-/// its beats (BeatSync), and written only then.
+/// its beats (BeatSync), and written only then. A clip's sound detached
+/// into a track (AudioTracks.detached) has the clip's own source,
+/// "video:<VideoStore id>", and is read from the clip's file. `enhance` is
+/// true while Enhance voice cleans and levels it (VoiceEnhance), and
+/// written only then.
 struct AudioTrack: Codable, Equatable, Identifiable {
     var id: String = UID.make("track")
     var src: String
@@ -518,6 +522,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     var loop: Bool = false
     var name: String = ""
     var beatSync: Bool = false
+    var enhance: Bool = false
 
     static let prefix = "audio:"
     /// A built-in sound effect's source: "sfx:<id>" (SoundEffects).
@@ -535,12 +540,13 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     static let migratedName = "Soundtrack"
 
     /// The id the track's sound is found by: the AudioStore id an
-    /// "audio:" source names, or an effect's whole "sfx:<id>" source — the
-    /// prefix kept, so it never names a song in the store, and AudioStore
-    /// knows to find it among the effects the app comes with. Nil for any
-    /// other source. As the Android twin's AudioTracks.idOf.
+    /// "audio:" source names, or an effect's or a clip's whole "sfx:<id>"
+    /// or "video:<id>" source — the prefix kept, so it never names a song
+    /// in the store, and AudioStore knows to find it among the effects the
+    /// app comes with or the clips. Nil for any other source. As the
+    /// Android twin's AudioTracks.idOf.
     var audioId: String? {
-        if Self.isEffect(src) { return src }
+        if Self.isEffect(src) || Self.isClipSound(src) { return src }
         guard src.hasPrefix(Self.prefix) else { return nil }
         let id = String(src.dropFirst(Self.prefix.count))
         return id.isEmpty ? nil : id
@@ -556,6 +562,18 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         return src.hasPrefix(sfxPrefix) && src.count > sfxPrefix.count
     }
 
+    /// Whether `src` — or an audioId — is a clip's sound: "video:<id>".
+    static func isClipSound(_ src: String?) -> Bool {
+        guard let src else { return false }
+        return src.hasPrefix(VideoStore.prefix) && src.count > VideoStore.prefix.count
+    }
+
+    /// The clip a "video:" source (or its audioId) is the sound of.
+    static func videoId(of src: String?) -> String? {
+        guard let src, isClipSound(src) else { return nil }
+        return String(src.dropFirst(VideoStore.prefix.count))
+    }
+
     /// The effect an "sfx:" source (or its audioId) names.
     static func sfxId(of src: String?) -> String? {
         guard let src, isEffect(src) else { return nil }
@@ -563,9 +581,10 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     }
 
     /// The song's id in the audio store — what a design file and a backup
-    /// carry — or nil for an effect, which every copy of the app has.
+    /// carry — or nil for an effect, which every copy of the app has, and
+    /// for a clip's sound, which travels with its clip.
     var storedAudioId: String? {
-        Self.isEffect(src) ? nil : audioId
+        Self.isEffect(src) || Self.isClipSound(src) ? nil : audioId
     }
 
     init(id: String = UID.make("track"), src: String, start: Double = 0, trimStart: Double = 0,
@@ -593,13 +612,14 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, src, start, trimStart, trimEnd, volume, fadeIn, fadeOut, loop, name, beatSync
+        case id, src, start, trimStart, trimEnd, volume, fadeIn, fadeOut, loop, name, beatSync, enhance
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         src = try c.decode(String.self, forKey: .src)
-        guard (src.hasPrefix(Self.prefix) && src.count > Self.prefix.count) || Self.isEffect(src) else {
+        guard (src.hasPrefix(Self.prefix) && src.count > Self.prefix.count) || Self.isEffect(src)
+                || Self.isClipSound(src) else {
             throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Not an audio track"))
         }
         // One with no id of its own goes by its source, as on Android: the
@@ -615,10 +635,12 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         loop = (try? c.decodeIfPresent(Bool.self, forKey: .loop)) ?? false
         name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
         beatSync = (try? c.decodeIfPresent(Bool.self, forKey: .beatSync)) == true
+        enhance = (try? c.decodeIfPresent(Bool.self, forKey: .enhance)) == true
     }
 
     /// Every key but `trimEnd`, which is written only when the track stops
-    /// short of its file's end, and `beatSync`, written only when on.
+    /// short of its file's end, and `beatSync` and `enhance`, written only
+    /// when on.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
@@ -632,6 +654,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         try c.encode(loop, forKey: .loop)
         try c.encode(name, forKey: .name)
         if beatSync { try c.encode(true, forKey: .beatSync) }
+        if enhance { try c.encode(true, forKey: .enhance) }
     }
 
     /// One track of an `audio` array: none, rather than the whole array,
@@ -718,6 +741,10 @@ struct Design: Codable, Equatable, Identifiable {
     /// nil, and not written, when there are none (Recordings).
     var recordings: [Recording]?
 
+    /// Bulk create's rows, as last made: the columns, and the rows under
+    /// them (BulkCreate). Nil, and not written, before it is used.
+    var bulk: BulkData?
+
     /// Whether Present goes round from the last page shown to the first;
     /// turning it off takes the key away.
     var presentLoops: Bool {
@@ -799,6 +826,7 @@ struct Design: Codable, Equatable, Identifiable {
         // Each talk on its own: one that does not read is passed over.
         let talks = (try? c.decode([Lossy<Recording>].self, forKey: .recordings))?.compactMap(\.value) ?? []
         recordings = talks.isEmpty ? nil : Array(talks.prefix(Recordings.limit))
+        bulk = (try? c.decode(BulkData.self, forKey: .bulk)).flatMap { $0.columns.isEmpty ? nil : $0 }
         // The old soundtrack, read forever: the one track of a file with no
         // `audio` key, and passed over beside one that has it. Never written
         // back, as `motion` no longer has it.
@@ -834,6 +862,7 @@ struct Design: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
         case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present, beatSyncRestore, recordings
+        case bulk
     }
 
     /// The master page, if one is set and still exists.

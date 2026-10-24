@@ -64,7 +64,7 @@ enum ExportSuggestion {
 
     /// Whether `src` is a clip or an animated picture.
     private static func playing(_ src: String?) -> Bool {
-        VideoStore.isVideo(src) || AnimStore.isAnim(src)
+        VideoStore.isVideo(src) || AnimStore.isAnim(src) || MotionLibrary.isMotion(src)
     }
 
     /// The category of the design's type: the first preset of exactly its

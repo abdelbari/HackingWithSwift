@@ -58,10 +58,14 @@ struct InsertSheet: View {
     /// The sheet's height while a tile is carried out of it.
     private static let peek = PresentationDetent.height(120)
 
-    // Six in a segmented control, which gives each the same width: a
-    // seventh cuts the longer names short on a small phone. Icons are a
-    // section of Elements for that reason.
-    private static let baseTabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
+    // Videos — the generated motion loops — beside Photos. A segmented
+    // control gives each the same width, and a seventh cuts the longer
+    // names short on a small phone, so the tabs are a row of chips that
+    // scrolls. Icons are a section of Elements for that reason.
+    private static let baseTabs = ["Templates", "Elements", "Text", "Photos", "Videos", "Stickers", "Background"]
+
+    /// The most tabs a segmented control holds.
+    private static let segmentedMost = 6
 
     /// The tabs, and Brand last — the rule both phones keep — when the kit
     /// in use has anything the tab lists (BrandKit.showsBrandTab); then all
@@ -91,6 +95,7 @@ struct InsertSheet: View {
                         case "Elements": elementsGrid
                         case "Text": textList
                         case "Photos": photosGrid
+                        case "Videos": videosGrid
                         case "Stickers": stickersGrid
                         case "Brand": brandGrid
                         default: backgroundNote
@@ -257,6 +262,7 @@ struct InsertSheet: View {
         case "Templates": return nil
         case "Text": return Text("Search font combinations")
         case "Stickers": return Text("Search emoji")
+        case "Videos": return Text("Search videos")
         default: return isReplacing ? nil : Text("Search elements")
         }
     }
@@ -266,7 +272,8 @@ struct InsertSheet: View {
     /// search their own, and not while a picture is being replaced, when
     /// Photos searches its pictures.
     private var searchesElements: Bool {
-        !["Templates", "Text", "Stickers"].contains(tab) && !isReplacing && !ElementSearch.normalised(search).isEmpty
+        !["Templates", "Text", "Stickers", "Videos"].contains(tab) && !isReplacing
+            && !ElementSearch.normalised(search).isEmpty
     }
 
     /// A thing found by the search, or in Recently used, put on the page as
@@ -318,6 +325,7 @@ struct InsertSheet: View {
                                                   everySize: true, matching: search).isEmpty
                 && UserTemplates.matching(UserTemplates.all(), query: search).isEmpty
         case "Photos": return filteredPhotos.isEmpty
+        // The Videos tab says it in Android's words, under its heading.
         case "Stickers":
             return EmojiCatalogue.search(search).isEmpty && Stickers.searchAnimated(search).isEmpty
         default: return false
@@ -1587,10 +1595,10 @@ struct InsertSheet: View {
 
     // MARK: brand
 
-    /// The tab picker: segmented for six, chips for seven.
+    /// The tab picker: segmented for six, chips for more.
     @ViewBuilder
     private var tabBar: some View {
-        if tabs.count > Self.baseTabs.count {
+        if tabs.count > Self.segmentedMost {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(tabs, id: \.self) { name in tabChip(name) }
@@ -1826,6 +1834,37 @@ struct InsertSheet: View {
             .frame(width: 100, height: 68)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
             .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: videos
+
+    /// The generated motion loops, found by name, category or tag; a tap
+    /// puts one on the page — onto the next unlocked page when this one is
+    /// locked — or into the frame being replaced.
+    private var videosGrid: some View {
+        let loops = MotionLibrary.search(search)
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Motion backgrounds").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+            if loops.isEmpty {
+                Text(tr("No videos match “%@”", search.trimmingCharacters(in: .whitespaces)))
+                    .foregroundStyle(.secondary)
+            }
+            MotionGrid(loops: loops, current: replaceSource) { loop in
+                pickLoop(loop)
+            }
+        }
+        .padding()
+    }
+
+    /// A loop added, or put in the frame being replaced.
+    private func pickLoop(_ loop: MotionDef) {
+        if !isReplacing {
+            guard store.landsOnUnlockedPage() else {
+                dismiss()
+                return
+            }
+        }
+        pickLibraryPicture(MotionLibrary.src(loop.id, at: nil), natural: PhotoLibrary.size)
     }
 
     private var filteredPhotos: [PhotoDef] {
