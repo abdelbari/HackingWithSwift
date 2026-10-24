@@ -795,11 +795,15 @@ struct HomeView: View {
     /// designs and uploads — made `to` (DesignLibrary.movedFolder): a
     /// rename, a move into another folder, or Move contents up. Its star,
     /// and theirs, go with it.
-    private func refile(_ from: String, to: String?) {
+    private func refile(_ from: String, to: String?, deleting: Bool = false) {
         for design in DesignLibrary.designs(recents, in: from, recursive: true) {
             DesignLibrary.move(id: design.id, toFolder: DesignLibrary.movedFolder(design.folder, from: from, to: to))
         }
-        DesignLibrary.renameFolderStar(from, to: to)
+        if deleting {
+            DesignLibrary.removeFolderStar(from, up: to)
+        } else {
+            DesignLibrary.renameFolderStar(from, to: to)
+        }
         Uploads.refile(from: from, to: to)
         reload()
     }
@@ -817,7 +821,7 @@ struct HomeView: View {
             trash(DesignLibrary.designs(recents, in: name, recursive: true))
             Uploads.refile(from: name, to: up)
         } else {
-            refile(name, to: up)
+            refile(name, to: up, deleting: true)
         }
     }
 

@@ -245,6 +245,25 @@ extension DesignLibrary {
         return rest.filter { $0.name != to } + (starred ? [HomeFolder(name: to, starred: true)] : [])
     }
 
+    /// Folder `from` deleted with Move contents up, into `up` (nil: the
+    /// top): those inside it keep their stars, and `up` is not starred for
+    /// it (removingFolder).
+    static func removeFolderStar(_ from: String, up: String?, defaults: UserDefaults = .standard) {
+        let folders = homeFolders(fromJSON: defaults.string(forKey: homeFoldersKey) ?? "[]")
+        defaults.set(homeFoldersJSON(removingFolder(folders, from: from, up: folderName(up))), forKey: homeFoldersKey)
+    }
+
+    /// `folders` after folder `from` is deleted with Move contents up, into
+    /// its parent `up`: the folders inside it move up with their stars, its
+    /// own star goes, and `up` stays starred or not as it was — the Android
+    /// twin's Shelf.removingFolder.
+    static func removingFolder(_ folders: [HomeFolder], from: String, up: String?) -> [HomeFolder] {
+        let moved = renamingFolder(folders, from: from, to: up)
+        guard let up else { return moved }
+        let upStarred = folders.contains { $0.name == up && $0.starred }
+        return moved.filter { $0.name != up } + (upStarred ? [HomeFolder(name: up, starred: true)] : [])
+    }
+
     /// Stars or unstars a design. Starring is not an edit, so the design's
     /// edit time stays, as filing it does. False when it does not read or
     /// could not be written.

@@ -4,6 +4,17 @@
 
 import SwiftUI
 
+/// A window's hold on a design, let go when the view keeping it goes for
+/// good — not while a full-screen cover is over it (Present, a scan), as
+/// the Android twin's DisposableEffect lets go only as its editor leaves.
+private final class WindowHold {
+    var held: (id: String, window: DesignWindows.Window)?
+
+    deinit {
+        if let held { DesignWindows.shared.close(held.id, in: held.window) }
+    }
+}
+
 /// The editor `editor` makes for design `designId` when `window` holds it,
 /// else the design read-only (HeldDesignView); let go as it closes.
 struct WindowedDesign<Editor: View>: View {
@@ -12,6 +23,7 @@ struct WindowedDesign<Editor: View>: View {
     let onClose: () -> Void
     @ViewBuilder let editor: () -> Editor
     @State private var editable: Bool?
+    @State private var hold = WindowHold()
 
     var body: some View {
         // One container, so its appearing and going are the design's alone,
@@ -24,12 +36,13 @@ struct WindowedDesign<Editor: View>: View {
             }
         }
         .onAppear {
-            // Decided once; asked again when it comes back from under a
-            // full-screen cover, which it is let go for, to hold it again.
+            // Decided once, and held until this view goes for good, so a
+            // full-screen cover over the editor keeps it this window's.
+            guard editable == nil else { return }
             let mine = DesignWindows.shared.open(designId, in: window)
-            if editable == nil { editable = mine }
+            if mine { hold.held = (designId, window) }
+            editable = mine
         }
-        .onDisappear { DesignWindows.shared.close(designId, in: window) }
     }
 }
 
