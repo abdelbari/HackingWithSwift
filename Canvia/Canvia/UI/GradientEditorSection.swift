@@ -255,8 +255,8 @@ struct GradientEditorSection: View {
     private var saveButton: some View {
         Button {
             var kit = BrandKit.load()
-            if kit.addGradient(paint) { kit.save() }
-            savedToBrand = true
+            savedToBrand = kit.addGradient(paint)
+            if savedToBrand { kit.save() }
             store.buzz(.tick)
         } label: {
             Label(savedToBrand ? tr("Saved to brand kit") : tr("Save to brand kit"),

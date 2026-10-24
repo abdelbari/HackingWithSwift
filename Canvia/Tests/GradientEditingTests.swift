@@ -95,11 +95,32 @@ final class GradientEditingTests: XCTestCase {
         defaults.removePersistentDomain(forName: "GradientEditingTests")
     }
 
+    /// Row for row with the Android twin's GradientEditsTest: a full kit
+    /// drops its oldest for a new gradient, and a gradient already there —
+    /// its colours written in another case — moves to the end, once.
+    func testAFullBrandKitDropsItsOldestAndMovesARepeatToTheEnd() {
+        var kit = BrandKit()
+        let twelve = (0..<12).map { paint([(0, "#ff0000"), (1, "#0000ff")], angle: Double($0 * 10)) }
+        for p in twelve { XCTAssertTrue(kit.addGradient(p)) }
+        XCTAssertEqual(kit.gradients.count, BrandKit.limit)
+        let newest = paint([(0, "#00ff00"), (1, "#000000")], angle: 45)
+        XCTAssertTrue(kit.addGradient(newest))
+        XCTAssertEqual(kit.gradients.count, 12)
+        XCTAssertEqual(kit.gradients.first?.angle, 10, "the oldest is dropped")
+        XCTAssertEqual(kit.gradients.last, newest)
+        let again = paint([(0, "#FF0000"), (1, "#0000FF")], angle: 50)
+        XCTAssertTrue(kit.addGradient(again))
+        XCTAssertEqual(kit.gradients.count, 12)
+        XCTAssertEqual(kit.gradients.last, again)
+        XCTAssertEqual(kit.gradients.compactMap(\.angle), [10, 20, 30, 40, 60, 70, 80, 90, 100, 110, 45, 50])
+    }
+
     func testABrandKitKeepsGradients() throws {
         var kit = BrandKit()
         let p = paint([(0, "#000000"), (0.3, "#ff0000"), (0.6, "#00ff00"), (1, "#ffffff")], angle: 45)
         XCTAssertTrue(kit.addGradient(p))
-        XCTAssertFalse(kit.addGradient(p), "once")
+        XCTAssertTrue(kit.addGradient(p))
+        XCTAssertEqual(kit.gradients, [p], "once")
         XCTAssertFalse(kit.addGradient(.solid("#ff0000")))
         XCTAssertFalse(kit.isEmpty)
         let data = try JSONEncoder().encode(kit)
