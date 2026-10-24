@@ -1460,6 +1460,15 @@
     "ja": "%@、お気に入り",
     "pt-BR": "%@, favorito"
   },
+  "%@, folder, %@": {
+    "ar": "%@، مجلد، %@",
+    "de": "%@, Ordner, %@",
+    "es": "%@, carpeta, %@",
+    "fr": "%@, dossier, %@",
+    "it": "%@, cartella, %@",
+    "ja": "%@、フォルダー、%@",
+    "pt-BR": "%@, pasta, %@"
+  },
   "%@, folder, %@, starred": {
     "ar": "%@، مجلد، %@، مميّز بنجمة",
     "de": "%@, Ordner, %@, mit Stern",
@@ -3841,6 +3850,39 @@
     "it": "%d volte le dimensioni della pagina",
     "ja": "ページサイズの %d 倍",
     "pt-BR": "%d vezes o tamanho da página"
+  },
+  "%d upload in this folder|%d uploads in this folder": {
+    "ar": {
+      "few": "%d ملفات مرفوعة في هذا المجلد",
+      "many": "%d ملفًا مرفوعًا في هذا المجلد",
+      "one": "%d ملف مرفوع في هذا المجلد",
+      "other": "%d ملف مرفوع في هذا المجلد",
+      "two": "%d ملفان مرفوعان في هذا المجلد",
+      "zero": "%d ملف مرفوع في هذا المجلد"
+    },
+    "de": {
+      "one": "%d Upload in diesem Ordner",
+      "other": "%d Uploads in diesem Ordner"
+    },
+    "es": {
+      "one": "%d archivo subido en esta carpeta",
+      "other": "%d archivos subidos en esta carpeta"
+    },
+    "fr": {
+      "one": "%d import dans ce dossier",
+      "other": "%d imports dans ce dossier"
+    },
+    "it": {
+      "one": "%d caricamento in questa cartella",
+      "other": "%d caricamenti in questa cartella"
+    },
+    "ja": {
+      "other": "このフォルダーのアップロード %d 件"
+    },
+    "pt-BR": {
+      "one": "%d upload nesta pasta",
+      "other": "%d uploads nesta pasta"
+    }
   },
   "%d upload|%d uploads": {
     "ar": {
@@ -9617,6 +9659,15 @@
     "ja": "現在",
     "pt-BR": "Atual"
   },
+  "Current folder": {
+    "ar": "المجلد الحالي",
+    "de": "Aktueller Ordner",
+    "es": "Carpeta actual",
+    "fr": "Dossier actuel",
+    "it": "Cartella attuale",
+    "ja": "現在のフォルダー",
+    "pt-BR": "Pasta atual"
+  },
   "Current page": {
     "ar": "الصفحة الحالية",
     "de": "Aktuelle Seite",
@@ -15182,6 +15233,39 @@
     "ja": "斜体: %@",
     "pt-BR": "Itálico: %@"
   },
+  "Its %d design can move up a level, out of the folder, or go to Recently deleted.|Its %d designs can move up a level, out of the folder, or go to Recently deleted.": {
+    "ar": {
+      "few": "يمكن نقل تصاميمه الـ%d مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "many": "يمكن نقل تصاميمه الـ%d مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "one": "يمكن نقل تصميمه (%d) مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "other": "يمكن نقل تصاميمه الـ%d مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "two": "يمكن نقل تصميميه (%d) مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "zero": "يمكن نقل تصاميمه البالغة %d مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا."
+    },
+    "de": {
+      "one": "Sein %d Design kann eine Ebene nach oben, aus dem Ordner, oder in „Zuletzt gelöscht“.",
+      "other": "Seine %d Designs können eine Ebene nach oben, aus dem Ordner, oder in „Zuletzt gelöscht“."
+    },
+    "es": {
+      "one": "Su %d diseño puede subir un nivel, fuera de la carpeta, o ir a Eliminados recientemente.",
+      "other": "Sus %d diseños pueden subir un nivel, fuera de la carpeta, o ir a Eliminados recientemente."
+    },
+    "fr": {
+      "one": "Son %d design peut remonter d’un niveau, hors du dossier, ou aller dans Supprimés récemment.",
+      "other": "Ses %d designs peuvent remonter d’un niveau, hors du dossier, ou aller dans Supprimés récemment."
+    },
+    "it": {
+      "one": "Il suo %d design può salire di un livello, fuori dalla cartella, o andare in Eliminati di recente.",
+      "other": "I suoi %d design possono salire di un livello, fuori dalla cartella, o andare in Eliminati di recente."
+    },
+    "ja": {
+      "other": "中の %d 件のデザインは、フォルダーの外の一つ上の階層に移すか、「最近削除した項目」に移せます。"
+    },
+    "pt-BR": {
+      "one": "O %d design pode subir um nível, para fora da pasta, ou ir para Excluídos recentemente.",
+      "other": "Os %d designs podem subir um nível, para fora da pasta, ou ir para Excluídos recentemente."
+    }
+  },
   "Its %d design can stay, out of any folder, or go to Recently deleted.|Its %d designs can stay, out of any folder, or go to Recently deleted.": {
     "ar": {
       "few": "يمكن أن تبقى تصاميمه (%d) خارج أي مجلد، أو تُنقل إلى «المحذوفة مؤخرًا».",
@@ -17204,6 +17288,15 @@
     "ja": "列を右へ移動",
     "pt-BR": "Mover coluna para a direita"
   },
+  "Move contents up": {
+    "ar": "نقل المحتوى إلى الأعلى",
+    "de": "Inhalt nach oben verschieben",
+    "es": "Subir el contenido",
+    "fr": "Remonter le contenu",
+    "it": "Sposta il contenuto in su",
+    "ja": "中身を一つ上へ移動",
+    "pt-BR": "Mover o conteúdo para cima"
+  },
   "Move down": {
     "ar": "تحريك لأسفل",
     "de": "Nach unten verschieben",
@@ -17221,6 +17314,24 @@
     "it": "Sposta più indietro",
     "ja": "前へ移動",
     "pt-BR": "Mover para antes"
+  },
+  "Move folder “%@”": {
+    "ar": "نقل المجلد «%@»",
+    "de": "Ordner „%@“ verschieben",
+    "es": "Mover la carpeta «%@»",
+    "fr": "Déplacer le dossier « %@ »",
+    "it": "Sposta la cartella «%@»",
+    "ja": "フォルダー「%@」を移動",
+    "pt-BR": "Mover a pasta “%@”"
+  },
+  "Move folder…": {
+    "ar": "نقل المجلد…",
+    "de": "Ordner verschieben…",
+    "es": "Mover carpeta…",
+    "fr": "Déplacer le dossier…",
+    "it": "Sposta cartella…",
+    "ja": "フォルダーを移動…",
+    "pt-BR": "Mover pasta…"
   },
   "Move in front": {
     "ar": "نقل إلى الأمام",
@@ -17804,6 +17915,24 @@
     "ja": "新しいフォルダー",
     "pt-BR": "Nova pasta"
   },
+  "New folder here": {
+    "ar": "مجلد جديد هنا",
+    "de": "Neuer Ordner hier",
+    "es": "Nueva carpeta aquí",
+    "fr": "Nouveau dossier ici",
+    "it": "Nuova cartella qui",
+    "ja": "ここに新しいフォルダー",
+    "pt-BR": "Nova pasta aqui"
+  },
+  "New folder in %@": {
+    "ar": "مجلد جديد في %@",
+    "de": "Neuer Ordner in %@",
+    "es": "Nueva carpeta en %@",
+    "fr": "Nouveau dossier dans %@",
+    "it": "Nuova cartella in %@",
+    "ja": "%@ 内の新しいフォルダー",
+    "pt-BR": "Nova pasta em %@"
+  },
   "New folder…": {
     "ar": "مجلد جديد…",
     "de": "Neuer Ordner …",
@@ -18109,6 +18238,15 @@
     "it": "Nessuna uscita",
     "ja": "退場なし",
     "pt-BR": "Sem saída"
+  },
+  "No folder": {
+    "ar": "بلا مجلد",
+    "de": "Kein Ordner",
+    "es": "Sin carpeta",
+    "fr": "Aucun dossier",
+    "it": "Nessuna cartella",
+    "ja": "フォルダーなし",
+    "pt-BR": "Sem pasta"
   },
   "No font": {
     "ar": "بلا خط",
@@ -19450,6 +19588,15 @@
     "it": "Apri design",
     "ja": "デザインを開く",
     "pt-BR": "Abrir design"
+  },
+  "Open in another window": {
+    "ar": "مفتوح في نافذة أخرى",
+    "de": "In einem anderen Fenster geöffnet",
+    "es": "Abierto en otra ventana",
+    "fr": "Ouvert dans une autre fenêtre",
+    "it": "Aperto in un’altra finestra",
+    "ja": "別のウィンドウで開いています",
+    "pt-BR": "Aberto em outra janela"
   },
   "Open in new window": {
     "ar": "فتح في نافذة جديدة",
@@ -28943,6 +29090,15 @@
     "ja": "このデザインで「%@」を更新しました",
     "pt-BR": "“%@” atualizado a partir deste design"
   },
+  "Upload": {
+    "ar": "ملف مرفوع",
+    "de": "Upload",
+    "es": "Archivo subido",
+    "fr": "Import",
+    "it": "Caricamento",
+    "ja": "アップロード",
+    "pt-BR": "Upload"
+  },
   "Uploaded SVG graphic %d of %d": {
     "ar": "رسم SVG المحمّل %d من %d",
     "de": "Hochgeladene SVG-Grafik %d von %d",
@@ -28978,6 +29134,15 @@
     "it": "Caricamenti",
     "ja": "アップロード",
     "pt-BR": "Uploads"
+  },
+  "Uploads in %@": {
+    "ar": "الملفات المرفوعة في %@",
+    "de": "Uploads in %@",
+    "es": "Archivos subidos en %@",
+    "fr": "Imports dans %@",
+    "it": "Caricamenti in %@",
+    "ja": "%@ のアップロード",
+    "pt-BR": "Uploads em %@"
   },
   "Uppercase": {
     "ar": "أحرف كبيرة",

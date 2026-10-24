@@ -10,9 +10,10 @@
 //
 // The file is a JSON array of {"id", "kind", "added"}: the id as the
 // media:, video: and audio sources name it, "image", "video" or "audio",
-// and when it came in, in epoch milliseconds. The Android twin keeps the
-// same file in its filesDir. Keys this version does not know are kept as
-// they were.
+// and when it came in, in epoch milliseconds — and, filed in a folder of
+// Home's, its "folder" (a path, as a design's: DesignLibrary.folderName).
+// The Android twin keeps the same file in its filesDir. Keys this version
+// does not know are kept as they were.
 //
 // A font of your own is an entry too, of kind "font", kept apart from the
 // photos, clips and music the Add sheet offers: its id is the twelve hex
@@ -40,6 +41,8 @@ enum Uploads {
         /// Its file's name, where the entry keeps one ("name"): what a
         /// Bulk create photo cell may name it by.
         var fileName: String? = nil
+        /// The folder it is filed in, as a design's is; nil at the top.
+        var folder: String? = nil
     }
 
     /// A font of your own, as uploads.json lists it.
@@ -224,6 +227,58 @@ enum Uploads {
         .map { $0.element }
     }
 
+    /// The key an upload's folder is kept under.
+    static let folderKey = "folder"
+
+    /// `raw` — the list as written — with upload `id` filed in `folder`: nil
+    /// takes it out of one; anything else it holds as it was.
+    static func filed(_ raw: [[String: Any]], id: String, folder: String?) -> [[String: Any]] {
+        raw.map { item in
+            guard item["id"] as? String == id else { return item }
+            var out = item
+            out[folderKey] = DesignLibrary.folderName(folder)
+            return out
+        }
+    }
+
+    /// `raw` once folder `from` is `to` (DesignLibrary.movedFolder): every
+    /// upload in it, or in a folder inside it, to the same place there.
+    static func refiled(_ raw: [[String: Any]], from: String, to: String?) -> [[String: Any]] {
+        raw.map { item in
+            guard let folder = item[folderKey] as? String, DesignLibrary.isInside(folder, from) else { return item }
+            var out = item
+            out[folderKey] = DesignLibrary.movedFolder(folder, from: from, to: to)
+            return out
+        }
+    }
+
+    /// The uploads filed in `path` — and, `recursive`, in the folders inside
+    /// it.
+    static func inFolder(_ entries: [Entry], path: String, recursive: Bool) -> [Entry] {
+        entries.filter { recursive ? DesignLibrary.isInside($0.folder, path) : $0.folder == path }
+    }
+
+    /// Files upload `id` in `folder`, or out of any for nil.
+    static func file(_ id: String, inFolder folder: String?) {
+        lock.lock()
+        defer { lock.unlock() }
+        write(filed(list(), id: id, folder: folder))
+    }
+
+    /// Folder `from` renamed, moved or emptied up to `to`: its uploads go
+    /// with it.
+    static func refile(from: String, to: String?) {
+        lock.lock()
+        defer { lock.unlock() }
+        let raw = list()
+        let moved = refiled(raw, from: from, to: to)
+        if !NSArray(array: moved).isEqual(to: raw) { write(moved) }
+    }
+
+    /// The entries `raw` lists, for a test: as all() reads them, whether
+    /// or not their files are here.
+    static func entries(of raw: [[String: Any]]) -> [Entry] { entries(in: raw) }
+
     /// Takes an upload off the list. Its file stays for whatever still uses
     /// it, and the launch sweep takes it once nothing does.
     static func remove(_ id: String) {
@@ -386,7 +441,8 @@ enum Uploads {
             guard let id = item["id"] as? String, !id.isEmpty,
                   let name = item["kind"] as? String, let kind = Kind(rawValue: name) else { return nil }
             let added = (item["added"] as? NSNumber)?.doubleValue ?? 0
-            return Entry(id: id, kind: kind, added: added, fileName: item["name"] as? String)
+            return Entry(id: id, kind: kind, added: added, fileName: item["name"] as? String,
+                         folder: DesignLibrary.folderName(item[folderKey] as? String))
         }
     }
 

@@ -1,29 +1,137 @@
 // Folders as a whole, stars, and Select on Home: what renaming a folder
 // moves, which folders and designs are starred, and which designs a Select
-// picks. A folder is still only the `folder` each
-// design is filed under, so renaming or emptying one moves its designs, one
-// by one, with move(id:toFolder:). The Android twin's Shelf
-// (core/content/Shelf.kt) by the same rules.
+// picks. A folder is still only the `folder` each design (and each upload,
+// Uploads) is filed under — now a path, "Clients/Acme/2026", the folder
+// 2026 in Acme in Clients — so renaming, moving or emptying one moves what
+// is in it, one by one, with move(id:toFolder:). A flat name from before
+// is a path of one level, so there is nothing to migrate. The Android
+// twin's Shelf (core/content/Shelf.kt) by the same rules.
 
 import Foundation
 
 extension DesignLibrary {
 
-    /// The longest a folder's name can be, in UTF-16 units as Android
-    /// counts a String's length, so a name one phone takes the other does.
+    /// The longest a folder's name can be — each level of a path — in
+    /// UTF-16 units as Android counts a String's length, so a name one
+    /// phone takes the other does.
     static let folderNameLimit = 40
 
-    /// A folder name as it is kept: trimmed, and none when it is blank.
+    /// What a folder's path is made of.
+    static let folderSeparator: Character = "/"
+
+    /// The deepest a folder may be: four levels.
+    static let folderDepthLimit = 4
+
+    /// A folder path as it is kept: each level trimmed, empty ones left
+    /// out, joined by `folderSeparator`; none when nothing is left.
     static func folderName(_ raw: String?) -> String? {
-        guard let name = raw?.trimmingCharacters(in: .whitespaces), !name.isEmpty else { return nil }
-        return name
+        guard let raw else { return nil }
+        let parts = raw.split(separator: folderSeparator, omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: String(folderSeparator))
+    }
+
+    /// Whether `raw` can name a folder: something left trimmed, no
+    /// `folderSeparator` in it, and at most `folderNameLimit` UTF-16 units.
+    static func isFolderName(_ raw: String) -> Bool {
+        let name = raw.trimmingCharacters(in: .whitespaces)
+        return !name.isEmpty && !name.contains(folderSeparator) && name.utf16.count <= folderNameLimit
+    }
+
+    /// Whether `path` is a folder something can be filed in: 1 to
+    /// `folderDepthLimit` levels, each an `isFolderName`, written as kept.
+    static func isFolderPath(_ path: String) -> Bool {
+        let parts = segments(path)
+        return (1...folderDepthLimit).contains(parts.count) && parts.allSatisfy(isFolderName)
+            && folderName(path) == path
+    }
+
+    /// The folders a path goes through, its own last.
+    static func segments(_ path: String?) -> [String] {
+        folderName(path)?.split(separator: folderSeparator).map(String.init) ?? []
+    }
+
+    /// The folder `name` in `parent` (nil: at the top).
+    static func childPath(_ parent: String?, _ name: String) -> String {
+        folderName([parent, name.trimmingCharacters(in: .whitespaces)].compactMap { $0 }
+            .joined(separator: String(folderSeparator))) ?? ""
+    }
+
+    /// The folder `path` is in; nil for one at the top.
+    static func parentOf(_ path: String) -> String? {
+        let parts = segments(path).dropLast()
+        return parts.isEmpty ? nil : parts.joined(separator: String(folderSeparator))
+    }
+
+    /// A folder's own name, the last of its path.
+    static func leafName(_ path: String) -> String { segments(path).last ?? path }
+
+    /// Whether `folder` is `path` or somewhere inside it.
+    static func isInside(_ folder: String?, _ path: String) -> Bool {
+        guard let folder else { return false }
+        return folder == path || folder.hasPrefix(path + String(folderSeparator))
+    }
+
+    /// The breadcrumb to `path`: each folder on the way, as its name and its
+    /// path, from the top.
+    static func breadcrumb(_ path: String?) -> [(name: String, path: String)] {
+        let parts = segments(path)
+        return parts.indices.map { i in
+            (name: parts[i], path: parts[...i].joined(separator: String(folderSeparator)))
+        }
+    }
+
+    /// `paths` and every folder on the way to each, once, alphabetically.
+    static func allFolders(_ paths: [String]) -> [String] {
+        var out = Set<String>()
+        for path in paths { for step in breadcrumb(path) { out.insert(step.path) } }
+        return out.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    /// The folders right inside `path` (nil: at the top) among `folders`
+    /// — paths, as allFolders gives them — in order.
+    static func children(_ folders: [String], of path: String?) -> [String] {
+        let depth = segments(path).count
+        return allFolders(folders).filter { f in
+            segments(f).count == depth + 1 && (path.map { isInside(f, $0) } ?? true)
+        }
+    }
+
+    /// The designs filed in `path` — and, `recursive`, in every folder
+    /// inside it too.
+    static func designs(_ designs: [RecentDesign], in path: String, recursive: Bool) -> [RecentDesign] {
+        designs.filter { recursive ? isInside($0.folder, path) : $0.folder == path }
+    }
+
+    /// `folder` once `from` is `to`: the same place inside it; anything
+    /// outside `from` is as it was. A rename, a move into another folder
+    /// and Move contents up are each this.
+    static func movedFolder(_ folder: String?, from: String, to: String?) -> String? {
+        guard let folder, isInside(folder, from) else { return folder }
+        let rest = String(folder.dropFirst(from.count)).drop { $0 == folderSeparator }
+        return folderName([to, String(rest)].compactMap { $0 }.joined(separator: String(folderSeparator)))
+    }
+
+    /// What filing `from` in `into` (nil: the top) makes it, or nil when
+    /// that cannot be: into itself or one inside it (a cycle), where it is
+    /// already, or deeper than `folderDepthLimit` for anything inside it.
+    static func movedInto(_ folders: [String], from: String, into: String?) -> String? {
+        if let into, isInside(into, from) { return nil }
+        let to = childPath(into, leafName(from))
+        guard to != from else { return nil }
+        let deepest = allFolders(folders).filter { isInside($0, from) }.map { segments($0).count }.max()
+            ?? segments(from).count
+        return segments(to).count + deepest - segments(from).count <= folderDepthLimit ? to : nil
     }
 
     /// What renaming a folder does.
     struct FolderRename: Equatable {
-        /// The designs filed under the new name: every one in the folder.
+        /// The designs filed under the new name: every one in the folder,
+        /// or in a folder inside it, each to the same place under it
+        /// (movedFolder).
         var ids: [String]
-        /// The new name, as it is kept.
+        /// The new path, as it is kept: in the same folder as before.
         var name: String
         /// Another folder already has the name, so the two become one.
         var merges: Bool
@@ -32,13 +140,18 @@ extension DesignLibrary {
     }
 
     /// What renaming the folder `from` to `to` would do, or nil when `to`
-    /// is no name for a folder — blank, or past `folderNameLimit` — or is
-    /// the folder's own, so Rename has nothing to do. A folder of the same
-    /// name, exactly, is a merge.
-    static func renamePlan(_ designs: [RecentDesign], from: String, to: String) -> FolderRename? {
-        guard let name = folderName(to), name.utf16.count <= folderNameLimit, name != from else { return nil }
-        let ids = designs.filter { $0.folder == from }.map(\.id)
-        let merges = designs.contains { $0.folder == name }
+    /// is no name for a folder — blank, past `folderNameLimit`, or with a
+    /// `folderSeparator` in it — or is the folder's own, so Rename has
+    /// nothing to do. It stays where it is, in the same folder. A folder of
+    /// that path already — exactly — is a merge. `uploads` are the folders
+    /// uploads are filed in, which make folders too.
+    static func renamePlan(_ designs: [RecentDesign], from: String, to: String,
+                           uploads: [String] = []) -> FolderRename? {
+        guard isFolderName(to) else { return nil }
+        let name = childPath(parentOf(from), to)
+        guard name != from else { return nil }
+        let ids = designs.filter { isInside($0.folder, from) }.map(\.id)
+        let merges = allFolders(designs.compactMap(\.folder) + uploads).contains(name)
         return FolderRename(ids: ids, name: name, merges: merges, from: from)
     }
 
@@ -110,21 +223,26 @@ extension DesignLibrary {
         defaults.set(homeFoldersJSON(folders), forKey: homeFoldersKey)
     }
 
-    /// A folder renamed takes its star along; one deleted (`to` nil) drops
-    /// it. Merged into a folder already there, the merged folder is starred
-    /// if either was.
+    /// A folder renamed, or moved, takes its star along, and so does every
+    /// folder inside it, to its new path (movedFolder); one deleted or moved
+    /// up to the top (`to` nil) drops its own, those inside it moving up.
+    /// Merged into a folder already there, the merged folder is starred if
+    /// either was.
     static func renameFolderStar(_ from: String, to: String?, defaults: UserDefaults = .standard) {
-        var folders = homeFolders(fromJSON: defaults.string(forKey: homeFoldersKey) ?? "[]")
-        guard let i = folders.firstIndex(where: { $0.name == from }) else { return }
-        let was = folders.remove(at: i)
-        if let to = folderName(to) {
-            if let j = folders.firstIndex(where: { $0.name == to }) {
-                folders[j].starred = folders[j].starred || was.starred
-            } else {
-                folders.append(HomeFolder(name: to, starred: was.starred))
-            }
+        let folders = homeFolders(fromJSON: defaults.string(forKey: homeFoldersKey) ?? "[]")
+        defaults.set(homeFoldersJSON(renamingFolder(folders, from: from, to: folderName(to))), forKey: homeFoldersKey)
+    }
+
+    /// `folders` after folder `from` is renamed, or moved, to `to` — the
+    /// Android twin's Shelf.renamingFolder: stars are kept by whole path.
+    static func renamingFolder(_ folders: [HomeFolder], from: String, to: String?) -> [HomeFolder] {
+        let starred = to != nil && folders.contains { ($0.name == from || $0.name == to) && $0.starred }
+        let inside = folders.filter { isInside($0.name, from) && $0.name != from }.compactMap { f in
+            movedFolder(f.name, from: from, to: to).map { HomeFolder(name: $0, starred: f.starred) }
         }
-        defaults.set(homeFoldersJSON(folders), forKey: homeFoldersKey)
+        let rest = folders.filter { !isInside($0.name, from) && $0.name != to } + inside
+        guard let to else { return rest }
+        return rest.filter { $0.name != to } + (starred ? [HomeFolder(name: to, starred: true)] : [])
     }
 
     /// Stars or unstars a design. Starring is not an edit, so the design's
@@ -162,9 +280,10 @@ extension DesignLibrary {
     /// newest edit, or by its pages added up — the most first, then the
     /// newest.
     static func sortedFolders(_ names: [String], of designs: [RecentDesign], sort: Sort) -> [String] {
-        let inside = Dictionary(grouping: designs.filter { $0.folder != nil }) { $0.folder ?? "" }
-        func newest(_ name: String) -> Double { inside[name]?.map(\.updatedAt).max() ?? 0 }
-        func pages(_ name: String) -> Int { inside[name]?.reduce(0) { $0 + $1.pages } ?? 0 }
+        // A folder holds what is in the folders inside it too.
+        func inside(_ name: String) -> [RecentDesign] { designs.filter { isInside($0.folder, name) } }
+        func newest(_ name: String) -> Double { inside(name).map(\.updatedAt).max() ?? 0 }
+        func pages(_ name: String) -> Int { inside(name).reduce(0) { $0 + $1.pages } }
         switch sort {
         case .recent:
             return names.sorted { newest($0) > newest($1) }

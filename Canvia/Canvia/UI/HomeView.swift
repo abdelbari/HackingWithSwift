@@ -130,9 +130,14 @@ struct HomeView: View {
     @State private var landAfterSheet: (file: URL, src: String?)?
     /// The folders starred, from the home-folders preference.
     @State private var starredFolders: Set<String> = []
-    /// The designs a new folder is being named for.
-    @State private var filingInto: [String] = []
-    @State private var newFolderName = ""
+    /// The designs being filed, while Move to folder asks where.
+    @State private var filing: FilingRequest?
+    /// The folder each upload is filed in, for the folders and their counts.
+    @State private var uploadFolders: [String?] = []
+    /// The folder whose uploads the Uploads sheet shows; nil is all of them.
+    @State private var uploadsFolder: String?
+    /// The folder being moved, while Move folder… asks where.
+    @State private var movingFolder: String?
     /// The folder whose new name is being typed.
     @State private var renamingFolder: String?
     @State private var folderRenameText = ""
@@ -212,8 +217,9 @@ struct HomeView: View {
             .importPickers(media: $pickingMedia, pdf: $pickingPDF, onLanded: onImport) { importError = $0 }
             .powerPointImport($deckURLs, onOpen: onOpen)
             .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
-            .modifier(HomeDialogs(filingInto: $filingInto, newFolderName: $newFolderName, renaming: $renaming,
-                                  renameText: $renameText, move: move) { reload() })
+            .modifier(HomeDialogs(renaming: $renaming, renameText: $renameText) { reload() })
+            .modifier(FolderDialogs(filing: $filing, movingFolder: $movingFolder, folders: folders,
+                                    move: move, moveFolder: moveFolder))
     }
 
     /// The shelf, the templates and what floats over them — apart from the
@@ -241,12 +247,16 @@ struct HomeView: View {
                     .padding(.horizontal)
                     // All, Starred, Uploads, then the folders.
                     if !recents.isEmpty { folderChips }
+                    if let folder, !starredOnly { folderPart(folder) }
                     if starredOnly {
                         starredPart
                     } else if shownRecents.isEmpty {
-                        Text("No design matches “\(query)”.")
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
+                        // A folder of folders alone has no designs of its own.
+                        if folder == nil || !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Text("No design matches “\(query)”.")
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal)
+                        }
                     } else {
                         recentsGrid
                     }
@@ -334,7 +344,7 @@ struct HomeView: View {
     /// to the photo and the nearest types follow — each once the sheet has
     /// gone.
     private var uploadsSheet: some View {
-        UploadsSheet(onOpen: { design in
+        UploadsSheet(folder: uploadsFolder, folders: folders, onOpen: { design in
             openAfterSheet = design
             homeSheet = nil
         }, onImport: {
@@ -430,9 +440,11 @@ struct HomeView: View {
                 (DesignLibrary.shelf(), DesignLibrary.trashed(), UserTemplates.all())
             }.value
             guard generation == reloads else { return }
-            hasUploads = await Task.detached(priority: .utility) {
-                !Uploads.all().isEmpty || !Uploads.fonts().isEmpty
+            let uploads = await Task.detached(priority: .utility) {
+                (entries: Uploads.all(), fonts: Uploads.fonts().count)
             }.value
+            hasUploads = !uploads.entries.isEmpty || uploads.fonts > 0
+            uploadFolders = uploads.entries.map(\.folder)
             userTemplates = mine
             brandKit = BrandKit.load()
             show(shelf, trashed: binned)
@@ -450,7 +462,7 @@ struct HomeView: View {
         QuickActions.publish(recents: recents)
         // A folder exists while something is in it: when its last design
         // goes, the shelf shows everything again rather than nothing.
-        if let f = folder, !DesignLibrary.folders(in: recents).contains(f) { folder = nil }
+        if let f = folder, !folders.contains(f) { folder = nil }
         // A design that reached the shelf without being opened here — a
         // file from the Android twin, a sample whose picture was not
         // written — gets its picture now rather than showing a grey box,
@@ -557,7 +569,10 @@ struct HomeView: View {
         return DesignLibrary.snippet(recent.text, query: query)
     }
 
-    private var folders: [String] { DesignLibrary.folders(in: recents) }
+    /// Every folder in use, by a design or an upload, and those they are in.
+    private var folders: [String] {
+        DesignLibrary.allFolders(recents.compactMap(\.folder) + uploadFolders.compactMap { $0 })
+    }
 
     /// Whatever is on the shelf is one of the samples seeded at the first
     /// launch, or nothing is: a way to start from a photo instead.
@@ -692,22 +707,16 @@ struct HomeView: View {
                 }
                 uploadsChip
                 plannedChip
-                ForEach(folders, id: \.self) { name in
-                    chip(name, selected: folder == name, systemImage: starredFolders.contains(name) ? "star.fill" : "folder") {
-                        folder = folder == name ? nil : name
+                // The folders at the top; those inside them are tiles in
+                // their folder (FolderTile).
+                ForEach(DesignLibrary.children(folders, of: nil), id: \.self) { name in
+                    let inside = DesignLibrary.isInside(folder, name)
+                    chip(name, selected: inside, systemImage: starredFolders.contains(name) ? "star.fill" : "folder") {
+                        folder = inside ? nil : name
                         starredOnly = false
                     }
                     .accessibilityLabel(starredFolders.contains(name) ? tr("%@, starred", name) : name)
-                    .contextMenu {
-                        starFolderButton(name)
-                        Button {
-                            folderRenameText = name
-                            renamingFolder = name
-                        } label: { Label("Rename folder…", systemImage: "pencil") }
-                        Button(role: .destructive) {
-                            deletingFolder = name
-                        } label: { Label("Delete folder…", systemImage: "trash") }
-                    }
+                    .contextMenu { folderMenu(name) }
                 }
             }
             .padding(.horizontal)
@@ -720,11 +729,13 @@ struct HomeView: View {
                 if let from = renamingFolder { renameFolder(from, to: folderRenameText) }
                 renamingFolder = nil
             }
-            // Blank, or past forty characters, is no name for a folder.
-            .disabled(DesignLibrary.renamePlan(recents, from: renamingFolder ?? "", to: folderRenameText) == nil)
+            // Blank, with a slash, or past forty characters, is no name for
+            // a folder.
+            .disabled(DesignLibrary.renamePlan(recents, from: renamingFolder ?? "", to: folderRenameText,
+                                               uploads: uploadFolders.compactMap { $0 }) == nil)
             Button("Cancel", role: .cancel) { renamingFolder = nil }
         }
-        .alert("Merge into ‘\(merging?.name ?? "")’?", isPresented: Binding(
+        .alert("Merge into ‘\(DesignLibrary.leafName(merging?.name ?? ""))’?", isPresented: Binding(
             get: { merging != nil },
             set: { if !$0 { merging = nil } })) {
             Button("Merge") {
@@ -733,51 +744,129 @@ struct HomeView: View {
             }
             Button("Cancel", role: .cancel) { merging = nil }
         }
-        .confirmationDialog("Delete ‘\(deletingFolder ?? "")’?", isPresented: Binding(
+        .confirmationDialog("Delete ‘\(DesignLibrary.leafName(deletingFolder ?? ""))’?", isPresented: Binding(
             get: { deletingFolder != nil },
             set: { if !$0 { deletingFolder = nil } }),
                             titleVisibility: .visible) {
-            Button("Keep the designs") {
+            Button("Move contents up") {
                 if let name = deletingFolder { deleteFolder(name, trashingDesigns: false) }
                 deletingFolder = nil
             }
-            Button("Delete the designs too", role: .destructive) {
+            Button("Recently deleted", role: .destructive) {
                 if let name = deletingFolder { deleteFolder(name, trashingDesigns: true) }
                 deletingFolder = nil
             }
             Button("Cancel", role: .cancel) { deletingFolder = nil }
+        } message: {
+            Text(trn("Its %d design can move up a level, out of the folder, or go to Recently deleted.|Its %d designs can move up a level, out of the folder, or go to Recently deleted.",
+                     DesignLibrary.designs(recents, in: deletingFolder ?? "", recursive: true).count))
         }
     }
 
-    /// Every design in the folder filed under the new name, and the folder
-    /// still the one shown — or, onto a folder already there, asked first.
+    /// Every design in the folder, and in the folders inside it, filed
+    /// under the new name, and the folder still the one shown — or, onto a
+    /// folder already there, asked first.
     private func renameFolder(_ from: String, to: String) {
-        guard let plan = DesignLibrary.renamePlan(recents, from: from, to: to) else { return }
+        guard let plan = DesignLibrary.renamePlan(recents, from: from, to: to,
+                                                  uploads: uploadFolders.compactMap { $0 }) else { return }
         if plan.merges { merging = plan } else { applyRename(plan) }
     }
 
     private func applyRename(_ plan: DesignLibrary.FolderRename) {
-        for id in plan.ids { DesignLibrary.move(id: id, toFolder: plan.name) }
-        DesignLibrary.renameFolderStar(plan.from, to: plan.name)
-        folder = plan.name
+        refile(plan.from, to: plan.name)
+        if DesignLibrary.isInside(folder, plan.from) {
+            folder = DesignLibrary.movedFolder(folder, from: plan.from, to: plan.name)
+        }
+    }
+
+    /// Folder `from`, and everything in it and in the folders inside it —
+    /// designs and uploads — made `to` (DesignLibrary.movedFolder): a
+    /// rename, a move into another folder, or Move contents up. Its star,
+    /// and theirs, go with it.
+    private func refile(_ from: String, to: String?) {
+        for design in DesignLibrary.designs(recents, in: from, recursive: true) {
+            DesignLibrary.move(id: design.id, toFolder: DesignLibrary.movedFolder(design.folder, from: from, to: to))
+        }
+        DesignLibrary.renameFolderStar(from, to: to)
+        Uploads.refile(from: from, to: to)
         reload()
     }
 
-    /// The folder goes, its designs either out of any folder or to
-    /// Recently deleted with one Undo for them all; the shelf shows
-    /// everything again. Kept designs leave no folder to star; deleted
-    /// with its designs, the folder keeps its star should they come back,
-    /// as on the Android twin.
+    /// The folder goes. Move contents up puts its designs, uploads and
+    /// folders in the folder it is in (or in none, at the top); Recently
+    /// deleted sends its designs — those in the folders inside it too —
+    /// there with one Undo for them all, its uploads moving up either way.
+    /// Deleted with its designs, the folder keeps its star should they come
+    /// back, as on the Android twin.
     private func deleteFolder(_ name: String, trashingDesigns: Bool) {
-        let inFolder = recents.filter { $0.folder == name }
-        folder = nil
+        let up = DesignLibrary.parentOf(name)
+        folder = up
         if trashingDesigns {
-            trash(inFolder)
+            trash(DesignLibrary.designs(recents, in: name, recursive: true))
+            Uploads.refile(from: name, to: up)
         } else {
-            DesignLibrary.renameFolderStar(name, to: nil)
-            for design in inFolder { DesignLibrary.move(id: design.id, toFolder: nil) }
-            reload()
+            refile(name, to: up)
         }
+    }
+
+    /// Folder `from` filed in `into` (nil: the top): it, and everything in
+    /// it, moved there, and the folder shown follows it.
+    private func moveFolder(_ from: String, into: String?) {
+        guard let to = DesignLibrary.movedInto(folders, from: from, into: into) else { return }
+        refile(from, to: to)
+        if DesignLibrary.isInside(folder, from) { folder = DesignLibrary.movedFolder(folder, from: from, to: to) }
+    }
+
+    /// A folder's menu: star, rename, move, delete.
+    @ViewBuilder
+    private func folderMenu(_ name: String) -> some View {
+        starFolderButton(name)
+        Button {
+            folderRenameText = DesignLibrary.leafName(name)
+            renamingFolder = name
+        } label: { Label("Rename folder…", systemImage: "pencil") }
+        Button { movingFolder = name } label: { Label("Move folder…", systemImage: "folder") }
+        Button(role: .destructive) {
+            deletingFolder = name
+        } label: { Label("Delete folder…", systemImage: "trash") }
+    }
+
+    /// In a folder: the way back up, the folders inside it, and its
+    /// uploads, above its designs.
+    private func folderPart(_ path: String) -> some View {
+        let here = uploadFolders.filter { $0 == path }.count
+        return VStack(alignment: .leading, spacing: 10) {
+            FolderBreadcrumb(path: path) { folder = $0 }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+                ForEach(DesignLibrary.children(folders, of: path), id: \.self) { child in folderTile(child) }
+            }
+            if here > 0 {
+                Button(trn("%d upload in this folder|%d uploads in this folder", here)) {
+                    uploadsFolder = path
+                    homeSheet = .uploads
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func folderTile(_ path: String) -> some View {
+        let count = DesignLibrary.designs(recents, in: path, recursive: true).count
+            + uploadFolders.filter { DesignLibrary.isInside($0, path) }.count
+        let starred = starredFolders.contains(path)
+        return FolderTile(path: path, count: count, starred: starred,
+                          onOpen: { folder = path },
+                          onStar: {
+                              DesignLibrary.setFolderStarred(path, !starred)
+                              starredFolders = DesignLibrary.starredFolders()
+                          },
+                          onRename: {
+                              folderRenameText = DesignLibrary.leafName(path)
+                              renamingFolder = path
+                          },
+                          onMove: { movingFolder = path },
+                          onDelete: { deletingFolder = path })
     }
 
     /// Add to starred / Remove from starred, for a folder chip.
@@ -813,7 +902,7 @@ struct HomeView: View {
     /// A starred folder among the starred designs: its name and how many
     /// designs it holds; a tap shows them.
     private func folderCard(_ name: String) -> some View {
-        let count = recents.filter { $0.folder == name }.count
+        let count = DesignLibrary.designs(recents, in: name, recursive: true).count
         let said = trn("%d design|%d designs", count)
         return Button {
             starredOnly = false
@@ -824,7 +913,7 @@ struct HomeView: View {
                     .font(.largeTitle)
                     .foregroundStyle(Theme.accent)
                     .frame(maxWidth: .infinity, minHeight: 96)
-                Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                Text(DesignLibrary.leafName(name)).font(.subheadline.weight(.semibold)).lineLimit(1)
                 Text(said).font(.caption).foregroundStyle(.secondary)
             }
             .padding(10)
@@ -834,7 +923,7 @@ struct HomeView: View {
             .overlay(alignment: .topLeading) { starBadge }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(name), folder, \(said), starred")
+        .accessibilityLabel(tr("%@, folder, %@, starred", DesignLibrary.leafName(name), said))
         .contextMenu { starFolderButton(name) }
     }
 
@@ -858,7 +947,10 @@ struct HomeView: View {
 
     /// Everything brought in, on a sheet of its own.
     private var uploadsChip: some View {
-        chip(tr("Uploads"), selected: false, systemImage: "photo.on.rectangle") { homeSheet = .uploads }
+        chip(tr("Uploads"), selected: false, systemImage: "photo.on.rectangle") {
+            uploadsFolder = nil
+            homeSheet = .uploads
+        }
     }
 
     /// The posts planned, soonest first, on a sheet of their own.
@@ -1421,9 +1513,9 @@ struct HomeView: View {
                     copyResizing = DesignLibrary.load(id: recent.id)
                 } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
                 Section { shareItems(recent) }
-                Menu {
-                    moveItems([recent])
-                } label: { Label("Move to folder", systemImage: "folder") }
+                Button {
+                    filing = FilingRequest(designs: [recent])
+                } label: { Label("Move to folder…", systemImage: "folder") }
                 if supportsMultipleWindows {
                     Button {
                         openWindow(value: recent.id)
@@ -1481,26 +1573,6 @@ struct HomeView: View {
                 return
             }
             use(design)
-        }
-    }
-
-    /// Where `designs` can be filed: each folder — but the one they are
-    /// all in already — a new one, or out of their folders.
-    @ViewBuilder
-    private func moveItems(_ designs: [RecentDesign]) -> some View {
-        let ids = designs.map(\.id)
-        let current = Set(designs.map(\.folder))
-        ForEach(folders.filter { !(current.count == 1 && current.contains($0)) }, id: \.self) { name in
-            Button(name) { move(ids, to: name) }
-        }
-        Button {
-            newFolderName = ""
-            filingInto = ids
-        } label: { Label("New folder…", systemImage: "folder.badge.plus") }
-        if designs.contains(where: { $0.folder != nil }) {
-            Button(role: .destructive) {
-                move(ids, to: nil)
-            } label: { Label("Remove from folder", systemImage: "folder.badge.minus") }
         }
     }
 
@@ -1615,8 +1687,8 @@ struct HomeView: View {
             Text(said)
                 .font(.subheadline.weight(.semibold))
             Spacer()
-            Menu {
-                moveItems(chosen)
+            Button {
+                filing = FilingRequest(designs: chosen)
             } label: {
                 barLabel(tr("Move to folder…"), systemImage: "folder")
             }
@@ -1748,7 +1820,8 @@ struct HomeView: View {
         let pages = RelativeTime.pages(recent.pages)
         var shown = "\(size) · \(when) · \(pages)"
         var spoken = "\(Self.spokenSize(size)), \(when), \(pages)"
-        if folder == nil, let name = recent.folder {
+        if folder == nil, let path = recent.folder {
+            let name = DesignLibrary.leafName(path)
             shown += " · \(name)"
             spoken += ", " + tr("in %@", name)
         }
@@ -1990,28 +2063,61 @@ private struct FirstRunSheets: ViewModifier {
     }
 }
 
-/// Home's new-folder and rename alerts, apart from its body.
+/// Designs being filed, while Move to folder asks where: the folder they
+/// are all in, when they share one.
+struct FilingRequest: Identifiable {
+    let id = UUID()
+    let ids: [String]
+    let current: String?
+
+    init(designs: [RecentDesign]) {
+        ids = designs.map(\.id)
+        let folders = Set(designs.map(\.folder))
+        current = folders.count == 1 ? folders.first ?? nil : nil
+    }
+}
+
+/// Home's Move to folder and Move folder… pickers (FolderPicker), apart
+/// from its body.
+private struct FolderDialogs: ViewModifier {
+    @Binding var filing: FilingRequest?
+    @Binding var movingFolder: String?
+    let folders: [String]
+    var move: ([String], String?) -> Void
+    var moveFolder: (String, String?) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $filing) { request in
+                FolderPicker(heading: tr("Move to folder"), current: request.current, folders: folders,
+                             takeOut: request.current.map { tr("Take out of \"%@\"", DesignLibrary.leafName($0)) }
+                                ?? tr("No folder"),
+                             onMove: { to in move(request.ids, to) })
+            }
+            .sheet(item: Binding(get: { movingFolder.map(MovingFolder.init) },
+                                 set: { movingFolder = $0?.id })) { moving in
+                FolderPicker(heading: tr("Move folder “%@”", DesignLibrary.leafName(moving.id)),
+                             current: DesignLibrary.parentOf(moving.id), folders: folders,
+                             // Never into itself or one inside it, nor past four levels.
+                             excluded: { DesignLibrary.movedInto(folders, from: moving.id, into: $0) == nil },
+                             onMove: { into in moveFolder(moving.id, into) })
+            }
+    }
+
+    /// A folder's path, as a sheet's item.
+    private struct MovingFolder: Identifiable {
+        let id: String
+    }
+}
+
+/// Home's rename alert, apart from its body.
 private struct HomeDialogs: ViewModifier {
-    @Binding var filingInto: [String]
-    @Binding var newFolderName: String
     @Binding var renaming: RecentDesign?
     @Binding var renameText: String
-    var move: ([String], String?) -> Void
     var reload: () -> Void
 
     func body(content: Content) -> some View {
         content
-            .alert("New folder", isPresented: Binding(
-                get: { !filingInto.isEmpty },
-                set: { if !$0 { filingInto = [] } })) {
-                TextField("Folder name", text: $newFolderName)
-                Button("Move") {
-                    move(filingInto, newFolderName)
-                    filingInto = []
-                }
-                .disabled((DesignLibrary.folderName(newFolderName)?.utf16.count ?? 0) > DesignLibrary.folderNameLimit)
-                Button("Cancel", role: .cancel) { filingInto = [] }
-            }
             .alert("Rename design", isPresented: Binding(
                 get: { renaming != nil },
                 set: { if !$0 { renaming = nil } })) {
