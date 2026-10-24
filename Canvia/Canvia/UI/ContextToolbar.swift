@@ -1198,6 +1198,10 @@ struct ContextToolbar: View {
                     store.useAsBackground(el.id)
                 }
             }
+            // The page recoloured from this photo, a new combination a tap.
+            if PhotoColours.offered(el) {
+                toolButton("paintpalette", "Apply colours to page") { store.applyPhotoColours() }
+            }
         }
         // A border round the photo, following its frame: its ink, its
         // width and whether it is dashed or dotted, as a shape's.

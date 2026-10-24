@@ -5564,6 +5564,24 @@
     "ja": "この空のデザインの代わりにすべてを適用するか、このページで選んだページを使います。",
     "pt-BR": "Aplique todas no lugar deste design vazio ou use a página escolhida nesta página."
   },
+  "Apply colours to page": {
+    "ar": "تطبيق الألوان على الصفحة",
+    "de": "Farben auf Seite anwenden",
+    "es": "Aplicar colores a la página",
+    "fr": "Appliquer les couleurs à la page",
+    "it": "Applica i colori alla pagina",
+    "ja": "色をページに適用",
+    "pt-BR": "Aplicar cores à página"
+  },
+  "Apply photo colours": {
+    "ar": "تطبيق ألوان الصورة",
+    "de": "Fotofarben anwenden",
+    "es": "Aplicar colores de la foto",
+    "fr": "Appliquer les couleurs de la photo",
+    "it": "Applica i colori della foto",
+    "ja": "写真の色を適用",
+    "pt-BR": "Aplicar cores da foto"
+  },
   "Apply to": {
     "ar": "تطبيق على",
     "de": "Anwenden auf",

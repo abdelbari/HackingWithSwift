@@ -820,7 +820,9 @@ enum ColorTools {
         return ((value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff)
     }
 
-    private static func luminance(_ hex: String) -> Double {
+    /// How light a colour reads, 0…1: what the theme's mapping ranks
+    /// colours by (shuffle), and Apply colours to page (PhotoColours).
+    static func luminance(_ hex: String) -> Double {
         let ui = UIKitColorBox(hex)
         return 0.299 * ui.r + 0.587 * ui.g + 0.114 * ui.b
     }

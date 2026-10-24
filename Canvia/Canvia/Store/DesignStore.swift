@@ -41,6 +41,9 @@ final class DesignStore {
             // the selecting opens one, so a drag that began with the
             // selection is never folded into the dictated words.
             if let target = dictationTarget, selection != [target] { endDictation() }
+            // Apply colours to page starts its turns again on what is
+            // selected now.
+            if selection != oldValue { photoColourTurn = 0 }
         }
     }
     var editingTextId: String?
@@ -1608,6 +1611,11 @@ final class DesignStore {
     /// Something just happened that a first-timer might want a word about.
     /// The editor hands it to TipEngine, which decides whether to say it.
     var tipEvent: TipEvent?
+
+    /// How far Apply colours to page has turned the selected photo's
+    /// palette (PhotoColours.turned): one more each tap, back to 0 when the
+    /// selection changes. Editor state only — never saved.
+    @ObservationIgnored var photoColourTurn = 0
     /// A change worth feeling; the editor turns it into haptics.
     var haptic = HapticEvent(kind: .undo, serial: 0)
     /// True while a rotation drag sits on a 45° snap.

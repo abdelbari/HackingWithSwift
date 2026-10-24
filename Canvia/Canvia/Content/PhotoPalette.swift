@@ -86,6 +86,15 @@ enum PhotoPalette {
         return colour
     }
 
+    /// The colours of the photo `el` shows, most prominent first, up to
+    /// `max`, from the same 64-pixel read as every palette here (extract):
+    /// what Apply colours to page takes. None for anything that is not a
+    /// photo, or whose picture cannot be opened.
+    static func top(_ el: Element, max: Int = 5) -> [String] {
+        guard PhotoColours.offered(el), let src = el.src, let image = PhotoLibrary.resolve(src) else { return [] }
+        return extract(from: image, count: max)
+    }
+
     /// Up to `count` colours, most prominent first, each at least `minDistance`
     /// apart (in 0…255 RGB units, Euclidean) from every colour before it.
     static func extract(from image: UIImage, count: Int = 6,

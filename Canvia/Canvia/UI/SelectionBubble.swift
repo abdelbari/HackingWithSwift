@@ -1,7 +1,8 @@
 // Quick actions at the selection: a small pill floating just above what is
 // selected — below it when there is no room above — with Copy, Paste,
 // Duplicate, Detach image on a filled frame or grid cell, More like this on
-// an icon, sticker, graphic or shape (SimilarSheet), and Delete, as
+// an icon, sticker, graphic or shape (SimilarSheet), Delete, and on a photo
+// an overflow with Apply colours to page (PhotoColours), as
 // Canva puts them by the element and as the Android twin does. Each does what the menu's own does: Delete still says so with
 // its Undo. It keeps out of the way of the work — gone while a finger drags,
 // the view pans or pinches, a photo is cropped, words are typed or the pen
@@ -77,8 +78,11 @@ struct SelectionBubble: View {
     /// An icon, sticker, graphic or library shape: things like it.
     private var similar: Bool { store.offersSimilar }
 
+    /// A photo: its overflow offers Apply colours to page.
+    private var overflows: Bool { store.photoForColours != nil }
+
     private var width: Double {
-        let extra = (pastes ? 1 : 0) + (detaches ? 1 : 0) + (similar ? 1 : 0)
+        let extra = (pastes ? 1 : 0) + (detaches ? 1 : 0) + (similar ? 1 : 0) + (overflows ? 1 : 0)
         return Self.slot * Double(3 + extra) + 12
     }
 
@@ -97,6 +101,7 @@ struct SelectionBubble: View {
                 action("square.grid.2x2", tr("More like this")) { moreLikeThis() }
             }
             action("trash", tr("Delete"), destructive: true) { store.deleteSelected() }
+            if overflows { overflow }
         }
         .padding(.horizontal, 6)
         .frame(height: Self.height)
@@ -107,6 +112,24 @@ struct SelectionBubble: View {
         .accessibilityLabel("Quick actions")
         // After the selection, in reading order.
         .accessibilitySortPriority(-1)
+    }
+
+    /// The pill's overflow: what has no room of its own on it.
+    private var overflow: some View {
+        Menu {
+            Button {
+                store.applyPhotoColours()
+            } label: {
+                Label("Apply colours to page", systemImage: "paintpalette")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.callout.weight(.medium))
+                .foregroundStyle(Color.primary)
+                .frame(width: Self.slot, height: Self.height)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(Text("More"))
     }
 
     private func action(_ system: String, _ label: String, destructive: Bool = false,
