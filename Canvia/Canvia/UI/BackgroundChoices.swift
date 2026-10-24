@@ -34,10 +34,13 @@ struct BackgroundChoices: View {
 
             BackgroundYourPhotos(store: store, columns: photoColumns)
 
-            Text("Photos").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-            LazyVGrid(columns: photoColumns, spacing: 10) {
-                ForEach(PhotoLibrary.photos) { photo in
-                    BackgroundPhotoTile(store: store, photo: photo)
+            // One child of the stack (ViewBuilder's limit), laid out as two.
+            Group {
+                Text("Photos").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+                LazyVGrid(columns: photoColumns, spacing: 10) {
+                    ForEach(PhotoLibrary.photos) { photo in
+                        BackgroundPhotoTile(store: store, photo: photo)
+                    }
                 }
             }
             BackgroundVideos(store: store)

@@ -100,10 +100,20 @@ enum Backup {
     }
 
     /// The one settings file: "autoLists", "canvia.use" when `use` is not
-    /// nil, Export's "exportA11yNudge" when it is given, and the
-    /// accessibility settings it is given (AccessibilityPrefs).
-    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool? = nil,
+    /// nil, and the accessibility settings it is given (AccessibilityPrefs).
+    static func encodeSettings(autoLists: Bool, use: String?,
                                accessibility: AccessibilityPrefs.Settings = AccessibilityPrefs.Settings()) -> Data {
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: nil, accessibility: accessibility)
+    }
+
+    /// The same, with Export's "exportA11yNudge" too.
+    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool,
+                               accessibility: AccessibilityPrefs.Settings = AccessibilityPrefs.Settings()) -> Data {
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge, accessibility: accessibility)
+    }
+
+    private static func settingsData(autoLists: Bool, use: String?, exportA11yNudge: Bool?,
+                                     accessibility: AccessibilityPrefs.Settings) -> Data {
         var object: [String: Any] = ["autoLists": autoLists]
         if let use { object[UseProfile.key] = use }
         if let exportA11yNudge { object[ExportPlan.a11yNudgeKey] = exportA11yNudge }
