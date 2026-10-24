@@ -1856,8 +1856,8 @@ struct LayersSheet: View {
                 if locked { lockedNote }
                 if rows.isEmpty { emptyState }
                 ForEach(rows) { row in
-                    rowView(row)
-                        .moveDisabled(locked || filter != .all || !row.movable)
+                    rowView(row, in: rows)
+                        .moveDisabled(locked || filter != .all || !row.draggable)
                         .deleteDisabled(locked || !row.elements.contains { !$0.locked })
                 }
                 .onMove(perform: moveAction(rows))
@@ -1966,18 +1966,23 @@ struct LayersSheet: View {
         store.selection.subtract(ids)
     }
 
-    private func rowView(_ row: LayerRows.Row) -> some View {
-        HStack(spacing: 10) {
+    private func rowView(_ row: LayerRows.Row, in rows: [LayerRows.Row]) -> some View {
+        // The group VoiceOver's Move into group above joins; none outside All.
+        var above: String?
+        if filter == .all, let at = rows.firstIndex(where: { $0.id == row.id }) {
+            above = LayerRows.groupAbove(rows, at: at)
+        }
+        return HStack(spacing: 10) {
             if selecting { tickMark(row) }
-            rowContent(row)
+            rowContent(row, above: above)
         }
     }
 
     @ViewBuilder
-    private func rowContent(_ row: LayerRows.Row) -> some View {
+    private func rowContent(_ row: LayerRows.Row, above: String?) -> some View {
         switch row {
         case .element(let el, let member, let depth):
-            elementRow(el, member: member, depth: depth)
+            elementRow(el, member: member, depth: depth, above: above)
         case .group(let id, let members, let depth):
             groupRow(id, members: members, depth: depth)
         }
@@ -2071,7 +2076,7 @@ struct LayersSheet: View {
     /// alone, as it does on a row of Overlapping, which lists elements one
     /// by one — as on the Android twin; any other row's tap takes its group,
     /// as on the canvas.
-    private func elementRow(_ el: Element, member: Bool, depth: Int) -> some View {
+    private func elementRow(_ el: Element, member: Bool, depth: Int, above: String?) -> some View {
         let name = layerName(el)
         let selected = store.selection.contains(el.id)
         let alone = member || filter == .overlapping
@@ -2088,6 +2093,7 @@ struct LayersSheet: View {
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction { pick(el, alone: alone) }
             .accessibilityAction(named: "Rename…") { startRename(el) }
+            .accessibilityActions { membershipActions(el, above: above) }
             Spacer(minLength: 4)
             if selected {
                 Image(systemName: "checkmark").foregroundStyle(Theme.accent)
@@ -2099,6 +2105,19 @@ struct LayersSheet: View {
         .onTapGesture { pick(el, alone: alone) }
         .contextMenu {
             Button { startRename(el) } label: { Label("Rename…", systemImage: "pencil") }
+        }
+    }
+
+    /// VoiceOver's moves of a row across a group's edge, as a drag makes
+    /// them: Remove from group for an element in one, and Move into group
+    /// above when the row above it at its level is a group's.
+    @ViewBuilder
+    private func membershipActions(_ el: Element, above: String?) -> some View {
+        if el.group != nil {
+            Button("Remove from group") { store.removeFromGroup([el.id]) }
+        }
+        if let above {
+            Button("Move into group above") { store.addToGroup([el.id], group: above) }
         }
     }
 

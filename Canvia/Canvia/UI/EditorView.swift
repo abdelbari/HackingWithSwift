@@ -1037,6 +1037,13 @@ struct EditorView: View {
                     } label: { Label("Group", systemImage: "square.on.square") }
                         .disabled(!store.canGroup)
                 }
+                // Something a tap a level deeper took inside a group: out
+                // of it, the rest of the group kept.
+                if store.canRemoveFromGroup {
+                    Button {
+                        store.removeSelectedFromGroup()
+                    } label: { Label("Remove from group", systemImage: "rectangle.portrait.and.arrow.right") }
+                }
                 // A frame's or a grid cell's picture, taken out as a photo
                 // of its own, the frame left empty.
                 if store.canDetachImage {

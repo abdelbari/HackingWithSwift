@@ -84,6 +84,67 @@ enum Groups {
         return GraphicClip.regrouped(before: elements, after: out)
     }
 
+    /// Remove from group: each of the elements `ids` leaves its innermost
+    /// group (withChain, its chain less the last level) and the rest of
+    /// that group stays grouped. A group left with one member lets it go
+    /// too, so no group of one is left behind. An element whose outermost
+    /// group is no longer the one it was in loses its groupTurn: the turn
+    /// belongs to a group it has left. A crop stays where it shows
+    /// (GraphicClip.regrouped). The Android twin's Groups.removedFromGroup,
+    /// the same rows.
+    static func removedFromGroup(_ elements: [Element], ids: Set<String>) -> [Element] {
+        var left: Set<String> = []
+        var out = elements.map { el -> Element in
+            let levels = chain(el)
+            guard ids.contains(el.id), let inner = levels.last else { return el }
+            left.insert(inner)
+            return withChain(el, Array(levels.dropLast()))
+        }
+        // A group of one: its last member goes out of it too.
+        for group in left where members(out, of: group).count == 1 {
+            out = out.map { el in
+                let levels = chain(el)
+                return levels.contains(group) ? withChain(el, levels.filter { $0 != group }) : el
+            }
+        }
+        out = out.map { el in turnLetGo(el, was: elements.first { $0.id == el.id }) }
+        return GraphicClip.regrouped(before: elements, after: out)
+    }
+
+    /// Add to group: each of the elements `ids` takes the chain of group
+    /// `groupId`'s members, outermost first down to `groupId` — and so the
+    /// group's turn, written the same on each member — and moves in the
+    /// page's order to just above the group's top-most member, in the order
+    /// they were in. One already in the group, and a group with no members,
+    /// change nothing. The Android twin's Groups.addedToGroup, the same rows.
+    static func addedToGroup(_ elements: [Element], ids: Set<String>, groupId: String) -> [Element] {
+        guard let member = elements.first(where: { chain($0).contains(groupId) }) else { return elements }
+        let levels = chain(member)
+        let target = Array(levels.prefix(through: levels.firstIndex(of: groupId) ?? levels.count - 1))
+        let joining = Set(elements.filter { ids.contains($0.id) && !chain($0).contains(groupId) }.map(\.id))
+        guard !joining.isEmpty else { return elements }
+        let changed = elements.map { el -> Element in
+            guard joining.contains(el.id) else { return el }
+            var e = withChain(el, target)
+            e.groupTurn = member.groupTurn
+            return e
+        }
+        let moving = changed.filter { joining.contains($0.id) }
+        var rest = changed.filter { !joining.contains($0.id) }
+        let top = rest.lastIndex { chain($0).contains(groupId) } ?? rest.count - 1
+        rest.insert(contentsOf: moving, at: top + 1)
+        return GraphicClip.regrouped(before: elements, after: rest)
+    }
+
+    /// `el` without its groupTurn when its outermost group is no longer the
+    /// one it had `was` it in.
+    private static func turnLetGo(_ el: Element, was: Element?) -> Element {
+        guard el.groupTurn != nil, el.group != was?.group else { return el }
+        var e = el
+        e.groupTurn = nil
+        return e
+    }
+
     /// A tap on `tapped` while `selection` is one of its groups, at any
     /// level: the next level down — the members of its next group below
     /// that one, passing over a level that is only the selection again or

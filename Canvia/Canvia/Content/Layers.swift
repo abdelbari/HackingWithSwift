@@ -79,6 +79,77 @@ enum LayerRows {
         /// an opened group — its member rows and the groups inside it move
         /// with it, the whole subtree as one block.
         var movable: Bool { depth == 0 }
+
+        /// A row whose handle drags: one that moves, or an element listed
+        /// in an opened group, which a drag takes out of it (LayerRows.drop).
+        var draggable: Bool {
+            if movable { return true }
+            if case .element = self { return true }
+            return false
+        }
+    }
+
+    /// What a drag of rows does: reorders the page (moved), puts the one
+    /// element dragged into a group, or takes it out of the group it is
+    /// listed in.
+    enum Drop: Equatable {
+        case reorder
+        case join(String)
+        case leave
+    }
+
+    /// The drag of the rows at `source` to before row `destination` — the
+    /// List's own offsets. One element's row dropped among an opened
+    /// group's rows — anywhere from just under its header to just above its
+    /// last row — joins the innermost such group (Groups.addedToGroup). A
+    /// member's row dropped past its group's last row, or above its header,
+    /// leaves it (Groups.removedFromGroup). Anything else — a group's row,
+    /// several rows, a row dropped where it was — reorders as ever. The
+    /// Android twin's LayerRows.drop, the same rows.
+    static func drop(_ rows: [Row], from source: IndexSet, to destination: Int) -> Drop {
+        guard source.count == 1, let i = source.first, rows.indices.contains(i),
+              case .element(let el, let member, _) = rows[i],
+              destination != i, destination != i + 1 else { return .reorder }
+        let target = groupSpanning(rows, gap: destination)
+        if let target, !Groups.chain(el).contains(target) { return .join(target) }
+        guard member, let own = listedUnder(rows, at: i), target != own else { return .reorder }
+        return .leave
+    }
+
+    /// For VoiceOver's Move into group above: the group whose row is the
+    /// nearest above row `at` at its own level, past that group's opened
+    /// rows; nil when that row is an element's, or there is none.
+    static func groupAbove(_ rows: [Row], at i: Int) -> String? {
+        guard rows.indices.contains(i) else { return nil }
+        let depth = rows[i].depth
+        var k = i - 1
+        while k >= 0 && rows[k].depth > depth { k -= 1 }
+        guard k >= 0, rows[k].depth == depth, case .group(let id, _, _) = rows[k] else { return nil }
+        return id
+    }
+
+    /// The innermost opened group whose rows — from just under its header
+    /// to its last row — hold the gap before row `gap`.
+    private static func groupSpanning(_ rows: [Row], gap: Int) -> String? {
+        var found: String?
+        for h in rows.indices {
+            guard case .group(let id, _, let depth) = rows[h] else { continue }
+            var end = h
+            while end + 1 < rows.count && rows[end + 1].depth > depth { end += 1 }
+            // A later header that spans it is inside this one: innermost wins.
+            if end > h && gap > h && gap <= end { found = id }
+        }
+        return found
+    }
+
+    /// The group whose opened row row `at` is listed under.
+    private static func listedUnder(_ rows: [Row], at i: Int) -> String? {
+        let depth = rows[i].depth
+        guard depth > 0 else { return nil }
+        var k = i - 1
+        while k >= 0 && rows[k].depth >= depth { k -= 1 }
+        guard k >= 0, case .group(let id, _, _) = rows[k] else { return nil }
+        return id
     }
 
     /// "Group (3)".
@@ -135,7 +206,7 @@ enum LayerRows {
     /// row carries every member with it, as one block in their order; a
     /// member row does not move on its own. Everything else keeps its place.
     /// Dropped among an opened group's members, the rows land below the
-    /// whole group.
+    /// whole group (one element's row joins it instead: drop).
     static func moved(_ elements: [Element], rows: [Row], from source: IndexSet, to destination: Int) -> [Element] {
         let moving = source.sorted().filter { rows.indices.contains($0) && rows[$0].movable }
         guard !moving.isEmpty else { return elements }

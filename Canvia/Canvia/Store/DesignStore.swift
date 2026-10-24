@@ -2444,8 +2444,16 @@ final class DesignStore {
 
     /// The Layers rows at `source` dragged to before row `destination`, as
     /// one undo step; a group's row takes its whole group (see
-    /// LayerRows.moved).
+    /// LayerRows.moved). One element's row dropped among an opened group's
+    /// rows joins it, and a member's dropped past them leaves it
+    /// (LayerRows.drop).
     func moveLayers(_ rows: [LayerRows.Row], from source: IndexSet, to destination: Int) {
+        let dragged = Set(source.filter { rows.indices.contains($0) }.flatMap { rows[$0].elements.map(\.id) })
+        switch LayerRows.drop(rows, from: source, to: destination) {
+        case .join(let group): return addToGroup(dragged, group: group)
+        case .leave: return removeFromGroup(dragged)
+        case .reorder: break
+        }
         let reordered = LayerRows.moved(page.elements, rows: rows, from: source, to: destination)
         guard reordered.map(\.id) != page.elements.map(\.id) else { return }
         applyToPage { $0.elements = reordered }
