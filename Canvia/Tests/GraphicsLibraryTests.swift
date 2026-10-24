@@ -1,5 +1,5 @@
 // The illustrated graphics pack, as the Android twin's GraphicsLibraryTest
-// has it: the shared file byte for byte, its twelve categories, each
+// has it: the shared file byte for byte, its thirteen categories, each
 // graphic's fills, each going on a page as an SVG graphic does — grouped,
 // naming it — and found by Add's search and kept in Recently used.
 
@@ -13,26 +13,30 @@ final class GraphicsLibraryTests: XCTestCase {
         // The Android twin's GraphicsLibraryTest hashes its copy to the same.
         let url = try XCTUnwrap(Bundle.main.url(forResource: "Graphics", withExtension: "json"))
         let hash = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(hash, "17661151750fcd40e804e560e453ccbf5d7877919a6ddc92da2c6695df01bb28")
+        XCTAssertEqual(hash, "0e0354955e056b459746bbc049182fbf80121da5fb70cb92e9d71896509a3902")
     }
 
-    func testAboutTwoHundredGraphicsInTwelveCategoriesEachIdOnce() {
+    func testAboutTwoHundredAndSixtyGraphicsInThirteenCategoriesEachIdOnce() {
         XCTAssertEqual(GraphicsLibrary.categories, [
             "Doodle arrows", "Underlines & circles", "Sparkles", "Starbursts & badges", "Ribbons", "Blobs",
-            "Confetti", "Dividers", "Speech bubbles", "Hand-drawn frames", "Scribbles", "Patterns",
+            "Confetti", "Dividers", "Speech bubbles", "Hand-drawn frames", "Scribbles", "Patterns", "Animated",
         ])
-        XCTAssertEqual(GraphicsLibrary.graphics.count, 202)
+        XCTAssertEqual(GraphicsLibrary.graphics.count, 262)
         XCTAssertEqual(Set(GraphicsLibrary.graphics.map(\.id)).count, GraphicsLibrary.graphics.count)
         XCTAssertEqual(Set(GraphicsLibrary.graphics.map(\.category)), Set(GraphicsLibrary.categories))
-        for c in GraphicsLibrary.categories {
+        for c in GraphicsLibrary.categories where c != GraphicsLibrary.animated {
             XCTAssertTrue((16...17).contains(GraphicsLibrary.inCategory(c).count), c)
         }
+        // The moving ones are a category of their own, and only they move.
+        XCTAssertEqual(GraphicsLibrary.inCategory(GraphicsLibrary.animated).count, 60)
+        XCTAssertTrue(GraphicsLibrary.graphics.allSatisfy { ($0.motion != nil) == ($0.category == GraphicsLibrary.animated) })
         XCTAssertEqual(GraphicsLibrary.graphic("arrow-01")?.name, "Curved arrow")
         XCTAssertNil(GraphicsLibrary.graphic("no-such-graphic"))
     }
 
     func testEachListsItsFillsInTheOrderFirstUsedAtMostFourLowerCase() throws {
-        let fill = try NSRegularExpression(pattern: #"fill="(#[0-9a-f]{6})""#)
+        // A drawn line is stroked, with no fill; everything else is filled.
+        let fill = try NSRegularExpression(pattern: #"(?:fill|stroke)="(#[0-9a-f]{6})""#)
         for g in GraphicsLibrary.graphics {
             let text = g.svg as NSString
             var fills: [String] = []
@@ -43,7 +47,8 @@ final class GraphicsLibraryTests: XCTestCase {
             XCTAssertEqual(fills, g.colours, g.id)
             XCTAssertTrue((1...4).contains(g.colours.count), g.id)
             XCTAssertTrue(!g.tags.isEmpty && g.tags.allSatisfy { $0 == $0.lowercased() }, g.id)
-            XCTAssertFalse(g.svg.contains("stroke") || g.svg.contains("<text"), g.id)
+            XCTAssertFalse(g.svg.contains("<text"), g.id)
+            XCTAssertEqual(g.motion == "draw", g.svg.contains("stroke"), g.id)
         }
     }
 

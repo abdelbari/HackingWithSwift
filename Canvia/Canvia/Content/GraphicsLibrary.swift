@@ -1,7 +1,8 @@
 // The illustrated graphics: doodle arrows, underlines, sparkles, badges,
 // ribbons, blobs, confetti, dividers, bubbles, frames, scribbles and
-// patterns, a couple of hundred of them in twelve categories, each in up to
-// four colours — drawn by tools/generate_graphics.py into Graphics.json,
+// patterns, and the Animated ones, a couple of hundred and more in thirteen
+// categories, each in up to four colours — drawn by
+// tools/generate_graphics.py into Graphics.json,
 // the very file the Android twin bundles, byte for byte, so a graphic is the
 // same on both phones (GraphicsLibraryTests hashes it).
 //
@@ -12,8 +13,9 @@
 // knows nothing of the pack still draws it. Each of its shapes keeps the
 // graphic's id (`graphicId`), to be named by and for More like this.
 //
-// A graphic that moves (`motion`) — an arrow, an underline or a scribble
-// drawing itself on, a sparkle twinkling — goes on with that animation set
+// A graphic that moves (`motion`) — one of the Animated category's: a
+// stroked arrow, underline, circle or scribble drawing itself on, a sparkle
+// or star twinkling, a shape floating — goes on with that animation set
 // (ElementAnimation.motioned), is found under the Animated chip and by the
 // word "animated", and plays in Present and the video, GIF and web page.
 
@@ -94,8 +96,8 @@ enum GraphicsLibrary {
     /// The categories, in the order Add's chips show them.
     static var categories: [String] { file.categories }
 
-    /// The chip, and the word, for every graphic that moves, whatever its
-    /// category: shown first among Add's chips.
+    /// The category of the graphics that move, and only they: its chip is
+    /// Add's like any other's, as the Android twin's ANIMATED.
     static let animated = "Animated"
 
     /// Every graphic that moves, in the pack's order.
@@ -109,11 +111,9 @@ enum GraphicsLibrary {
         id.flatMap { byId[$0] }
     }
 
-    /// The graphics in `category`, or all of them for nil; Animated is every
-    /// graphic that moves.
+    /// The graphics in `category`, or all of them for nil.
     static func inCategory(_ category: String?) -> [GraphicDef] {
         guard let category else { return graphics }
-        if category == animated { return moving }
         return graphics.filter { $0.category == category }
     }
 

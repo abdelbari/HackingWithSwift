@@ -78,6 +78,9 @@ struct TimelineStrip: View {
         var track: AudioTrack?
         var timing: ElementTiming?
         var scale: Double
+        /// The other Beat Sync tracks' beats a moved track snaps to
+        /// (Timeline.laneBeats).
+        var beats: [Double] = []
     }
 
     private struct TrackRef: Identifiable {
@@ -511,8 +514,8 @@ struct TimelineStrip: View {
             .accessibilityAddTraits(chosen ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction { chosenTrack = chosen ? nil : lane.id }
             .accessibilityAdjustableAction { direction in nudgeTrack(lane, by: direction == .increment ? 0.1 : -0.1, film: film) }
-            .accessibilityAction(named: Text("Trim longer")) { trimTrack(lane, by: 0.1) }
-            .accessibilityAction(named: Text("Trim shorter")) { trimTrack(lane, by: -0.1) }
+            .modifier(LaneActions(move: { nudgeTrack(lane, by: $0, film: film) },
+                                  trim: { trimTrack(lane, edge: $0, by: $1) }))
     }
 
     /// A track's lane dragged — whole, or by one end — the step kept open
@@ -520,7 +523,10 @@ struct TimelineStrip: View {
     private func trackGesture(_ lane: Lane, edge: Timeline.Edge?, film: Double, scale: Double) -> some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .global)
             .onChanged { value in
-                if laneDrag?.id != lane.id { laneDrag = LaneDrag(id: lane.id, edge: edge, track: lane.track, scale: scale) }
+                if laneDrag?.id != lane.id {
+                    laneDrag = LaneDrag(id: lane.id, edge: edge, track: lane.track, scale: scale,
+                                        beats: Timeline.laneBeats(store.design.audioTracks, id: lane.id) { beatsInFilm($0) })
+                }
                 guard let current = laneDrag, let track = current.track else { return }
                 let dx = Double(value.translation.width)
                 let next: AudioTrack
@@ -528,7 +534,7 @@ struct TimelineStrip: View {
                     guard let length = lane.length else { return }
                     next = Timeline.trimmedTrack(track, edge: edge, dx: dx, scale: current.scale, duration: length)
                 } else {
-                    next = Timeline.movedTrack(track, dx: dx, scale: current.scale, film: film, beats: beatsInFilm(track))
+                    next = Timeline.movedTrack(track, dx: dx, scale: current.scale, film: film, beats: current.beats)
                 }
                 store.dragTrack(lane.id, to: next)
             }
@@ -539,23 +545,24 @@ struct TimelineStrip: View {
             }
     }
 
-    /// VoiceOver's adjust of a track's lane: its start a tenth later or
-    /// earlier.
+    /// VoiceOver's adjust of a track's lane, and its Move earlier and
+    /// later: its start a tenth later or earlier, to no beat (laneBeats).
     private func nudgeTrack(_ lane: Lane, by seconds: Double, film: Double) {
         guard let track = lane.track else { return }
-        store.setTrack(lane.id, to: Timeline.movedTrack(track, dx: seconds, scale: 1, film: film, beats: beatsInFilm(track)),
+        store.setTrack(lane.id, to: Timeline.movedTrack(track, dx: seconds, scale: 1, film: film),
                        label: tr("Move audio"))
     }
 
-    /// VoiceOver's Trim longer and Trim shorter: its end a tenth on or back.
-    private func trimTrack(_ lane: Lane, by seconds: Double) {
+    /// VoiceOver's Start and End earlier and later: that end a tenth on or
+    /// back.
+    private func trimTrack(_ lane: Lane, edge: Timeline.Edge, by seconds: Double) {
         guard let track = lane.track, let length = lane.length else { return }
-        store.setTrack(lane.id, to: Timeline.trimmedTrack(track, edge: .end, dx: seconds, scale: 1, duration: length),
+        store.setTrack(lane.id, to: Timeline.trimmedTrack(track, edge: edge, dx: seconds, scale: 1, duration: length),
                        label: tr("Trim audio"))
     }
 
-    /// A track's song's beats where they fall in the film, for a lane with
-    /// Beat Sync on to snap to.
+    /// A track's song's beats where they fall in the film, with Beat Sync
+    /// on, for the other tracks' lanes to snap to (Timeline.laneBeats).
     private func beatsInFilm(_ track: AudioTrack) -> [Double] {
         guard track.beatSync, let id = track.audioId, let beats = trackBeats[id] else { return [] }
         let film = store.timelinePages.reduce(0.0) { $0 + $1.hold }
@@ -575,18 +582,19 @@ struct TimelineStrip: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(lane.spoken)
-            .accessibilityAdjustableAction { direction in
-                let timing = store.element(lane.id)?.timing
-                store.setTiming(lane.id, to: Timeline.movedTiming(timing, dx: direction == .increment ? 0.1 : -0.1,
-                                                                  scale: 1, hold: hold))
-            }
-            .accessibilityAction(named: Text("Trim longer")) { trimTiming(lane, by: 0.1, hold: hold) }
-            .accessibilityAction(named: Text("Trim shorter")) { trimTiming(lane, by: -0.1, hold: hold) }
+            .accessibilityAdjustableAction { direction in moveTiming(lane, by: direction == .increment ? 0.1 : -0.1, hold: hold) }
+            .modifier(LaneActions(move: { moveTiming(lane, by: $0, hold: hold) },
+                                  trim: { trimTiming(lane, edge: $0, by: $1, hold: hold) }))
     }
 
-    private func trimTiming(_ lane: Lane, by seconds: Double, hold: Double) {
+    private func moveTiming(_ lane: Lane, by seconds: Double, hold: Double) {
         let timing = store.element(lane.id)?.timing
-        store.setTiming(lane.id, to: Timeline.trimmedTiming(timing, edge: .end, dx: seconds, scale: 1, hold: hold))
+        store.setTiming(lane.id, to: Timeline.movedTiming(timing, dx: seconds, scale: 1, hold: hold))
+    }
+
+    private func trimTiming(_ lane: Lane, edge: Timeline.Edge, by seconds: Double, hold: Double) {
+        let timing = store.element(lane.id)?.timing
+        store.setTiming(lane.id, to: Timeline.trimmedTiming(timing, edge: edge, dx: seconds, scale: 1, hold: hold))
     }
 
     private func timingGesture(_ lane: Lane, edge: Timeline.Edge?, hold: Double, scale: Double) -> some Gesture {
@@ -661,5 +669,23 @@ struct TimelineStrip: View {
         for id in trackSources where trackBeats[id] == nil && !AudioTrack.isEffect(id) {
             if let beats = await AudioStore.beats(of: id) { trackBeats[id] = beats }
         }
+    }
+}
+
+/// A lane's VoiceOver actions, as the Android twin's lanes name them: Move,
+/// Start and End, each earlier or later by a tenth of a second, one step
+/// each — `move` given the seconds, `trim` the end and the seconds.
+private struct LaneActions: ViewModifier {
+    let move: (Double) -> Void
+    let trim: (Timeline.Edge, Double) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .accessibilityAction(named: Text("Move later")) { move(0.1) }
+            .accessibilityAction(named: Text("Move earlier")) { move(-0.1) }
+            .accessibilityAction(named: Text("Start later")) { trim(.start, 0.1) }
+            .accessibilityAction(named: Text("Start earlier")) { trim(.start, -0.1) }
+            .accessibilityAction(named: Text("End later")) { trim(.end, 0.1) }
+            .accessibilityAction(named: Text("End earlier")) { trim(.end, -0.1) }
     }
 }

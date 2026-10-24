@@ -8817,7 +8817,7 @@
     "pt-BR": "Criar"
   },
   "Create an animation": {
-    "ar": "إنشاء رسوم متحركة",
+    "ar": "إنشاء رسم متحرك",
     "de": "Animation erstellen",
     "es": "Crear una animación",
     "fr": "Créer une animation",
@@ -10388,6 +10388,15 @@
     "ja": "各角をページの角に合わせてドラッグしてください。",
     "pt-BR": "Arraste cada canto até um canto da página."
   },
+  "Drag it farther to record a path.": {
+    "ar": "اسحبه لمسافة أبعد لتسجيل مسار.",
+    "de": "Ziehe es weiter, um einen Pfad aufzunehmen.",
+    "es": "Arrástralo más lejos para grabar una trayectoria.",
+    "fr": "Faites-le glisser plus loin pour enregistrer une trajectoire.",
+    "it": "Trascinalo più lontano per registrare un percorso.",
+    "ja": "パスを記録するにはもっと遠くへドラッグしてください。",
+    "pt-BR": "Arraste mais longe para gravar um trajeto."
+  },
   "Drag over a stroke to rub out part of it": {
     "ar": "اسحب فوق ضربة لمسح جزء منها",
     "de": "Über einen Strich ziehen, um einen Teil davon wegzuradieren",
@@ -10423,15 +10432,6 @@
     "it": "Trascina su ciò che va tolto, poi tocca Cancella",
     "ja": "消したい部分をドラッグしてから「消去」をタップします",
     "pt-BR": "Arraste sobre o que deve sair e toque em Apagar"
-  },
-  "Drag the element along the path it should take": {
-    "ar": "اسحب العنصر على المسار الذي يجب أن يسلكه",
-    "de": "Zieh das Element den Weg entlang, den es nehmen soll",
-    "es": "Arrastra el elemento por el recorrido que debe seguir",
-    "fr": "Faites glisser l’élément le long du trajet qu’il doit suivre",
-    "it": "Trascina l’elemento lungo il percorso che deve seguire",
-    "ja": "動かしたい経路に沿って要素をドラッグします",
-    "pt-BR": "Arraste o elemento pelo trajeto que ele deve fazer"
   },
   "Drag the handle at the left of a row's lower edge to make it taller.": {
     "ar": "اسحب المقبض في يسار الحافة السفلية للصف لجعله أطول.",
@@ -11224,6 +11224,24 @@
     "it": "Fine",
     "ja": "終了",
     "pt-BR": "Fim"
+  },
+  "End earlier": {
+    "ar": "الانتهاء مبكرًا",
+    "de": "Früher enden",
+    "es": "Terminar antes",
+    "fr": "Finir plus tôt",
+    "it": "Termina prima",
+    "ja": "終了を早める",
+    "pt-BR": "Terminar antes"
+  },
+  "End later": {
+    "ar": "الانتهاء لاحقًا",
+    "de": "Später enden",
+    "es": "Terminar más tarde",
+    "fr": "Finir plus tard",
+    "it": "Termina più tardi",
+    "ja": "終了を遅らせる",
+    "pt-BR": "Terminar depois"
   },
   "End of presentation": {
     "ar": "نهاية العرض التقديمي",
@@ -16025,6 +16043,15 @@
     "ja": "下へ移動",
     "pt-BR": "Mover para baixo"
   },
+  "Move earlier": {
+    "ar": "نقل مبكرًا",
+    "de": "Früher verschieben",
+    "es": "Mover antes",
+    "fr": "Déplacer plus tôt",
+    "it": "Sposta più indietro",
+    "ja": "前へ移動",
+    "pt-BR": "Mover para antes"
+  },
   "Move in front": {
     "ar": "نقل إلى الأمام",
     "de": "Nach vorne verschieben",
@@ -16033,6 +16060,15 @@
     "it": "Sposta davanti",
     "ja": "前面へ",
     "pt-BR": "Mover para a frente"
+  },
+  "Move later": {
+    "ar": "نقل لاحقًا",
+    "de": "Später verschieben",
+    "es": "Mover más tarde",
+    "fr": "Déplacer plus tard",
+    "it": "Sposta più avanti",
+    "ja": "後ろへ移動",
+    "pt-BR": "Mover para depois"
   },
   "Move left": {
     "ar": "تحريك لليسار",
@@ -16168,6 +16204,15 @@
     "it": "Sposta l’indicatore di riproduzione almeno mezzo secondo dentro la pagina",
     "ja": "再生ヘッドをページの開始から 0.5 秒以上先に移動してください",
     "pt-BR": "Mova o indicador de reprodução pelo menos meio segundo para dentro da página"
+  },
+  "Move the playhead inside the track to split it": {
+    "ar": "حرّك رأس التشغيل داخل المقطع لتقسيمه",
+    "de": "Bewege den Abspielkopf in die Spur, um sie zu teilen",
+    "es": "Mueve el cabezal dentro de la pista para dividirla",
+    "fr": "Placez la tête de lecture dans la piste pour la diviser",
+    "it": "Sposta l'indicatore di riproduzione dentro la traccia per dividerla",
+    "ja": "分割するには再生ヘッドをトラック内に移動してください",
+    "pt-BR": "Mova o indicador de reprodução para dentro da faixa para dividi-la"
   },
   "Move to end": {
     "ar": "نقل إلى النهاية",
@@ -18264,12 +18309,12 @@
     "pt-BR": "Organizar páginas"
   },
   "Orient to path": {
-    "ar": "التوجيه حسب المسار",
+    "ar": "التوجيه وفق المسار",
     "de": "Am Pfad ausrichten",
     "es": "Orientar a la trayectoria",
-    "fr": "Orienter selon le trajet",
+    "fr": "Orienter selon la trajectoire",
     "it": "Orienta lungo il percorso",
-    "ja": "経路に合わせて回転",
+    "ja": "パスに沿って向ける",
     "pt-BR": "Orientar pelo trajeto"
   },
   "Original": {
@@ -18607,9 +18652,9 @@
     "de": "Seitenanimationen",
     "es": "Animaciones de página",
     "fr": "Animations de page",
-    "it": "Animazioni della pagina",
+    "it": "Animazioni di pagina",
     "ja": "ページアニメーション",
-    "pt-BR": "Animações da página"
+    "pt-BR": "Animações de página"
   },
   "Page background": {
     "ar": "خلفية الصفحة",
@@ -22235,6 +22280,15 @@
     "ja": "セルを 1 つ選択すると、その行または列を削除できます。",
     "pt-BR": "Selecione uma célula para excluir a linha ou coluna dela."
   },
+  "Select one thing to record its path": {
+    "ar": "حدّد عنصرًا واحدًا لتسجيل مساره",
+    "de": "Wähle ein Element aus, um seinen Pfad aufzunehmen",
+    "es": "Selecciona un elemento para grabar su trayectoria",
+    "fr": "Sélectionnez un élément pour enregistrer sa trajectoire",
+    "it": "Seleziona un elemento per registrarne il percorso",
+    "ja": "パスを記録するには1つ選択してください",
+    "pt-BR": "Selecione um item para gravar o trajeto dele"
+  },
   "Select previous": {
     "ar": "تحديد السابق",
     "de": "Vorheriges auswählen",
@@ -22252,6 +22306,15 @@
     "it": "Seleziona più elementi",
     "ja": "複数を選択",
     "pt-BR": "Selecionar vários"
+  },
+  "Select something on the page to animate it on its own.": {
+    "ar": "حدّد شيئًا في الصفحة لتحريكه وحده.",
+    "de": "Wähle etwas auf der Seite aus, um es einzeln zu animieren.",
+    "es": "Selecciona algo de la página para animarlo por separado.",
+    "fr": "Sélectionnez un élément de la page pour l'animer seul.",
+    "it": "Seleziona qualcosa nella pagina per animarlo da solo.",
+    "ja": "ページ上のものを選択すると、個別にアニメーションを付けられます。",
+    "pt-BR": "Selecione algo na página para animá-lo sozinho."
   },
   "Select something on the page to animate it.": {
     "ar": "حدّد شيئًا في الصفحة لتحريكه.",
@@ -22459,6 +22522,15 @@
     "it": "Set",
     "ja": "セット",
     "pt-BR": "Conjunto"
+  },
+  "Set video as background": {
+    "ar": "تعيين الفيديو خلفية",
+    "de": "Video als Hintergrund festlegen",
+    "es": "Usar vídeo como fondo",
+    "fr": "Définir la vidéo comme arrière-plan",
+    "it": "Imposta video come sfondo",
+    "ja": "動画を背景に設定",
+    "pt-BR": "Definir vídeo como fundo"
   },
   "Set where each track starts, its trim, volume and fades under More > Audio.": {
     "ar": "اضبط بداية كل مسار وقصّه ومستوى صوته وتلاشيه ضمن المزيد > الصوت.",
@@ -23984,6 +24056,15 @@
     "ja": "どこからでも始められます",
     "pt-BR": "Comece em qualquer lugar"
   },
+  "Start earlier": {
+    "ar": "البدء مبكرًا",
+    "de": "Früher beginnen",
+    "es": "Empezar antes",
+    "fr": "Commencer plus tôt",
+    "it": "Inizia prima",
+    "ja": "開始を早める",
+    "pt-BR": "Começar antes"
+  },
   "Start from a photo": {
     "ar": "ابدأ من صورة",
     "de": "Mit einem Foto beginnen",
@@ -24001,6 +24082,15 @@
     "it": "Inizia da un modello",
     "ja": "テンプレートから始める",
     "pt-BR": "Começar com um modelo"
+  },
+  "Start later": {
+    "ar": "البدء لاحقًا",
+    "de": "Später beginnen",
+    "es": "Empezar más tarde",
+    "fr": "Commencer plus tard",
+    "it": "Inizia più tardi",
+    "ja": "開始を遅らせる",
+    "pt-BR": "Começar depois"
   },
   "Start lists as you type": {
     "ar": "بدء القوائم أثناء الكتابة",
@@ -26400,7 +26490,7 @@
     "ar": "قص الصوت",
     "de": "Audio kürzen",
     "es": "Recortar audio",
-    "fr": "Découper l’audio",
+    "fr": "Rogner l’audio",
     "it": "Taglia audio",
     "ja": "オーディオをトリミング",
     "pt-BR": "Cortar áudio"
@@ -26413,24 +26503,6 @@
     "it": "Taglia fine",
     "ja": "終了位置をトリミング",
     "pt-BR": "Cortar fim"
-  },
-  "Trim longer": {
-    "ar": "إطالة القص",
-    "de": "Länger kürzen",
-    "es": "Recortar más largo",
-    "fr": "Allonger la découpe",
-    "it": "Allunga il taglio",
-    "ja": "トリミングを長く",
-    "pt-BR": "Aumentar o corte"
-  },
-  "Trim shorter": {
-    "ar": "تقصير القص",
-    "de": "Kürzer kürzen",
-    "es": "Recortar más corto",
-    "fr": "Raccourcir la découpe",
-    "it": "Accorcia il taglio",
-    "ja": "トリミングを短く",
-    "pt-BR": "Diminuir o corte"
   },
   "Trim start": {
     "ar": "قص البداية",
@@ -26460,7 +26532,7 @@
     "pt-BR": "Experimente:"
   },
   "Tumble": {
-    "ar": "تدحرج",
+    "ar": "تقلّب",
     "de": "Purzeln",
     "es": "Voltereta",
     "fr": "Culbute",
@@ -26544,7 +26616,7 @@
     "ar": "وميض (تكرار)",
     "de": "Funkeln (Schleife)",
     "es": "Destello (bucle)",
-    "fr": "Scintillement (boucle)",
+    "fr": "Scintillement (en boucle)",
     "it": "Scintillio (ciclo)",
     "ja": "きらめき（ループ）",
     "pt-BR": "Cintilar (repetir)"

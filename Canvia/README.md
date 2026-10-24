@@ -78,9 +78,10 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   `Content/Icons.json` is the Android twin's resource byte for byte,
   written by its `tools/generate_icons.py`; the icons are Apache-2.0 and
   their licence ships beside them as `Content/MaterialIcons-LICENSE.txt`
-- Graphics: two hundred multi-colour illustrations in twelve categories —
-  doodle arrows, underlines, sparkles, badges, ribbons, blobs, confetti,
-  dividers, speech bubbles, hand-drawn frames, scribbles, patterns — in
+- Graphics: some two hundred and sixty multi-colour illustrations in
+  thirteen categories — doodle arrows, underlines, sparkles, badges,
+  ribbons, blobs, confetti, dividers, speech bubbles, hand-drawn frames,
+  scribbles, patterns and the Animated ones — in
   Add ▸ Elements under category chips, and found by Add's search by their
   tags. Each goes on as an SVG graphic does: its shapes in their own
   colours, grouped, each naming it (`graphicId`), so Colour swap and Change
@@ -896,9 +897,10 @@ crop over the page's hold rather than the frame. Page animations (More, or
 Animate in the page's hold menu) give every element on the page Rise, Fade,
 Pan, Breathe, Tumble or Stomp, as it enters, exits or both, 0.08 s apart in
 layer order, its own animation kept over the page's (`pageAnimation`
-`{kind, mode}`). Graphics that move — arrows, underlines and scribbles that
-draw themselves on, sparkles that twinkle (`motion` in Graphics.json) — go on
-animated, under Add's Animated chip; the web page plays them in CSS, a still
+`{kind, mode}`). Graphics that move — the Animated category's stroked
+arrows, underlines, circles and scribbles that draw themselves on, sparkles
+and stars that twinkle, shapes that float (`motion` in Graphics.json) — go
+on animated; the web page plays them in CSS, a still
 shows them finished. PowerPoint gets each entrance's nearest effect and a
 path as its own motion path. A clip or an animated picture can be the page's
 background (`clip` in the background, its first frame the picture any

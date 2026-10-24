@@ -26,10 +26,16 @@ extension DesignStore {
     }
 
     /// Create: record mode for the one selected element. Refused, with a
-    /// word, on a locked page or for a locked element. One with a path
+    /// word, without one element selected, on a locked page or for a locked
+    /// element, as the Android twin's is. One with a path
     /// already opens on its options, to change them or record again.
     func beginMotionRecord() {
-        guard let el = singleSelection, !refusesLockedPage() else { return }
+        guard let el = singleSelection else {
+            buzz(.reject)
+            announce(tr("Select one thing to record its path"), undoable: false)
+            return
+        }
+        guard !refusesLockedPage() else { return }
         if el.locked {
             buzz(.reject)
             announce(tr("This element is locked"), undoable: false)
@@ -68,6 +74,7 @@ extension DesignStore {
         let points = MotionPath.recorded(samples)
         guard MotionPath.travels(points) else {
             buzz(.reject)
+            announce(tr("Drag it farther to record a path."), undoable: false)
             return
         }
         var anim = ElementAnimation(kind: ElementAnimation.pathKind, delay: 0, duration: MotionPath.seconds(samples))
@@ -153,8 +160,13 @@ extension DesignStore {
     /// in the film (AudioTracks.split), its file `duration` long when known,
     /// as one step; refused where the cut would leave too little of either.
     func splitTrack(_ id: String, duration: Double?) {
-        guard let t = filmPlayhead, let split = AudioTracks.split(design, trackId: id, at: t, duration: duration) else {
+        guard let t = filmPlayhead else {
             buzz(.reject)
+            return
+        }
+        guard let split = AudioTracks.split(design, trackId: id, at: t, duration: duration) else {
+            buzz(.reject)
+            announce(tr("Move the playhead inside the track to split it"), undoable: false)
             return
         }
         namedStep = tr("Split audio")

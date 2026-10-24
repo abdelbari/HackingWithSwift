@@ -11,21 +11,21 @@ hand-drawn look, so the same script writes the same file on any machine.
 
 The file is one object:
 
-  "categories"  the twelve categories, in the order Add shows them.
+  "categories"  the thirteen categories, in the order Add shows them.
   "graphics"    each {"id", "name", "category", "tags": [...], "svg",
-                "colours": [...]}, category by category. "svg" is a whole
-                SVG document of filled <path>s only — no strokes, text or
-                gradients — so it comes onto a page as any SVG graphic does
-                (SvgImport.graphic): a group of shapes, each in its own
-                colour. "colours" are its fills in the order they are first
-                used, at most four, lower-case "#rrggbb", as Colour swap
-                lists them.
-                A graphic that moves also has "motion": "draw" (its
-                lines draw themselves on, path after path), "twinkle"
-                (its paths pulse in turn) or "float" (it bobs gently).
-                Every arrow, underline and circle, and scribble draws on
-                and every sparkle twinkles, by kind (MOTIONS); "float" is
-                read by both phones but no graphic here has it yet.
+                "colours": [...]}, category by category, and a moving one's
+                "motion". "svg" is a whole SVG document of filled <path>s —
+                no text or gradients — so it comes onto a page as any SVG
+                graphic does (SvgImport.graphic): a group of shapes, each in
+                its own colour. "colours" are its fills (a drawn line's
+                stroke) in the order they are first used, at most four,
+                lower-case "#rrggbb", as Colour swap lists them.
+  "motion"      on the Animated category's graphics only: "draw" — its
+                lines, stroked <path>s with no fill, draw themselves on in
+                turn; "twinkle" — its sparkles and stars grow and glow one
+                after another, looping; or "float" — it bobs gently, looping.
+                Putting one on a page gives each of its shapes that
+                animation (ElementAnimation.motioned).
 
 Paths are absolute M, L, C and Z, numbers to a tenth. A hand-drawn line is a
 filled ribbon round its centre line, tapering at its ends, so it scales with
@@ -44,7 +44,7 @@ RESOURCE = REPO / 'core/src/main/resources/com/canvia/core/content/Graphics.json
 CATEGORIES = [
     'Doodle arrows', 'Underlines & circles', 'Sparkles', 'Starbursts & badges',
     'Ribbons', 'Blobs', 'Confetti', 'Dividers', 'Speech bubbles',
-    'Hand-drawn frames', 'Scribbles', 'Patterns',
+    'Hand-drawn frames', 'Scribbles', 'Patterns', 'Animated',
 ]
 
 # Four colours each; a graphic takes what it needs from one.
@@ -570,8 +570,124 @@ def pattern(rng, v, pal):
     return 200, 200, parts
 
 
+# ------------------------------------------------------------ animated
+# Lines here are stroked centre lines, not filled ribbons, so they can draw
+# themselves on: each returns parts of (colour, d, stroke width).
+
+def open_path(points):
+    """An open line through [points], smoothed, in straight steps."""
+    pts = catmull(points)
+    return 'M' + pt(pts[0]) + ''.join('L' + pt(p) for p in pts[1:])
+
+
+def drawn_arrow(rng, v, pal):
+    ink = INK if v % 3 == 0 else pal[v % 4]
+    shape = v % 6
+    if shape == 0:      # a gentle arc
+        line = [(30, 150), (70, 90), (130, 70), (170, 80)]
+    elif shape == 1:    # a loop on its way
+        line = [(25, 160), (80, 120), (110, 60), (80, 50), (75, 90), (120, 110), (175, 70)]
+    elif shape == 2:    # a zigzag
+        line = [(25, 150), (65, 110), (90, 140), (130, 95), (175, 60)]
+    elif shape == 3:    # a swoop down
+        line = [(30, 40), (90, 60), (140, 110), (165, 165)]
+    elif shape == 4:    # a wave
+        line = [(20, 110), (60, 80), (100, 120), (140, 80), (180, 100)]
+    else:               # a spiral in
+        line = [(30, 170), (40, 90), (100, 40), (160, 70), (150, 130), (110, 120)]
+    line = jitter(line, rng, 5)
+    width = 7 + (v % 3) * 1.5
+    smooth = catmull(line)
+    tip, before = smooth[-1], smooth[-3]
+    a = math.atan2(tip[1] - before[1], tip[0] - before[0])
+    head = 30
+    ends = [(tip[0] + head * math.cos(a + math.pi + side * 0.55), tip[1] + head * math.sin(a + math.pi + side * 0.55)) for side in (-1, 1)]
+    parts = [(ink, open_path(line), width), (ink, 'M' + pt(ends[0]) + 'L' + pt(tip) + 'L' + pt(ends[1]), width)]
+    return 200, 200, parts
+
+
+def drawn_underline(rng, v, pal):
+    colour = pal[v % 4]
+    kind = v % 5
+    if kind == 0:   # a single swash
+        return 300, 100, [(colour, open_path(jitter([(15, 60), (100, 50), (190, 45), (285, 55)], rng, 4)), 10)]
+    if kind == 1:   # two lines
+        a = jitter([(20, 40), (150, 36), (280, 42)], rng, 3)
+        b = jitter([(40, 66), (160, 62), (270, 68)], rng, 3)
+        return 300, 100, [(colour, open_path(a), 8), (colour, open_path(b), 6)]
+    if kind == 2:   # a wave
+        pts = [(15 + i * 27, 50 + 14 * math.sin(i * 1.4)) for i in range(11)]
+        return 300, 100, [(colour, open_path(jitter(pts, rng, 2)), 8)]
+    if kind == 3:   # a zigzag
+        pts = [(15 + i * 30, 40 if i % 2 == 0 else 64) for i in range(10)]
+        return 300, 100, [(colour, open_path(jitter(pts, rng, 2)), 7)]
+    # a swash with a loop at its end
+    pts = [(15, 60), (120, 52), (230, 50), (270, 30), (250, 15), (235, 40), (285, 62)]
+    return 300, 100, [(colour, open_path(jitter(pts, rng, 3)), 8)]
+
+
+def drawn_circle(rng, v, pal):
+    colour = pal[(v + 1) % 4] if v % 2 else INK
+    turns = 1.12 if v % 2 == 0 else 1.9
+    start = rng.uniform(0, 6.28)
+    steps = 32
+    pts = []
+    for i in range(steps + 1):
+        a = start + 2 * math.pi * turns * i / steps
+        r = 1 + rng.uniform(-0.04, 0.04)
+        pts.append((120 + 100 * r * math.cos(a), 80 + 60 * r * math.sin(a)))
+    return 240, 160, [(colour, open_path(jitter(pts, rng, 2.5)), 6 + v % 3)]
+
+
+def drawn_scribble(rng, v, pal):
+    colour = INK if v % 2 else pal[v % 4]
+    kind = v % 4
+    if kind == 0:     # a zigzag fill
+        pts = jitter([(30 + i * 18, 40 if i % 2 == 0 else 160) for i in range(9)], rng, 8)
+    elif kind == 1:   # a spiral
+        pts = jitter([(100 + (8 + i * 4.2) * math.cos(i * 0.55), 100 + (8 + i * 4.2) * math.sin(i * 0.55)) for i in range(20)], rng, 2)
+    elif kind == 2:   # loops along a line
+        pts = jitter([(20 + i * 8 + 18 * math.cos(i * 0.9), 100 + 24 * math.sin(i * 0.9)) for i in range(21)], rng, 2)
+    else:             # a crossing-out
+        pts = jitter([(30, 60), (170, 80), (30, 100), (170, 120), (30, 140)], rng, 5)
+    return 200, 200, [(colour, open_path(pts), 5 + v % 3)]
+
+
+def twinkle_sparkle(rng, v, pal):
+    parts = []
+    spots = [(95, 105, 62), (158, 50, 30), (52, 158, 24), (160, 150, 18)]
+    for i in range(2 + v % 3):
+        cx, cy, r = spots[i]
+        cx += rng.uniform(-5, 5)
+        cy += rng.uniform(-5, 5)
+        parts.append((pal[(v + i) % 4] if v % 3 else INK, sparkle(cx, cy, r * rng.uniform(0.9, 1.1), waist=0.12 + 0.03 * (v % 3))))
+    return 200, 200, parts
+
+
+def twinkle_star(rng, v, pal):
+    parts = []
+    spots = [(100, 100, 60), (40, 45, 20), (165, 155, 22), (160, 40, 14)]
+    points = 5 if v % 2 == 0 else 6
+    for i in range(2 + v % 3):
+        cx, cy, r = spots[i]
+        parts.append((pal[(v + i) % 4], polygon(star(cx + rng.uniform(-4, 4), cy + rng.uniform(-4, 4), points, r, r * 0.45))))
+    return 200, 200, parts
+
+
+def float_shape(rng, v, pal):
+    kind = v % 3
+    if kind == 0:     # a heart
+        heart = [(100 + 16 * math.sin(t) ** 3 * 5, 95 - (13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)) * 5)
+                 for t in [2 * math.pi * i / 40 for i in range(40)]]
+        return 200, 200, [(pal[v % 4], polygon(heart))]
+    if kind == 1:     # a balloon on its string
+        return 200, 200, [(pal[(v + 1) % 4], ellipse(100, 80, 50, 60)), (pal[(v + 2) % 4], polygon([(92, 146), (108, 146), (100, 134)]))]
+    return 200, 200, [(pal[(v + 3) % 4], blob_disc(rng))]
+
+
 # What each category is drawn by, its names and words. One graphic a name,
-# in this order; its variant is its place in the list.
+# in this order; its variant is its place in the list. A seventh entry is
+# the graphic's motion.
 KINDS = [
     ('Doodle arrows', 'arrow', doodle_arrow, 17, 'Arrow', ['arrow', 'doodle', 'pointer', 'hand drawn']),
     ('Underlines & circles', 'underline', underline, 17, 'Underline', ['underline', 'circle', 'highlight', 'hand drawn']),
@@ -585,16 +701,14 @@ KINDS = [
     ('Hand-drawn frames', 'frame', hand_frame, 17, 'Hand-drawn frame', ['frame', 'border', 'hand drawn', 'doodle']),
     ('Scribbles', 'scribble', scribble, 17, 'Scribble', ['scribble', 'doodle', 'squiggle', 'hand drawn']),
     ('Patterns', 'pattern', pattern, 17, 'Pattern', ['pattern', 'texture', 'background', 'tile']),
+    ('Animated', 'drawn-arrow', drawn_arrow, 12, 'Drawn arrow', ['animated', 'arrow', 'draw', 'hand drawn'], 'draw'),
+    ('Animated', 'drawn-underline', drawn_underline, 10, 'Drawn underline', ['animated', 'underline', 'draw', 'hand drawn'], 'draw'),
+    ('Animated', 'drawn-circle', drawn_circle, 8, 'Drawn circle', ['animated', 'circle', 'draw', 'highlight'], 'draw'),
+    ('Animated', 'drawn-scribble', drawn_scribble, 8, 'Drawn scribble', ['animated', 'scribble', 'draw', 'doodle'], 'draw'),
+    ('Animated', 'twinkle-sparkle', twinkle_sparkle, 10, 'Twinkling sparkle', ['animated', 'sparkle', 'twinkle', 'shine'], 'twinkle'),
+    ('Animated', 'twinkle-star', twinkle_star, 6, 'Twinkling star', ['animated', 'star', 'twinkle', 'shine'], 'twinkle'),
+    ('Animated', 'float', float_shape, 6, 'Floating shape', ['animated', 'float', 'shape'], 'float'),
 ]
-
-# How each kind of graphic moves when it is put on a page; a kind not
-# here stays still.
-MOTIONS = {
-    'arrow': 'draw',
-    'underline': 'draw',
-    'scribble': 'draw',
-    'sparkle': 'twinkle',
-}
 
 # A word for each variant's look, so names and searches tell them apart.
 LOOKS = {
@@ -610,25 +724,41 @@ LOOKS = {
     'frame': ['sketched', 'oval', 'double', 'dashed'],
     'scribble': ['zigzag', 'spiral', 'loopy', 'tangled', 'crossed-out'],
     'pattern': ['polka dot', 'striped', 'checked', 'wavy', 'crosses', 'triangles'],
+    'drawn-arrow': ['curved', 'looped', 'zigzag', 'swooping', 'wavy', 'spiral'],
+    'drawn-underline': ['swash', 'double', 'wavy', 'zigzag', 'looped'],
+    'drawn-circle': ['circled', 'twice-circled'],
+    'drawn-scribble': ['zigzag', 'spiral', 'loopy', 'crossed-out'],
+    'twinkle-sparkle': ['pair', 'trio', 'cluster'],
+    'twinkle-star': ['pair', 'trio', 'cluster'],
+    'float': ['heart', 'balloon', 'blob'],
 }
 
 
 def colours_of(parts):
     out = []
-    for fill, _ in parts:
-        if fill not in out:
-            out.append(fill)
+    for part in parts:
+        if part[0] not in out:
+            out.append(part[0])
     return out
 
 
 def svg_of(width, height, parts):
-    paths = ''.join('<path fill="%s" d="%s"/>' % (fill, d) for fill, d in parts)
+    """Each part a filled path, or — given a width, (colour, d, width) — a
+    line stroked in its colour with round ends and no fill."""
+    def path(part):
+        if len(part) == 3:
+            return ('<path fill="none" stroke="%s" stroke-width="%s" stroke-linecap="round" stroke-linejoin="round" d="%s"/>'
+                    % (part[0], num(part[2]), part[1]))
+        return '<path fill="%s" d="%s"/>' % (part[0], part[1])
+    paths = ''.join(path(p) for p in parts)
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d">%s</svg>' % (width, height, paths)
 
 
 def build():
     graphics = []
-    for seed, (category, key, draw, count, noun, words) in enumerate(KINDS):
+    for seed, kind in enumerate(KINDS):
+        category, key, draw, count, noun, words = kind[:6]
+        motion = kind[6] if len(kind) > 6 else None
         rng = random.Random(3100 + seed)
         looks = LOOKS[key]
         for v in range(count):
@@ -646,8 +776,8 @@ def build():
                 'svg': svg_of(width, height, parts),
                 'colours': colours,
             }
-            if key in MOTIONS:
-                graphic['motion'] = MOTIONS[key]
+            if motion:
+                graphic['motion'] = motion
             graphics.append(graphic)
     return graphics
 

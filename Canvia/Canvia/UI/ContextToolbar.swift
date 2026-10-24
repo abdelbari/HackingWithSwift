@@ -590,7 +590,8 @@ struct ContextToolbar: View {
                 }
             }
         } label: {
-            Label("Exit", systemImage: "rectangle.portrait.and.arrow.right")
+            // An animation's Exit, not a key's or a menu's.
+            Label(tr("Exit", context: "animation"), systemImage: "rectangle.portrait.and.arrow.right")
         }
         .disabled(store.unlockedSelectionCount == 0)
     }
@@ -1210,9 +1211,11 @@ struct ContextToolbar: View {
             if store.canDetachImage {
                 toolButton("photo.on.rectangle", "Detach image") { store.detachImage() }
             }
-            // The photo behind the whole page instead, as it shows here.
+            // The photo behind the whole page instead, as it shows here; a
+            // clip says so, as the Android twin's does.
             if DesignStore.canBecomeBackground(el) {
-                toolButton("rectangle.inset.filled", "Use as background") {
+                let label = VideoStore.isVideo(el.src) ? "Set video as background" : "Use as background"
+                toolButton("rectangle.inset.filled", label) {
                     store.useAsBackground(el.id)
                 }
             }

@@ -1029,7 +1029,7 @@ struct CanvasView: View {
         .gesture(motionGesture(recording, el))
         .accessibilityElement()
         .accessibilityLabel("Create an animation")
-        .accessibilityHint("Drag the element along the path it should take")
+        .accessibilityHint("Hold the element and drag it along the path it should take")
         .onDisappear {
             motionSamples = []
             motionBegan = nil

@@ -312,6 +312,15 @@ enum Timeline {
         return out
     }
 
+    /// The beats a Beat Sync track's lane, `id`, snaps to as it is dragged
+    /// (movedTrack): every other Beat Sync track's, `beatsOf` each where they
+    /// fall in the film, in order — never its own, which move with it. A
+    /// VoiceOver step snaps to none, so it moves a tenth exactly. The
+    /// Android twin's laneBeats, the same rule.
+    static func laneBeats(_ tracks: [AudioTrack], id: String, beatsOf: (AudioTrack) -> [Double]) -> [Double] {
+        tracks.filter { $0.beatSync && $0.id != id }.flatMap(beatsOf).sorted()
+    }
+
     /// An audio track's lane with its `edge` pulled `dx` (at `scale` a
     /// second), for a file `duration` seconds long. Its end: the trim's end
     /// moves as far, the start staying put. Its start: the trim's start

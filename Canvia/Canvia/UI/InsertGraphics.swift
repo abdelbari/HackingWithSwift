@@ -1,11 +1,12 @@
 // Add's Graphics: the illustrated pack (GraphicsLibrary), a chip for each
-// of its twelve categories over a row of tiles, each drawn by the page's own
+// of its thirteen categories over a row of tiles, each drawn by the page's own
 // renderer as it goes on a page (GraphicThumb). A tap puts the graphic on
 // the page as an SVG graphic goes on — its shapes in their own colours, one
 // group, selected — and into Recently used, as the Android twin's Add panel
 // does. The search above the tabs finds the graphics by their tags
-// (ElementSearch). The Animated chip gathers every graphic that moves, each
-// tile marked, and one goes on already animated (GraphicsLibrary.elements).
+// (ElementSearch). The Animated category's chip holds every graphic that
+// moves, each tile marked, and one goes on already animated
+// (GraphicsLibrary.elements).
 
 import SwiftUI
 import UIKit
@@ -32,7 +33,6 @@ struct GraphicsSection: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 chip(nil, tr("All"))
-                chip(GraphicsLibrary.animated, tr("Animated"))
                 ForEach(GraphicsLibrary.categories, id: \.self) { name in chip(name, tr(name)) }
             }
         }

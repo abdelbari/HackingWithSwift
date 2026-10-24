@@ -44,6 +44,29 @@ final class MotionTests: XCTestCase {
         }
     }
 
+    /// A lane snaps to the other Beat Sync tracks' beats, never its own —
+    /// the Android twin's MotionTest pins the same rows.
+    func testALaneSnapsToTheOtherBeatSyncTracksBeatsNeverItsOwn() {
+        var own = AudioTrack(id: "a", src: "audio:a.mp3")
+        own.beatSync = true
+        var other = AudioTrack(id: "b", src: "audio:b.mp3")
+        other.beatSync = true
+        let still = AudioTrack(id: "c", src: "audio:c.mp3")
+        let beats: [String: [Double]] = ["a": [0, 0.5, 1], "b": [1, 0.55], "c": [0.7]]
+        let of = { (t: AudioTrack) -> [Double] in beats[t.id] ?? [] }
+        XCTAssertEqual(Timeline.laneBeats([own, still], id: "a", beatsOf: of), [])
+        XCTAssertEqual(Timeline.laneBeats([own, other, still], id: "a", beatsOf: of), [0.55, 1])
+        // Alone, dragged 0.6 s, it lands at 0.6, not on its own beat at 0.5.
+        let alone = Timeline.movedTrack(own, dx: 60, scale: 100, film: 10,
+                                        beats: Timeline.laneBeats([own], id: "a", beatsOf: of))
+        XCTAssertEqual(alone.start, 0.6, accuracy: 1e-9)
+        let together = Timeline.movedTrack(own, dx: 60, scale: 100, film: 10,
+                                           beats: Timeline.laneBeats([own, other], id: "a", beatsOf: of))
+        XCTAssertEqual(together.start, 0.55, accuracy: 1e-9)
+        // A VoiceOver step is a tenth, beats or none.
+        XCTAssertEqual(Timeline.movedTrack(own, dx: 0.1, scale: 1, film: 10).start, 0.1, accuracy: 1e-9)
+    }
+
     func testSplitTrackRowsFromTheSharedFixture() throws {
         let rows = try XCTUnwrap(try fixture()["splitTrack"] as? [[String: Any]])
         XCTAssertFalse(rows.isEmpty)
@@ -387,24 +410,60 @@ final class MotionTests: XCTestCase {
                                         becoming: { var p = used; p.locked = true; p.backgroundClip?.playback.muted = true; return p }()))
     }
 
+    /// A clip behind a page travels in a design file and comes back under
+    /// its fresh id, picture and clip together, still playing as it did —
+    /// as the Android twin's DesignPackageTest pins it.
+    func testAClipBehindAPageComesBackRepointedAndStillPlays() throws {
+        let bytes = Data([0, 0, 0, 24, 102, 116, 121, 112])
+        let id = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        defer { VideoStore.delete(id) }
+        var design = Design(title: "behind", width: 320, height: 240)
+        design.pages[0].background = .image(VideoStore.src(id, at: nil))
+        design.pages[0].backgroundClip = BackgroundClip(src: VideoStore.src(id, at: nil),
+                                                        playback: ClipPlayback(start: 0.5, volume: 0.4))
+        let imported = try DesignPackage.import(try DesignPackage.export(design))
+        let page = imported.pages[0]
+        guard case .image(let src) = page.background else { return XCTFail("no picture behind the page") }
+        let fresh = try XCTUnwrap(VideoStore.split(src)?.id)
+        defer { VideoStore.delete(fresh) }
+        XCTAssertNotEqual(fresh, id)
+        XCTAssertEqual(page.backgroundClip?.src, src)
+        XCTAssertEqual(page.backgroundClip?.playback, design.pages[0].backgroundClip?.playback)
+    }
+
     // MARK: graphics that move
 
+    /// The Animated category's graphics go on moving — the Android twin's
+    /// GraphicsLibraryTest pins the same rows.
     func testAboutSixtyGraphicsMoveAndGoOnAnimated() throws {
         let moving = GraphicsLibrary.moving
-        XCTAssertEqual(moving.count, 68)
-        XCTAssertEqual(Set(moving.compactMap(\.motion)), ["draw", "twinkle"])
-        XCTAssertEqual(GraphicsLibrary.inCategory(GraphicsLibrary.animated).count, 68)
-        XCTAssertEqual(GraphicsLibrary.search("animated").count, 68)
-        let arrow = try XCTUnwrap(GraphicsLibrary.graphic("arrow-01"))
-        XCTAssertEqual(arrow.motion, "draw")
-        let parts = GraphicsLibrary.elements(arrow, pageWidth: 1080, pageHeight: 1080)
-        XCTAssertTrue(parts.allSatisfy { $0.animation?.kind == ElementAnimation.draw })
-        // Its paths drawn in turn, all within the draw-on's time.
-        let last = try XCTUnwrap(parts.last?.animation)
-        XCTAssertEqual(last.delay + last.duration, ElementAnimation.drawDuration, accuracy: 0.011)
-        XCTAssertEqual(parts.first?.animation?.delay, 0)
-        let sparkle = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("sparkle-03")), pageWidth: 1080, pageHeight: 1080)
-        XCTAssertEqual(sparkle.map { $0.animation?.delay ?? -1 }, [0, 0.15, 0.3])
+        XCTAssertEqual(moving.count, 60)
+        XCTAssertEqual(Set(moving.compactMap(\.motion)), ["draw", "twinkle", "float"])
+        XCTAssertEqual(GraphicsLibrary.search("animated").count, 60)
+        let arrow = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("drawn-arrow-01")),
+                                             pageWidth: 1080, pageHeight: 1080)
+        XCTAssertEqual(arrow.count, 2)
+        let draws = arrow.compactMap(\.animation)
+        XCTAssertEqual(draws.count, 2)
+        XCTAssertTrue(draws.allSatisfy { $0.kind == ElementAnimation.draw })
+        // Drawn in turn: the line, then its head, together over the draw's time.
+        XCTAssertEqual(draws[0].delay, 0)
+        XCTAssertEqual(draws[1].delay, draws[0].duration, accuracy: 1e-9)
+        XCTAssertEqual(draws[1].delay + draws[1].duration, ElementAnimation.drawDuration, accuracy: 0.011)
+        // Each line is stroked, unfilled, so it draws on as a line.
+        XCTAssertTrue(arrow.allSatisfy { $0.stroke != nil && ($0.strokeWidth ?? 0) > 0 })
+        let sparkle = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("twinkle-sparkle-01")),
+                                               pageWidth: 1080, pageHeight: 1080)
+        XCTAssertEqual(sparkle.prefix(2).map { $0.animation?.delay ?? -1 }, [0, 0.15])
+        XCTAssertTrue(sparkle.allSatisfy { $0.animation?.kind == ElementAnimation.twinkle })
+        let float = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("float-01")),
+                                             pageWidth: 1080, pageHeight: 1080)
+        XCTAssertEqual(float.count, 1)
+        XCTAssertEqual(float.first?.animation?.kind, "bounce")
+        // A still one has none.
+        let still = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("arrow-01")),
+                                             pageWidth: 1080, pageHeight: 1080)
+        XCTAssertNil(still.first?.animation)
         XCTAssertNil(GraphicsLibrary.graphic("blob-01")?.motion)
     }
 
