@@ -101,11 +101,13 @@ enum LayerRows {
     /// The drag of the rows at `source` to before row `destination` — the
     /// List's own offsets. One element's row dropped among an opened
     /// group's rows — anywhere from just under its header to just above its
-    /// last row — joins the innermost such group (Groups.addedToGroup). A
-    /// member's row dropped past its group's last row, or above its header,
-    /// leaves it (Groups.removedFromGroup). Anything else — a group's row,
-    /// several rows, a row dropped where it was — reorders as ever. The
-    /// Android twin's LayerRows.drop, the same rows.
+    /// last row — or just under a folded group's header joins the innermost
+    /// such group (Groups.addedToGroup), as the Android twin's Layers joins
+    /// a row let go over any group's header, folded or open. A member's row
+    /// dropped past its group's last row, or above its header, leaves it
+    /// (Groups.removedFromGroup), as a member dragged past either end does
+    /// on Android. Anything else — a group's row, several rows, a row
+    /// dropped where it was — reorders as ever.
     static func drop(_ rows: [Row], from source: IndexSet, to destination: Int) -> Drop {
         guard source.count == 1, let i = source.first, rows.indices.contains(i),
               case .element(let el, let member, _) = rows[i],
@@ -128,8 +130,9 @@ enum LayerRows {
         return id
     }
 
-    /// The innermost opened group whose rows — from just under its header
-    /// to its last row — hold the gap before row `gap`.
+    /// The innermost group whose rows — from just under its header to its
+    /// last row, or for a folded group the gap just under its header — hold
+    /// the gap before row `gap`.
     private static func groupSpanning(_ rows: [Row], gap: Int) -> String? {
         var found: String?
         for h in rows.indices {
@@ -137,7 +140,8 @@ enum LayerRows {
             var end = h
             while end + 1 < rows.count && rows[end + 1].depth > depth { end += 1 }
             // A later header that spans it is inside this one: innermost wins.
-            if end > h && gap > h && gap <= end { found = id }
+            let opened = end > h && gap > h && gap <= end
+            if opened || (end == h && gap == h + 1) { found = id }
         }
         return found
     }

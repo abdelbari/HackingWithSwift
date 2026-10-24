@@ -50,6 +50,18 @@ final class GroupMembershipTests: XCTestCase {
         XCTAssertEqual(out.map(Groups.chain), [[], ["g-card", "g-logo"], ["g-card", "g-logo"], []])
     }
 
+    /// Shared: Remove from group is for a part of a group, never for one or
+    /// more whole groups.
+    func testRemoveFromGroupIsOfferedForAPartOfAGroupOnly() {
+        let page = [box("a", group: "g1"), box("b", group: "g1"), box("c", group: "g2"), box("d", group: "g2"), box("e")]
+        XCTAssertFalse(Groups.removable(page, selection: ["a", "b", "c", "d"]), "two whole groups")
+        XCTAssertFalse(Groups.removable(page, selection: ["a", "b"]), "one whole group")
+        XCTAssertTrue(Groups.removable(page, selection: ["a"]), "one member")
+        XCTAssertTrue(Groups.removable(page, selection: ["a", "c"]), "a member of each")
+        XCTAssertFalse(Groups.removable(page, selection: ["a", "e"]), "with a loose one")
+        XCTAssertFalse(Groups.removable(page, selection: []), "nothing")
+    }
+
     func testAGroupLeftWithOneMemberLetsItGoToo() throws {
         let out = Groups.removedFromGroup(try card(), ids: ["mark"])
         XCTAssertEqual(out.map(Groups.chain), [[], ["g-card"], ["g-card"], ["g-card"]],
@@ -143,6 +155,20 @@ final class GroupMembershipTests: XCTestCase {
         XCTAssertEqual(LayerRows.drop(rows, from: [5], to: 4), .join("g-logo"), "the innermost group")
         XCTAssertEqual(LayerRows.drop(rows, from: [5], to: 0), .reorder, "above the group")
         XCTAssertEqual(LayerRows.drop(rows, from: [0], to: 6), .reorder, "a group's row reorders")
+    }
+
+    /// Shared rule: a folded group is joined too, by a row dropped just
+    /// under its header, as Android joins a row let go over any header.
+    func testARowDroppedUnderAFoldedGroupsHeaderJoinsIt() throws {
+        // x, group:g
+        let rows = LayerRows.rows([box("a", group: "g"), box("b", group: "g"), box("x")], expanded: [])
+        XCTAssertEqual(LayerRows.drop(rows, from: [0], to: 2), .join("g"), "under the folded header")
+        XCTAssertEqual(LayerRows.drop(rows, from: [1], to: 0), .reorder, "a group's row reorders")
+        // group:g-card, heading, group:g-logo (folded), loose
+        let inner = LayerRows.rows(try card(), expanded: ["g-card"])
+        XCTAssertEqual(LayerRows.drop(inner, from: [1], to: 3), .join("g-logo"), "a member into a folded subgroup")
+        XCTAssertEqual(LayerRows.drop(inner, from: [3], to: 3), .reorder, "where it was")
+        XCTAssertEqual(LayerRows.drop(inner, from: [3], to: 1), .join("g-card"), "under the opened header")
     }
 
     func testAMembersRowDroppedPastItsGroupLeavesIt() throws {

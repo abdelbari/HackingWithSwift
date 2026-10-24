@@ -9,13 +9,11 @@ import Foundation
 
 extension DesignStore {
 
-    /// Whether More offers Remove from group: what is selected is all in
-    /// groups, and is not a whole outermost group — a member, or a level
-    /// inside, as a tap a level deeper selects (Groups.deeper).
+    /// Whether More offers Remove from group: a part of a group, as a tap
+    /// a level deeper selects (Groups.deeper), never one or more whole
+    /// groups (Groups.removable).
     var canRemoveFromGroup: Bool {
-        let picked = selectedElements
-        guard !picked.isEmpty, picked.allSatisfy({ $0.group != nil }) else { return false }
-        return Groups.whole(page.elements, selection: selection) == nil
+        Groups.removable(page.elements, selection: selection)
     }
 
     /// More's Remove from group, for what is selected.
