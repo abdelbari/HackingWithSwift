@@ -1157,6 +1157,12 @@ final class DesignStore {
                 clipboardFonts = ElementClipboard.fonts()
                 pastedOnto = nil
                 pasteCount = 0
+            } else if let block = ElementClipboard.table() {
+                // A spreadsheet's range: into the selected table from its
+                // selected cell, else a table of its own — Paste as plain
+                // text still brings the words.
+                if tableSelection != nil { pasteCells(block) } else { pasteTable(block, at: point) }
+                return
             } else if var stranger = ElementClipboard.foreign(designWidth: pageWidth) {
                 // A picture over a frame, or a photo, selected goes into it.
                 if pasteIntoFrame([stranger], foreign: true, at: point) { return }

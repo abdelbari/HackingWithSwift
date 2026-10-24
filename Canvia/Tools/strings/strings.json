@@ -20150,6 +20150,15 @@
     "ja": "プレーンテキストとして貼り付け",
     "pt-BR": "Colar como texto simples"
   },
+  "Paste cells": {
+    "ar": "لصق الخلايا",
+    "de": "Zellen einfügen",
+    "es": "Pegar celdas",
+    "fr": "Coller les cellules",
+    "it": "Incolla celle",
+    "ja": "セルを貼り付け",
+    "pt-BR": "Colar células"
+  },
   "Paste page": {
     "ar": "لصق الصفحة",
     "de": "Seite einfügen",
@@ -22198,6 +22207,15 @@
     "it": "Sostituisci tutte (%d)",
     "ja": "%d 件すべて置換",
     "pt-BR": "Substituir todos os %d"
+  },
+  "Replace chart data": {
+    "ar": "استبدال بيانات المخطط",
+    "de": "Diagrammdaten ersetzen",
+    "es": "Reemplazar los datos del gráfico",
+    "fr": "Remplacer les données du graphique",
+    "it": "Sostituisci i dati del grafico",
+    "ja": "グラフのデータを置き換え",
+    "pt-BR": "Substituir os dados do gráfico"
   },
   "Replace everywhere…": {
     "ar": "استبدال في كل مكان…",

@@ -355,6 +355,13 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   look while keeping its words, merges, column widths and row heights; the
   table keeps its `design`, so a theme or the brand applied gives it again
   in the new colours, and search finds each by name.
+- Spreadsheet paste: a range copied from Sheets, Excel or Numbers — its
+  HTML table, merged cells and entities and all, else tab-separated lines
+  (`ClipboardTable`) — pastes as a table with its merges kept, or with a
+  table cell selected fills the table from that cell, growing rows and
+  columns, as one step named Paste cells; with a chart selected the ⋮ menu
+  offers Replace chart data, and the data grid takes a multi-cell paste at
+  the cell worked last. Paste as plain text still brings the words.
 - Read a picture: Live Text turns the words in a photo into editable text
   elements where they were; a QR code in a photo comes back as a clean
   code element with its payload.

@@ -1,0 +1,155 @@
+{
+  "about": "ClipboardTable.parse(text, html) on both phones: the rows each case reads as (null for none) and its merges as [row, col, rowSpan, colSpan].",
+  "cases": [
+    {
+      "name": "Excel HTML with a row span, a column span, entities and a line break",
+      "text": "Region\tQ1\tQ2\nNorth & East\t1,200\t1 350\n\tClosed for \"stock\"\n",
+      "html": "<html xmlns:o=\"urn:schemas-microsoft-com:office:office\"><head><meta name=ProgId content=Excel.Sheet><style><!--table {mso-displayed-decimal-separator:\"\\.\";} td {padding-top:1px;}--></style></head><body link=\"#0563C1\" vlink=\"#954F72\">\n<table border=0 cellpadding=0 cellspacing=0 width=256 style='border-collapse:collapse;width:192pt'>\n <col width=64 span=4 style='width:48pt'>\n <tr height=20 style='height:15.0pt'>\n<!--StartFragment-->\n  <td height=20 class=xl65 width=64 style='height:15.0pt;width:48pt'>Region</td>\n  <td class=xl65 width=64 style='width:48pt'>Q1</td>\n  <td class=xl65 width=64 style='width:48pt'>Q2</td>\n </tr>\n <tr height=20 style='height:15.0pt'>\n  <td height=40 rowspan=2 class=xl66 style='height:30.0pt'>North &amp; East</td>\n  <td align=right>1,200</td>\n  <td align=right>1&nbsp;350</td>\n </tr>\n <tr height=20 style='height:15.0pt'>\n  <td colspan=2 class=xl67>Closed<br style='mso-data-placement:same-cell' />for &quot;stock&quot;</td>\n </tr>\n<!--EndFragment-->\n</table>\n</body></html>",
+      "rows": [
+        [
+          "Region",
+          "Q1",
+          "Q2"
+        ],
+        [
+          "North & East",
+          "1,200",
+          "1 350"
+        ],
+        [
+          "",
+          "Closed\nfor \"stock\"",
+          ""
+        ]
+      ],
+      "merges": [
+        [
+          1,
+          0,
+          2,
+          1
+        ],
+        [
+          2,
+          1,
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "name": "Sheets HTML with entities and an empty cell",
+      "text": "Name\tScore\nAna <A>\t92\nCafé ☕\t",
+      "html": "<meta charset=\"utf-8\"><google-sheets-html-origin><style type=\"text/css\"><!--td {border: 1px solid #cccccc;}br {mso-data-placement:same-cell;}--></style><table xmlns=\"http://www.w3.org/1999/xhtml\" cellspacing=\"0\" cellpadding=\"0\" dir=\"ltr\" border=\"1\" style=\"table-layout:fixed;font-size:10pt;font-family:Arial;width:0px;border-collapse:collapse;border:none\" data-sheets-root=\"1\"><colgroup><col width=\"100\"/><col width=\"100\"/></colgroup><tbody><tr style=\"height:21px;\"><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;font-weight:bold;\">Name</td><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;font-weight:bold;\">Score</td></tr><tr style=\"height:21px;\"><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;\">Ana &lt;A&gt;</td><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;text-align:right;\" data-sheets-value=\"{&quot;1&quot;:3,&quot;3&quot;:92}\">92</td></tr><tr style=\"height:21px;\"><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;\">Caf&#233; &#x2615;</td><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;\"></td></tr></tbody></table>",
+      "rows": [
+        [
+          "Name",
+          "Score"
+        ],
+        [
+          "Ana <A>",
+          "92"
+        ],
+        [
+          "Café ☕",
+          ""
+        ]
+      ],
+      "merges": []
+    },
+    {
+      "name": "Sheets TSV with a quoted cell holding a line break and quotes",
+      "text": "Name\tNote\tScore\nAna\t\"Line one\nline \"\"two\"\"\"\t92\nBen\t\t87\n",
+      "html": null,
+      "rows": [
+        [
+          "Name",
+          "Note",
+          "Score"
+        ],
+        [
+          "Ana",
+          "Line one\nline \"two\"",
+          "92"
+        ],
+        [
+          "Ben",
+          "",
+          "87"
+        ]
+      ],
+      "merges": []
+    },
+    {
+      "name": "Ragged TSV padded to the widest row",
+      "text": "a\tb\tc\nd\n",
+      "html": null,
+      "rows": [
+        [
+          "a",
+          "b",
+          "c"
+        ],
+        [
+          "d",
+          "",
+          ""
+        ]
+      ],
+      "merges": []
+    },
+    {
+      "name": "One line of tabs is words",
+      "text": "a\tb\tc",
+      "html": null,
+      "rows": null,
+      "merges": []
+    },
+    {
+      "name": "Lines with no tab are words",
+      "text": "first line\nsecond line",
+      "html": null,
+      "rows": null,
+      "merges": []
+    },
+    {
+      "name": "HTML with no table falls back to the text",
+      "text": "x\ty\n1\t2",
+      "html": "<p><b>x</b> y</p>",
+      "rows": [
+        [
+          "x",
+          "y"
+        ],
+        [
+          "1",
+          "2"
+        ]
+      ],
+      "merges": []
+    },
+    {
+      "name": "A row span is no longer than the rows left",
+      "text": null,
+      "html": "<table><tr><td rowspan=99>A</td><td>B</td></tr><tr><td>C</td></tr></table>",
+      "rows": [
+        [
+          "A",
+          "B"
+        ],
+        [
+          "",
+          "C"
+        ]
+      ],
+      "merges": [
+        [
+          0,
+          0,
+          2,
+          1
+        ]
+      ]
+    }
+  ]
+}

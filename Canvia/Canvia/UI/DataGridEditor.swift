@@ -4,7 +4,8 @@
 // to add one before or after it or delete it (never the last); + Row and
 // + Column add one at the end; and text pasted — with Paste, or into a
 // cell, when it holds tabs or lines — splits into cells from the cell
-// worked last (DataGrid.pasting), as from a spreadsheet. A place a merged
+// worked last (ClipboardTable, else DataGrid.pasting), as from a
+// spreadsheet. A place a merged
 // cell covers past its own waits, greyed: words pasted onto one join the
 // merged cell's on Update (DataGraphics.rebuiltTable). While a table has a
 // merged cell, the menus add and delete nothing, as the covered places
@@ -113,8 +114,16 @@ struct DataGridEditor: View {
             })
     }
 
+    /// `text` laid over the grid from `spot`: a spreadsheet's range as it
+    /// copies one (ClipboardTable, a quoted cell's line breaks kept in it),
+    /// else rows of tab- or comma-separated cells (DataGrid.pasting).
     private func paste(_ text: String, at spot: Spot) {
-        cells = DataGrid.pasting(text, into: shown, row: min(spot.row, shown.count - 1), col: min(spot.col, width - 1))
+        let row = min(spot.row, shown.count - 1), col = min(spot.col, width - 1)
+        if let block = ClipboardTable.parse(text: text, html: nil) {
+            cells = ClipboardTable.pastedInto(shown, row: row, col: col, block: block)
+        } else {
+            cells = DataGrid.pasting(text, into: shown, row: row, col: col)
+        }
     }
 
     private func rowMenu(_ r: Int) -> some View {

@@ -1017,6 +1017,13 @@ struct EditorView: View {
                     } label: { Label("Paste as plain text", systemImage: "doc.plaintext") }
                 }
 
+                // A spreadsheet's range as the selected chart's data.
+                if store.selectedChart != nil && UIPasteboard.general.hasStrings {
+                    Button {
+                        store.replaceChartData()
+                    } label: { Label("Replace chart data", systemImage: "chart.bar.doc.horizontal") }
+                }
+
                 // The selection carried to another page, where it sat.
                 Menu {
                     ForEach(store.moveTargets) { target in

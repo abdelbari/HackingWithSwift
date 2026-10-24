@@ -616,6 +616,60 @@ extension DesignStore {
         return Tables.withDesign(made, id: id, design: look, accent: a, accent2: b, heightFor: measure) ?? made
     }
 
+    // MARK: spreadsheet paste
+
+    /// A spreadsheet's range as a new table where Add > Table puts one —
+    /// or, from the hold menu at `point`, centred there — its merged cells
+    /// kept (ClipboardTable.table): one step, selected.
+    func pasteTable(_ block: ClipboardTable.Block, at point: CGPoint? = nil) {
+        let w = pageWidth, h = pageHeight
+        let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(),
+                           height: (h * 0.6).rounded())
+        let accent = DataGraphics.palette(for: design, page: page).first ?? "#5a31f4"
+        var made = ClipboardTable.table(block, in: frame, accent: accent, heightFor: measure)
+        guard !made.isEmpty else {
+            buzz(.reject)
+            announce(tr("Nothing to paste"), undoable: false)
+            return
+        }
+        if let point {
+            let box = Geometry.union(made.map(Geometry.aabb))
+            let at = HoldMenu.placed(box.size, at: point, page: pageSize)
+            let dx = Double(at.x - box.minX), dy = Double(at.y - box.minY)
+            made = made.map { el in
+                var moved = el
+                moved.x += dx
+                moved.y += dy
+                return moved
+            }
+        }
+        applyToPage { $0.elements.append(contentsOf: made) }
+        selection = Set(made.map(\.id))
+        buzz(.confirm)
+    }
+
+    /// A spreadsheet's range written into the selected table from its
+    /// first selected cell — its top row and left column — the table
+    /// growing rows and columns as far as the range reaches
+    /// (ClipboardTable.pastedInto, DataGraphics.rebuiltTable): one step,
+    /// named Paste cells. Whether it changed.
+    @discardableResult
+    func pasteCells(_ block: ClipboardTable.Block) -> Bool {
+        let measure = self.measure
+        namedStep = tr("Paste cells")
+        let done = editTable { els, t in
+            guard let top = t.rows.first, let left = t.columns.first else { return nil }
+            let row = DataGraphics.tableRows(els, id: t.id).firstIndex(of: top) ?? 0
+            let col = DataGraphics.tableColumns(els, id: t.id).firstIndex(of: left) ?? 0
+            let grid = ClipboardTable.pastedInto(DataGraphics.tableGrid(els, id: t.id), row: row, col: col, block: block)
+            guard let rebuilt = DataGraphics.rebuiltTable(els, id: t.id, rows: grid, heightFor: measure),
+                  rebuilt != els else { return nil }
+            return rebuilt
+        }
+        if !done { namedStep = nil }
+        return done
+    }
+
     // MARK: Tab between cells
 
     /// The cell typed in, in reading order: the text of the next cell —

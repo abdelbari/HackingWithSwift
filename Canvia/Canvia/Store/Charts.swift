@@ -4,7 +4,7 @@
 // the new data in the same place, as one step. The Android twin's
 // EditorViewModel does the same with the same keys.
 
-import Foundation
+import UIKit
 
 extension DesignStore {
 
@@ -115,5 +115,26 @@ extension DesignStore {
             selection = Set(made.map(\.id))
         }
         return true
+    }
+
+    /// Replace chart data: the selected chart's data made the range another
+    /// app left on the pasteboard — a spreadsheet's (ClipboardTable), else
+    /// its lines as the data grid reads them — read as the grid's cells are
+    /// (DataGrid.chartText) and the chart drawn again, one step. Whether it
+    /// changed.
+    @discardableResult
+    func replaceChartData(from pasteboard: UIPasteboard = .general) -> Bool {
+        guard var spec = selectedChart else { return false }
+        let raw = pasteboard.hasStrings ? pasteboard.string ?? "" : ""
+        let html = pasteboard.data(forPasteboardType: ForeignText.htmlType).flatMap { String(data: $0, encoding: .utf8) }
+        let rows = ClipboardTable.parse(text: raw, html: html)?.rows ?? DataGrid.cells(raw)
+        let data = DataGrid.chartText(rows)
+        guard !data.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            buzz(.reject)
+            announce(tr("Nothing to paste"), undoable: false)
+            return false
+        }
+        spec.data = data
+        return updateChart(spec)
     }
 }
