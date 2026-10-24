@@ -134,5 +134,38 @@ final class TextUnitAnimationTests: XCTestCase {
         XCTAssertEqual(whole.scale, 0.5, accuracy: 1e-9)
         XCTAssertTrue(ElementAnimation.textOnly("ascend"))
         XCTAssertFalse(ElementAnimation.textOnly("tumble"))
+        // Reduced motion draws text whole, and leaves anything else's tumble.
+        XCTAssertEqual(Timeline.withoutTextKinds(given[1]), given[1])
+        XCTAssertNil(Timeline.withoutTextKinds(given[0]).animation)
+    }
+
+    /// Reduced motion: a text whose exit is a unit kind stays to the page's
+    /// end, and a line rise neither rises nor fades — as on the Android twin.
+    func testReducedMotionKeepsTextWholeToTheEnd() {
+        var el = Element.text("One two", fontSize: 40)
+        el.animation = ElementAnimation(kind: "lineRise", delay: 0, duration: 1)
+        el.exitAnimation = ElementAnimation(kind: "burst", delay: 0, duration: 1, by: "word")
+        let whole = Timeline.withoutTextKinds(el)
+        XCTAssertNil(whole.animation)
+        XCTAssertNil(whole.exitAnimation)
+        XCTAssertEqual(Timeline.motion(of: whole, time: 5, hold: 5, exitTime: nil, text: "One two").opacity, 1)
+        XCTAssertEqual(Timeline.motion(of: whole, time: 0.2, hold: 5, exitTime: nil, text: "One two").opacity, 1)
+        XCTAssertEqual(Timeline.motion(of: el, time: 5, hold: 5, exitTime: nil, text: "One two").opacity, 0)
+        var faded = el
+        faded.animation = ElementAnimation(kind: "fade", delay: 0, duration: 1)
+        XCTAssertEqual(Timeline.withoutTextKinds(faded).animation?.kind, "fade", "not a text kind, kept")
+    }
+
+    /// A list's markers belong to no unit: the units of the words as they
+    /// read, moved past each line's marker onto the words as drawn.
+    func testUnitsSkipAListsMarkers() {
+        var el = Element.text("One\nTwo", fontSize: 40)
+        el.listStyle = "bullet"
+        let units = ElementAnimation.units(RichText.strip(el.text ?? ""), by: "letter")
+        XCTAssertEqual(units.count, 6, "the bullets are not letters that move")
+        let drawn = FontLibrary.attributedString(for: el).string as NSString
+        let shown = FontLibrary.displayRanges(units, for: el)
+        XCTAssertEqual(shown.map { drawn.substring(with: $0) }, ["O", "n", "e", "T", "w", "o"])
+        XCTAssertEqual(FontLibrary.displayRanges(units, for: Element.text("One\nTwo", fontSize: 40)), units)
     }
 }

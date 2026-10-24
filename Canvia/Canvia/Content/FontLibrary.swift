@@ -944,6 +944,29 @@ enum FontLibrary {
         return Spans.normalised(pieces)
     }
 
+    /// `ranges` of `el`'s words as they read (UTF-16, RichText.strip) moved
+    /// onto the words as drawn: past the list markers of their own line and
+    /// every line before it, so a marker belongs to none of them — where
+    /// the Android twin's TypingCaret.shownCaret puts them.
+    static func displayRanges(_ ranges: [NSRange], for el: Element) -> [NSRange] {
+        guard isList(el) else { return ranges }
+        let prefixes = listPrefixes(for: el).map { ($0 as NSString).length }
+        let typed = RichText.strip(el.text ?? "").components(separatedBy: "\n")
+        var ends: [Int] = [], shifts: [Int] = []
+        var at = 0, shift = 0
+        for (i, line) in typed.enumerated() {
+            shift += i < prefixes.count ? prefixes[i] : 0
+            at += (line as NSString).length
+            ends.append(at)
+            shifts.append(shift)
+            at += 1
+        }
+        return ranges.map { range in
+            let line = ends.firstIndex { range.location <= $0 } ?? (shifts.count - 1)
+            return NSRange(location: range.location + shifts[line], length: range.length)
+        }
+    }
+
     /// The colours on words over the display text itself, capitals and all:
     /// what text round a curve, along a path or down a column is drawn in —
     /// linked words in the link colour unless they have their own. Sizes
