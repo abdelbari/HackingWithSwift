@@ -312,7 +312,7 @@ struct InsertSheet: View {
                                                   everySize: true, matching: search).isEmpty
                 && UserTemplates.matching(UserTemplates.all(), query: search).isEmpty
         case "Photos": return filteredPhotos.isEmpty
-        case "Videos": return MotionLibrary.search(search).isEmpty
+        // The Videos tab says it in Android's words, under its heading.
         case "Stickers":
             return EmojiCatalogue.search(search).isEmpty && Stickers.searchAnimated(search).isEmpty
         default: return false
@@ -1815,16 +1815,29 @@ struct InsertSheet: View {
     /// puts one on the page — onto the next unlocked page when this one is
     /// locked — or into the frame being replaced.
     private var videosGrid: some View {
-        MotionGrid(loops: MotionLibrary.search(search), current: replaceSource) { loop in
-            if !isReplacing {
-                guard store.landsOnUnlockedPage() else {
-                    dismiss()
-                    return
-                }
+        let loops = MotionLibrary.search(search)
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Motion backgrounds").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+            if loops.isEmpty {
+                Text(tr("No videos match “%@”", search.trimmingCharacters(in: .whitespaces)))
+                    .foregroundStyle(.secondary)
             }
-            pickLibraryPicture(MotionLibrary.src(loop.id, at: nil), natural: PhotoLibrary.size)
+            MotionGrid(loops: loops, current: replaceSource) { loop in
+                pickLoop(loop)
+            }
         }
         .padding()
+    }
+
+    /// A loop added, or put in the frame being replaced.
+    private func pickLoop(_ loop: MotionDef) {
+        if !isReplacing {
+            guard store.landsOnUnlockedPage() else {
+                dismiss()
+                return
+            }
+        }
+        pickLibraryPicture(MotionLibrary.src(loop.id, at: nil), natural: PhotoLibrary.size)
     }
 
     private var filteredPhotos: [PhotoDef] {

@@ -1631,6 +1631,15 @@
     "ja": "%@、おすすめ",
     "pt-BR": "%@, sugerido"
   },
+  "%@, texture %d of %d": {
+    "ar": "%@، خامة %d من %d",
+    "de": "%@, Textur %d von %d",
+    "es": "%@, textura %d de %d",
+    "fr": "%@, texture %d sur %d",
+    "it": "%@, texture %d di %d",
+    "ja": "%@、テクスチャ %d / %d",
+    "pt-BR": "%@, textura %d de %d"
+  },
   "%@, the brand kit in use. Double tap to switch or manage kits.": {
     "ar": "%@، مجموعة العلامة التجارية المستخدمة. انقر مرتين للتبديل أو إدارة المجموعات.",
     "de": "%@, das verwendete Brand Kit. Doppeltippen, um Kits zu wechseln oder zu verwalten.",
@@ -1657,6 +1666,15 @@
     "it": "%@, traccia %d di %d, %@",
     "ja": "%@、トラック %d / %d、%@",
     "pt-BR": "%@, faixa %d de %d, %@"
+  },
+  "%@, video %d of %d": {
+    "ar": "%@، فيديو %d من %d",
+    "de": "%@, Video %d von %d",
+    "es": "%@, video %d de %d",
+    "fr": "%@, vidéo %d sur %d",
+    "it": "%@, video %d di %d",
+    "ja": "%@、動画 %d / %d",
+    "pt-BR": "%@, vídeo %d de %d"
   },
   "%@, wiggling": {
     "ar": "%@، اهتزاز",
@@ -1699,6 +1717,15 @@
       "one": "%@, com %d página de anotações",
       "other": "%@, com %d páginas de anotações"
     }
+  },
+  "%@, with a file for each page inside.": {
+    "ar": "%@، وفيه ملف لكل صفحة.",
+    "de": "%@, mit einer Datei pro Seite darin.",
+    "es": "%@, con un archivo por página dentro.",
+    "fr": "%@, avec un fichier par page à l’intérieur.",
+    "it": "%@, con un file per ogni pagina all’interno.",
+    "ja": "%@（中にページごとのファイル）。",
+    "pt-BR": "%@, com um arquivo para cada página dentro."
   },
   "%@, your template": {
     "ar": "%@، قالبك",
@@ -1826,7 +1853,7 @@
   "%d accessibility suggestion|%d accessibility suggestions": {
     "ar": {
       "few": "%d اقتراحات لإمكانية الوصول",
-      "many": "%d اقتراح لإمكانية الوصول",
+      "many": "%d اقتراحًا لإمكانية الوصول",
       "one": "%d اقتراح لإمكانية الوصول",
       "other": "%d اقتراح لإمكانية الوصول",
       "two": "%d اقتراحان لإمكانية الوصول",
@@ -3554,6 +3581,39 @@
       "other": "%d caixas de texto. O que você escolher aqui muda todas."
     }
   },
+  "%d text is too long for its box|%d texts are too long for their boxes": {
+    "ar": {
+      "few": "%d نصوص أطول من مربعاتها",
+      "many": "%d نصًا أطول من مربعاتها",
+      "one": "%d نص أطول من مربعه",
+      "other": "%d نص أطول من مربعاته",
+      "two": "%d نصان أطول من مربعيهما",
+      "zero": "%d نص أطول من مربعه"
+    },
+    "de": {
+      "one": "%d Text ist zu lang für sein Feld",
+      "other": "%d Texte sind zu lang für ihre Felder"
+    },
+    "es": {
+      "one": "%d texto es demasiado largo para su cuadro",
+      "other": "%d textos son demasiado largos para sus cuadros"
+    },
+    "fr": {
+      "one": "%d texte est trop long pour son cadre",
+      "other": "%d textes sont trop longs pour leurs cadres"
+    },
+    "it": {
+      "one": "%d testo è troppo lungo per il suo riquadro",
+      "other": "%d testi sono troppo lunghi per i loro riquadri"
+    },
+    "ja": {
+      "other": "%d 件のテキストがボックスに収まりません"
+    },
+    "pt-BR": {
+      "one": "%d texto é longo demais para a caixa",
+      "other": "%d textos são longos demais para as caixas"
+    }
+  },
   "%d thing on %@|%d things on %@": {
     "ar": {
       "few": "%d عناصر في %@",
@@ -3878,14 +3938,14 @@
     "ja": "動画 1 本",
     "pt-BR": "1 vídeo"
   },
-  "1. Data": {
-    "ar": "1. البيانات",
-    "de": "1. Daten",
-    "es": "1. Datos",
-    "fr": "1. Données",
-    "it": "1. Dati",
-    "ja": "1. データ",
-    "pt-BR": "1. Dados"
+  "1. Add data": {
+    "ar": "1. إضافة البيانات",
+    "de": "1. Daten hinzufügen",
+    "es": "1. Añadir datos",
+    "fr": "1. Ajouter des données",
+    "it": "1. Aggiungi dati",
+    "ja": "1. データを追加",
+    "pt-BR": "1. Adicionar dados"
   },
   "2 across": {
     "ar": "2 أفقيًا",
@@ -3950,14 +4010,14 @@
     "ja": "縦に2枚",
     "pt-BR": "2 empilhadas"
   },
-  "2. Connect fields": {
-    "ar": "2. ربط الحقول",
-    "de": "2. Felder verbinden",
-    "es": "2. Conectar campos",
-    "fr": "2. Associer les champs",
-    "it": "2. Collega i campi",
-    "ja": "2. フィールドを接続",
-    "pt-BR": "2. Conectar campos"
+  "2. Connect data": {
+    "ar": "2. ربط البيانات",
+    "de": "2. Daten verbinden",
+    "es": "2. Conectar datos",
+    "fr": "2. Associer les données",
+    "it": "2. Collega i dati",
+    "ja": "2. データを接続",
+    "pt-BR": "2. Conectar dados"
   },
   "3 across": {
     "ar": "3 أفقيًا",
@@ -3996,7 +4056,7 @@
     "pt-BR": "3 empilhadas"
   },
   "3. Generate": {
-    "ar": "3. الإنشاء",
+    "ar": "3. إنشاء",
     "de": "3. Erstellen",
     "es": "3. Generar",
     "fr": "3. Générer",
@@ -4327,6 +4387,15 @@
     "it": "Circa %@ MB",
     "ja": "約 %@ MB",
     "pt-BR": "Cerca de %@ MB"
+  },
+  "About %@, or about %@ compressed (lower quality)": {
+    "ar": "حوالي %@، أو حوالي %@ بعد الضغط (جودة أقل)",
+    "de": "Etwa %@ oder etwa %@ komprimiert (geringere Qualität)",
+    "es": "Unos %@, o unos %@ comprimido (menor calidad)",
+    "fr": "Environ %@, ou environ %@ compressé (qualité moindre)",
+    "it": "Circa %@, o circa %@ compresso (qualità inferiore)",
+    "ja": "約 %@、圧縮すると約 %@（画質は低下）",
+    "pt-BR": "Cerca de %@, ou cerca de %@ comprimido (qualidade menor)"
   },
   "About %d KB": {
     "ar": "حوالي %d كيلوبايت",
@@ -5040,8 +5109,8 @@
       "other": "%d pages ajoutées"
     },
     "it": {
-      "one": "Aggiunta %d pagina",
-      "other": "Aggiunte %d pagine"
+      "one": "%d pagina aggiunta",
+      "other": "%d pagine aggiunte"
     },
     "ja": {
       "other": "%d ページを追加しました"
@@ -5794,7 +5863,7 @@
   },
   "As separate designs": {
     "ar": "كتصاميم منفصلة",
-    "de": "Als einzelne Designs",
+    "de": "Als separate Designs",
     "es": "Como diseños separados",
     "fr": "En designs séparés",
     "it": "Come design separati",
@@ -6876,18 +6945,18 @@
     "pt-BR": "Bolhas"
   },
   "Bulk create": {
-    "ar": "إنشاء مجمّع",
+    "ar": "إنشاء جماعي",
     "de": "Massenerstellung",
-    "es": "Creación en lote",
+    "es": "Creación masiva",
     "fr": "Création en masse",
     "it": "Creazione in blocco",
     "ja": "一括作成",
     "pt-BR": "Criação em massa"
   },
   "Bulk create…": {
-    "ar": "إنشاء مجمّع…",
-    "de": "Massenerstellung…",
-    "es": "Creación en lote…",
+    "ar": "إنشاء جماعي…",
+    "de": "Massenerstellung …",
+    "es": "Creación masiva…",
     "fr": "Création en masse…",
     "it": "Creazione in blocco…",
     "ja": "一括作成…",
@@ -7573,7 +7642,7 @@
   },
   "Choose a sheet": {
     "ar": "اختر ورقة",
-    "de": "Tabellenblatt wählen",
+    "de": "Tabelle wählen",
     "es": "Elige una hoja",
     "fr": "Choisissez une feuille",
     "it": "Scegli un foglio",
@@ -8064,25 +8133,16 @@
     "fr": "Compresser le fichier",
     "it": "Comprimi file",
     "ja": "ファイルを圧縮",
-    "pt-BR": "Compactar arquivo"
+    "pt-BR": "Comprimir arquivo"
   },
-  "Compressed: %@": {
-    "ar": "مضغوط: %@",
-    "de": "Komprimiert: %@",
-    "es": "Comprimido: %@",
-    "fr": "Compressé : %@",
-    "it": "Compresso: %@",
-    "ja": "圧縮後: %@",
-    "pt-BR": "Compactado: %@"
-  },
-  "Compressing wouldn't have made it at least %d%% smaller, so it's a normal PNG.": {
-    "ar": "لن يجعله الضغط أصغر بنسبة %d%% على الأقل، لذا فهو ملف PNG عادي.",
-    "de": "Komprimieren hätte es nicht um mindestens %d %% verkleinert, daher ist es ein normales PNG.",
-    "es": "Comprimirlo no lo habría reducido al menos un %d%%, así que es un PNG normal.",
-    "fr": "La compression ne l’aurait pas allégé d’au moins %d %%, c’est donc un PNG normal.",
-    "it": "La compressione non l’avrebbe ridotto di almeno il %d%%, quindi è un PNG normale.",
-    "ja": "圧縮しても %d%% 以上小さくならないため、通常の PNG になりました。",
-    "pt-BR": "Compactar não o deixaria pelo menos %d%% menor, então é um PNG normal."
+  "Compressing would have saved too little, so it was saved as a normal PNG.": {
+    "ar": "كان الضغط سيوفّر القليل جدًا، لذا حُفظ الملف بصيغة PNG عادية.",
+    "de": "Komprimieren hätte zu wenig gespart, daher wurde ein normales PNG gespeichert.",
+    "es": "Comprimir habría ahorrado muy poco, así que se guardó como PNG normal.",
+    "fr": "La compression aurait fait gagner trop peu, le fichier a donc été enregistré en PNG normal.",
+    "it": "La compressione avrebbe risparmiato troppo poco, quindi è stato salvato come PNG normale.",
+    "ja": "圧縮してもほとんど小さくならないため、通常の PNG として保存しました。",
+    "pt-BR": "Comprimir economizaria muito pouco, então foi salvo como PNG normal."
   },
   "Confetti": {
     "ar": "قصاصات ملونة",
@@ -8102,6 +8162,15 @@
     "ja": "接続",
     "pt-BR": "Conectar"
   },
+  "Connect a column to something on the page first.": {
+    "ar": "اربط عمودًا بعنصر في الصفحة أولًا.",
+    "de": "Verbinden Sie zuerst eine Spalte mit etwas auf der Seite.",
+    "es": "Primero conecta una columna a algo de la página.",
+    "fr": "Associez d’abord une colonne à un élément de la page.",
+    "it": "Prima collega una colonna a qualcosa nella pagina.",
+    "ja": "先に列をページ上の要素に接続してください。",
+    "pt-BR": "Primeiro conecte uma coluna a algo da página."
+  },
   "Connect with an arrow": {
     "ar": "ربط بسهم",
     "de": "Mit einem Pfeil verbinden",
@@ -8110,6 +8179,15 @@
     "it": "Collega con una freccia",
     "ja": "矢印でつなぐ",
     "pt-BR": "Conectar com uma seta"
+  },
+  "Connected by %@": {
+    "ar": "مرتبط بواسطة %@",
+    "de": "Verbunden über %@",
+    "es": "Conectado por %@",
+    "fr": "Associé par %@",
+    "it": "Collegato da %@",
+    "ja": "%@ で接続",
+    "pt-BR": "Conectado por %@"
   },
   "Connected — the arrow follows both ends": {
     "ar": "مرتبط — يتبع السهم الطرفين",
@@ -11726,6 +11804,15 @@
     "ja": "… px ごと",
     "pt-BR": "A cada … px"
   },
+  "Everything fits.": {
+    "ar": "كل شيء يتسع.",
+    "de": "Alles passt.",
+    "es": "Todo cabe.",
+    "fr": "Tout tient.",
+    "it": "Tutto entra.",
+    "ja": "すべて収まっています。",
+    "pt-BR": "Tudo cabe."
+  },
   "Everything shrinks or grows together, centred, with margins where the shape changed.": {
     "ar": "يتقلص كل شيء أو يكبر معًا، في المنتصف، مع هوامش حيث تغيّر الشكل.",
     "de": "Alles wird gemeinsam verkleinert oder vergrößert, zentriert, mit Rändern, wo sich die Form geändert hat.",
@@ -14417,15 +14504,6 @@
     "ja": "位置がロックされています。",
     "pt-BR": "A posição está bloqueada."
   },
-  "Its words name %@": {
-    "ar": "يذكر نصه %@",
-    "de": "Sein Text nennt %@",
-    "es": "Su texto nombra %@",
-    "fr": "Son texte nomme %@",
-    "it": "Il suo testo nomina %@",
-    "ja": "テキスト内の列: %@",
-    "pt-BR": "Seu texto cita %@"
-  },
   "JPEG quality": {
     "ar": "جودة JPEG",
     "de": "JPEG-Qualität",
@@ -15290,37 +15368,37 @@
     "ja": "MP4 動画",
     "pt-BR": "Vídeo MP4"
   },
-  "Made %d design|Made %d designs": {
+  "Made %d design on Home|Made %d designs on Home": {
     "ar": {
-      "few": "تم إنشاء %d تصاميم",
-      "many": "تم إنشاء %d تصميم",
-      "one": "تم إنشاء %d تصميم",
-      "other": "تم إنشاء %d تصميم",
-      "two": "تم إنشاء %d تصميمين",
-      "zero": "تم إنشاء %d تصميم"
+      "few": "تم إنشاء %d تصاميم في الرئيسية",
+      "many": "تم إنشاء %d تصميمًا في الرئيسية",
+      "one": "تم إنشاء %d تصميم في الرئيسية",
+      "other": "تم إنشاء %d تصميم في الرئيسية",
+      "two": "تم إنشاء %d تصميمين في الرئيسية",
+      "zero": "تم إنشاء %d تصميم في الرئيسية"
     },
     "de": {
-      "one": "%d Design erstellt",
-      "other": "%d Designs erstellt"
+      "one": "%d Design auf der Startseite erstellt",
+      "other": "%d Designs auf der Startseite erstellt"
     },
     "es": {
-      "one": "Se creó %d diseño",
-      "other": "Se crearon %d diseños"
+      "one": "Se creó %d diseño en Inicio",
+      "other": "Se crearon %d diseños en Inicio"
     },
     "fr": {
-      "one": "%d design créé",
-      "other": "%d designs créés"
+      "one": "%d design créé dans Accueil",
+      "other": "%d designs créés dans Accueil"
     },
     "it": {
-      "one": "Creato %d design",
-      "other": "Creati %d design"
+      "one": "%d design creato nella Home",
+      "other": "%d design creati nella Home"
     },
     "ja": {
-      "other": "%d 件のデザインを作成しました"
+      "other": "ホームに %d 件のデザインを作成しました"
     },
     "pt-BR": {
-      "one": "%d design criado",
-      "other": "%d designs criados"
+      "one": "%d design criado no Início",
+      "other": "%d designs criados no Início"
     }
   },
   "Made %d resized copy|Made %d resized copies": {
@@ -15428,7 +15506,7 @@
   "Make %d design|Make %d designs": {
     "ar": {
       "few": "إنشاء %d تصاميم",
-      "many": "إنشاء %d تصميم",
+      "many": "إنشاء %d تصميمًا",
       "one": "إنشاء %d تصميم",
       "other": "إنشاء %d تصميم",
       "two": "إنشاء %d تصميمين",
@@ -15466,6 +15544,15 @@
     "it": "Crea una copia",
     "ja": "コピーを作成",
     "pt-BR": "Fazer uma cópia"
+  },
+  "Make a page for each row of your data: certificates, name badges, product cards.": {
+    "ar": "أنشئ صفحة لكل صف من بياناتك: شهادات، وبطاقات أسماء، وبطاقات منتجات.",
+    "de": "Erstellen Sie eine Seite für jede Zeile Ihrer Daten: Urkunden, Namensschilder, Produktkarten.",
+    "es": "Crea una página por cada fila de tus datos: certificados, credenciales, fichas de productos.",
+    "fr": "Créez une page pour chaque ligne de vos données : certificats, badges, fiches produit.",
+    "it": "Crea una pagina per ogni riga dei tuoi dati: attestati, badge, schede prodotto.",
+    "ja": "データの行ごとにページを作成します：証明書、名札、商品カードなど。",
+    "pt-BR": "Crie uma página para cada linha dos seus dados: certificados, crachás, cartões de produto."
   },
   "Make brand guidelines": {
     "ar": "إنشاء إرشادات العلامة التجارية",
@@ -16084,6 +16171,15 @@
     "it": "Movimento",
     "ja": "モーション",
     "pt-BR": "Movimento"
+  },
+  "Motion backgrounds": {
+    "ar": "خلفيات متحركة",
+    "de": "Bewegte Hintergründe",
+    "es": "Fondos en movimiento",
+    "fr": "Arrière-plans animés",
+    "it": "Sfondi animati",
+    "ja": "動く背景",
+    "pt-BR": "Fundos em movimento"
   },
   "Motion settings": {
     "ar": "إعدادات الحركة",
@@ -17339,6 +17435,15 @@
     "ja": "復元するバージョンがありません",
     "pt-BR": "Nenhuma versão para restaurar"
   },
+  "No videos match “%@”": {
+    "ar": "لا توجد مقاطع فيديو تطابق \"%@\"",
+    "de": "Keine Videos passen zu „%@“",
+    "es": "Ningún video coincide con «%@»",
+    "fr": "Aucune vidéo ne correspond à « %@ »",
+    "it": "Nessun video corrisponde a “%@”",
+    "ja": "「%@」に一致する動画はありません",
+    "pt-BR": "Nenhum vídeo corresponde a “%@”"
+  },
   "No voice to read with. Add one in Settings, under Text-to-speech.": {
     "ar": "لا يوجد صوت للقراءة. أضف واحدًا في الإعدادات، ضمن تحويل النص إلى كلام.",
     "de": "Keine Stimme zum Vorlesen. Füge in den Einstellungen unter „Sprachausgabe“ eine hinzu.",
@@ -17429,15 +17534,6 @@
     "ja": "標準",
     "pt-BR": "Normal"
   },
-  "Normal: %@": {
-    "ar": "عادي: %@",
-    "de": "Normal: %@",
-    "es": "Normal: %@",
-    "fr": "Normal : %@",
-    "it": "Normale: %@",
-    "ja": "通常: %@",
-    "pt-BR": "Normal: %@"
-  },
   "Not animated": {
     "ar": "غير متحرك",
     "de": "Nicht animiert",
@@ -17464,6 +17560,15 @@
     "it": "Non scelto",
     "ja": "未選択",
     "pt-BR": "Não escolhido"
+  },
+  "Not connected": {
+    "ar": "غير مرتبط",
+    "de": "Nicht verbunden",
+    "es": "Sin conectar",
+    "fr": "Non associé",
+    "it": "Non collegato",
+    "ja": "未接続",
+    "pt-BR": "Não conectado"
   },
   "Not found in this design.": {
     "ar": "غير موجود في هذا التصميم.",
@@ -18230,14 +18335,14 @@
     "ja": "写真に保存できるのは PNG、JPEG、GIF、MP4 のみです。",
     "pt-BR": "Só PNG, JPEG, GIF e MP4 podem ser salvos em Fotos."
   },
-  "Only the first %d of %d rows will be made": {
-    "ar": "سيُنشأ أول %d فقط من أصل %d صفًا",
-    "de": "Nur die ersten %d von %d Zeilen werden erstellt",
-    "es": "Solo se crearán las primeras %d de %d filas",
-    "fr": "Seules les %d premières lignes sur %d seront créées",
-    "it": "Verranno create solo le prime %d di %d righe",
-    "ja": "最初の %d 行（全 %d 行）だけが作成されます",
-    "pt-BR": "Somente as primeiras %d de %d linhas serão criadas"
+  "Only the first %d of %d rows will be made.": {
+    "ar": "سيتم إنشاء أول %d من %d صف فقط.",
+    "de": "Nur die ersten %d von %d Zeilen werden erstellt.",
+    "es": "Solo se crearán las primeras %d de %d filas.",
+    "fr": "Seules les %d premières lignes sur %d seront créées.",
+    "it": "Verranno create solo le prime %d di %d righe.",
+    "ja": "最初の %d 行（全 %d 行中）だけが作成されます。",
+    "pt-BR": "Só as primeiras %d de %d linhas serão criadas."
   },
   "Opacity": {
     "ar": "العتامة",
@@ -19433,14 +19538,14 @@
     "ja": "写真：切り抜き、フィルター、フレーム、背景削除",
     "pt-BR": "Fotos: cortar, filtros, molduras, remover fundo"
   },
-  "Pick a column for a text or photo, or type {{Column}} in a text. A photo takes the upload its cell names.": {
-    "ar": "اختر عمودًا لنص أو صورة، أو اكتب {{Column}} في نص. تأخذ الصورة الملف المرفوع الذي تسمّيه خليتها.",
-    "de": "Wähle eine Spalte für einen Text oder ein Foto, oder tippe {{Column}} in einen Text. Ein Foto übernimmt den Upload, den seine Zelle nennt.",
-    "es": "Elige una columna para un texto o una foto, o escribe {{Column}} en un texto. Una foto toma la subida que nombra su celda.",
-    "fr": "Choisissez une colonne pour un texte ou une photo, ou tapez {{Column}} dans un texte. Une photo prend l’import que nomme sa cellule.",
-    "it": "Scegli una colonna per un testo o una foto, oppure scrivi {{Column}} in un testo. Una foto prende il caricamento indicato dalla sua cella.",
-    "ja": "テキストや写真に列を選ぶか、テキストに {{Column}} と入力します。写真にはセルで指定したアップロードが入ります。",
-    "pt-BR": "Escolha uma coluna para um texto ou foto, ou digite {{Column}} em um texto. Uma foto usa o upload que a célula indica."
+  "Pick a column for each text or photo, or type {{Column}} in a text.": {
+    "ar": "اختر عمودًا لكل نص أو صورة، أو اكتب {{Column}} في نص.",
+    "de": "Wählen Sie für jeden Text oder jedes Foto eine Spalte oder tippen Sie {{Column}} in einen Text.",
+    "es": "Elige una columna para cada texto o foto, o escribe {{Column}} en un texto.",
+    "fr": "Choisissez une colonne pour chaque texte ou photo, ou tapez {{Column}} dans un texte.",
+    "it": "Scegli una colonna per ogni testo o foto, oppure scrivi {{Column}} in un testo.",
+    "ja": "テキストや写真ごとに列を選ぶか、テキストに {{Column}} と入力します。",
+    "pt-BR": "Escolha uma coluna para cada texto ou foto, ou digite {{Column}} em um texto."
   },
   "Pick a size above or a template below to start. Everything saves itself.": {
     "ar": "اختر حجمًا أعلاه أو قالبًا أدناه للبدء. كل شيء يُحفظ تلقائيًا.",
@@ -21642,7 +21747,7 @@
     "pt-BR": "Linha %d, coluna %d"
   },
   "Row %d: %@ is too long": {
-    "ar": "الصف %d: ‏%@ طويل جدًا",
+    "ar": "الصف %d: %@ أطول من اللازم",
     "de": "Zeile %d: %@ ist zu lang",
     "es": "Fila %d: %@ es demasiado largo",
     "fr": "Ligne %d : %@ est trop long",
@@ -21797,11 +21902,11 @@
   "Save as one ZIP": {
     "ar": "حفظ كملف ZIP واحد",
     "de": "Als eine ZIP-Datei sichern",
-    "es": "Guardar como un solo ZIP",
+    "es": "Guardar en un solo ZIP",
     "fr": "Enregistrer en un seul ZIP",
-    "it": "Salva come un unico ZIP",
-    "ja": "1 つの ZIP として保存",
-    "pt-BR": "Salvar como um único ZIP"
+    "it": "Salva in un unico ZIP",
+    "ja": "1つの ZIP として保存",
+    "pt-BR": "Salvar em um único ZIP"
   },
   "Save as template": {
     "ar": "حفظ كقالب",
@@ -23011,15 +23116,6 @@
     "it": "Condividi SVG",
     "ja": "SVG を共有",
     "pt-BR": "Compartilhar SVG"
-  },
-  "Share ZIP": {
-    "ar": "مشاركة ملف ZIP",
-    "de": "ZIP teilen",
-    "es": "Compartir ZIP",
-    "fr": "Partager le ZIP",
-    "it": "Condividi ZIP",
-    "ja": "ZIP を共有",
-    "pt-BR": "Compartilhar ZIP"
   },
   "Share a PNG, a JPG, a PDF, a video or an animated GIF — or a print-ready PDF with bleed and crop marks. Present full screen from the top bar.": {
     "ar": "شارك PNG أو JPG أو PDF أو فيديو أو GIF متحركًا — أو PDF جاهزًا للطباعة مع هامش النزف وعلامات القص. واعرض بملء الشاشة من الشريط العلوي.",
@@ -25064,6 +25160,15 @@
     "ja": "テクスチャ",
     "pt-BR": "Textura"
   },
+  "Textures": {
+    "ar": "خامات",
+    "de": "Texturen",
+    "es": "Texturas",
+    "fr": "Textures",
+    "it": "Texture",
+    "ja": "テクスチャ",
+    "pt-BR": "Texturas"
+  },
   "That PDF is locked with a password": {
     "ar": "ملف PDF هذا مقفل بكلمة مرور",
     "de": "Diese PDF ist mit einem Passwort geschützt",
@@ -25172,15 +25277,6 @@
     "ja": "そのファイルは 1 MB を超えています",
     "pt-BR": "Esse arquivo tem mais de 1 MB"
   },
-  "That file is over 10 MB": {
-    "ar": "حجم ذلك الملف أكبر من 10 ميغابايت",
-    "de": "Diese Datei ist größer als 10 MB",
-    "es": "Ese archivo ocupa más de 10 MB",
-    "fr": "Ce fichier dépasse 10 Mo",
-    "it": "Quel file supera 10 MB",
-    "ja": "そのファイルは 10 MB を超えています",
-    "pt-BR": "Esse arquivo tem mais de 10 MB"
-  },
   "That file isn't a Canvia design.": {
     "ar": "ذلك الملف ليس تصميم Canvia.",
     "de": "Diese Datei ist kein Canvia-Design.",
@@ -25198,6 +25294,15 @@
     "it": "Quel file non è una presentazione PowerPoint.",
     "ja": "そのファイルは PowerPoint のプレゼンテーションではありません。",
     "pt-BR": "Esse arquivo não é uma apresentação do PowerPoint."
+  },
+  "That file isn't a spreadsheet Canvia can read.": {
+    "ar": "هذا الملف ليس جدول بيانات يستطيع Canvia قراءته.",
+    "de": "Diese Datei ist keine Tabelle, die Canvia lesen kann.",
+    "es": "Ese archivo no es una hoja de cálculo que Canvia pueda leer.",
+    "fr": "Ce fichier n’est pas une feuille de calcul que Canvia peut lire.",
+    "it": "Questo file non è un foglio di calcolo che Canvia può leggere.",
+    "ja": "そのファイルは Canvia で読み込めるスプレッドシートではありません。",
+    "pt-BR": "Esse arquivo não é uma planilha que o Canvia consiga ler."
   },
   "That file isn't music this phone can play": {
     "ar": "ذلك الملف ليس موسيقى يمكن لهذا الهاتف تشغيلها",
@@ -25243,6 +25348,15 @@
     "it": "È troppo lungo per un codice a barre",
     "ja": "バーコードには長すぎます",
     "pt-BR": "Isso é longo demais para um código de barras"
+  },
+  "That spreadsheet is too big to open.": {
+    "ar": "جدول البيانات هذا أكبر من أن يُفتح.",
+    "de": "Diese Tabelle ist zu groß zum Öffnen.",
+    "es": "Esa hoja de cálculo es demasiado grande para abrirla.",
+    "fr": "Cette feuille de calcul est trop volumineuse pour être ouverte.",
+    "it": "Questo foglio di calcolo è troppo grande per essere aperto.",
+    "ja": "そのスプレッドシートは大きすぎて開けません。",
+    "pt-BR": "Essa planilha é grande demais para abrir."
   },
   "That version could not be opened.": {
     "ar": "تعذّر فتح ذلك الإصدار.",
@@ -25409,14 +25523,23 @@
     "ja": "デザインの設定",
     "pt-BR": "A do design"
   },
-  "The first row is the column names.": {
-    "ar": "الصف الأول هو أسماء الأعمدة.",
-    "de": "Die erste Zeile enthält die Spaltennamen.",
-    "es": "La primera fila son los nombres de las columnas.",
-    "fr": "La première ligne contient les noms des colonnes.",
-    "it": "La prima riga contiene i nomi delle colonne.",
-    "ja": "1 行目は列の名前です。",
-    "pt-BR": "A primeira linha são os nomes das colunas."
+  "The export sheet says when Check accessibility finds something on the pages you're exporting.": {
+    "ar": "تُعلمك لوحة التصدير عندما يجد فحص إمكانية الوصول شيئًا في الصفحات التي تصدّرها.",
+    "de": "Das Exportfenster zeigt an, wenn die Barrierefreiheitsprüfung auf den exportierten Seiten etwas findet.",
+    "es": "La hoja de exportación avisa cuando Revisar accesibilidad encuentra algo en las páginas que exportas.",
+    "fr": "La feuille d’export signale quand Vérifier l’accessibilité trouve quelque chose dans les pages exportées.",
+    "it": "Il pannello di esportazione avvisa quando Controlla accessibilità trova qualcosa nelle pagine che esporti.",
+    "ja": "書き出すページでアクセシビリティの確認が何かを見つけると、書き出しシートでお知らせします。",
+    "pt-BR": "A folha de exportação avisa quando Verificar acessibilidade encontra algo nas páginas que você exporta."
+  },
+  "The first row names the columns.": {
+    "ar": "الصف الأول يحدد أسماء الأعمدة.",
+    "de": "Die erste Zeile benennt die Spalten.",
+    "es": "La primera fila da nombre a las columnas.",
+    "fr": "La première ligne nomme les colonnes.",
+    "it": "La prima riga dà il nome alle colonne.",
+    "ja": "1行目が列の名前になります。",
+    "pt-BR": "A primeira linha dá nome às colunas."
   },
   "The first value, as a percentage: %@.": {
     "ar": "القيمة الأولى، كنسبة مئوية: %@.",
@@ -25993,6 +26116,15 @@
     "it": "Questa pagina %@",
     "ja": "このページ %@",
     "pt-BR": "Esta página %@"
+  },
+  "This page has no text or photos to fill.": {
+    "ar": "لا تحتوي هذه الصفحة على نصوص أو صور لملئها.",
+    "de": "Diese Seite hat keine Texte oder Fotos zum Füllen.",
+    "es": "Esta página no tiene textos ni fotos que rellenar.",
+    "fr": "Cette page n’a ni texte ni photo à remplir.",
+    "it": "Questa pagina non ha testi né foto da riempire.",
+    "ja": "このページには差し込むテキストや写真がありません。",
+    "pt-BR": "Esta página não tem textos nem fotos para preencher."
   },
   "This page is empty": {
     "ar": "هذه الصفحة فارغة",
@@ -27163,15 +27295,6 @@
     "it": "Fino a %d caratteri. Lascia vuoto per il nome che gli dà Canvia.",
     "ja": "最大 %d 文字。空欄にすると Canvia が付けた名前になります。",
     "pt-BR": "Até %d caracteres. Deixe vazio para usar o nome que o Canvia dá."
-  },
-  "Up to 256 colours, for flat graphics; kept only when at least %d%% smaller.": {
-    "ar": "حتى 256 لونًا للرسومات المسطحة؛ يُستخدم فقط إذا صار أصغر بنسبة %d%% على الأقل.",
-    "de": "Bis zu 256 Farben, für flächige Grafiken; nur verwendet, wenn mindestens %d %% kleiner.",
-    "es": "Hasta 256 colores, para gráficos planos; solo se usa si es al menos un %d%% más pequeño.",
-    "fr": "Jusqu’à 256 couleurs, pour les graphismes en aplat ; conservé seulement s’il est au moins %d %% plus léger.",
-    "it": "Fino a 256 colori, per grafiche piatte; usato solo se almeno il %d%% più piccolo.",
-    "ja": "最大 256 色。フラットなグラフィック向けで、%d%% 以上小さくなる場合のみ使われます。",
-    "pt-BR": "Até 256 cores, para gráficos chapados; usado só se ficar pelo menos %d%% menor."
   },
   "Update": {
     "ar": "تحديث",

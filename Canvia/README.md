@@ -130,12 +130,15 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   files and Excel workbooks (`XlsxReader`: shared strings, numbers, dates
   as ISO, booleans, formulas' cached values, up to 500 rows by 50
   columns), asking which sheet when there are several; a workbook opened
-  in Canvia from another app becomes a new design with a chart of its
-  first sheet (`Spreadsheets`)
+  in Canvia from another app becomes a new design with a chart of a
+  sheet — chosen when there are several — or a table of one with no
+  numbers (`Spreadsheets`); `Tools/generate_xlsx_fixture.py` holds both
+  phones to one workbook and grid
 - Bulk create: More ▸ Bulk create… takes rows — a CSV or TSV file, or
   typed in the grid, the first row the columns' names — and connects each
   text or photo on the page to a column (`bulkField`; `{{Column}}` in a
-  text connects it too, and a photo takes the upload its cell names), then
+  text connects it too, and a photo takes the photo upload its cell names
+  by id or file name), then
   makes a copy of the page for every row, filled in, as one Undo, or a
   design of its own for every row titled by its first cell; the rows stay
   on the design (`bulk`), at most 500, and words that no longer fit are
@@ -144,7 +147,8 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   after the design ("Save as one ZIP", `ExportPlan.zipName`, the files
   inside named as ever), through Share and Save to Files, with Save to
   Photos put away; a PNG can be compressed to 256 colours (`PngWriter`,
-  median cut with alpha, an indexed PNG with tRNS and pHYs), kept only when
+  Android's median cut with alpha, an indexed PNG with tRNS and pHYs, its
+  rows deflated by `Deflate` to Android's bytes exactly), kept only when
   15% smaller, the sizes before and after said; both are remembered
   ("zip", "pngCompress"). Before a PDF, web page, PowerPoint or picture, the
   sheet says how many accessibility suggestions the pages going out have,

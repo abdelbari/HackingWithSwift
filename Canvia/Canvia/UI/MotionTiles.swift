@@ -46,13 +46,14 @@ struct MotionGrid: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
-            ForEach(loops) { loop in
-                tile(loop)
+            ForEach(Array(loops.enumerated()), id: \.element.id) { index, loop in
+                tile(loop, said: tr("%@, video %d of %d", loop.name, index + 1, loops.count))
             }
         }
     }
 
-    private func tile(_ loop: MotionDef) -> some View {
+    /// A loop's tile, named for VoiceOver as Android's tiles are.
+    private func tile(_ loop: MotionDef, said: String) -> some View {
         let ringed = current == MotionLibrary.src(loop.id, at: nil)
         return Button { pick(loop) } label: {
             VStack(alignment: .leading, spacing: 4) {
@@ -71,8 +72,7 @@ struct MotionGrid: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(loop.name)
-        .accessibilityHint(Text("Video"))
+        .accessibilityLabel(said)
         .accessibilityAddTraits(ringed ? [.isButton, .isSelected] : .isButton)
     }
 }

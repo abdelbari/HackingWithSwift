@@ -9223,6 +9223,59 @@
         }
       }
     },
+    "%@, texture %lld of %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@، خامة %lld من %lld"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, Textur %lld von %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, texture %lld of %lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, textura %lld de %lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, texture %lld sur %lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, texture %lld di %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@、テクスチャ %lld / %lld"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, textura %lld de %lld"
+          }
+        }
+      }
+    },
     "%@, the brand kit in use. Double tap to switch or manage kits." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9382,6 +9435,59 @@
         }
       }
     },
+    "%@, video %lld of %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@، فيديو %lld من %lld"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, Video %lld von %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, video %lld of %lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, video %lld de %lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, vidéo %lld sur %lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, video %lld di %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@、動画 %lld / %lld"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, vídeo %lld de %lld"
+          }
+        }
+      }
+    },
     "%@, wiggling" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9431,6 +9537,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@, balançando"
+          }
+        }
+      }
+    },
+    "%@, with a file for each page inside." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@، وفيه ملف لكل صفحة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, mit einer Datei pro Seite darin."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, with a file for each page inside."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, con un archivo por página dentro."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, avec un fichier par page à l’intérieur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, con un file per ogni pagina all’interno."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（中にページごとのファイル）。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, com um arquivo para cada página dentro."
           }
         }
       }
@@ -10147,7 +10306,7 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld اقتراح لإمكانية الوصول"
+                  "value" : "%lld اقتراحًا لإمكانية الوصول"
                 }
               },
               "one" : {
@@ -18959,6 +19118,173 @@
         }
       }
     },
+    "%lld texts are too long for their boxes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld نصوص أطول من مربعاتها"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld نصًا أطول من مربعاتها"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld نص أطول من مربعه"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld نص أطول من مربعاته"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld نصان أطول من مربعيهما"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld نص أطول من مربعه"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Text ist zu lang für sein Feld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Texte sind zu lang für ihre Felder"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld text is too long for its box"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld texts are too long for their boxes"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld texto es demasiado largo para su cuadro"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld textos son demasiado largos para sus cuadros"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld texte est trop long pour son cadre"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld textes sont trop longs pour leurs cadres"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld testo è troppo lungo per il suo riquadro"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld testi sono troppo lunghi per i loro riquadri"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 件のテキストがボックスに収まりません"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld texto é longo demais para a caixa"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld textos são longos demais para as caixas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld things" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20703,55 +21029,55 @@
         }
       }
     },
-    "1. Data" : {
+    "1. Add data" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. البيانات"
+            "value" : "1. إضافة البيانات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. Daten"
+            "value" : "1. Daten hinzufügen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. Data"
+            "value" : "1. Add data"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. Datos"
+            "value" : "1. Añadir datos"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. Données"
+            "value" : "1. Ajouter des données"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. Dati"
+            "value" : "1. Aggiungi dati"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. データ"
+            "value" : "1. データを追加"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. Dados"
+            "value" : "1. Adicionar dados"
           }
         }
       }
@@ -21127,55 +21453,55 @@
         }
       }
     },
-    "2. Connect fields" : {
+    "2. Connect data" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2. ربط الحقول"
+            "value" : "2. ربط البيانات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2. Felder verbinden"
+            "value" : "2. Daten verbinden"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2. Connect fields"
+            "value" : "2. Connect data"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2. Conectar campos"
+            "value" : "2. Conectar datos"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2. Associer les champs"
+            "value" : "2. Associer les données"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2. Collega i campi"
+            "value" : "2. Collega i dati"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2. フィールドを接続"
+            "value" : "2. データを接続"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2. Conectar campos"
+            "value" : "2. Conectar dados"
           }
         }
       }
@@ -21398,7 +21724,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3. الإنشاء"
+            "value" : "3. إنشاء"
           }
         },
         "de" : {
@@ -23349,6 +23675,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cerca de %@ MB"
+          }
+        }
+      }
+    },
+    "About %@, or about %@ compressed (lower quality)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حوالي %@، أو حوالي %@ بعد الضغط (جودة أقل)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etwa %@ oder etwa %@ komprimiert (geringere Qualität)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About %@, or about %@ compressed (lower quality)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unos %@, o unos %@ comprimido (menor calidad)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environ %@, ou environ %@ compressé (qualité moindre)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Circa %@, o circa %@ compresso (qualità inferiore)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "約 %@、圧縮すると約 %@（画質は低下）"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca de %@, ou cerca de %@ comprimido (qualidade menor)"
           }
         }
       }
@@ -27512,13 +27891,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Aggiunta %lld pagina"
+                  "value" : "%lld pagina aggiunta"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Aggiunte %lld pagine"
+                  "value" : "%lld pagine aggiunte"
                 }
               }
             }
@@ -31795,7 +32174,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Als einzelne Designs"
+            "value" : "Als separate Designs"
           }
         },
         "en" : {
@@ -38112,7 +38491,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إنشاء مجمّع"
+            "value" : "إنشاء جماعي"
           }
         },
         "de" : {
@@ -38130,7 +38509,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Creación en lote"
+            "value" : "Creación masiva"
           }
         },
         "fr" : {
@@ -38165,13 +38544,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إنشاء مجمّع…"
+            "value" : "إنشاء جماعي…"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Massenerstellung…"
+            "value" : "Massenerstellung …"
           }
         },
         "en" : {
@@ -38183,7 +38562,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Creación en lote…"
+            "value" : "Creación masiva…"
           }
         },
         "fr" : {
@@ -41950,7 +42329,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tabellenblatt wählen"
+            "value" : "Tabelle wählen"
           }
         },
         "en" : {
@@ -44848,113 +45227,60 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Compactar arquivo"
+            "value" : "Comprimir arquivo"
           }
         }
       }
     },
-    "Compressed: %@" : {
+    "Compressing would have saved too little, so it was saved as a normal PNG." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مضغوط: %@"
+            "value" : "كان الضغط سيوفّر القليل جدًا، لذا حُفظ الملف بصيغة PNG عادية."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Komprimiert: %@"
+            "value" : "Komprimieren hätte zu wenig gespart, daher wurde ein normales PNG gespeichert."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Compressed: %@"
+            "value" : "Compressing would have saved too little, so it was saved as a normal PNG."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Comprimido: %@"
+            "value" : "Comprimir habría ahorrado muy poco, así que se guardó como PNG normal."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Compressé : %@"
+            "value" : "La compression aurait fait gagner trop peu, le fichier a donc été enregistré en PNG normal."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Compresso: %@"
+            "value" : "La compressione avrebbe risparmiato troppo poco, quindi è stato salvato come PNG normale."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "圧縮後: %@"
+            "value" : "圧縮してもほとんど小さくならないため、通常の PNG として保存しました。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Compactado: %@"
-          }
-        }
-      }
-    },
-    "Compressing wouldn't have made it at least %lld%% smaller, so it's a normal PNG." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "لن يجعله الضغط أصغر بنسبة %lld%% على الأقل، لذا فهو ملف PNG عادي."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Komprimieren hätte es nicht um mindestens %lld %% verkleinert, daher ist es ein normales PNG."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compressing wouldn't have made it at least %lld%% smaller, so it's a normal PNG."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comprimirlo no lo habría reducido al menos un %lld%%, así que es un PNG normal."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La compression ne l’aurait pas allégé d’au moins %lld %%, c’est donc un PNG normal."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La compressione non l’avrebbe ridotto di almeno il %lld%%, quindi è un PNG normale."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "圧縮しても %lld%% 以上小さくならないため、通常の PNG になりました。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compactar não o deixaria pelo menos %lld%% menor, então é um PNG normal."
+            "value" : "Comprimir economizaria muito pouco, então foi salvo como PNG normal."
           }
         }
       }
@@ -45065,6 +45391,59 @@
         }
       }
     },
+    "Connect a column to something on the page first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اربط عمودًا بعنصر في الصفحة أولًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinden Sie zuerst eine Spalte mit etwas auf der Seite."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect a column to something on the page first."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero conecta una columna a algo de la página."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Associez d’abord une colonne à un élément de la page."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prima collega una colonna a qualcosa nella pagina."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に列をページ上の要素に接続してください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primeiro conecte uma coluna a algo da página."
+          }
+        }
+      }
+    },
     "Connect with an arrow" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -45114,6 +45493,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conectar com uma seta"
+          }
+        }
+      }
+    },
+    "Connected by %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مرتبط بواسطة %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbunden über %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected by %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado por %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Associé par %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collegato da %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ で接続"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado por %@"
           }
         }
       }
@@ -66051,6 +66483,59 @@
         }
       }
     },
+    "Everything fits." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كل شيء يتسع."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles passt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything fits."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo cabe."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout tient."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto entra."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて収まっています。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo cabe."
+          }
+        }
+      }
+    },
     "Everything shrinks or grows together, centred, with margins where the shape changed." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -81734,59 +82219,6 @@
         }
       }
     },
-    "Its words name %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يذكر نصه %@"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sein Text nennt %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Its words name %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Su texto nombra %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Son texte nomme %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il suo testo nomina %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "テキスト内の列: %@"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seu texto cita %@"
-          }
-        }
-      }
-    },
     "JPEG quality" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -86875,7 +87307,7 @@
         }
       }
     },
-    "Made %lld designs" : {
+    "Made %lld designs on Home" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
@@ -86884,37 +87316,37 @@
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "تم إنشاء %lld تصاميم"
+                  "value" : "تم إنشاء %lld تصاميم في الرئيسية"
                 }
               },
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "تم إنشاء %lld تصميم"
+                  "value" : "تم إنشاء %lld تصميمًا في الرئيسية"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "تم إنشاء %lld تصميم"
+                  "value" : "تم إنشاء %lld تصميم في الرئيسية"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "تم إنشاء %lld تصميم"
+                  "value" : "تم إنشاء %lld تصميم في الرئيسية"
                 }
               },
               "two" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "تم إنشاء %lld تصميمين"
+                  "value" : "تم إنشاء %lld تصميمين في الرئيسية"
                 }
               },
               "zero" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "تم إنشاء %lld تصميم"
+                  "value" : "تم إنشاء %lld تصميم في الرئيسية"
                 }
               }
             }
@@ -86926,13 +87358,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Design erstellt"
+                  "value" : "%lld Design auf der Startseite erstellt"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Designs erstellt"
+                  "value" : "%lld Designs auf der Startseite erstellt"
                 }
               }
             }
@@ -86944,13 +87376,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Made %lld design"
+                  "value" : "Made %lld design on Home"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Made %lld designs"
+                  "value" : "Made %lld designs on Home"
                 }
               }
             }
@@ -86962,13 +87394,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Se creó %lld diseño"
+                  "value" : "Se creó %lld diseño en Inicio"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Se crearon %lld diseños"
+                  "value" : "Se crearon %lld diseños en Inicio"
                 }
               }
             }
@@ -86980,13 +87412,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld design créé"
+                  "value" : "%lld design créé dans Accueil"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld designs créés"
+                  "value" : "%lld designs créés dans Accueil"
                 }
               }
             }
@@ -86998,13 +87430,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Creato %lld design"
+                  "value" : "%lld design creato nella Home"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Creati %lld design"
+                  "value" : "%lld design creati nella Home"
                 }
               }
             }
@@ -87016,7 +87448,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld 件のデザインを作成しました"
+                  "value" : "ホームに %lld 件のデザインを作成しました"
                 }
               }
             }
@@ -87028,13 +87460,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld design criado"
+                  "value" : "%lld design criado no Início"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld designs criados"
+                  "value" : "%lld designs criados no Início"
                 }
               }
             }
@@ -87603,7 +88035,7 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "إنشاء %lld تصميم"
+                  "value" : "إنشاء %lld تصميمًا"
                 }
               },
               "one" : {
@@ -87804,6 +88236,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fazer uma cópia"
+          }
+        }
+      }
+    },
+    "Make a page for each row of your data: certificates, name badges, product cards." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنشئ صفحة لكل صف من بياناتك: شهادات، وبطاقات أسماء، وبطاقات منتجات."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellen Sie eine Seite für jede Zeile Ihrer Daten: Urkunden, Namensschilder, Produktkarten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make a page for each row of your data: certificates, name badges, product cards."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una página por cada fila de tus datos: certificados, credenciales, fichas de productos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créez une page pour chaque ligne de vos données : certificats, badges, fiches produit."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una pagina per ogni riga dei tuoi dati: attestati, badge, schede prodotto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データの行ごとにページを作成します：証明書、名札、商品カードなど。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crie uma página para cada linha dos seus dados: certificados, crachás, cartões de produto."
           }
         }
       }
@@ -91416,6 +91901,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Movimento"
+          }
+        }
+      }
+    },
+    "Motion backgrounds" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خلفيات متحركة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegte Hintergründe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motion backgrounds"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fondos en movimiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrière-plans animés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sfondi animati"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動く背景"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fundos em movimento"
           }
         }
       }
@@ -98750,6 +99288,59 @@
         }
       }
     },
+    "No videos match “%@”" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا توجد مقاطع فيديو تطابق \"%@\""
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Videos passen zu „%@“"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No videos match “%@”"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ningún video coincide con «%@»"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune vidéo ne correspond à « %@ »"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun video corrisponde a “%@”"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」に一致する動画はありません"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum vídeo corresponde a “%@”"
+          }
+        }
+      }
+    },
     "No voice to read with. Add one in Settings, under Text-to-speech." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -99280,59 +99871,6 @@
         }
       }
     },
-    "Normal: %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "عادي: %@"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Normal: %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Normal: %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Normal: %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Normal : %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Normale: %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通常: %@"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Normal: %@"
-          }
-        }
-      }
-    },
     "Not animated" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -99488,6 +100026,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não escolhido"
+          }
+        }
+      }
+    },
+    "Not connected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "غير مرتبط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht verbunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not connected"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin conectar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non associé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non collegato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未接続"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não conectado"
           }
         }
       }
@@ -103997,55 +104588,55 @@
         }
       }
     },
-    "Only the first %lld of %lld rows will be made" : {
+    "Only the first %lld of %lld rows will be made." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "سيُنشأ أول %lld فقط من أصل %lld صفًا"
+            "value" : "سيتم إنشاء أول %lld من %lld صف فقط."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur die ersten %lld von %lld Zeilen werden erstellt"
+            "value" : "Nur die ersten %lld von %lld Zeilen werden erstellt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only the first %lld of %lld rows will be made"
+            "value" : "Only the first %lld of %lld rows will be made."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo se crearán las primeras %lld de %lld filas"
+            "value" : "Solo se crearán las primeras %lld de %lld filas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seules les %lld premières lignes sur %lld seront créées"
+            "value" : "Seules les %lld premières lignes sur %lld seront créées."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verranno create solo le prime %lld di %lld righe"
+            "value" : "Verranno create solo le prime %lld di %lld righe."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最初の %lld 行（全 %lld 行）だけが作成されます"
+            "value" : "最初の %lld 行（全 %lld 行中）だけが作成されます。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Somente as primeiras %lld de %lld linhas serão criadas"
+            "value" : "Só as primeiras %lld de %lld linhas serão criadas."
           }
         }
       }
@@ -111054,55 +111645,55 @@
         }
       }
     },
-    "Pick a column for a text or photo, or type {{Column}} in a text. A photo takes the upload its cell names." : {
+    "Pick a column for each text or photo, or type {{Column}} in a text." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اختر عمودًا لنص أو صورة، أو اكتب {{Column}} في نص. تأخذ الصورة الملف المرفوع الذي تسمّيه خليتها."
+            "value" : "اختر عمودًا لكل نص أو صورة، أو اكتب {{Column}} في نص."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle eine Spalte für einen Text oder ein Foto, oder tippe {{Column}} in einen Text. Ein Foto übernimmt den Upload, den seine Zelle nennt."
+            "value" : "Wählen Sie für jeden Text oder jedes Foto eine Spalte oder tippen Sie {{Column}} in einen Text."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pick a column for a text or photo, or type {{Column}} in a text. A photo takes the upload its cell names."
+            "value" : "Pick a column for each text or photo, or type {{Column}} in a text."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige una columna para un texto o una foto, o escribe {{Column}} en un texto. Una foto toma la subida que nombra su celda."
+            "value" : "Elige una columna para cada texto o foto, o escribe {{Column}} en un texto."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez une colonne pour un texte ou une photo, ou tapez {{Column}} dans un texte. Une photo prend l’import que nomme sa cellule."
+            "value" : "Choisissez une colonne pour chaque texte ou photo, ou tapez {{Column}} dans un texte."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli una colonna per un testo o una foto, oppure scrivi {{Column}} in un testo. Una foto prende il caricamento indicato dalla sua cella."
+            "value" : "Scegli una colonna per ogni testo o foto, oppure scrivi {{Column}} in un testo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "テキストや写真に列を選ぶか、テキストに {{Column}} と入力します。写真にはセルで指定したアップロードが入ります。"
+            "value" : "テキストや写真ごとに列を選ぶか、テキストに {{Column}} と入力します。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha uma coluna para um texto ou foto, ou digite {{Column}} em um texto. Uma foto usa o upload que a célula indica."
+            "value" : "Escolha uma coluna para cada texto ou foto, ou digite {{Column}} em um texto."
           }
         }
       }
@@ -123926,7 +124517,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الصف %lld: ‏%@ طويل جدًا"
+            "value" : "الصف %lld: %@ أطول من اللازم"
           }
         },
         "de" : {
@@ -124845,7 +125436,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guardar como un solo ZIP"
+            "value" : "Guardar en un solo ZIP"
           }
         },
         "fr" : {
@@ -124857,19 +125448,19 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Salva come un unico ZIP"
+            "value" : "Salva in un unico ZIP"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 つの ZIP として保存"
+            "value" : "1つの ZIP として保存"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Salvar como um único ZIP"
+            "value" : "Salvar em um único ZIP"
           }
         }
       }
@@ -131853,59 +132444,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Compartilhar SVG"
-          }
-        }
-      }
-    },
-    "Share ZIP" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "مشاركة ملف ZIP"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ZIP teilen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share ZIP"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compartir ZIP"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Partager le ZIP"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Condividi ZIP"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ZIP を共有"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compartilhar ZIP"
           }
         }
       }
@@ -143859,6 +144397,59 @@
         }
       }
     },
+    "Textures" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خامات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texturen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Textures"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texturas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Textures"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texture"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テクスチャ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texturas"
+          }
+        }
+      }
+    },
     "That PDF is locked with a password" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -144495,59 +145086,6 @@
         }
       }
     },
-    "That file is over 10 MB" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "حجم ذلك الملف أكبر من 10 ميغابايت"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diese Datei ist größer als 10 MB"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That file is over 10 MB"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ese archivo ocupa más de 10 MB"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ce fichier dépasse 10 Mo"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel file supera 10 MB"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "そのファイルは 10 MB を超えています"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esse arquivo tem mais de 10 MB"
-          }
-        }
-      }
-    },
     "That file isn't a Canvia design." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -144650,6 +145188,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esse arquivo não é uma apresentação do PowerPoint."
+          }
+        }
+      }
+    },
+    "That file isn't a spreadsheet Canvia can read." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هذا الملف ليس جدول بيانات يستطيع Canvia قراءته."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Datei ist keine Tabelle, die Canvia lesen kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file isn't a spreadsheet Canvia can read."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese archivo no es una hoja de cálculo que Canvia pueda leer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce fichier n’est pas une feuille de calcul que Canvia peut lire."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo file non è un foglio di calcolo che Canvia può leggere."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのファイルは Canvia で読み込めるスプレッドシートではありません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esse arquivo não é uma planilha que o Canvia consiga ler."
           }
         }
       }
@@ -144915,6 +145506,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Isso é longo demais para um código de barras"
+          }
+        }
+      }
+    },
+    "That spreadsheet is too big to open." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جدول البيانات هذا أكبر من أن يُفتح."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Tabelle ist zu groß zum Öffnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That spreadsheet is too big to open."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa hoja de cálculo es demasiado grande para abrirla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette feuille de calcul est trop volumineuse pour être ouverte."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo foglio di calcolo è troppo grande per essere aperto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのスプレッドシートは大きすぎて開けません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Essa planilha é grande demais para abrir."
           }
         }
       }
@@ -145836,55 +146480,108 @@
         }
       }
     },
-    "The first row is the column names." : {
+    "The export sheet says when Check accessibility finds something on the pages you're exporting." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الصف الأول هو أسماء الأعمدة."
+            "value" : "تُعلمك لوحة التصدير عندما يجد فحص إمكانية الوصول شيئًا في الصفحات التي تصدّرها."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die erste Zeile enthält die Spaltennamen."
+            "value" : "Das Exportfenster zeigt an, wenn die Barrierefreiheitsprüfung auf den exportierten Seiten etwas findet."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The first row is the column names."
+            "value" : "The export sheet says when Check accessibility finds something on the pages you're exporting."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La primera fila son los nombres de las columnas."
+            "value" : "La hoja de exportación avisa cuando Revisar accesibilidad encuentra algo en las páginas que exportas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La première ligne contient les noms des colonnes."
+            "value" : "La feuille d’export signale quand Vérifier l’accessibilité trouve quelque chose dans les pages exportées."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La prima riga contiene i nomi delle colonne."
+            "value" : "Il pannello di esportazione avvisa quando Controlla accessibilità trova qualcosa nelle pagine che esporti."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 行目は列の名前です。"
+            "value" : "書き出すページでアクセシビリティの確認が何かを見つけると、書き出しシートでお知らせします。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A primeira linha são os nomes das colunas."
+            "value" : "A folha de exportação avisa quando Verificar acessibilidade encontra algo nas páginas que você exporta."
+          }
+        }
+      }
+    },
+    "The first row names the columns." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الصف الأول يحدد أسماء الأعمدة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die erste Zeile benennt die Spalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first row names the columns."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La primera fila da nombre a las columnas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La première ligne nomme les colonnes."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La prima riga dà il nome alle colonne."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1行目が列の名前になります。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A primeira linha dá nome às colunas."
           }
         }
       }
@@ -149277,6 +149974,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esta página %@"
+          }
+        }
+      }
+    },
+    "This page has no text or photos to fill." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تحتوي هذه الصفحة على نصوص أو صور لملئها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Seite hat keine Texte oder Fotos zum Füllen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This page has no text or photos to fill."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta página no tiene textos ni fotos que rellenar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette page n’a ni texte ni photo à remplir."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa pagina non ha testi né foto da riempire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このページには差し込むテキストや写真がありません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta página não tem textos nem fotos para preencher."
           }
         }
       }
@@ -156167,59 +156917,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Até %lld caracteres. Deixe vazio para usar o nome que o Canvia dá."
-          }
-        }
-      }
-    },
-    "Up to 256 colours, for flat graphics; kept only when at least %lld%% smaller." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "حتى 256 لونًا للرسومات المسطحة؛ يُستخدم فقط إذا صار أصغر بنسبة %lld%% على الأقل."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bis zu 256 Farben, für flächige Grafiken; nur verwendet, wenn mindestens %lld %% kleiner."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Up to 256 colours, for flat graphics; kept only when at least %lld%% smaller."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hasta 256 colores, para gráficos planos; solo se usa si es al menos un %lld%% más pequeño."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jusqu’à 256 couleurs, pour les graphismes en aplat ; conservé seulement s’il est au moins %lld %% plus léger."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fino a 256 colori, per grafiche piatte; usato solo se almeno il %lld%% più piccolo."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最大 256 色。フラットなグラフィック向けで、%lld%% 以上小さくなる場合のみ使われます。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Até 256 cores, para gráficos chapados; usado só se ficar pelo menos %lld%% menor."
           }
         }
       }
