@@ -1,6 +1,7 @@
 // The menu a still hold on the empty page brings up at the finger, as
-// Canva's does: Paste — what was copied, put where you pressed — Paste page,
-// Select all, Add text here and Background. The Android twin's HoldMenu,
+// Canva's does: Paste — what was copied, put where you pressed — Paste as
+// plain text — another app's words as they read — Paste page, Select all,
+// Add text here and Background. The Android twin's HoldMenu,
 // with the same items in the same order, and the same words.
 
 import CoreGraphics
@@ -9,13 +10,14 @@ import Foundation
 enum HoldMenu {
 
     enum HoldItem: String, CaseIterable, Identifiable {
-        case paste, pastePage, selectAll, addText, background
+        case paste, pastePlain, pastePage, selectAll, addText, background
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
             case .paste: return tr("Paste")
+            case .pastePlain: return tr("Paste as plain text")
             case .pastePage: return tr("Paste page")
             case .selectAll: return tr("Select all")
             case .addText: return tr("Add text here")
@@ -26,6 +28,7 @@ enum HoldMenu {
         var symbol: String {
             switch self {
             case .paste: return "doc.on.clipboard"
+            case .pastePlain: return "doc.plaintext"
             case .pastePage: return "doc.badge.plus"
             case .selectAll: return "checkmark.circle"
             case .addText: return "textformat"
@@ -40,12 +43,14 @@ enum HoldMenu {
     static let words = tr("Your text here")
 
     /// The items offered: Paste when there is something to paste — copied
-    /// elements, or a picture another app left — Paste page when a page was
-    /// copied, and the rest always.
-    static func items(canPaste: Bool, canPastePage: Bool) -> [HoldItem] {
+    /// elements, or a picture another app left — Paste as plain text when
+    /// there are words to paste, Paste page when a page was copied, and the
+    /// rest always.
+    static func items(canPaste: Bool, canPastePlain: Bool = false, canPastePage: Bool) -> [HoldItem] {
         HoldItem.allCases.filter { item in
             switch item {
             case .paste: return canPaste
+            case .pastePlain: return canPastePlain
             case .pastePage: return canPastePage
             default: return true
             }

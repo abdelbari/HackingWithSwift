@@ -1,13 +1,53 @@
 // Styled words pasted from other apps: HTML read by the tag walker and RTF
 // by the system, both through one builder, into the clip the typing field
-// pastes. The HTML rows are the Android twin's ForeignTextTest rows: the
-// same snippet gives the same text, spans and paragraphs on both phones.
+// pastes. The shared rows (Fixtures/foreign-text.json, the Android twin's
+// ForeignTextTest's byte for byte): the same snippet gives the same text,
+// spans and paragraphs on both phones.
 
 import XCTest
 import UIKit
 @testable import Canvia
 
 final class ForeignTextTests: XCTestCase {
+
+    /// A case's clip — text, spans and paragraphs — as the fixture has it.
+    private func assertClip(_ clip: RichClipboard.Clip?, _ item: [String: Any],
+                            file: StaticString = #filePath, line: UInt = #line) throws {
+        let name = item["name"] as? String ?? ""
+        let want = try XCTUnwrap(item["clip"] as? [String: Any], name)
+        let spans = try JSONDecoder().decode([TextSpan].self, from: SharedFixture.encoded(want["spans"] ?? [Any]()))
+        let paragraphs = try JSONDecoder().decode([TextParagraph].self, from: SharedFixture.encoded(want["paragraphs"] ?? [Any]()))
+        XCTAssertEqual(clip?.text, want["text"] as? String, name, file: file, line: line)
+        XCTAssertEqual(clip?.spans, spans, name, file: file, line: line)
+        XCTAssertEqual(clip?.paragraphs, paragraphs, name, file: file, line: line)
+    }
+
+    func testEveryHtmlSnippetGivesTheSharedClip() throws {
+        let fixture = try SharedFixture.object("foreign-text")
+        let cases = try XCTUnwrap(fixture["html"] as? [[String: Any]])
+        XCTAssertGreaterThanOrEqual(cases.count, 10)
+        for item in cases {
+            let html = try XCTUnwrap(item["html"] as? String)
+            let box = try XCTUnwrap(item["boxSize"] as? Double)
+            try assertClip(ForeignText.fromHtml(html, boxSize: box), item)
+        }
+    }
+
+    /// The RTF rows, read by the system as a paste reads them.
+    func testEveryRtfSnippetGivesTheSharedClip() throws {
+        let fixture = try SharedFixture.object("foreign-text")
+        for item in try XCTUnwrap(fixture["rtf"] as? [[String: Any]]) {
+            try assertClip(ForeignText.fromRtf(text: try XCTUnwrap(item["rtf"] as? String)), item)
+        }
+    }
+
+    func testColoursAsCssWritesThem() throws {
+        let fixture = try SharedFixture.object("foreign-text")
+        for row in try XCTUnwrap(fixture["colours"] as? [[Any]]) {
+            let css = try XCTUnwrap(row.first as? String)
+            XCTAssertEqual(ForeignText.cssColour(css), row.last as? String, css)
+        }
+    }
 
     func testBoldItalicUnderlineAndStrikeBecomeMarkers() {
         let clip = ForeignText.fromHtml("<p>Big <b>sale</b> <i>today</i></p>")
@@ -30,9 +70,9 @@ final class ForeignTextTests: XCTestCase {
         let clip = ForeignText.fromHtml(html)
         XCTAssertEqual(clip.plain, "Shop now ok")
         XCTAssertEqual(clip.spans, [TextSpan(start: 0, end: 4, link: "https://example.com"),
-                                    TextSpan(start: 5, end: 8, color: "#ff0000", scale: 1.5),
-                                    TextSpan(start: 9, end: 11, color: "#0080ff")],
-                       "12pt is 16px, the box's own size")
+                                    TextSpan(start: 5, end: 8, color: "#ff0000", scale: 0.57),
+                                    TextSpan(start: 9, end: 11, color: "#0080ff", scale: 0.38)],
+                       "sizes in design units, shares of the box's 42")
     }
 
     func testListsBecomeParagraphsAtTheirDepth() {
@@ -72,6 +112,7 @@ final class ForeignTextTests: XCTestCase {
         let ink = UIColor(hex: try XCTUnwrap(red?.color, "\(clip.spans)")).srgbComponents
         XCTAssertGreaterThan(ink.r, 0.9)
         XCTAssertLessThan(ink.g, 0.1)
+        XCTAssertFalse(clip.spans.contains { $0.scale != nil || $0.color == "#000000" }, "no sizes, no black")
     }
 
     func testAPasteOntoThePageIsATextBoxInItsStyles() {

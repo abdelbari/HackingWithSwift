@@ -632,7 +632,12 @@ struct TextElementView: View {
         let top: Double = el.vAlign == "middle" ? slack / 2 : el.vAlign == "bottom" ? slack : 0
         let attributed = FontLibrary.attributedString(for: el)
         let units = ElementAnimation.units(attributed.string, by: clock.animation.unit)
-        let frames = clock.animation.frames(count: units.count, at: clock.time, size: el.fontSize ?? 42)
+        let frames = clock.animation.frames(units, at: clock.time, size: el.fontSize ?? 42)
+        // Every unit in place: the words whole, as they stand.
+        guard !frames.allSatisfy(clock.animation.atRest) else {
+            drawText(in: cg, size: size)
+            return
+        }
         let lines = TextHighlights.lines(attributed, el: el, width: Double(size.width), top: top)
         let boxes: [[CGRect]] = units.map { unit in
             lines.compactMap { line -> CGRect? in
@@ -642,17 +647,20 @@ struct TextElementView: View {
                 return CGRect(x: left, y: line.top, width: right - left, height: line.bottom - line.top)
             }
         }
-        // Everything outside the units, once, as it stands.
+        // Everything outside the moving units — units at rest too — once,
+        // as it stands.
         cg.saveGState()
         let rest = CGMutablePath()
         rest.addRect(CGRect(origin: .zero, size: size).insetBy(dx: -size.width, dy: -size.height))
-        for rect in boxes.joined() { rest.addRect(rect) }
+        for (frame, rects) in zip(frames, boxes) where !clock.animation.atRest(frame) {
+            for rect in rects { rest.addRect(rect) }
+        }
         cg.addPath(rest)
         cg.clip(using: .evenOdd)
         drawText(in: cg, size: size)
         cg.restoreGState()
         let ink = UIColor(hex: el.color ?? "#1f2430")
-        for (frame, rects) in zip(frames, boxes) where !rects.isEmpty {
+        for (frame, rects) in zip(frames, boxes) where !rects.isEmpty && !clock.animation.atRest(frame) {
             drawUnit(frame, rects: rects, clock: clock, ink: ink, in: cg, size: size)
         }
     }
@@ -692,15 +700,13 @@ struct TextElementView: View {
             cg.restoreGState()
         }
         // Block's bar in the text's colour: across the unit to its clip,
-        // then off it from the left as the words show.
-        let span = frame.end - frame.start
-        let q = span > 0 ? min(max((clock.time - frame.start) / span, 0), 1) : 1
-        guard block, q > 0, q < 1 else { return }
+        // then, from clip 1, off it from the left as the words show.
+        guard block, frame.clip > 0, frame.clip < 2 else { return }
         cg.setFillColor(ink.cgColor)
-        let from = q < 0.5 ? 0 : 2 * q - 1
+        let from = max(0, frame.clip - 1), to = min(1, frame.clip)
         for rect in rects {
             cg.fill(CGRect(x: rect.minX + rect.width * from, y: rect.minY,
-                           width: rect.width * (frame.clip - from), height: rect.height))
+                           width: rect.width * (to - from), height: rect.height))
         }
     }
 

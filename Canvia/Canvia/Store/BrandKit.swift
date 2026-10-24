@@ -107,9 +107,11 @@ struct BrandFonts: Codable, Equatable {
 
         var id: String { rawValue }
 
-        /// The roles largest type first, by their share of the page's width
-        /// — the Android twin's BrandRoles.BY_SIZE.
-        static let bySize: [Role] = [.title, .heading, .subtitle, .subheading, .quote, .sectionHeader, .body, .caption]
+        /// The roles a theme hands out by size, biggest first — in the
+        /// order they are listed, a subtitle between the title and the
+        /// heading; a quote or a caption is what a text says, not how big
+        /// it is, so neither is a rank. The Android twin's BrandRoles.BY_SIZE.
+        static let bySize: [Role] = [.title, .subtitle, .heading, .subheading, .sectionHeader, .body]
 
         /// "Title", "Heading" …
         var label: String {
@@ -291,11 +293,10 @@ struct BrandFonts: Codable, Equatable {
     }
 
     /// The roles a theme sets by size rank, largest first: those with a face
-    /// among title, heading, subheading and body. A quote or a caption is
-    /// not a rank — it is what a text says, not how big it is — so the theme
-    /// leaves them to Add text.
+    /// among Role.bySize. A quote or a caption is not a rank — it is what a
+    /// text says, not how big it is — so the theme leaves them to Add text.
     var rankedRoles: [Role] {
-        [Role.title, .heading, .subheading, .body].filter { self[$0] != nil }
+        Role.bySize.filter { self[$0] != nil }
     }
 }
 

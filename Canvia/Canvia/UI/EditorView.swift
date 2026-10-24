@@ -972,6 +972,13 @@ struct EditorView: View {
                 } label: { Label("Paste", systemImage: "doc.on.clipboard") }
                     .disabled(!store.hasClipboard)
 
+                // Another app's words as they read, as the Android twin's menu.
+                if UIPasteboard.general.hasStrings {
+                    Button {
+                        store.paste(at: nil, plain: true)
+                    } label: { Label("Paste as plain text", systemImage: "doc.plaintext") }
+                }
+
                 // The selection carried to another page, where it sat.
                 Menu {
                     ForEach(store.moveTargets) { target in

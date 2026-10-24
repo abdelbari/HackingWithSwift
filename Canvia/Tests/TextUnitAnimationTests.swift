@@ -1,7 +1,8 @@
 // Text that moves by letter, word or line: the "by" key, the units of the
 // words, the frame table for the shared three-word fixture at 0, 0.5 and
-// 1 second, exits as the frames played back, and the reveal by word and
-// line. The tables are the Android twin's TextUnitAnimationTest's.
+// 1 second (Fixtures/unit-frames.json, shared with the Android twin's
+// TextUnitAnimationTest), exits as the frames played back, and the reveal
+// by word and line.
 
 import XCTest
 @testable import Canvia
@@ -13,18 +14,6 @@ final class TextUnitAnimationTests: XCTestCase {
         var el = Element.text("One two six", fontSize: 40)
         el.animation = ElementAnimation(kind: kind, delay: 0, duration: 1, by: "word")
         return el
-    }
-
-    private func assertFrame(_ f: ElementAnimation.UnitFrame, dx: Double = 0, dy: Double = 0, scale: Double = 1,
-                             rotation: Double = 0, alpha: Double, blur: Double = 0, clip: Double = 1,
-                             file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertEqual(f.dx, dx, accuracy: 1e-9, "dx", file: file, line: line)
-        XCTAssertEqual(f.dy, dy, accuracy: 1e-9, "dy", file: file, line: line)
-        XCTAssertEqual(f.scale, scale, accuracy: 1e-9, "scale", file: file, line: line)
-        XCTAssertEqual(f.rotation, rotation, accuracy: 1e-9, "rotation", file: file, line: line)
-        XCTAssertEqual(f.alpha, alpha, accuracy: 1e-9, "alpha", file: file, line: line)
-        XCTAssertEqual(f.blur, blur, accuracy: 1e-9, "blur", file: file, line: line)
-        XCTAssertEqual(f.clip, clip, accuracy: 1e-9, "clip", file: file, line: line)
     }
 
     func testTheKindsAreInTheSameOrderOnBothPhones() {
@@ -62,54 +51,42 @@ final class TextUnitAnimationTests: XCTestCase {
                        [NSRange(location: 0, length: 8), NSRange(location: 11, length: 7)])
     }
 
-    /// The shared table: Ascend by word at 0, 0.5 and 1 second.
-    func testAscendByWordFramesAtZeroHalfAndOne() {
-        let el = fixture("ascend")
-        let zero = ElementAnimation.unitFrames(el, at: 0)
-        XCTAssertEqual(zero.count, 3)
-        for (f, start) in zip(zero, [0, 0.2, 0.4]) {
-            XCTAssertEqual(f.start, start, accuracy: 1e-9)
-            XCTAssertEqual(f.end, start + 0.4, accuracy: 1e-9)
+    /// The shared table (Fixtures/unit-frames.json, the Android twin's
+    /// byte for byte): every unit kind, three words by word, at 0, 0.5 and
+    /// 1 second.
+    func testEveryUnitKindGivesTheSharedFrames() throws {
+        let fixture = try SharedFixture.object("unit-frames")
+        let text = try XCTUnwrap(fixture["text"] as? String)
+        let size = try XCTUnwrap(fixture["fontSize"] as? Double)
+        let by = try XCTUnwrap(fixture["by"] as? String)
+        let columns = try XCTUnwrap(fixture["columns"] as? [String])
+        let frames = try XCTUnwrap(fixture["frames"] as? [String: [String: [[Double]]]])
+        XCTAssertEqual(Set(frames.keys), ElementAnimation.unitKinds)
+        var el = Element.text(text, fontSize: size)
+        for (kind, table) in frames {
+            el.animation = ElementAnimation(kind: kind, delay: 0, duration: 1, by: by)
+            for (time, rows) in table {
+                let got = ElementAnimation.unitFrames(el, at: try XCTUnwrap(Double(time)))
+                XCTAssertEqual(got.count, rows.count, "\(kind) at \(time)")
+                for (f, row) in zip(got, rows) {
+                    let values = [Double(f.start), Double(f.end), f.dx, f.dy, f.scale, f.rotation, f.alpha, f.blur, f.clip]
+                    for (k, v) in values.enumerated() {
+                        XCTAssertEqual(v, row[k], accuracy: 1e-4, "\(kind) at \(time), \(columns[k])")
+                    }
+                }
+            }
         }
-        for f in zero { assertFrame(f, dy: 20, alpha: 0) }
-        let half = ElementAnimation.unitFrames(el, at: 0.5)
-        assertFrame(half[0], alpha: 1)
-        assertFrame(half[1], dy: 0.3125, alpha: 0.984375)
-        assertFrame(half[2], dy: 8.4375, alpha: 0.578125)
-        for f in ElementAnimation.unitFrames(el, at: 1) { assertFrame(f, alpha: 1) }
-    }
-
-    /// The shared table for the other kinds at 0.5 second: the second word,
-    /// q = 0.75, e = 0.984375; the third, q = 0.25, e = 0.578125.
-    func testEveryKindsFramesAtHalfASecond() {
-        func half(_ kind: String) -> [ElementAnimation.UnitFrame] { ElementAnimation.unitFrames(fixture(kind), at: 0.5) }
-        let shiftFrames = half("shift")
-        assertFrame(shiftFrames[1], dx: 0.3125, alpha: 0.984375)
-        let mergeFrames = half("merge")
-        assertFrame(mergeFrames[1], dx: 0.625, alpha: 0.984375)
-        assertFrame(mergeFrames[2], dx: -16.875, alpha: 0.578125)
-        let blockFrames = half("block")
-        assertFrame(blockFrames[1], alpha: 1, clip: 1)
-        assertFrame(blockFrames[2], alpha: 0, clip: 0.5)
-        let burstFrames = half("burst")
-        assertFrame(burstFrames[2], scale: 1.421875, alpha: 0.578125)
-        let bounceFrames = half("bounceIn")
-        assertFrame(bounceFrames[2], dy: -(1 - ElementAnimation.bounce(0.25)) * 40, alpha: 0.5)
-        let rollFrames = half("roll")
-        assertFrame(rollFrames[2], dx: 8.4375, rotation: 37.96875, alpha: 0.578125)
-        let skateFrames = half("skate")
-        assertFrame(skateFrames[2], dx: 16.875, rotation: -6.328125, alpha: 0.578125)
-        let spreadFrames = half("spread")
-        assertFrame(spreadFrames[0], alpha: 1)
-        assertFrame(spreadFrames[2], dx: 8.4375, alpha: 0.578125)
-        let clarifyFrames = half("clarify")
-        assertFrame(clarifyFrames[2], alpha: 0.578125, blur: 4.21875)
-        let tumbleFrames = half("tumble")
-        assertFrame(tumbleFrames[2], dy: -8.4375, scale: 0.7890625, rotation: -75.9375, alpha: 0.578125)
-        let writeFrames = half("writeOn")
-        assertFrame(writeFrames[2], alpha: 1, clip: 0.25)
         XCTAssertEqual(ElementAnimation.bounce(0), 0, accuracy: 1e-12)
         XCTAssertEqual(ElementAnimation.bounce(1), 1, accuracy: 1e-12)
+    }
+
+    func testTheOlderKindsKeepTheirRevealAndAnimateByIsKept() {
+        var typed = fixture("typewriter")
+        XCTAssertTrue(ElementAnimation.unitFrames(typed, at: 0.5).isEmpty, "a reveal, not units")
+        XCTAssertEqual(ElementAnimation(kind: "lineRise").unit, "letter")
+        typed = ElementAnimation.applied([typed], kind: "burst")[0]
+        XCTAssertEqual(typed.animation?.by, "word", "kept for another text kind")
+        XCTAssertNil(ElementAnimation.applied([typed], kind: "fade")[0].animation?.by)
     }
 
     func testAUnitKindDrawsAUnitAtATimeAndSettles() {

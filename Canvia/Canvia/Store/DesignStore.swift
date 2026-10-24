@@ -1074,9 +1074,26 @@ final class DesignStore {
     /// Paste; with `point`, on the page in page units — the menu a hold on
     /// the empty page brings up — what was copied is put down centred there
     /// and kept on the page (HoldMenu.placed), in the paste's one step.
-    func paste(at point: CGPoint? = nil) {
+    /// `plain`, Paste as plain text: the words on the pasteboard as they
+    /// read, a text box, whatever else came with them.
+    func paste(at point: CGPoint? = nil, plain: Bool = false) {
         // Nothing is pasted onto a locked page.
         guard !refusesLockedPage() else { return }
+        if plain {
+            guard var words = ElementClipboard.foreign(designWidth: pageWidth, plain: true) else {
+                buzz(.reject)
+                announce(tr("Nothing to paste"), undoable: false)
+                return
+            }
+            if let point {
+                let box = Geometry.aabb(words)
+                let at = HoldMenu.placed(box.size, at: point, page: pageSize)
+                words.x += Double(at.x - box.minX)
+                words.y += Double(at.y - box.minY)
+            }
+            add(words)
+            return
+        }
         // Our own copy first; otherwise whatever another app left: a
         // picture, or some text.
         if clipboard.isEmpty {
@@ -2715,8 +2732,9 @@ final class DesignStore {
     }
 
     /// The brand face for each text size, by rank: the sizes, once each and
-    /// largest first, take the kit's ranked roles in turn — title, heading,
-    /// subheading, body, those it sets — and every size past the last role
+    /// largest first, take the kit's ranked roles in turn — title, subtitle,
+    /// heading, subheading, section header, body, those it sets
+    /// (BrandFonts.rankedRoles) — and every size past the last role
     /// takes the last. Family and weight only: the sizes stay as they are.
     /// Empty when the kit sets none of those roles.
     static func brandFaces(sizes: [Double], fonts: BrandFonts) -> [Double: BrandFont] {
@@ -3026,19 +3044,19 @@ final class DesignStore {
     }
 
     /// Animate by: what the selected texts' text animations move as one —
-    /// "letter", "word" or "line" — as one undo step; their kind's own
-    /// (ElementAnimation.defaultBy) is no key. Their exits of a text kind
-    /// go by it too.
+    /// "letter", "word" or "line" — as one undo step, written as `by` even
+    /// when it is the kind's own, as the Android twin writes it. Their exits
+    /// of a unit kind go by it too.
     func animateSelected(by unit: String) {
         guard ElementAnimation.unitChoices.contains(unit) else { return }
         updateSelected { el in
             guard el.type == .text else { return }
             if var entrance = el.animation, ElementAnimation.textKinds.contains(entrance.kind) {
-                entrance.by = unit == ElementAnimation.defaultBy(entrance.kind) ? nil : unit
+                entrance.by = unit
                 el.animation = entrance
             }
             if var exit = el.exitAnimation, ElementAnimation.unitKinds.contains(exit.kind) {
-                exit.by = unit == ElementAnimation.defaultBy(exit.kind) ? nil : unit
+                exit.by = unit
                 el.exitAnimation = exit
             }
         }
@@ -3046,21 +3064,23 @@ final class DesignStore {
 
     /// Give every unlocked selected element a way out as the page ends, as
     /// one undo step, staggered in layer order so the first in is the last
-    /// out; nil takes the exits away.
+    /// out; nil takes the exits away. A text's own way out (a unit kind)
+    /// leaves anything but text as it is, and keeps what a text's exit
+    /// moved by — as the Android twin's ElementAnimation.exited.
     func exitSelected(_ kind: String?) {
         guard unlockedSelectionCount > 0 else { return }
         applyToPage { page in
             var n = 0
             for i in page.elements.indices
             where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
-                // A text's own way out leaves anything but text as a fade.
-                let isText = page.elements[i].type == .text
+                defer { n += 1 }
+                let unitKind = kind.map { ElementAnimation.unitKinds.contains($0) } ?? false
+                if unitKind && page.elements[i].type != .text { continue }
+                let by = unitKind ? page.elements[i].exitAnimation?.by : nil
                 page.elements[i].exitAnimation = kind.map {
-                    ElementAnimation(kind: ElementAnimation.unitKinds.contains($0) && !isText ? "fade" : $0,
-                                     delay: Double(n) * ElementAnimation.exitStagger,
-                                     duration: ElementAnimation.exitDuration)
+                    ElementAnimation(kind: $0, delay: Double(n) * ElementAnimation.exitStagger,
+                                     duration: ElementAnimation.exitDuration, by: by)
                 }
-                n += 1
             }
         }
     }

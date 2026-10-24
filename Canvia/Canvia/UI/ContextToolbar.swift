@@ -521,7 +521,7 @@ struct ContextToolbar: View {
                 set: { store.animateSelected(by: $0); store.playPreview() })) {
                 Text("Letter").tag("letter")
                 Text("Word").tag("word")
-                Text("Line").tag("line")
+                Text(tr("Line", context: "animate by")).tag("line")
             }
             .pickerStyle(.menu)
         }

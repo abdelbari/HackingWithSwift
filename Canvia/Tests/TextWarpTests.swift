@@ -1,7 +1,7 @@
 // Warped text: the warp's JSON, its preset handles, the Coons patch every
 // outline point goes through (map), a handle dragged into a custom warp,
 // and a path's points moved by Edit shape. The map rows are shared with
-// the Android twin's TextWarpTest, number for number.
+// the Android twin's TextWarpTest (Fixtures/text-warp.json).
 
 import XCTest
 @testable import Canvia
@@ -34,25 +34,22 @@ final class TextWarpTests: XCTestCase {
         XCTAssertEqual(back.warp, el.warp)
     }
 
-    /// The shared rows: a 100 × 100 box.
-    func testMapIsTheSameOnBothPhones() {
-        let bulge = TextWarpSpec(kind: "bulge", amount: 100)
-        assertPoint(TextWarp.map(CGPoint(x: 0, y: 0), box: box, warp: bulge), 0, 0)
-        assertPoint(TextWarp.map(CGPoint(x: 100, y: 100), box: box, warp: bulge), 100, 100)
-        assertPoint(TextWarp.map(CGPoint(x: 50, y: 0), box: box, warp: bulge), 50, -30)
-        assertPoint(TextWarp.map(CGPoint(x: 50, y: 100), box: box, warp: bulge), 50, 130)
-        assertPoint(TextWarp.map(CGPoint(x: 50, y: 50), box: box, warp: bulge), 50, 50)
-        assertPoint(TextWarp.map(CGPoint(x: 50, y: 25), box: box, warp: bulge), 50, 10)
-        let arch = TextWarpSpec(kind: "arch", amount: 50)
-        assertPoint(TextWarp.map(CGPoint(x: 50, y: 50), box: box, warp: arch), 50, 35)
-        assertPoint(TextWarp.map(CGPoint(x: 25, y: 0), box: box, warp: arch), 25, -11.25)
-        let rise = TextWarpSpec(kind: "rise", amount: 100)
-        assertPoint(TextWarp.map(CGPoint(x: 100, y: 50), box: box, warp: rise), 100, 20)
-        assertPoint(TextWarp.map(CGPoint(x: 50, y: 50), box: box, warp: rise), 50, 35)
-        let none = TextWarpSpec(kind: "perspective", amount: 0)
-        assertPoint(TextWarp.map(CGPoint(x: 37, y: 81), box: box, warp: none), 37, 81)
-        let shifted = CGRect(x: 10, y: 20, width: 200, height: 100)
-        assertPoint(TextWarp.map(CGPoint(x: 110, y: 20), box: shifted, warp: bulge), 110, -10)
+    /// The shared rows (Fixtures/text-warp.json, the Android twin's byte
+    /// for byte): each a warp, a box, a point and where it goes.
+    func testMapIsTheSameOnBothPhones() throws {
+        let fixture = try SharedFixture.object("text-warp")
+        let grid = try XCTUnwrap(fixture["grid"] as? [Double])
+        let rows = try XCTUnwrap(fixture["rows"] as? [[Any]])
+        XCTAssertGreaterThanOrEqual(rows.count, 20)
+        for row in rows {
+            let kind = try XCTUnwrap(row.first as? String)
+            let n = try row.dropFirst().map { try XCTUnwrap($0 as? Double) }
+            let warp = TextWarpSpec(kind: kind, amount: n[0], grid: kind == TextWarp.custom ? grid : nil)
+            let box = CGRect(x: n[1], y: n[2], width: n[3], height: n[4])
+            let got = TextWarp.map(CGPoint(x: n[5], y: n[6]), box: box, warp: warp)
+            XCTAssertEqual(Double(got.x), n[7], accuracy: 1e-6, "\(row)")
+            XCTAssertEqual(Double(got.y), n[8], accuracy: 1e-6, "\(row)")
+        }
     }
 
     func testThePresetsMoveTheirHandles() {

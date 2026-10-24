@@ -331,6 +331,19 @@ enum PptxExporter {
         !(page.notes ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// What a page's notes slide says: its own notes, then the words of
+    /// each text that goes out warped (Form.warped) — which the slide has
+    /// only as outlines — a line each, so they can still be copied and
+    /// edited; nil when there is nothing to say. The Android twin's
+    /// PptxWriter.notesOf.
+    static func notesText(design: Design, page: Page, styled: Bool = true) -> String? {
+        let warped = drawnElements(design: design, page: page).filter { form(of: $0, styled: styled) == .warped }
+            .map { RichText.strip($0.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let lines = (hasNotes(page) ? [page.notes ?? ""] : []) + warped
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+
     /// What a page draws, bottom up — the master's elements behind its
     /// own, the hidden ones left out — with its page numbers filled in.
     static func drawnElements(design: Design, page: Page) -> [Element] {
@@ -540,9 +553,9 @@ enum PptxExporter {
         }
 
         var notes: String?
-        if hasNotes(page) {
+        if let text = notesText(design: design, page: page, styled: styled) {
             rels.add("notesSlide", "../notesSlides/notesSlide\(number).xml")
-            notes = notesXML(page.notes ?? "")
+            notes = notesXML(text)
         }
 
         let pieces: [(el: Element?, part: String)] = zip(owners, shapes).map { ($0, $1) }
@@ -1291,13 +1304,14 @@ enum PptxExporter {
     static func entryNames(design: Design, indices: [Int], styled: Bool = true,
                            photos: PhotoLookup = .stored) -> [String] {
         let pages = indices.map { design.pages[$0] }
-        var names = packageParts(design: design, noted: pages.map(hasNotes)).map(\.name)
+        let noted = pages.map { notesText(design: design, page: $0, styled: styled) != nil }
+        var names = packageParts(design: design, noted: noted).map(\.name)
         var image = 1
         for (n, page) in pages.enumerated() {
             let pictures = media(design: design, page: page, firstImage: image, styled: styled, photos: photos)
             image += pictures.count
             names += pictures.map { "ppt/media/\($0.name)" }
-            names += slideEntryNames(number: n + 1, notes: hasNotes(page))
+            names += slideEntryNames(number: n + 1, notes: noted[n])
         }
         return names
     }
@@ -1494,7 +1508,8 @@ enum PptxExporter {
         let zip = ZipWriter { try handle.write(contentsOf: $0) }
         var pacer = DesignExporter.Pacer()
         do {
-            for part in packageParts(design: design, noted: pages.map(hasNotes)) {
+            let noted = pages.map { notesText(design: design, page: $0, styled: styled) != nil }
+            for part in packageParts(design: design, noted: noted) {
                 try zip.add(part.name, Data(part.xml.utf8))
             }
             var image = 1

@@ -9,6 +9,7 @@
 // only it redraws as the canvas scrolls.
 
 import SwiftUI
+import UIKit
 
 struct HoldMenuPill: View {
     @Bindable var store: DesignStore
@@ -42,6 +43,7 @@ struct HoldMenuPill: View {
         store.holdMenuAt = nil
         switch item {
         case .paste: store.paste(at: point)
+        case .pastePlain: store.paste(at: point, plain: true)
         case .pastePage: store.pastePage()
         case .selectAll: store.selectAll()
         case .addText: store.addText(at: point)
@@ -50,7 +52,8 @@ struct HoldMenuPill: View {
     }
 
     private var items: [HoldMenu.HoldItem] {
-        HoldMenu.items(canPaste: store.canPasteAtFinger, canPastePage: store.hasPageOnClipboard)
+        HoldMenu.items(canPaste: store.canPasteAtFinger, canPastePlain: UIPasteboard.general.hasStrings,
+                       canPastePage: store.hasPageOnClipboard)
     }
 
     /// The pill's middle on screen, or nil when the point pressed is out of

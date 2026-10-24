@@ -332,7 +332,10 @@ struct ElementAnimation: Codable, Equatable {
                 out.animation = ElementAnimation(kind: kind, delay: delay, duration: growDuration)
                 return out
             }
-            out.animation = ElementAnimation(kind: kind, delay: Double(n) * 0.15, duration: 0.6)
+            // What a text kind moves by is kept as it changes to another
+            // text kind, as the Android twin keeps it.
+            out.animation = ElementAnimation(kind: kind, delay: Double(n) * 0.15, duration: 0.6,
+                                             by: textKinds.contains(kind) ? el.animation?.by : nil)
             n += 1
             return out
         }
@@ -422,14 +425,17 @@ struct ElementAnimation: Codable, Equatable {
         var time: Double
     }
 
-    /// One unit's look at a moment: when it starts and ends moving (seconds
-    /// from the page's start, delay in), how far it is moved across and
-    /// down, its scale about its centre, its turn in degrees, its opacity,
-    /// its blur, and the share of it shown from its left (a Block's bar, a
-    /// Write on's stroke) — all in design units.
+    /// One unit's look at a moment: the stretch of the plain words it is
+    /// (UTF-16 offsets, start up to end, as the Android twin's), how far it
+    /// is moved across and down, its scale about its centre, its turn in
+    /// degrees, its opacity, its blur, and the share of it shown from its
+    /// left (a Write on's stroke) — all in design units. Block's clip runs
+    /// 0 to 2: under 1 a bar in the text's colour covers its first clip
+    /// share, the letters hidden; from 1 the letters show and the bar covers
+    /// from clip − 1 to its end; 2 is at rest.
     struct UnitFrame: Equatable {
-        var start: Double
-        var end: Double
+        var start: Int
+        var end: Int
         var dx: Double = 0
         var dy: Double = 0
         var scale: Double = 1
@@ -472,92 +478,88 @@ struct ElementAnimation: Codable, Equatable {
     /// with no unit move.
     static func unitFrames(_ el: Element, at t: Double) -> [UnitFrame] {
         guard let animation = el.animation, unitKinds.contains(animation.kind) else { return [] }
-        let count = units(RichText.strip(el.text ?? ""), by: animation.unit).count
-        return animation.frames(count: count, at: t, size: el.fontSize ?? 42)
+        return animation.frames(units(RichText.strip(el.text ?? ""), by: animation.unit), at: t, size: el.fontSize ?? 42)
     }
 
-    /// `count` units `t` seconds into the page, for type `size` high. Each
-    /// starts stagger = duration × 0.6 / count after the one before, from
-    /// the delay, and moves for duration × 0.4, so the last is in by the
-    /// end; its progress q is 0…1 over that, and e = 1 − (1 − q)³ eases it
-    /// out. With i the unit's place and n the count:
-    ///  - ascend: up from 0.5 size below, alpha e;
-    ///  - shift: in from 0.5 size to the right, alpha e;
-    ///  - merge: in from a size to the left (even i) or right (odd i), alpha e;
-    ///  - block: a bar in the text's colour wipes across it, clip min(1, 2q),
-    ///    and the words show once it covers them, alpha 1 from q = 0.5;
-    ///  - burst: from twice its size, scale 2 − e, alpha e;
-    ///  - bounceIn: falls from a size above and bounces (easeOutBounce b),
-    ///    dy −(1 − b) × size, alpha min(1, 2q);
-    ///  - roll: in from 0.5 size to the right turning from 90°, alpha e;
-    ///  - skate: in from a size to the right leaning −15°, alpha e;
-    ///  - spread: from (i − (n − 1) / 2) × 0.5 size further from the middle
-    ///    than its place, alpha e;
-    ///  - clarify: from a blur of 0.25 size, alpha e;
-    ///  - tumble: from 0.5 size above, turned −180° at half size, alpha e;
-    ///  - writeOn: drawn on from its left, clip q, alpha 1 once begun;
-    ///  - typewriter and words appear whole once begun; letterPop pops,
-    ///    scale 0.4 + 0.6e, alpha min(1, 2q); lineRise rises from 0.5 size
-    ///    below, alpha e.
-    func frames(count n: Int, at t: Double, size: Double) -> [UnitFrame] {
+    /// Whether a unit is drawn as it stands: unmoved, whole and opaque.
+    func atRest(_ f: UnitFrame) -> Bool {
+        f.dx == 0 && f.dy == 0 && f.scale == 1 && f.rotation == 0 && f.alpha >= 1 && f.blur == 0
+            && f.clip == (kind == "block" ? 2 : 1)
+    }
+
+    /// `units` (UTF-16 ranges of the plain words) `t` seconds into the page,
+    /// for type `size` high, as a unit kind (unitKinds) has them — the rule
+    /// both phones share, over the same frame tables
+    /// (Fixtures/unit-frames.json). With n units, each starts
+    /// stagger = duration × 0.6 / n after the one before, from the delay,
+    /// and moves for duration × 0.4, so the last is in by the end; its
+    /// progress q is 0…1 over that, e = 1 − (1 − q)³ and r = 1 − e. With i
+    /// the unit's place and c = i − (n − 1) / 2:
+    ///  - ascend: dy 0.5 r size, alpha e; shift: dx 0.5 r size, alpha e;
+    ///  - merge: dx r size from the left (even i) or right (odd i), alpha e;
+    ///  - block: clip 2q — the bar wipes on, then off with the letters under
+    ///    it (UnitFrame) — alpha 0 until clip reaches 1;
+    ///  - burst: scale 2 − e, alpha e;
+    ///  - bounceIn: dy −(1 − bounce(q)) size, alpha min(1, 2q);
+    ///  - roll: dx 0.5 r size, rotation 90 r, alpha e;
+    ///  - skate: dx r size, rotation −15 r, alpha e;
+    ///  - spread: dx 0.5 c r size, alpha e;
+    ///  - clarify: blur 0.25 r size, alpha e;
+    ///  - tumble: dy −0.5 r size, rotation −180 r, scale 0.5 + 0.5e, alpha e;
+    ///  - writeOn: clip q, alpha 1 once begun.
+    /// At q = 1 a unit is at rest (block's clip 2).
+    func frames(_ units: [NSRange], at t: Double, size: Double) -> [UnitFrame] {
+        let n = units.count
         guard n > 0 else { return [] }
         let stagger = duration * 0.6 / Double(n)
         let span = duration * 0.4
-        return (0..<n).map { i in
-            let start = delay + Double(i) * stagger
-            var f = UnitFrame(start: start, end: start + span)
-            let q = span > 0 ? min(max((t - start) / span, 0), 1) : (t >= start ? 1 : 0)
-            let e = 1 - pow(1 - q, 3)
-            let rest = 1 - e
-            switch kind {
-            case "ascend", "lineRise":
-                f.dy = rest * size * 0.5
-                f.alpha = e
-            case "shift":
-                f.dx = rest * size * 0.5
-                f.alpha = e
-            case "merge":
-                f.dx = (i % 2 == 0 ? -1 : 1) * rest * size
-                f.alpha = e
-            case "block":
-                f.clip = min(1, 2 * q)
-                f.alpha = q >= 0.5 ? 1 : 0
-            case "burst":
-                f.scale = 2 - e
-                f.alpha = e
-            case "bounceIn":
-                f.dy = -(1 - Self.bounce(q)) * size
-                f.alpha = min(1, 2 * q)
-            case "roll":
-                f.dx = rest * size * 0.5
-                f.rotation = rest * 90
-                f.alpha = e
-            case "skate":
-                f.dx = rest * size
-                f.rotation = -rest * 15
-                f.alpha = e
-            case "spread":
-                f.dx = (Double(i) - Double(n - 1) / 2) * rest * size * 0.5
-                f.alpha = e
-            case "clarify":
-                f.blur = rest * size * 0.25
-                f.alpha = e
-            case "tumble":
-                f.dy = -rest * size * 0.5
-                f.rotation = -rest * 180
-                f.scale = 0.5 + 0.5 * e
-                f.alpha = e
-            case "writeOn":
-                f.clip = q
-                f.alpha = q > 0 ? 1 : 0
-            case "letterPop":
-                f.scale = 0.4 + 0.6 * e
-                f.alpha = min(1, 2 * q)
-            default: // typewriter, words
-                f.alpha = q > 0 ? 1 : 0
-            }
+        return units.enumerated().map { i, unit in
+            let begin = delay + Double(i) * stagger
+            let q = span > 0 ? min(max((t - begin) / span, 0), 1) : (t >= begin ? 1 : 0)
+            return frame(UnitFrame(start: unit.location, end: NSMaxRange(unit)), q: q, i: i, n: n, size: size)
+        }
+    }
+
+    private func frame(_ rest: UnitFrame, q: Double, i: Int, n: Int, size: Double) -> UnitFrame {
+        var f = rest
+        guard q < 1 else {
+            if kind == "block" { f.clip = 2 }
             return f
         }
+        let e = 1 - pow(1 - q, 3)
+        let r = 1 - e
+        let c = Double(i) - Double(n - 1) / 2
+        f.alpha = e
+        switch kind {
+        case "ascend": f.dy = 0.5 * r * size
+        case "shift": f.dx = 0.5 * r * size
+        case "merge": f.dx = (i % 2 == 0 ? -1 : 1) * r * size
+        case "block":
+            f.clip = 2 * q
+            f.alpha = f.clip >= 1 ? 1 : 0
+        case "burst": f.scale = 2 - e
+        case "bounceIn":
+            f.dy = -(1 - Self.bounce(q)) * size
+            f.alpha = min(1, 2 * q)
+        case "roll":
+            f.dx = 0.5 * r * size
+            f.rotation = 90 * r
+        case "skate":
+            f.dx = r * size
+            f.rotation = -15 * r
+        case "spread": f.dx = 0.5 * c * r * size
+        case "clarify": f.blur = 0.25 * r * size
+        case "tumble":
+            f.dy = -0.5 * r * size
+            f.rotation = -180 * r
+            f.scale = 0.5 + 0.5 * e
+        case "writeOn":
+            f.clip = q
+            f.alpha = q > 0 ? 1 : 0
+        default:
+            f.alpha = 1
+        }
+        return f
     }
 
     /// The standard ease-out bounce, 0 at 0 and 1 at 1.

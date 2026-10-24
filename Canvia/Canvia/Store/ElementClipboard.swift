@@ -87,8 +87,9 @@ enum ElementClipboard {
     /// (stored like an import, and kept among your uploads), text becomes a
     /// text element. Half the design's width, so it lands visible and not
     /// enormous.
-    static func foreign(from pasteboard: UIPasteboard = .general, designWidth: Double) -> Element? {
-        if pasteboard.hasImages, let image = pasteboard.image,
+    /// `plain` — Paste as plain text — takes the words alone, as they read.
+    static func foreign(from pasteboard: UIPasteboard = .general, designWidth: Double, plain: Bool = false) -> Element? {
+        if !plain, pasteboard.hasImages, let image = pasteboard.image,
            let data = image.pngData(), let prepared = ImageDownsampler.prepare(data),
            let src = MediaStore.store(prepared) {
             Uploads.record(source: src)
@@ -99,16 +100,17 @@ enum ElementClipboard {
         }
         // Styled words from a web page, Notes or Pages, keeping their
         // styles (ForeignText), while pastes keep formatting.
-        if let clip = ForeignText.clip(on: pasteboard), !clip.plain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return ForeignText.element(clip, fontSize: max(18, (designWidth / 24).rounded()),
-                                       maxWidth: (designWidth * 0.6).rounded())
+        let size = max(18, (designWidth / 24).rounded())
+        if !plain, let clip = ForeignText.clip(on: pasteboard, boxSize: size),
+           !clip.plain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return ForeignText.element(clip, fontSize: size, maxWidth: (designWidth * 0.6).rounded())
         }
         if pasteboard.hasStrings, let text = pasteboard.string?.trimmingCharacters(in: .whitespacesAndNewlines),
            !text.isEmpty {
             // Read as written, its stars stars, and its bulleted or numbered
             // lines a list (TextLists.fromPasted).
             let pasted = TextLists.fromPasted(text)
-            var el = Element.text(RichText.escapeLiteral(pasted.text), fontSize: max(18, (designWidth / 24).rounded()),
+            var el = Element.text(RichText.escapeLiteral(pasted.text), fontSize: size,
                                   w: (designWidth * 0.6).rounded())
             if pasted.paragraphs.contains(where: \.isListed) { el.setLines(pasted.paragraphs) }
             el.h = FontLibrary.layoutHeight(for: el)

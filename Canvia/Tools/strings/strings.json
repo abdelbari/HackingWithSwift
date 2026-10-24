@@ -4539,13 +4539,13 @@
     "pt-BR": "Adicionar um subtítulo"
   },
   "Add a subtitle": {
-    "ar": "إضافة عنوان فرعي",
+    "ar": "إضافة عنوان ثانوي",
     "de": "Untertitel hinzufügen",
     "es": "Añadir un subtítulo",
-    "fr": "Ajouter un sous-titre",
-    "it": "Aggiungi un sottotitolo",
+    "fr": "Ajouter un sous-titre principal",
+    "it": "Aggiungi un sottotitolo principale",
     "ja": "サブタイトルを追加",
-    "pt-BR": "Adicionar um subtítulo"
+    "pt-BR": "Adicionar um subtítulo principal"
   },
   "Add a template of yours": {
     "ar": "إضافة قالب من قوالبك",
@@ -5327,7 +5327,7 @@
     "es": "Cantidad",
     "fr": "Intensité",
     "it": "Intensità",
-    "ja": "量",
+    "ja": "強さ",
     "pt-BR": "Intensidade"
   },
   "Analogous": {
@@ -7792,6 +7792,15 @@
     "it": "Comprimi",
     "ja": "折りたたむ",
     "pt-BR": "Recolher"
+  },
+  "Collapsed": {
+    "ar": "مطوي",
+    "de": "Eingeklappt",
+    "es": "Plegado",
+    "fr": "Réduit",
+    "it": "Compresso",
+    "ja": "折りたたみ",
+    "pt-BR": "Recolhido"
   },
   "Color": {
     "ar": "اللون",
@@ -11741,6 +11750,15 @@
     "ja": "ホワイトボードに展開",
     "pt-BR": "Expandir para quadro branco"
   },
+  "Expanded": {
+    "ar": "موسّع",
+    "de": "Ausgeklappt",
+    "es": "Desplegado",
+    "fr": "Développé",
+    "it": "Espanso",
+    "ja": "展開",
+    "pt-BR": "Expandido"
+  },
   "Export": {
     "ar": "تصدير",
     "de": "Exportieren",
@@ -14355,12 +14373,12 @@
     "pt-BR": "Continuar exportando em segundo plano?"
   },
   "Keep formatting when pasting": {
-    "ar": "الإبقاء على التنسيق عند اللصق",
+    "ar": "الاحتفاظ بالتنسيق عند اللصق",
     "de": "Formatierung beim Einfügen beibehalten",
     "es": "Mantener el formato al pegar",
     "fr": "Conserver la mise en forme lors du collage",
     "it": "Mantieni la formattazione quando incolli",
-    "ja": "ペースト時に書式を保持",
+    "ja": "貼り付け時に書式を保持",
     "pt-BR": "Manter a formatação ao colar"
   },
   "Keep proportions": {
@@ -14820,6 +14838,15 @@
     "fr": "Ligne",
     "it": "Linea",
     "ja": "線",
+    "pt-BR": "Linha"
+  },
+  "Line\u0004animate by": {
+    "ar": "سطر",
+    "de": "Zeile",
+    "es": "Línea",
+    "fr": "Ligne",
+    "it": "Riga",
+    "ja": "行",
     "pt-BR": "Linha"
   },
   "Line %@": {
@@ -15883,6 +15910,15 @@
     "it": "Più decimali",
     "ja": "小数点以下を増やす",
     "pt-BR": "Mais casas decimais"
+  },
+  "More for %@": {
+    "ar": "المزيد لـ %@",
+    "de": "Mehr für %@",
+    "es": "Más para %@",
+    "fr": "Plus pour %@",
+    "it": "Altro per %@",
+    "ja": "%@ のその他の設定",
+    "pt-BR": "Mais para %@"
   },
   "More ink colours": {
     "ar": "مزيد من ألوان الحبر",
@@ -18878,7 +18914,7 @@
     "es": "Pegar como texto sin formato",
     "fr": "Coller en texte brut",
     "it": "Incolla come testo semplice",
-    "ja": "プレーンテキストとしてペースト",
+    "ja": "プレーンテキストとして貼り付け",
     "pt-BR": "Colar como texto simples"
   },
   "Paste page": {
@@ -19058,7 +19094,7 @@
     "es": "Perspectiva",
     "fr": "Perspective",
     "it": "Prospettiva",
-    "ja": "遠近",
+    "ja": "遠近法",
     "pt-BR": "Perspectiva"
   },
   "Phone": {
@@ -23732,14 +23768,14 @@
     "ja": "間隔",
     "pt-BR": "Espaçamento"
   },
-  "Spacing %d": {
-    "ar": "التباعد %d",
-    "de": "Abstand %d",
-    "es": "Espaciado %d",
-    "fr": "Espacement %d",
-    "it": "Spaziatura %d",
-    "ja": "間隔 %d",
-    "pt-BR": "Espaçamento %d"
+  "Spacing %@": {
+    "ar": "التباعد %@",
+    "de": "Abstand %@",
+    "es": "Espaciado %@",
+    "fr": "Espacement %@",
+    "it": "Spaziatura %@",
+    "ja": "字間 %@",
+    "pt-BR": "Espaçamento %@"
   },
   "Spanish": {
     "ar": "الإسبانية",
@@ -24441,13 +24477,13 @@
     "pt-BR": "Assunto"
   },
   "Subtitle": {
-    "ar": "عنوان فرعي",
+    "ar": "عنوان ثانوي",
     "de": "Untertitel",
     "es": "Subtítulo",
-    "fr": "Sous-titre",
-    "it": "Sottotitolo",
+    "fr": "Sous-titre principal",
+    "it": "Sottotitolo principale",
     "ja": "サブタイトル",
-    "pt-BR": "Subtítulo"
+    "pt-BR": "Subtítulo principal"
   },
   "Suffix": {
     "ar": "لاحقة",

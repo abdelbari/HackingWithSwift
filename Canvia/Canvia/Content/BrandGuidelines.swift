@@ -136,7 +136,7 @@ enum BrandGuidelines {
             let own = BrandFonts.sized(face, pageWidth: width) ?? role.widthFraction * width
             let size = (min(own, min(220, (row - 100) / leading)) * 10).rounded() / 10
             let y = top + Double(i) * row
-            let label = ([role.label, family, "\(weight)", "\(Int(own.rounded())) px"] + attributes(face, kit))
+            let label = ([role.label, family, "\(weight)", "\(Int(own.rounded())) px"] + attributes(kit, role, face))
                 .joined(separator: " · ")
             els.append(text(kit, .caption, label, margin, y, width - 2 * margin, 40, muted))
             var sample = Element.text(tr("The quick brown fox jumps over the lazy dog"), fontSize: size, w: width - 2 * margin)
@@ -156,19 +156,39 @@ enum BrandGuidelines {
     }
 
     /// What a role's face sets beyond its family, weight and size, in the
-    /// order the brand kit lists them: its colour as hex, its letter
-    /// spacing whole, its line spacing to two places, capitals and italic —
-    /// each only when set.
-    static func attributes(_ face: BrandFont?, _ kit: BrandKit) -> [String] {
-        guard let face else { return [] }
+    /// order the brand kit lists them: its colour's hex in capitals, its
+    /// letter spacing on this page — scaled from a page 1080 wide as the
+    /// size is, or a section header's 0.08 em when it sets none — and its
+    /// line spacing, each as number writes it, then Uppercase (a section
+    /// header's too when the kit says nothing) and Italic. The Android
+    /// twin's BrandGuidelines.attributes, word for word.
+    static func attributes(_ kit: BrandKit, _ role: BrandFonts.Role, _ face: BrandFont?) -> [String] {
         var out: [String] = []
-        if let colour = BrandFont.resolved(face.color, palettes: kit.palettes) { out.append(colour) }
-        if let spacing = face.letterSpacing { out.append(tr("Spacing %d", Int(spacing.rounded()))) }
-        if let line = face.lineHeight { out.append(tr("Line %@", String(format: "%.2f", line))) }
-        if face.uppercase == true { out.append(tr("Uppercase")) }
-        if face.italic == true { out.append(tr("Italic")) }
+        if let colour = BrandFont.resolved(face?.color, palettes: kit.palettes) { out.append(colour.uppercased()) }
+        let size = BrandFonts.sized(face, pageWidth: width) ?? role.widthFraction * width
+        var spacing: Double?
+        if let own = face?.letterSpacing {
+            spacing = hundredths(own * width / 1080)
+        } else if role.defaultSpacingEm > 0 {
+            spacing = hundredths(size * role.defaultSpacingEm)
+        }
+        if let spacing { out.append(tr("Spacing %@", number(spacing))) }
+        if let line = face?.lineHeight { out.append(tr("Line %@", number(line))) }
+        if face?.uppercase ?? role.defaultUppercase { out.append(tr("Uppercase")) }
+        if face?.italic == true { out.append(tr("Italic")) }
         return out
     }
+
+    /// `v` to two places, its trailing zeros left off: "1.25", "3",
+    /// "-0.5" — the Android twin's BrandRoles.number.
+    static func number(_ v: Double) -> String {
+        let t = Int((v * 100).rounded())
+        var part = String(format: "%02d", abs(t) % 100)
+        while part.hasSuffix("0") { part.removeLast() }
+        return (t < 0 ? "-" : "") + "\(abs(t) / 100)" + (part.isEmpty ? "" : "." + part)
+    }
+
+    private static func hundredths(_ v: Double) -> Double { (v * 100).rounded() / 100 }
 
     private static func logoPage(_ kit: BrandKit, _ logos: [String]) -> Page {
         var els = [kicker(kit, tr("Logos")), heading(kit, tr("Logo and clear space"))]

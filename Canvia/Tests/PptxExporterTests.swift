@@ -241,6 +241,21 @@ final class PptxExporterTests: XCTestCase {
         XCTAssertNil(slide(d).notes)
     }
 
+    /// Warped words go out as outlines, their words in the notes after the
+    /// page's own, as the Android twin's PptxWriter.notesOf writes them.
+    func testWarpedWordsAreKeptInTheNotes() {
+        var bent = Element.text("Bent **words**", fontSize: 40, w: 300)
+        bent.h = 60
+        bent.warp = TextWarpSpec(kind: "arch", amount: 50)
+        var d = onePage([bent])
+        XCTAssertEqual(PptxExporter.notesText(design: d, page: d.pages[0]), "Bent words")
+        d.pages[0].notes = "Say hi"
+        XCTAssertEqual(PptxExporter.notesText(design: d, page: d.pages[0]), "Say hi\nBent words")
+        XCTAssertTrue(slide(d).notes?.contains("Bent words") ?? false)
+        let flat = onePage([Element.text("Flat")])
+        XCTAssertNil(PptxExporter.notesText(design: flat, page: flat.pages[0]), "straight words are in the slide")
+    }
+
     /// The fixed parts first, then each slide's pictures, the slide, and
     /// its notes — a hidden page left out of All pages, as the PDF leaves
     /// it — every entry intact.

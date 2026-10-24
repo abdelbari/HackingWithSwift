@@ -1299,6 +1299,9 @@ struct CanvasView: View {
         if voiceOver && store.canPasteAtFinger {
             Button(HoldMenu.HoldItem.paste.title) { chooseFromHoldMenu(.paste, at: centre) }
         }
+        if voiceOver && UIPasteboard.general.hasStrings {
+            Button(HoldMenu.HoldItem.pastePlain.title) { chooseFromHoldMenu(.pastePlain, at: centre) }
+        }
         if voiceOver && store.hasPageOnClipboard {
             Button(store.pastePageTitle) { chooseFromHoldMenu(.pastePage, at: centre) }
         }

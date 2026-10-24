@@ -37,9 +37,8 @@ final class BrandTextStylesTests: XCTestCase {
         XCTAssertEqual(BrandFonts.Role.allCases.map(\.rawValue),
                        ["title", "subtitle", "heading", "subheading", "sectionHeader", "body", "quote", "caption"])
         XCTAssertEqual(BrandFonts.Role.bySize.map(\.rawValue),
-                       ["title", "heading", "subtitle", "subheading", "quote", "sectionHeader", "body", "caption"])
-        let shares = BrandFonts.Role.bySize.map(\.widthFraction)
-        XCTAssertEqual(shares, shares.sorted(by: >))
+                       ["title", "subtitle", "heading", "subheading", "sectionHeader", "body"],
+                       "the Android twin's BrandRoles.BY_SIZE")
         XCTAssertEqual(BrandFonts.Role.subtitle.widthFraction, 0.05)
         XCTAssertEqual(BrandFonts.Role.sectionHeader.widthFraction, 0.035)
         XCTAssertEqual(BrandFonts.Role.subtitle.defaultWeight, 500)
@@ -49,7 +48,10 @@ final class BrandTextStylesTests: XCTestCase {
         fonts.heading = heading
         XCTAssertEqual(fonts.fontFor(.subtitle), heading, "a subtitle falls back to the heading's face")
         XCTAssertEqual(fonts.fontFor(.sectionHeader), heading)
-        XCTAssertEqual(fonts.rankedRoles, [.heading], "the theme's ranks stay title, heading, subheading, body")
+        XCTAssertEqual(fonts.rankedRoles, [.heading])
+        fonts.subtitle = BrandFont(family: "lora", weight: 500)
+        fonts.caption = BrandFont(family: "inter", weight: 400)
+        XCTAssertEqual(fonts.rankedRoles, [.subtitle, .heading], "a subtitle ranks after the title, a caption not at all")
     }
 
     func testAddedTextTakesEveryTypeSettingTheRoleSets() throws {
@@ -90,8 +92,30 @@ final class BrandTextStylesTests: XCTestCase {
 
     func testTheGuidelinesSayTheRestOfARolesType() throws {
         let kit = try XCTUnwrap(BrandKits.read(Data(Self.fixture.utf8))).active
-        XCTAssertEqual(BrandGuidelines.attributes(kit.fonts.sectionHeader, kit), ["#e94560", "Spacing 4", "Uppercase"])
-        XCTAssertEqual(BrandGuidelines.attributes(kit.fonts.body, kit), ["Line 1.50"])
-        XCTAssertEqual(BrandGuidelines.attributes(nil, kit), [])
+        XCTAssertEqual(BrandGuidelines.attributes(kit, .sectionHeader, kit.fonts.sectionHeader),
+                       ["#E94560", "Spacing 12.99", "Uppercase"])
+        XCTAssertEqual(BrandGuidelines.attributes(kit, .body, kit.fonts.body), ["Line 1.5"])
+        XCTAssertEqual(BrandGuidelines.attributes(kit, .heading, nil), [])
+        XCTAssertEqual(BrandGuidelines.number(1.25), "1.25")
+        XCTAssertEqual(BrandGuidelines.number(-0.5), "-0.5")
+        XCTAssertEqual(BrandGuidelines.number(3), "3")
+    }
+
+    /// Shared with the Android twin's BrandTextStylesTest
+    /// (Fixtures/brand-text-styles.json, byte for byte): the kit goes round
+    /// as it came, and the guidelines say the same of each role, its face as
+    /// Add text finds it.
+    func testTheSharedKitAndItsGuidelinesReadTheSameOnBothPhones() throws {
+        let fixture = try SharedFixture.object("brand-text-styles")
+        let kits = try XCTUnwrap(BrandKits.read(SharedFixture.encoded(try XCTUnwrap(fixture["kits"]))))
+        let again = try XCTUnwrap(BrandKits.read(JSONEncoder().encode(kits)))
+        XCTAssertEqual(again, kits)
+        let kit = kits.active
+        XCTAssertEqual(kit.fonts.body, BrandFont(family: "serif", weight: 400, letterSpacing: -1.25, lineHeight: 1.5, italic: true))
+        let rows = try XCTUnwrap(fixture["attributes"] as? [String: [String]])
+        XCTAssertEqual(Set(rows.keys), Set(BrandFonts.Role.allCases.map(\.rawValue)))
+        for role in BrandFonts.Role.allCases {
+            XCTAssertEqual(BrandGuidelines.attributes(kit, role, kit.fonts.fontFor(role)), rows[role.rawValue], role.rawValue)
+        }
     }
 }
