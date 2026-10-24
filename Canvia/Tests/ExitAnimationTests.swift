@@ -62,6 +62,34 @@ final class ExitAnimationTests: XCTestCase {
         }
     }
 
+    /// t, then opacity, rotation and scale off text, for a page held 3 s;
+    /// the same rows as the Android twin's ElementAnimationTest.
+    func testATumbleExitOffTextTurnsTheWholeElementOut() {
+        let rows: [(Double, Double, Double, Double)] = [
+            (1.0, 1, 0, 1),
+            (2.7, 1, -11.25, 0.9375),
+            (3.0, 0, -90, 0.5),
+        ]
+        let exit = ElementAnimation(kind: "tumble", delay: 0, duration: 0.6)
+        for (t, opacity, rotation, scale) in rows {
+            let s = exit.exitState(at: t, hold: 3, size: 100, onText: false)
+            XCTAssertEqual(s.opacity, opacity, accuracy: 1e-9, "at \(t) opacity")
+            XCTAssertEqual(s.rotation, rotation, accuracy: 1e-9, "at \(t) rotation")
+            XCTAssertEqual(s.scale, scale, accuracy: 1e-9, "at \(t) scale")
+        }
+        var shape = Element.shape("rect")
+        shape.exitAnimation = exit
+        let moved = Timeline.motion(of: shape, time: 2.7, hold: 3, exitTime: nil, text: nil)
+        XCTAssertEqual(moved.rotation, -11.25, accuracy: 1e-9)
+        XCTAssertEqual(moved.scale, 0.9375, accuracy: 1e-9)
+        var text = Element.text("Hi")
+        text.exitAnimation = exit
+        let still = Timeline.motion(of: text, time: 2.7, hold: 3, exitTime: nil, text: "Hi")
+        XCTAssertEqual(still.rotation, 0, accuracy: 1e-9)
+        XCTAssertEqual(still.scale, 1, accuracy: 1e-9)
+        XCTAssertEqual(still.opacity, 1, accuracy: 1e-9)
+    }
+
     func testBeforeItBeginsTheElementIsSettled() {
         let exit = ElementAnimation(kind: "rise", delay: 0, duration: 0.6)
         XCTAssertEqual(exit.exitState(at: 0, hold: 3, size: 100), .settled)

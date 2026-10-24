@@ -255,12 +255,13 @@ enum Timeline {
         let start = el.timing?.start ?? 0
         let entrance = el.animation?.state(at: time - start, text: text, size: size, el: el, hold: hold) ?? .settled
         guard let exit = el.exitAnimation else { return entrance }
+        let onText = el.type == .text
         if let end = el.timing?.end {
             // exitState is over `delay` before the hold it is given.
             let over = min(end, hold) + exit.delay
-            return entrance.combined(with: exit.exitState(at: time, hold: over, size: size))
+            return entrance.combined(with: exit.exitState(at: time, hold: over, size: size, onText: onText))
         }
-        return entrance.combined(with: exit.exitState(at: exitTime ?? time, hold: hold, size: size))
+        return entrance.combined(with: exit.exitState(at: exitTime ?? time, hold: hold, size: size, onText: onText))
     }
 
     // MARK: lanes
