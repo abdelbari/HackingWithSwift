@@ -76,6 +76,37 @@ final class TableDesignsTests: XCTestCase {
         }
     }
 
+    /// Shared with the Android twin's TableDesignsTest: table-restyle, headerOff.
+    func testADesignKeepsAHeaderTurnedOffOffAndAHeaderOnOn() throws {
+        let root = try SharedFixture.object("table-restyle")
+        let rows = try XCTUnwrap(root["rows"] as? [[String]])
+        let accent = try XCTUnwrap(root["accent"] as? String)
+        let accent2 = try XCTUnwrap(root["accent2"] as? String)
+        let fills = try XCTUnwrap(root["headerOffFill"] as? [String: String])
+        let made = DataGraphics.table(rows, in: CGRect(x: 0, y: 0, width: 600, height: 400), accent: "#1f2430",
+                                      heightFor: heightFor)
+        let id = tableId(made)
+        let off = DataGraphics.withTableHeader(made, id: id, on: false, accent: "#1f2430", heightFor: heightFor)
+        let classic = try XCTUnwrap(TableDesigns.design("classic"))
+        for design in TableDesigns.all {
+            let styled = Tables.withDesign(off, id: id, design: design, accent: accent, accent2: accent2,
+                                           heightFor: heightFor) ?? off
+            XCTAssertFalse(DataGraphics.tableHasHeader(styled, id: id), design.id)
+            XCTAssertEqual(cell(styled, .text, 0, 1).fontWeight, 400, design.id)
+            if let fill = fills[design.id] {
+                XCTAssertEqual(cell(styled, .shape, 0, 0).fill?.color, fill, design.id)
+            }
+            let again = Tables.withDesign(styled, id: id, design: classic, accent: accent, accent2: accent2,
+                                          heightFor: heightFor) ?? styled
+            XCTAssertFalse(DataGraphics.tableHasHeader(again, id: id), design.id)
+            let on = Tables.withDesign(made, id: id, design: design, accent: accent, accent2: accent2,
+                                       heightFor: heightFor) ?? made
+            let swapped = Tables.withDesign(on, id: id, design: classic, accent: accent, accent2: accent2,
+                                            heightFor: heightFor) ?? on
+            XCTAssertTrue(DataGraphics.tableHasHeader(swapped, id: id), design.id)
+        }
+    }
+
     func testADesignsBandsBordersAndFontsGoOnTheCells() throws {
         let made = sample()
         let id = tableId(made)
