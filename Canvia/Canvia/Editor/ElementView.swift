@@ -318,7 +318,7 @@ struct DrawingOn: View {
         Canvas { context, size in
             guard share > 0 else { return }
             let shape = LibraryShape(definition: ContentLibrary.shape(for: element), cornerRadius: element.radius ?? 0,
-                                     corners: element.corners)
+                                     corners: element.corners, params: element.shapeParams, builds: true)
             let outline = shape.path(in: CGRect(origin: .zero, size: size))
             let fill = element.fill
             if let fill, fill.kind == "solid" || fill.kind == "gradient" {
@@ -410,8 +410,21 @@ struct LibraryShape: Shape {
     /// Top-left, top-right, bottom-right, bottom-left; nil is cornerRadius
     /// on all four.
     var corners: [Double]? = nil
+    /// A straight-edged shape's parameters (ShapeGeometry).
+    var params: [String: Double]? = nil
+    /// Whether a shape element's outline is built at its size, rounded and
+    /// shaped (ShapeGeometry), rather than the stored path stretched — not
+    /// for a photo's frame or a thumbnail.
+    var builds = false
 
     func path(in rect: CGRect) -> Path {
+        if builds, definition.rectLike != true,
+           let id = ShapeGeometry.built(definition.id, radius: cornerRadius, params: params),
+           let d = ShapeGeometry.path(id, w: rect.width, h: rect.height, radius: cornerRadius, params: params) {
+            var move = CGAffineTransform(translationX: rect.minX, y: rect.minY)
+            let built = SVGPath.parse(d)
+            return Path(built.copy(using: &move) ?? built)
+        }
         if definition.rectLike == true, let corners, corners.count == 4, corners.contains(where: { $0 > 0 }) {
             return Path(Self.roundedRect(rect, corners: corners))
         }
@@ -447,7 +460,8 @@ struct ShapeElementView: View {
 
     var body: some View {
         let def = ContentLibrary.shape(for: element)
-        let shape = LibraryShape(definition: def, cornerRadius: element.radius ?? 0, corners: element.corners)
+        let shape = LibraryShape(definition: def, cornerRadius: element.radius ?? 0, corners: element.corners,
+                                 params: element.shapeParams, builds: true)
         let fill = element.fill ?? .solid("#8b5cf6")
         // Where its outline crosses itself or nests — a ring, a letter's
         // hole in an imported graphic — even-odd leaves the inside empty.

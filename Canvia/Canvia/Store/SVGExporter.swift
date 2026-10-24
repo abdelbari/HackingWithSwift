@@ -344,7 +344,11 @@ enum SVGExporter {
         // and a program that ignores it stretches the width by the box.
         let definition = ContentLibrary.shape(for: el)
         let d: String
-        if definition.rectLike == true, let corners = el.corners, corners.count == 4,
+        if let built = ShapeGeometry.outline(el) {
+            // Rounded or shaped (ShapeGeometry): the canvas's own outline,
+            // its arcs as arcs.
+            d = built
+        } else if definition.rectLike == true, let corners = el.corners, corners.count == 4,
            corners.contains(where: { $0 > 0 }), el.w > 0, el.h > 0 {
             // Per-corner radii: the exact path, at the element's size.
             let path = LibraryShape.roundedRect(CGRect(x: 0, y: 0, width: el.w, height: el.h), corners: corners)

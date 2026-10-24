@@ -355,6 +355,7 @@ final class PptxExporterTests: XCTestCase {
         switch form {
         case .text: return "text"
         case .shape: return "shape"
+        case .geometry: return "geometry"
         case .line: return "line"
         case .picture: return "picture"
         case .code: return "code"

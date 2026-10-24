@@ -822,7 +822,7 @@ enum DataGraphics {
             return t
         }
         /// A value's label beside the end of a bar, centred on its height.
-        func valueBeside(_ v: Double, end: Double, y: Double, h: Double, valueW: Double, text: String? = nil) -> Element {
+        func valueBeside(_ v: Double, end: Double, y: Double, h: Double, valueW: Double, text: String? = .none) -> Element {
             var t = label(text ?? formatValue(v, spec), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3,
                           align: "left", part: "value")
             t.y = y + (h - t.h) / 2

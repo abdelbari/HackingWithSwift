@@ -77,6 +77,9 @@ extension DesignStore {
         updateSelected { el in
             guard Self.swapsShape(el) else { return }
             el.shapeId = id
+            // A star's points mean nothing to an arrow: only what the new
+            // shape takes is kept (ShapeGeometry.kept).
+            el.shapeParams = ShapeGeometry.kept(id, el.shapeParams)
         }
     }
 }

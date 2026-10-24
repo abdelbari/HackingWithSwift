@@ -6530,6 +6530,15 @@
     "ja": "終点に矢印 →",
     "pt-BR": "Seta no final →"
   },
+  "Arrow head": {
+    "ar": "رأس السهم",
+    "de": "Pfeilspitze",
+    "es": "Punta de flecha",
+    "fr": "Pointe de la flèche",
+    "it": "Punta della freccia",
+    "ja": "矢じり",
+    "pt-BR": "Ponta da seta"
+  },
   "Arrow left": {
     "ar": "سهم لليسار",
     "de": "Pfeil nach links",
@@ -9592,6 +9601,15 @@
     "it": "Angolo",
     "ja": "角",
     "pt-BR": "Canto"
+  },
+  "Corner rounding": {
+    "ar": "تدوير الزوايا",
+    "de": "Eckenrundung",
+    "es": "Redondeo de esquinas",
+    "fr": "Arrondi des angles",
+    "it": "Arrotondamento angoli",
+    "ja": "角の丸み",
+    "pt-BR": "Arredondamento dos cantos"
   },
   "Corners": {
     "ar": "الزوايا",
@@ -15941,6 +15959,15 @@
     "ja": "内側",
     "pt-BR": "Interna"
   },
+  "Inner radius": {
+    "ar": "نصف القطر الداخلي",
+    "de": "Innenradius",
+    "es": "Radio interior",
+    "fr": "Rayon intérieur",
+    "it": "Raggio interno",
+    "ja": "内側の半径",
+    "pt-BR": "Raio interno"
+  },
   "Instagram post (1080)": {
     "ar": "منشور Instagram (1080)",
     "de": "Instagram-Beitrag (1080)",
@@ -19802,6 +19829,15 @@
     "ja": "どのデザインでも使われていません",
     "pt-BR": "Não usado em nenhum design"
   },
+  "Notch": {
+    "ar": "الشق",
+    "de": "Kerbe",
+    "es": "Muesca",
+    "fr": "Encoche",
+    "it": "Tacca",
+    "ja": "切り込み",
+    "pt-BR": "Entalhe"
+  },
   "Notes": {
     "ar": "الملاحظات",
     "de": "Notizen",
@@ -22372,6 +22408,15 @@
     "it": "Punti",
     "ja": "点",
     "pt-BR": "Pontos"
+  },
+  "Points\u0004star": {
+    "ar": "الرؤوس",
+    "de": "Zacken",
+    "es": "Puntas",
+    "fr": "Branches",
+    "it": "Punte",
+    "ja": "頂点の数",
+    "pt-BR": "Pontas"
   },
   "Polaroid": {
     "ar": "بولارويد",
@@ -26339,6 +26384,15 @@
     "ja": "色をシャッフル",
     "pt-BR": "Embaralhar cores"
   },
+  "Sides": {
+    "ar": "الأضلاع",
+    "de": "Seiten",
+    "es": "Lados",
+    "fr": "Côtés",
+    "it": "Lati",
+    "ja": "辺の数",
+    "pt-BR": "Lados"
+  },
   "Single page": {
     "ar": "صفحة واحدة",
     "de": "Einzelne Seite",
@@ -27931,6 +27985,15 @@
     "it": "Taggato per lettori di schermo",
     "ja": "スクリーンリーダー用タグ付き",
     "pt-BR": "Marcado para leitores de tela"
+  },
+  "Tail": {
+    "ar": "الذيل",
+    "de": "Spitze",
+    "es": "Cola",
+    "fr": "Pointe",
+    "it": "Coda",
+    "ja": "しっぽ",
+    "pt-BR": "Cauda"
   },
   "Take %@ out of the brand templates": {
     "ar": "إخراج %@ من قوالب العلامة التجارية",

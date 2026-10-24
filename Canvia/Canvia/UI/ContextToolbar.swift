@@ -1063,6 +1063,46 @@ struct ContextToolbar: View {
             }
             cornersMenu(el)
         }
+        // Any other straight-edged shape rounds its corners too, and a star
+        // counts its points, a polygon its sides (ShapeGeometry).
+        if let shaped = store.shapedSelection, shaped.id == el.id, let id = el.shapeId {
+            if ShapeGeometry.rounds(id) {
+                sliderControl("Corner rounding", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in
+                    store.updateSelectedTransient { $0.radius = v }
+                }
+            }
+            if let key = ShapeGeometry.countKey(id) { countStepper(key, el: el, id: id) }
+        }
+    }
+
+    /// A star's points or a polygon's sides, one more or one fewer a tap,
+    /// each a step named Shape; VoiceOver adjusts it up and down.
+    private func countStepper(_ key: String, el: Element, id: String) -> some View {
+        let n = Int(ShapeGeometry.value(id, el.shapeParams, key))
+        let range = ShapeGeometry.limits[key] ?? 3...12
+        let title = key == "points" ? tr("Points", context: "star") : tr("Sides")
+        return VStack(spacing: 2) {
+            HStack(spacing: 6) {
+                Button { store.setShapeParameter(key, to: Double(n - 1)) } label: { Image(systemName: "minus") }
+                    .disabled(Double(n) <= range.lowerBound)
+                Text(verbatim: "\(n)")
+                    .font(.body.monospacedDigit())
+                    .frame(minWidth: 24)
+                Button { store.setShapeParameter(key, to: Double(n + 1)) } label: { Image(systemName: "plus") }
+                    .disabled(Double(n) >= range.upperBound)
+            }
+            Text(title).font(Theme.controlLabel)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(Text(verbatim: "\(n)"))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: store.setShapeParameter(key, to: Double(n + 1))
+            case .decrement: store.setShapeParameter(key, to: Double(n - 1))
+            @unknown default: break
+            }
+        }
     }
 
     /// How wide a filled shape's border is — down to None, which takes it
