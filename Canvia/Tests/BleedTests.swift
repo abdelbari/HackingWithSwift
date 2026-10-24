@@ -288,6 +288,31 @@ final class BleedTests: XCTestCase {
 
     private func isRed(_ c: (r: Int, g: Int, b: Int)) -> Bool { c.r > 200 && c.g < 80 && c.b < 80 }
 
+    /// The first page's drawing operators as text, its content streams
+    /// joined: what a failing check reports, so the log says where a shape
+    /// was drawn and under which clip.
+    private func contentStream(of url: URL) -> String {
+        guard let page = CGPDFDocument(url as CFURL)?.page(at: 1), let dict = page.dictionary else { return "(no page)" }
+        var streams: [CGPDFStreamRef] = []
+        var single: CGPDFStreamRef?
+        var array: CGPDFArrayRef?
+        if CGPDFDictionaryGetStream(dict, "Contents", &single), let single {
+            streams.append(single)
+        } else if CGPDFDictionaryGetArray(dict, "Contents", &array), let array {
+            for i in 0..<CGPDFArrayGetCount(array) {
+                var item: CGPDFStreamRef?
+                if CGPDFArrayGetStream(array, i, &item), let item { streams.append(item) }
+            }
+        }
+        var text = ""
+        for stream in streams {
+            var format = CGPDFDataFormat.raw
+            guard let data = CGPDFStreamCopyData(stream, &format) as Data? else { continue }
+            text += String(decoding: data, as: UTF8.self).replacingOccurrences(of: "\n", with: " ")
+        }
+        return text.isEmpty ? "(empty)" : text
+    }
+
     /// The test the spec asks for, end to end: a red bar put wholly in the
     /// bleed, left of the trim, prints there in the print-ready PDF — which
     /// says where its trim and bleed are — and is nowhere in the plain PDF,
@@ -329,7 +354,7 @@ final class BleedTests: XCTestCase {
         let plainY = Double(plainBox.maxY) - 250 * pxToPt
         let plainSeen = try [0.5, 1.5, 3.0, 6.0, 12.0, 24.0].map { x in "\(x): \(try colour(of: plain, at: CGPoint(x: x, y: plainY)))" }
         XCTAssertFalse(isRed(try colour(of: plain, at: CGPoint(x: 0.5, y: plainY))),
-                       "plain PDF \(plainBox) bleed \(bleed) pxToPt \(pxToPt); colours along the bar's row: \(plainSeen.joined(separator: ", "))")
+                       "plain PDF \(plainBox) bleed \(bleed) pxToPt \(pxToPt); colours along the bar's row: \(plainSeen.joined(separator: ", ")); content: \(contentStream(of: plain).prefix(1500))")
 
         var bare = design
         bare.bleed = nil
