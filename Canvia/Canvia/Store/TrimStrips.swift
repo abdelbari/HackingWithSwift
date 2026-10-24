@@ -69,8 +69,9 @@ enum Peaks {
     static let sampleRate = 8000
 
     /// The sound of the file at `url`, one channel of 32-bit floats at
-    /// `sampleRate`; nil when it has none, or cannot be read.
-    static func samples(of url: URL) async -> [Float]? {
+    /// `rate` (`sampleRate` unless asked), its first `limit` samples when
+    /// one is given; nil when it has none, or cannot be read.
+    static func samples(of url: URL, rate: Int = Peaks.sampleRate, limit: Int? = nil) async -> [Float]? {
         let asset = AVURLAsset(url: url)
         guard let track = try? await asset.loadTracks(withMediaType: .audio).first,
               let reader = try? AVAssetReader(asset: asset) else { return nil }
@@ -81,7 +82,7 @@ enum Peaks {
             AVLinearPCMIsBigEndianKey: false,
             AVLinearPCMIsNonInterleaved: false,
             AVNumberOfChannelsKey: 1,
-            AVSampleRateKey: sampleRate,
+            AVSampleRateKey: rate,
         ]
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: settings)
         guard reader.canAdd(output) else { return nil }
@@ -99,6 +100,10 @@ enum Peaks {
                                            destination: raw.baseAddress!)
             }
             if status == kCMBlockBufferNoErr { samples += chunk }
+            if let limit, samples.count >= limit {
+                reader.cancelReading()
+                return Array(samples.prefix(limit))
+            }
         }
         guard reader.status == .completed, !samples.isEmpty else { return nil }
         return samples

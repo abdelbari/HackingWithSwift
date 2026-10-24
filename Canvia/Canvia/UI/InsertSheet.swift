@@ -4,10 +4,12 @@
 // roles under Brand.
 //
 // The search above the tabs finds every kind of element at once — shapes,
-// icons, stickers, frames, grids, lines, charts and tables, artwork — in
-// sections (ElementSearch, ElementResults), on every tab but Templates and
-// Text, which search their own. What was put on a page lately leads
-// Elements as Recently used, as on the Android twin.
+// icons, graphics, stickers, frames, grids, lines, charts and tables,
+// artwork — in sections (ElementSearch, ElementResults), on every tab but
+// Templates, Text and Stickers, which search their own (Stickers the whole
+// emoji catalogue, EmojiPicker). What was put on a page lately leads
+// Elements as Recently used, and the emoji put on lately lead Stickers, as
+// on the Android twin.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -45,6 +47,8 @@ struct InsertSheet: View {
     @FocusState private var qrFocused: Bool
     /// Recently used, read as the sheet opens.
     @State private var recent: [ElementSearch.Hit] = []
+    /// The emoji put on lately, read as the sheet opens.
+    @State private var recentEmoji: [String] = []
     /// The brand kit in use, read as the sheet opens.
     @State private var brandKit = BrandKit()
 
@@ -107,6 +111,7 @@ struct InsertSheet: View {
             // Replacing? Go straight to the picture sources.
             if isReplacing { tab = "Photos" }
             recent = ElementSearch.recent()
+            recentEmoji = EmojiCatalogue.recent()
             brandKit = BrandKit.load()
         }
         .fileImporter(isPresented: $importingPDF, allowedContentTypes: [.pdf]) { result in
@@ -238,16 +243,17 @@ struct InsertSheet: View {
         switch tab {
         case "Templates": return nil
         case "Text": return Text("Search font combinations")
+        case "Stickers": return Text("Search emoji")
         default: return isReplacing ? nil : Text("Search elements")
         }
     }
 
     /// Whether the search shows every kind of element (ElementResults) in
-    /// place of the tab: on any tab but Templates and Text, which search
-    /// their own, and not while a picture is being replaced, when Photos
-    /// searches its pictures.
+    /// place of the tab: on any tab but Templates, Text and Stickers, which
+    /// search their own, and not while a picture is being replaced, when
+    /// Photos searches its pictures.
     private var searchesElements: Bool {
-        tab != "Templates" && tab != "Text" && !isReplacing && !ElementSearch.normalised(search).isEmpty
+        !["Templates", "Text", "Stickers"].contains(tab) && !isReplacing && !ElementSearch.normalised(search).isEmpty
     }
 
     /// A thing found by the search, or in Recently used, put on the page as
@@ -257,6 +263,7 @@ struct InsertSheet: View {
         switch hit.kind {
         case .shape: addShape(hit.id)
         case .icon: if let icon = IconLibrary.icon(hit.id) { addIcon(icon) }
+        case .graphic: if let graphic = GraphicsLibrary.graphic(hit.id) { addPackGraphic(graphic) }
         case .sticker: addSticker(hit.id)
         case .photoFrame: if let preset = DecorativeFrames.preset(hit.id) { insertDecorativeFrame(preset) }
         case .grid: if let layout = PhotoGrids.layout(hit.id) { addGrid(layout) }
@@ -299,7 +306,7 @@ struct InsertSheet: View {
                 && UserTemplates.matching(UserTemplates.all(), query: search).isEmpty
         case "Photos": return filteredPhotos.isEmpty
         case "Stickers":
-            return filteredStickerGroups.allSatisfy { $0.emoji.isEmpty } && Stickers.searchAnimated(search).isEmpty
+            return EmojiCatalogue.search(search).isEmpty && Stickers.searchAnimated(search).isEmpty
         default: return false
         }
     }
@@ -485,9 +492,12 @@ struct InsertSheet: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
                 ForEach(ElementSearch.linePresets, id: \.name) { preset in lineTile(preset) }
             }
-            dataRow
-            svgImportRow
-            componentsSection
+            Group {
+                dataRow
+                svgImportRow
+                componentsSection
+            }
+            GraphicsSection { addPackGraphic($0) }
             let starred = search.isEmpty ? Favorites.ids(of: "shape").compactMap { ContentLibrary.shapeMap[$0] } : []
             ForEach(["Favourites"] + ContentLibrary.shapeCategories, id: \.self) { category in
                 let shapes = category == "Favourites" ? starred : ContentLibrary.shapes.filter {
@@ -696,6 +706,14 @@ struct InsertSheet: View {
         }
         .accessibilityLabel(starred ? tr("%@, favourite", icon.name) : icon.name)
         .contextMenu { favoriteButton("icon", icon.id) }
+    }
+
+    /// One of the illustrated graphics, as an SVG graphic goes on: its
+    /// shapes in their own colours, one group at 0.4 of the page's shorter
+    /// side, centred and selected — one Undo, as on the Android twin.
+    private func addPackGraphic(_ graphic: GraphicDef) {
+        if store.addPackGraphic(graphic) { ElementSearch.remember(.graphic, graphic.id) }
+        dismiss()
     }
 
     /// In the middle of this page — a page may have a size of its own — in
@@ -1043,7 +1061,10 @@ struct InsertSheet: View {
 
     /// A small star on a starred tile, so what was starred shows and not
     /// only leads the order.
-    private var starBadge: some View {
+    private var starBadge: some View { Self.favouriteStar }
+
+    /// The star itself, for the tiles of other views of the sheet's.
+    static var favouriteStar: some View {
         Image(systemName: "star.fill")
             .font(.caption2.weight(.bold))
             .imageScale(.small)
@@ -1832,19 +1853,33 @@ struct InsertSheet: View {
 
     // MARK: stickers
 
+    /// What was put on lately, the stickers that move, those starred, then
+    /// the whole emoji catalogue a group at a time (EmojiPicker) — or what
+    /// a search finds among them.
     private var stickersGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
-            animatedStickersRow
-            ForEach(filteredStickerGroups) { group in
-                if !group.emoji.isEmpty {
-                    sectionHeader(tr(group.name))
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 8)], spacing: 8) {
-                        ForEach(group.emoji, id: \.self) { glyph in stickerTile(glyph) }
-                    }
-                }
+            if search.isEmpty && !recentEmoji.isEmpty {
+                sectionHeader(tr("Recently used"))
+                glyphRow(recentEmoji)
             }
+            animatedStickersRow
+            let starred = Favorites.ids(of: "sticker")
+            if search.isEmpty && !starred.isEmpty {
+                sectionHeader(tr("Favourites"))
+                glyphRow(starred)
+            }
+            EmojiPicker(query: search, side: stickerSide, favouritesVersion: $favoritesVersion) { addSticker($0) }
         }
         .padding()
+    }
+
+    /// Glyphs to scroll across: Recently used, and those starred.
+    private func glyphRow(_ glyphs: [String]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 8) {
+                ForEach(glyphs, id: \.self) { glyph in stickerTile(glyph) }
+            }
+        }
     }
 
     /// An emoji, read by VoiceOver by its own name, starred as the other
@@ -1858,6 +1893,7 @@ struct InsertSheet: View {
                 .frame(width: stickerSide, height: stickerSide)
                 .overlay(alignment: .topTrailing) { if starred { starBadge.scaleEffect(0.8) } }
         }
+        .accessibilityLabel(EmojiCatalogue.of(glyph)?.name ?? glyph)
         .accessibilityValue(starred ? tr("Favourite") : "")
         .contextMenu { favoriteButton("sticker", glyph) }
     }
@@ -1870,6 +1906,7 @@ struct InsertSheet: View {
     private func addSticker(_ glyph: String) {
         if store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18)) {
             ElementSearch.remember(.sticker, glyph)
+            EmojiCatalogue.remember(glyph)
         }
         dismiss()
     }
@@ -1896,15 +1933,6 @@ struct InsertSheet: View {
                 }
             }
         }
-    }
-
-    /// A search finds a group by its name, whole, or the stickers in it by
-    /// their own words (Stickers.search); a group with none drops out.
-    private var filteredStickerGroups: [StickerGroup] {
-        let starred = Favorites.ids(of: "sticker")
-        let favourites = starred.isEmpty ? [] : [StickerGroup(name: "Favourites", emoji: starred)]
-        guard !search.isEmpty else { return favourites + ContentLibrary.stickerGroups }
-        return Stickers.search(search, in: ContentLibrary.stickerGroups)
     }
 
     /// The Background sheet's choices, the same here as there.

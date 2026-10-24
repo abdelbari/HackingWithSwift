@@ -78,6 +78,46 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   `Content/Icons.json` is the Android twin's resource byte for byte,
   written by its `tools/generate_icons.py`; the icons are Apache-2.0 and
   their licence ships beside them as `Content/MaterialIcons-LICENSE.txt`
+- Graphics: two hundred multi-colour illustrations in twelve categories —
+  doodle arrows, underlines, sparkles, badges, ribbons, blobs, confetti,
+  dividers, speech bubbles, hand-drawn frames, scribbles, patterns — in
+  Add ▸ Elements under category chips, and found by Add's search by their
+  tags. Each goes on as an SVG graphic does: its shapes in their own
+  colours, grouped, each naming it (`graphicId`), so Colour swap and Change
+  all list its colours and a build without the pack still draws it.
+  `Content/Graphics.json` is drawn by `Tools/generate_graphics.py`, the
+  Android twin's script byte for byte, from seeded hand-drawn paths
+- Emoji: the Stickers tab is the whole catalogue — some sixteen hundred, in
+  eight tabs (`Content/emoji.json`, from `Tools/generate_emoji.py` and
+  Python's own Unicode names), with Recently used (24, kept on the phone
+  as `recentEmoji`), a search by name and words, and a press and hold on
+  one that takes a skin tone for the five tones and none, the last one
+  chosen kept. Only what this phone's emoji font draws is shown
+- More like this: for a selected icon, sticker, graphic or library shape,
+  from the tool row or the quick actions — a strip of things like it
+  (`ElementSearch.similar`, the same rows on both phones); a tap swaps one
+  in place as one Undo, keeping its box (fitted to the new shape), turn,
+  opacity, motion, link and main colour; a press and hold adds it instead
+- Sound effects: two dozen short effects synthesised by
+  `Tools/generate_sounds.py` (the bundle's `sfx` folder, mono 44.1 kHz WAV)
+  — whoosh, pop, ding, riser, drum hits and more — in the Audio sheet,
+  found by their tags and heard with a tap; one is added as an ordinary
+  track (`sfx:<id>`) from the page on screen's start, mixed and exported
+  as any is, and never packed into a design file or backup
+- Beat Sync: a song's beats (`Beats.detect`, spectral flux and a tempo
+  grid, the Android twin's arithmetic, kept beside its peaks as
+  `<id>.beats`) are ticked over its trimmer and under the timeline; its
+  switch moves each page's cut to the nearest beat as one Undo
+  (`beatSync` on the track, the old holds in `beatSyncRestore`) and puts
+  them back when turned off, and while it is on a dragged page end snaps
+  to a beat. A song this phone cannot play says so
+- Mockups: from the Export sheet's Share row and a design's card on Home,
+  a page shown on a phone, laptop, tablet, framed print, poster, business
+  card, T-shirt, mug and more — twenty-one vector scenes
+  (`Content/Mockups.json`, `Tools/generate_mockups.py`), the page warped
+  into each with CIPerspectiveTransform (round a mug, over a mesh), a
+  colour for a shirt or a mug; saved to Photos, shared, added to the
+  design or made a design of its own
 - Text: curved text on an arc from -180° to 180° (glyphs placed along one
   circle whose radius the line's own width fixes, so letters keep their
   size rather than being squashed to fit; each word's bold, italic,

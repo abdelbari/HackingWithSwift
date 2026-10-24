@@ -3,8 +3,10 @@
 // block as wide as it holds, whose right edge drags its hold longer or
 // shorter; a playhead scrubs the film, the canvas showing each moment it
 // passes, in silence; under the blocks, when each selected element shows,
-// and the design's audio tracks as thin bars. As the Android twin's
-// timeline.
+// and the design's audio tracks as thin bars, a song's beats ticked across
+// its bar where they fall in the film. While a track has Beat Sync on, a
+// dragged edge snaps to a beat within Beats.snapped's reach. As the Android
+// twin's timeline.
 
 import SwiftUI
 
@@ -19,6 +21,9 @@ struct TimelineStrip: View {
     @State private var open = true
     /// Each track's music length, by AudioStore id, once read.
     @State private var trackLengths: [String: Double] = [:]
+    /// Each song's beats, in seconds into its file, by AudioStore id, once
+    /// read (AudioStore.beats).
+    @State private var trackBeats: [String: [Double]] = [:]
 
     /// The per-phone switch in More, off unless turned on.
     static let key = "timeline"
@@ -43,6 +48,8 @@ struct TimelineStrip: View {
         var x: Double
         var width: Double
         var color: Color
+        /// Where a song's beats fall, in points from the film's start.
+        var ticks: [Double] = []
     }
 
     var body: some View {
@@ -255,12 +262,37 @@ struct TimelineStrip: View {
                 if drag?.id != id { drag = HoldDrag(id: id, from: hold, scale: scale) }
                 guard let current = drag else { return }
                 let seconds = Timeline.draggedHold(current.from, by: value.translation.width, scale: current.scale)
-                store.dragHold(of: id, to: seconds)
+                store.dragHold(of: id, to: onBeat(seconds, page: id))
             }
             .onEnded { _ in
                 drag = nil
                 store.commit()
             }
+    }
+
+    /// A page's hold with its end on a beat, while a track has Beat Sync
+    /// on and a beat is within reach of it (Beats.snapped); as it is
+    /// otherwise. Kept within the holds a page may have.
+    private func onBeat(_ hold: Double, page id: String) -> Double {
+        guard BeatSync.active(store.design) else { return hold }
+        var start = 0.0
+        for entry in store.timelinePages {
+            if store.design.pages[entry.index].id == id { break }
+            start += entry.hold
+        }
+        let end = Beats.snapped(start + hold, beats: syncedBeats)
+        let range = MotionSettings.pageHoldRange
+        return min(max(Beats.thousandth(end - start), range.lowerBound), range.upperBound)
+    }
+
+    /// The beats of the tracks with Beat Sync on, where they fall in the
+    /// film and a hold's worth past its end.
+    private var syncedBeats: [Double] {
+        let film = store.timelinePages.reduce(0.0) { $0 + $1.hold } + BeatSync.maxHold
+        return store.design.audioTracks.filter(\.beatSync).flatMap { track -> [Double] in
+            guard let id = track.audioId, let beats = trackBeats[id] else { return [] }
+            return Beats.inFilm(beats, track: track, length: trackLengths[id], film: film)
+        }
     }
 
     /// A hold as a block shows it: "2.5s".
@@ -301,7 +333,10 @@ struct TimelineStrip: View {
         store.design.audioTracks.prefix(Self.maxBars).compactMap { track -> Bar? in
             let length = track.audioId.flatMap { trackLengths[$0] }
             guard let span = AudioMix.span(of: track, duration: length, film: film) else { return nil }
-            return Bar(id: track.id, x: span.at * scale, width: (span.until - span.at) * scale, color: Theme.userGuide)
+            let beats = track.audioId.flatMap { trackBeats[$0] } ?? []
+            let ticks = Beats.inFilm(beats, track: track, length: length, film: span.until).map { $0 * scale }
+            return Bar(id: track.id, x: span.at * scale, width: (span.until - span.at) * scale, color: Theme.userGuide,
+                       ticks: ticks)
         }
     }
 
@@ -311,7 +346,21 @@ struct TimelineStrip: View {
             .frame(width: max(bar.width, 2), height: Self.barHeight)
             .offset(x: bar.x)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay { if !bar.ticks.isEmpty { tickMarks(bar.ticks) } }
             .accessibilityHidden(true)
+    }
+
+    /// A song's beats across its bar, `ticks` points from the film's start.
+    private func tickMarks(_ ticks: [Double]) -> some View {
+        Canvas { context, size in
+            var marks = Path()
+            for x in ticks {
+                marks.move(to: CGPoint(x: x, y: 0))
+                marks.addLine(to: CGPoint(x: x, y: Double(size.height)))
+            }
+            context.stroke(marks, with: .color(Theme.ink.opacity(0.6)), lineWidth: 1)
+        }
+        .allowsHitTesting(false)
     }
 
     // MARK: track lengths
@@ -320,10 +369,15 @@ struct TimelineStrip: View {
         store.design.audioTracks.compactMap(\.audioId)
     }
 
+    /// Each track's length, then each song's beats — an effect has none
+    /// worth ticking.
     @MainActor
     private func readTrackLengths() async {
         for id in trackSources where trackLengths[id] == nil {
             if let seconds = await AudioStore.duration(of: id) { trackLengths[id] = seconds }
+        }
+        for id in trackSources where trackBeats[id] == nil && !AudioTrack.isEffect(id) {
+            if let beats = await AudioStore.beats(of: id) { trackBeats[id] = beats }
         }
     }
 }

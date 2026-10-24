@@ -1,7 +1,8 @@
 // What Add's one search finds, and Recently used.
 //
 // The hits of ElementSearch in their sections, in their fixed order —
-// Shapes, Icons, Stickers, Frames, Grids, Lines, Charts and tables, Artwork
+// Shapes, Icons, Graphics, Stickers, Frames, Grids, Lines, Charts and
+// tables, Artwork
 // — each its first eight, best first, with See all for the rest; and each
 // hit drawn as its own tab draws it. A tap is the sheet's to carry out, as
 // its own tab would. As the Android twin's ElementResults.
@@ -85,28 +86,45 @@ struct HitRow: View {
 
 /// A hit drawn as its own tab draws it, its name under it; a chart, the
 /// table and the QR code, which are made from what you type, by a symbol.
+/// With `onHold`, a press and hold does that instead of the tap (More like
+/// this adds one rather than swapping it in), and VoiceOver says the tap
+/// swaps it in and offers the hold as an action, as the Android twin's tile.
 struct HitTile: View {
     let hit: ElementSearch.Hit
+    var onHold: (() -> Void)? = nil
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                face
-                    .frame(width: 64, height: 64)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                Text(hit.name)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+        Group {
+            if let onHold {
+                tile
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: action)
+                    .onLongPressGesture(perform: onHold)
+                    .accessibilityAction(named: Text("Add as well"), onHold)
+            } else {
+                Button(action: action) { tile }
+                    .buttonStyle(.plain)
             }
-            .frame(width: 72)
         }
-        .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spoken)
+        .accessibilityLabel(onHold == nil ? spoken : tr("Swap for %@", hit.name))
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction { action() }
+    }
+
+    private var tile: some View {
+        VStack(spacing: 4) {
+            face
+                .frame(width: 64, height: 64)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            Text(hit.name)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(width: 72)
     }
 
     /// What VoiceOver says: the name, and what it is where the name alone
@@ -117,6 +135,7 @@ struct HitTile: View {
         case .photoFrame: return tr("%@ photo frame", hit.name)
         case .grid: return tr("%@ photo grid", hit.name)
         case .icon: return tr("%@ icon", hit.name)
+        case .graphic: return tr("%@ graphic", hit.name)
         default: return hit.name
         }
     }
@@ -136,6 +155,8 @@ struct HitTile: View {
                     .fill(Color(hex: "#545d6b"))
                     .padding(14)
             }
+        case .graphic:
+            if let graphic = GraphicsLibrary.graphic(hit.id) { GraphicThumb(graphic: graphic).padding(6) }
         case .sticker:
             Text(hit.id).font(.largeTitle)
         case .photoFrame:

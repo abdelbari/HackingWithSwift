@@ -1,8 +1,8 @@
 // One search across everything Add puts on a page that has a name — the
 // Android twin's ElementSearch, rule for rule, with the same test rows: the
-// shapes, the icons (their names, tags and categories), the stickers (by
-// their words), the photo frames, the grids, the lines, the charts and the
-// table, the QR code and the stock art.
+// shapes, the icons (their names, tags and categories), the illustrated
+// graphics (the same), the stickers (by their words), the photo frames, the
+// grids, the lines, the charts and the table, the QR code and the stock art.
 //
 // A hit is ranked by how it matches the query — its spaces trimmed and run
 // together, case aside:
@@ -19,6 +19,9 @@
 // and Recently used shows the last `recentLimit` things put on a page from
 // Add (`remembered`), kept on the phone under `recentElements` as a JSON
 // array of {kind, id} (`encode`) and never in a design.
+//
+// More like this (`similar`) offers things like a selected icon, sticker,
+// graphic or shape, best first, by the Android twin's rules and rows.
 
 import Foundation
 
@@ -28,6 +31,7 @@ enum ElementSearch {
     enum Shelf: String, CaseIterable, Identifiable {
         case shapes = "Shapes"
         case icons = "Icons"
+        case graphics = "Graphics"
         case stickers = "Stickers"
         case frames = "Frames"
         case grids = "Grids"
@@ -43,12 +47,13 @@ enum ElementSearch {
     /// is shown with the charts and tables, the other things made from what
     /// you type.
     enum HitKind: String, CaseIterable {
-        case shape, icon, sticker, photoFrame, grid, line, chart, table, qr, stockArt
+        case shape, icon, graphic, sticker, photoFrame, grid, line, chart, table, qr, stockArt
 
         var section: Shelf {
             switch self {
             case .shape: return .shapes
             case .icon: return .icons
+            case .graphic: return .graphics
             case .sticker: return .stickers
             case .photoFrame: return .frames
             case .grid: return .grids
@@ -59,8 +64,8 @@ enum ElementSearch {
         }
     }
 
-    /// One thing to put on a page: its kind and id — a shape's or an icon's
-    /// id, a sticker's glyph, a frame's, grid's or stock picture's id, a
+    /// One thing to put on a page: its kind and id — a shape's, an icon's or
+    /// a graphic's id, a sticker's glyph, a frame's, grid's or stock picture's id, a
     /// line's name, a chart's kind ("column"), "table" or "qr" — and the
     /// name it is shown by.
     struct Hit: Equatable, Hashable {
@@ -150,6 +155,10 @@ enum ElementSearch {
         for icon in IconLibrary.icons {
             out.append(Entry(hit: Hit(kind: .icon, id: icon.id, name: icon.name), words: icon.tags + ["icon"],
                              category: icon.category))
+        }
+        for graphic in GraphicsLibrary.graphics {
+            out.append(Entry(hit: Hit(kind: .graphic, id: graphic.id, name: graphic.name),
+                             words: graphic.tags + ["graphic"], category: graphic.category))
         }
         for glyph in stickerGlyphs {
             let words = Stickers.words(for: glyph)
@@ -304,5 +313,102 @@ enum ElementSearch {
     static func remember(_ kind: HitKind, _ id: String, in defaults: UserDefaults = .standard) {
         guard let found = hit(kind, id) else { return }
         defaults.set(encode(remembered(recent(in: defaults), found)), forKey: recentKey)
+    }
+
+    // MARK: More like this
+
+    /// How many things More like this offers.
+    static let similarLimit = 24
+
+    /// Things like `el`, best first, at most `limit` — More like this, the
+    /// same rows on both phones:
+    /// - an icon: the other icons of its category, most tags in common
+    ///   first, then in library order;
+    /// - a graphic from the pack: the other graphics of its category, in
+    ///   library order;
+    /// - a sticker: the other stickers of its sticker group (or groups) in
+    ///   group order, then every other emoji sharing a word with it (its
+    ///   keywords and its curated words), most words in common first, then
+    ///   in catalogue order;
+    /// - a library shape that swaps (DesignStore.swapsShape): the other
+    ///   shapes of its group, then every other shape, in library order.
+    /// Nothing for anything else.
+    static func similar(_ el: Element, limit: Int = ElementSearch.similarLimit) -> [Hit] {
+        if let icon = IconLibrary.icon(of: el) {
+            let tags = Set(icon.tags)
+            var ranked: [Ranked<IconDef>] = []
+            for (order, other) in IconLibrary.icons.enumerated() where other.category == icon.category && other.id != icon.id {
+                ranked.append(Ranked(shared: other.tags.filter { tags.contains($0) }.count, order: order, item: other))
+            }
+            return Ranked<IconDef>.best(ranked).prefix(limit).map { Hit(kind: .icon, id: $0.id, name: $0.name) }
+        }
+        if let graphic = GraphicsLibrary.graphic(of: el) {
+            return GraphicsLibrary.graphics.filter { $0.category == graphic.category && $0.id != graphic.id }
+                .prefix(limit).map { Hit(kind: .graphic, id: $0.id, name: $0.name) }
+        }
+        if el.type == .sticker {
+            guard let glyph = el.glyph else { return [] }
+            return similarStickers(glyph, limit: limit)
+        }
+        if DesignStore.swapsShape(el) {
+            let own = ContentLibrary.shape(el.shapeId)
+            let others = ContentLibrary.shapes.filter { $0.id != own.id }
+            let ordered = others.filter { $0.category == own.category } + others.filter { $0.category != own.category }
+            return ordered.prefix(limit).map { Hit(kind: .shape, id: $0.id, name: $0.name) }
+        }
+        return []
+    }
+
+    private static func similarStickers(_ glyph: String, limit: Int) -> [Hit] {
+        let base = EmojiCatalogue.untoned(glyph)
+        let plain = withoutSelector(base)
+        func same(_ g: String) -> Bool { g == base || withoutSelector(g) == plain }
+        var out: [Hit] = []
+        var taken = Set<String>()
+        func take(_ g: String, _ name: String) {
+            if taken.insert(g).inserted { out.append(Hit(kind: .sticker, id: g, name: name)) }
+        }
+        for group in ContentLibrary.stickerGroups where group.emoji.contains(where: same) {
+            for g in group.emoji where !same(g) { take(g, stickerName(g)) }
+        }
+        let own = EmojiCatalogue.of(base)
+        let words = Set((own.map(EmojiCatalogue.words) ?? []) + Stickers.words(for: base))
+        if !words.isEmpty {
+            var ranked: [Ranked<Emoji>] = []
+            for (order, emoji) in EmojiCatalogue.all.enumerated() where !same(emoji.g) {
+                let shared = EmojiCatalogue.words(emoji).filter { words.contains($0) }.count
+                if shared > 0 { ranked.append(Ranked(shared: shared, order: order, item: emoji)) }
+            }
+            for emoji in Ranked<Emoji>.best(ranked) { take(emoji.g, emoji.name) }
+        }
+        return Array(out.prefix(limit))
+    }
+
+    /// A thing like another, by how many words it shares with it and where
+    /// its library lists it.
+    private struct Ranked<Item> {
+        var shared: Int
+        var order: Int
+        var item: Item
+
+        /// Most shared first, then in library order.
+        static func best(_ rows: [Ranked<Item>]) -> [Item] {
+            rows.sorted { $0.shared != $1.shared ? $0.shared > $1.shared : $0.order < $1.order }.map { $0.item }
+        }
+    }
+
+    /// `glyph` without a U+FE0F at its end, scalar by scalar.
+    private static func withoutSelector(_ glyph: String) -> String {
+        var scalars = Array(glyph.unicodeScalars)
+        if scalars.last?.value == 0xFE0F { scalars.removeLast() }
+        var view = String.UnicodeScalarView()
+        view.append(contentsOf: scalars)
+        return String(view)
+    }
+
+    /// A sticker's name: its first curated word, else its Unicode name.
+    private static func stickerName(_ glyph: String) -> String {
+        if let first = Stickers.words(for: glyph).first { return first.prefix(1).uppercased() + first.dropFirst() }
+        return EmojiCatalogue.of(glyph)?.name ?? glyph
     }
 }

@@ -1377,6 +1377,11 @@ struct ContextToolbar: View {
             if store.selection.count > 1 && store.selectionTakesColour && store.textSelection == nil {
                 multiColourChip
             }
+            // An icon, sticker, graphic from the pack or library shape:
+            // things like it, to swap in or add (SimilarSheet).
+            if store.offersSimilar {
+                toolButton("square.grid.2x2", "More like this") { activeSheet = .similar }
+            }
         }
         // Grouped to keep this block within a ViewBuilder's ten children.
         Group {

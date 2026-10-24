@@ -114,6 +114,8 @@ struct ExportSheet: View {
     private var queue: ExportQueue { ExportQueue.shared }
     @State private var exportedURL: URL?
     @State private var errorMessage: String?
+    /// Mockups, over the sheet.
+    @State private var showingMockups = false
 
     var body: some View {
         NavigationStack {
@@ -137,6 +139,10 @@ struct ExportSheet: View {
                 }
                 .overlay {
                     if let job = queue.current { progressCard(job) }
+                }
+                .sheet(isPresented: $showingMockups) {
+                    // The design as saved has no editor to add a picture to.
+                    MockupSheet(design: store.design, store: readOnly ? nil : store)
                 }
                 .sheet(isPresented: $choosingPages, onDismiss: {
                     ExportChoices.remember(chosenIds, for: store.design)
@@ -483,6 +489,9 @@ struct ExportSheet: View {
                 .buttonStyle(.bordered)
                 .disabled(leftOut(exportedIndices) != nil)
         }
+        // The page on a phone, a laptop, a print or a shirt.
+        Button("Mockups") { showingMockups = true }
+            .buttonStyle(.bordered)
     }
 
     /// Why Share cannot now, what Photos took, and a video's lost music.

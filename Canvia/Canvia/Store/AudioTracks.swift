@@ -1,7 +1,8 @@
 // The design's audio tracks as the Audio sheet edits them: added from your
-// music or a voice-over, each change to one — where it starts, its trim,
-// volume, fades, loop — one undo step, and taken out again; and what the
-// sheet says of each. As the Android twin's Audio panel does.
+// music, a voice-over or the built-in sound effects, each change to one —
+// where it starts, its trim, volume, fades, loop, Beat Sync — one undo
+// step, and taken out again; and what the sheet says of each. As the
+// Android twin's Audio panel does.
 
 import Foundation
 
@@ -106,6 +107,48 @@ extension DesignStore {
     func removeAudioTrack(_ id: String) {
         guard design.audioTracks.contains(where: { $0.id == id }) else { return }
         apply { $0.audioTracks.removeAll { $0.id == id } }
+    }
+
+    /// One of the built-in sound effects as a new track, last in the list,
+    /// as one step: from where the page on screen starts in the film, once,
+    /// called by its name (SoundEffects.track), as on the Android twin.
+    @discardableResult
+    func addSoundEffect(_ effect: SoundEffect) -> AudioTrack {
+        let track = SoundEffects.track(effect, start: pageStartSeconds)
+        apply { $0.audioTracks.append(track) }
+        return track
+    }
+
+    /// Beat Sync turned on for track `id`, its song's `beats` (seconds into
+    /// the file, AudioStore.beats) and `length` known, as one step: the
+    /// track says so, and each shown page's hold moves to the nearest beat
+    /// where the track plays in the film (BeatSync.on), the holds as they
+    /// were kept to come back to. A locked page keeps its hold, as on the
+    /// Android twin; the next page starts from its end.
+    func turnBeatSyncOn(_ id: String, beats: [Double], length: Double?) {
+        guard let index = design.audioTracks.firstIndex(where: { $0.id == id }) else { return }
+        apply { design in
+            var tracks = design.audioTracks
+            tracks[index].beatSync = true
+            design.audioTracks = tracks
+            let film = Timeline.pages(of: design).reduce(0.0) { $0 + $1.hold }
+            // Beats a page's end could move to: the film's, and a hold's
+            // worth on.
+            let heard = Beats.inFilm(beats, track: tracks[index], length: length, film: film + BeatSync.maxHold)
+            design = BeatSync.on(design, beats: heard)
+        }
+    }
+
+    /// Beat Sync turned off for track `id`, as one step: the holds kept
+    /// when it was turned on come back (BeatSync.off).
+    func turnBeatSyncOff(_ id: String) {
+        guard let index = design.audioTracks.firstIndex(where: { $0.id == id }) else { return }
+        apply { design in
+            var tracks = design.audioTracks
+            tracks[index].beatSync = false
+            design.audioTracks = tracks
+            design = BeatSync.off(design)
+        }
     }
 
     /// Whether Play has anything to show or to hear on this page: its

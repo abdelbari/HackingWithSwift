@@ -44,17 +44,18 @@ final class ElementSearchTests: XCTestCase {
         let word = try XCTUnwrap(heart.firstIndex { $0.id == "heart_broken" })
         XCTAssertTrue(exact < prefix && prefix < word, "\(exact) \(prefix) \(word)")
         // "Arrows" is a category: an icon in it with no "arrow" in its name
-        // comes after every name with one.
+        // comes after every name with one. The pack's doodle arrows are
+        // found by theirs.
         let arrows = ElementSearch.results("arrows")
         XCTAssertFalse(arrows.isEmpty)
-        XCTAssertTrue(arrows.allSatisfy { $0.kind == .icon || $0.kind == .shape })
+        XCTAssertTrue(arrows.allSatisfy { $0.kind == .icon || $0.kind == .shape || $0.kind == .graphic })
     }
 
     func testHitsAreShownInSectionsInAFixedOrder() {
         XCTAssertEqual(ElementSearch.sections(ElementSearch.results("star")).map { $0.section.title },
-                       ["Shapes", "Icons", "Stickers"])
+                       ["Shapes", "Icons", "Graphics", "Stickers"])
         XCTAssertEqual(ElementSearch.Shelf.allCases.map(\.title),
-                       ["Shapes", "Icons", "Stickers", "Frames", "Grids", "Lines", "Charts and tables", "Artwork"])
+                       ["Shapes", "Icons", "Graphics", "Stickers", "Frames", "Grids", "Lines", "Charts and tables", "Artwork"])
         // Charts, the table and the QR code share a section.
         XCTAssertEqual(ElementSearch.HitKind.qr.section, .charts)
         XCTAssertEqual(ElementSearch.HitKind.table.section, .charts)
@@ -67,6 +68,9 @@ final class ElementSearchTests: XCTestCase {
             XCTAssertEqual(ElementSearch.hit(.shape, shape.id)?.name, shape.name)
         }
         XCTAssertEqual(IconLibrary.icons.filter { ElementSearch.hit(.icon, $0.id) != nil }.count, 567)
+        for graphic in GraphicsLibrary.graphics {
+            XCTAssertEqual(ElementSearch.hit(.graphic, graphic.id)?.name, graphic.name)
+        }
         for group in ContentLibrary.stickerGroups {
             for glyph in group.emoji { XCTAssertNotNil(ElementSearch.hit(.sticker, glyph), glyph) }
         }

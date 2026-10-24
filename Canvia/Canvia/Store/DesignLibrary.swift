@@ -718,7 +718,7 @@ enum DesignLibrary {
     /// The AudioStore ids these designs play under their videos, on any of
     /// their tracks.
     static func soundtracks(in designs: [Design]) -> Set<String> {
-        Set(designs.flatMap { $0.audioTracks.compactMap(\.audioId) })
+        Set(designs.flatMap { $0.audioTracks.compactMap(\.storedAudioId) })
     }
 
     // MARK: uploads in use

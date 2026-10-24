@@ -201,3 +201,28 @@ struct WaveformView: View {
         .background(Color(.systemGray6))
     }
 }
+
+/// Where a song's beats fall, as ticks across a strip `length` seconds of
+/// it long — over a track's waveform in its trimmer, and under the
+/// timeline's blocks at each beat where the track plays in the film
+/// (Beats.inFilm). Only to look at.
+struct BeatTicks: View {
+    let beats: [Double]
+    let length: Double
+    var color: Color = Theme.ink.opacity(0.45)
+
+    var body: some View {
+        Canvas { context, size in
+            guard length > 0 else { return }
+            var ticks = Path()
+            for beat in beats where beat >= 0 && beat <= length {
+                let x = beat / length * Double(size.width)
+                ticks.move(to: CGPoint(x: x, y: 0))
+                ticks.addLine(to: CGPoint(x: x, y: Double(size.height)))
+            }
+            context.stroke(ticks, with: .color(color), lineWidth: 1)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}

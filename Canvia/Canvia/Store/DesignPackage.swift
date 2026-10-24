@@ -357,12 +357,13 @@ enum DesignPackage {
     /// The music of the design's tracks, packed, those on this phone that
     /// travel (Soundtrack.packed); none when none does. A track whose file
     /// stays behind names music only the phone it was chosen on has, as the
-    /// soundtrack always did.
+    /// soundtrack always did. A built-in sound effect is in every copy of
+    /// the app, so it is never packed.
     static func packedAudio(of design: Design) -> [String: Media]? {
         var files: [String: URL] = [:]
         var sizes: [String: (bytes: Int, ext: String)] = [:]
         for track in design.audioTracks {
-            guard let id = track.audioId, files[id] == nil, let url = AudioStore.url(for: id) else { continue }
+            guard let id = track.storedAudioId, files[id] == nil, let url = AudioStore.url(for: id) else { continue }
             files[id] = url
             sizes[id] = (bytes: (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0,
                          ext: url.pathExtension.lowercased())
