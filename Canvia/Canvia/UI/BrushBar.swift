@@ -73,10 +73,12 @@ struct BrushBar: View {
         HStack(spacing: 14) {
             slider(tr("Size"), value: session.size, in: BrushSession.sizeRange,
                    readout: Self.percent(session.size)) { store.brushing?.size = $0 }
+            // A painted area for the dials has no strength of its own, and
+            // its edge is the retouch strokes' feather.
             if session.retouching && session.kind != .adjust {
                 slider(tr("Strength"), value: session.strength, in: 0...1,
                        readout: Self.percent(session.strength)) { store.setBrushStrength($0) }
-            } else {
+            } else if !session.retouching {
                 slider(tr("Softness"), value: session.softness, in: 0...1,
                        readout: Self.percent(session.softness)) { store.brushing?.softness = ($0 * 100).rounded() / 100 }
             }
