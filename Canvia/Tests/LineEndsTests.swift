@@ -77,6 +77,42 @@ final class LineEndsTests: XCTestCase {
         }
     }
 
+    /// The shared rows for where a straight line's stroke runs: stopped
+    /// short of each head, never back through a short line's heads.
+    @MainActor
+    func testAStraightLinesStrokeSpanIsTheSharedRows() throws {
+        let fixture = try SharedFixture.object("line-ends")
+        let rows = try XCTUnwrap(fixture["strokes"] as? [[String: Any]])
+        XCTAssertEqual(rows.count, 6)
+        for row in rows {
+            var el = Element.line(w: try XCTUnwrap(row["width"] as? Double))
+            el.thickness = try XCTUnwrap(row["thickness"] as? Double)
+            el.capScale = try XCTUnwrap(row["capScale"] as? Double)
+            el.startCap = try XCTUnwrap(row["start"] as? String)
+            el.endCap = try XCTUnwrap(row["end"] as? String)
+            let label = "\(row)"
+            let route = LineRoutes.route(el)
+            let points = LineRoutes.trimmed(route, startBack: LineRoutes.strokeBack(el, cap: el.startCap),
+                                            endBack: LineRoutes.strokeBack(el, cap: el.endCap))
+            let origin = Double(route.points[0].x)
+            let from = Double(points[0].x) - origin
+            let to = Double(points[points.count - 1].x) - origin
+            XCTAssertEqual(from, try XCTUnwrap(row["from"] as? Double), accuracy: 1e-9, label)
+            XCTAssertEqual(to, try XCTUnwrap(row["to"] as? Double), accuracy: 1e-9, label)
+        }
+        // Drawn so in an SVG: a line 30 wide with heads 36 long has a stroke
+        // of no length, not one run back through its heads.
+        var short = Element.line(w: 30)
+        short.x = 10
+        short.startCap = "circle"
+        short.endCap = "circle"
+        short.capScale = 3
+        var d = Design(title: "Ends", width: 100, height: 100)
+        d.pages = [Page(elements: [short])]
+        let svg = SVGExporter.svg(design: d, page: d.pages[0])
+        XCTAssertTrue(svg.contains("<line x1=\"40\" y1=\"4\" x2=\"40\" y2=\"4\""), svg)
+    }
+
     func testCapScaleIsHeldToHalfToThreeAndWrittenOnlyWhenNotOne() throws {
         XCTAssertEqual(LineEnds.scale(nil), 1)
         XCTAssertEqual(LineEnds.scale(0.1), 0.5)

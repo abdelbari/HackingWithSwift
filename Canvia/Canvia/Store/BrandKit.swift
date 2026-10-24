@@ -391,12 +391,14 @@ struct BrandKit: Codable, Equatable, Identifiable {
         return src
     }
 
-    /// A gradient saved to the kit, once, at the end of its gradients —
-    /// at most `limit` of them. Whether it was added.
+    /// A gradient saved to the kit, last and once (GradientPreset.same: a
+    /// gradient already there moves to the end), the oldest dropped past
+    /// `limit` — as on the Android twin. Whether it is in the kit now.
     @discardableResult
     mutating func addGradient(_ paint: Paint) -> Bool {
-        guard paint.kind == "gradient", !gradients.contains(paint), gradients.count < BrandKit.limit else { return false }
-        gradients.append(paint)
+        guard paint.kind == "gradient", (paint.stops?.count ?? 0) >= GradientEditing.minStops else { return false }
+        let others = gradients.filter { !GradientPreset.same($0, paint) }
+        gradients = Array((others + [paint]).suffix(BrandKit.limit))
         return true
     }
 
