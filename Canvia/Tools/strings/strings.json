@@ -8942,6 +8942,15 @@
     "ja": "色とスタイル",
     "pt-BR": "Cor e estilo"
   },
+  "Colour mix": {
+    "ar": "مزيج الألوان",
+    "de": "Farbmix",
+    "es": "Mezcla de colores",
+    "fr": "Mélange de couleurs",
+    "it": "Mix di colori",
+    "ja": "カラーミックス",
+    "pt-BR": "Mistura de cores"
+  },
   "Colour of everything selected": {
     "ar": "لون كل ما هو محدد",
     "de": "Farbe der gesamten Auswahl",
@@ -16217,6 +16226,15 @@
     "ja": "両端揃え",
     "pt-BR": "Justificar"
   },
+  "Kaleidoscope": {
+    "ar": "مشكال",
+    "de": "Kaleidoskop",
+    "es": "Caleidoscopio",
+    "fr": "Kaléidoscope",
+    "it": "Caleidoscopio",
+    "ja": "万華鏡",
+    "pt-BR": "Caleidoscópio"
+  },
   "Keep": {
     "ar": "الاحتفاظ",
     "de": "Behalten",
@@ -18037,6 +18055,15 @@
     "it": "Altre dimensioni",
     "ja": "その他のサイズ",
     "pt-BR": "Mais tamanhos"
+  },
+  "Mosaic": {
+    "ar": "فسيفساء",
+    "de": "Mosaik",
+    "es": "Mosaico",
+    "fr": "Mosaïque",
+    "it": "Mosaico",
+    "ja": "モザイク",
+    "pt-BR": "Mosaico"
   },
   "Most pages": {
     "ar": "معظم الصفحات",
@@ -22358,6 +22385,15 @@
     "ja": "ポスター",
     "pt-BR": "Pôster"
   },
+  "Posterize": {
+    "ar": "تقليل الألوان",
+    "de": "Tontrennung",
+    "es": "Posterizar",
+    "fr": "Postériser",
+    "it": "Posterizza",
+    "ja": "ポスタリゼーション",
+    "pt-BR": "Posterizar"
+  },
   "PowerPoint": {
     "ar": "PowerPoint",
     "de": "PowerPoint",
@@ -24872,6 +24908,15 @@
     "es": "Trama",
     "fr": "Superposition",
     "it": "Scolora",
+    "ja": "スクリーン",
+    "pt-BR": "Tela"
+  },
+  "Screen\u0004photo effect": {
+    "ar": "شاشة",
+    "de": "Bildschirm",
+    "es": "Pantalla",
+    "fr": "Écran",
+    "it": "Schermo",
     "ja": "スクリーン",
     "pt-BR": "Tela"
   },

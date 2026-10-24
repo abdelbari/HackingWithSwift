@@ -1,0 +1,28 @@
+{
+  "about": "The later photo fx kinds, a pixel at a time, on a 32 x 32 picture: pixel (x, y) is red (x * 40) & 255, green (y * 60) & 255, blue ((x + y) * 20) & 255, alpha 255, premultiplied RGBA, top row first. Each row is kind, amount, seed, colours (posterize's ColorMix, or null) and the FNV-1a 32-bit hash of the bytes drawn, as lower-case hex. Both phones draw every row to the same hash.",
+  "width": 32,
+  "height": 32,
+  "picture": "b796b3c5",
+  "columns": ["kind", "amount", "seed", "colours", "hash"],
+  "rows": [
+    ["screen", 0.5, 0, null, "06d36592"],
+    ["screen", 1, 0, null, "39893f7a"],
+    ["screen", 0.2, 0, null, "2f915ee0"],
+    ["posterize", 0.5, 0, null, "b04b42a1"],
+    ["posterize", 1, 0, null, "cda255ed"],
+    ["posterize", 0.1, 0, null, "e5e769d8"],
+    ["posterize", 0.5, 0, ["#1d3557", "#e63946", "#f1faee", "#a8dadc"], "9c3afaea"],
+    ["mosaic", 0.5, 7, null, "6deae4e0"],
+    ["mosaic", 1, 7, null, "62304c9e"],
+    ["mosaic", 0.5, 42, null, "6bcdf5ad"],
+    ["mosaic", 0, 3, null, "66727057"],
+    ["kaleido", 0.5, 0, null, "2b7d5145"],
+    ["kaleido", 0, 0, null, "950a5fc5"],
+    ["kaleido", 1, 0, null, "ae642d45"]
+  ],
+  "small": {
+    "about": "Whole pictures, 0xRRGGBBAA a pixel: the 6 x 4 ramp under mosaic 1 from seed 5, and the 4 x 4 ramp under kaleido 0.",
+    "mosaic": ["0d140dff", "070a07ff", "57323cff", "2c191eff", "5e0a32ff", "bb1464ff", "070a07ff", "2c191eff", "57323cff", "2c191eff", "50453fff", "5e0a32ff", "0d8c35ff", "07461bff", "2c191eff", "a0897eff", "a0897eff", "a0897eff", "07461bff", "3cb45aff", "1e5a2dff", "a0897eff", "a0897eff", "a0897eff"],
+    "kaleido": ["78b478ff", "50b464ff", "50b464ff", "78b478ff", "787864ff", "507850ff", "507850ff", "787864ff", "787864ff", "507850ff", "507850ff", "787864ff", "78b478ff", "50b464ff", "50b464ff", "78b478ff"]
+  }
+}

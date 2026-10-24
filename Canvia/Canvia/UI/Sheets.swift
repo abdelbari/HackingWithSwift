@@ -959,10 +959,10 @@ struct FiltersSheet: View {
                     }
                     edgeChip("outline", tr("Outline"), current: edge)
                     edgeChip("glow", tr("Glow"), current: edge)
-                    ForEach(PhotoFx.kinds, id: \.self) { kind in fxChip(kind, current: photo?.fx) }
                 }
                 .padding(.vertical, 2)
             }
+            fxTiles(photo)
             HStack(spacing: 10) {
                 brushButton(tr("Blur brush"), kind: .blur)
                 brushButton(tr("Pixelate brush"), kind: .pixelate)
@@ -1000,19 +1000,64 @@ struct FiltersSheet: View {
         .disabled(store.singleSelection?.type != .image)
     }
 
-    /// Glitch, slice, halftone or grain: one at a time, from one to another
-    /// keeping the amount and the seed; a new one at half, from a seed of
-    /// its own.
-    private func fxChip(_ kind: String, current fx: PhotoFx?) -> some View {
-        let on = fx?.kind == kind
-        return effectChip(PhotoFx.name(kind), on: on) { el in
-            if on {
-                el.fx = nil
-            } else {
-                el.fx = PhotoFx(kind: kind, amount: el.fx?.amount ?? PhotoEffects.defaultFx,
-                                seed: el.fx?.seed ?? PhotoEffects.newSeed())
+    /// The fx, a tile each in PhotoFx.kinds' order, each a live thumbnail
+    /// of the selected photo with that fx on it — the chosen one at its own
+    /// amount and seed, the rest as a tap gives them.
+    private func fxTiles(_ photo: Element?) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(PhotoFx.kinds, id: \.self) { kind in fxTile(kind, photo: photo) }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    /// One fx at a time, from one to another keeping the amount and the
+    /// seed; a new one at half, from a seed of its own; the ringed tile
+    /// again takes it off.
+    private func fxTile(_ kind: String, photo: Element?) -> some View {
+        let current = photo?.fx
+        let on = current?.kind == kind
+        let shown = on ? current : PhotoFx(kind: kind, amount: current?.amount ?? PhotoEffects.defaultFx,
+                                           seed: current?.seed ?? 1)
+        return Button {
+            store.updateSelected { el in
+                guard el.type == .image else { return }
+                if on {
+                    el.fx = nil
+                } else {
+                    el.fx = PhotoFx(kind: kind, amount: el.fx?.amount ?? PhotoEffects.defaultFx,
+                                    seed: el.fx?.seed ?? PhotoEffects.newSeed())
+                }
+            }
+        } label: {
+            VStack(spacing: 4) {
+                fxThumbnail(shown, photo: photo)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(on ? Theme.accent : Theme.hairline,
+                                                                      lineWidth: on ? 2 : 1))
+                Text(PhotoFx.name(kind)).font(.caption).lineLimit(1)
             }
         }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(PhotoFx.name(kind))
+        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+    }
+
+    /// A small copy of the selected photo with `fx` drawn on it.
+    private func fxThumbnail(_ fx: PhotoFx?, photo: Element?) -> some View {
+        Group {
+            if let fx, let src = photo.flatMap(VideoStore.atRest), let full = PhotoLibrary.resolve(src) {
+                Image(uiImage: PhotoEffects.fxPreview(PhotoLibrary.preview(full, key: src, maxEdge: 96), fx: fx,
+                                                      key: src))
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Color(.systemGray5)
+            }
+        }
+        .frame(width: 64, height: 48)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     /// How much of the fx, and Shuffle for another seed — other bands,
@@ -1024,13 +1069,19 @@ struct FiltersSheet: View {
                      readout: "\(Int((fx.share * 100).rounded()))") { v, el in
             el.fx?.amount = max(1, (v * 100).rounded()) / 100
         }
-        if fx.kind != "halftone" {
+        if PhotoFx.seeded.contains(fx.kind) {
             Button {
                 store.updateSelected { $0.fx?.seed = PhotoEffects.newSeed() }
             } label: {
                 Label("Shuffle", systemImage: "shuffle")
             }
             .font(.callout)
+        }
+        if fx.kind == "posterize" {
+            Toggle("Colour mix", isOn: Binding(
+                get: { fx.colours != nil },
+                set: { on in store.updateSelected { $0.fx?.colours = on ? PhotoFx.colourMix : nil } }))
+                .font(.callout)
         }
     }
 
