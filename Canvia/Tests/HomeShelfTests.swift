@@ -198,6 +198,14 @@ final class HomeShelfTests: XCTestCase {
         XCTAssertEqual(found.designs.map(\.id), [])
         XCTAssertEqual(DesignLibrary.starredShelf(designs, starredFolders: starred, query: "ÁRCH", sort: .recent).folders,
                        ["Archive"])
+        // A design is found by its words too, after those found by title.
+        let worded = designs.map { d -> RecentDesign in
+            var copy = d
+            if d.id == "b" { copy.text = "poster draft" }
+            return copy
+        }
+        XCTAssertEqual(DesignLibrary.starredShelf(worded, starredFolders: [], query: "Poster", sort: .recent).designs.map(\.id),
+                       ["d", "b"])
     }
 
     /// The home-folders list: bare names still read, starred ones written

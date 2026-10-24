@@ -2,6 +2,7 @@
 // Filters sheet — the Android twin's TemplateFilters.kt, by the same rules.
 
 import Foundation
+import Observation
 
 /// A template's facets, as its JSON has them under "facets":
 /// {"colors": ["blue", "white"], "animated": false, "photo": false, "pages": 1}.
@@ -125,5 +126,17 @@ struct TemplateFilter: Equatable {
 
     /// The filter last used, this session only: both Home and the Start
     /// sheet start from it, and it is gone when the app is.
-    static var session = TemplateFilter()
+    static var session: TemplateFilter {
+        get { TemplateFilterSession.shared.filter }
+        set { TemplateFilterSession.shared.filter = newValue }
+    }
+}
+
+/// TemplateFilter.session, observed: Home shows a filter set in the Start
+/// sheet as soon as it is set, as the Android twin's one
+/// TemplateFilterSession does.
+@Observable
+final class TemplateFilterSession {
+    static let shared = TemplateFilterSession()
+    var filter = TemplateFilter()
 }

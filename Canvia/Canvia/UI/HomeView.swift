@@ -98,9 +98,14 @@ struct HomeView: View {
     /// is up.
     @State private var openingFile = false
     @State private var templateCategory: String?
-    /// The template Filters sheet's choices, kept for the session
-    /// (TemplateFilter.session), and whether the sheet is up.
-    @State private var templateFilter = TemplateFilter.session
+    /// The template Filters sheet's choices, kept for the session and
+    /// shared with the Start sheet (TemplateFilterSession), and whether the
+    /// sheet is up.
+    @State private var filterSession = TemplateFilterSession.shared
+    private var templateFilter: TemplateFilter {
+        get { filterSession.filter }
+        nonmutating set { filterSession.filter = newValue }
+    }
     @State private var filtersOpen = false
     /// A built-in template, while its preview is up.
     @State private var previewing: Template?
@@ -1703,7 +1708,7 @@ struct HomeView: View {
                 TemplateFiltersButton(filter: templateFilter) { filtersOpen = true }
             }
             .padding(.horizontal)
-            TemplateFilterChips(filter: $templateFilter)
+            TemplateFilterChips(filter: $filterSession.filter)
                 .padding(.horizontal)
             templateCategoryChips
             if templateCategory == nil {
@@ -1733,8 +1738,7 @@ struct HomeView: View {
                 templatesGrid
             }
         }
-        .onChange(of: templateFilter) { _, chosen in TemplateFilter.session = chosen }
-        .sheet(isPresented: $filtersOpen) { TemplateFiltersSheet(filter: $templateFilter) }
+        .sheet(isPresented: $filtersOpen) { TemplateFiltersSheet(filter: $filterSession.filter) }
         .modifier(UserTemplateDialogs(renaming: $renamingTemplate, renameText: $templateRenameText,
                                       deleting: $deletingTemplate) { reload() })
         // A template's own page first; a new design is empty, so every
