@@ -950,6 +950,7 @@ struct HomeView: View {
                         Spacer()
                         Button("Restore") {
                             DesignLibrary.restore(id: entry.id)
+                            PostReminders.restored(designId: entry.id)
                             reload()
                         }
                         .buttonStyle(.bordered)
@@ -1027,7 +1028,10 @@ struct HomeView: View {
                     .font(.subheadline)
                     .lineLimit(2)
                 Button("Undo") {
-                    for gone in justTrashed { DesignLibrary.restore(id: gone.id) }
+                    for gone in justTrashed {
+                        DesignLibrary.restore(id: gone.id)
+                        PostReminders.restored(designId: gone.id)
+                    }
                     hideTrashed()
                     reload()
                 }
@@ -1128,7 +1132,12 @@ struct HomeView: View {
     /// comes at once, however many went.
     private func trash(_ designs: [RecentDesign]) {
         guard !designs.isEmpty else { return }
-        for design in designs { DesignLibrary.trash(id: design.id) }
+        for design in designs {
+            // Its posts' reminders go with it, as the Android twin rings
+            // none for a deleted design; a restore sets them again.
+            PostReminders.cancelAll(designId: design.id)
+            DesignLibrary.trash(id: design.id)
+        }
         reload()
         showTrashed(designs)
     }
@@ -1462,6 +1471,8 @@ struct HomeView: View {
             design.title = tr("%@ (copy)", design.title)
             // A copy is not starred.
             design.isStarred = false
+            // Nor are its posts planned: the original keeps them.
+            design.plannedPosts = nil
             design.updatedAt = Date().timeIntervalSince1970 * 1000
             DesignLibrary.save(design)
             DesignLibrary.copyThumbnail(from: sourceId, to: design.id)

@@ -36,6 +36,23 @@ final class PostPlannerTests: XCTestCase {
         XCTAssertNil(none["plannedPosts"])
     }
 
+    /// Shared: a new document copied from a design plans none of its
+    /// posts, which stay with the original; the same design back from a
+    /// backup keeps them.
+    func testACopyPlansNoneOfTheOriginalsPosts() throws {
+        let planned = PostPlanner.saved(design(), PlannedPost(id: "post_1", at: "2030-01-01T09:00:00Z"))
+        XCTAssertNil(CopyResize.freshCopy(of: planned).plannedPosts)
+        XCTAssertNil(BulkCreate.separate(planned, page: planned.pages[0], title: "Row", now: 1).plannedPosts)
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("posts-test-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let data = try DesignPackage.export(planned, mediaDirectory: directory)
+        XCTAssertNil(try DesignPackage.import(data, mediaDirectory: directory, normalize: false).plannedPosts)
+        let package = try JSONDecoder().decode(DesignPackage.Package.self, from: data)
+        XCTAssertEqual(PostPlanner.of(DesignPackage.storeKeepingIds(package, mediaDirectory: directory)).count, 1)
+    }
+
     /// The Android twin's file reads here.
     func testTheTwinsPostsRead() throws {
         let text = #"{"id":"d1","title":"Launch","pages":[{"id":"p1"}],"plannedPosts":[{"id":"post_1","at":"2026-11-02T09:30:00Z","caption":"New #launch","format":"png","pages":["p2"],"done":false}]}"#
