@@ -476,6 +476,15 @@
     "ja": "%@ のグラフィック",
     "pt-BR": "Gráfico %@"
   },
+  "%@ graphic, animated": {
+    "ar": "رسم %@، متحرك",
+    "de": "Grafik %@, animiert",
+    "es": "Gráfico %@, animado",
+    "fr": "Graphisme %@, animé",
+    "it": "Grafica %@, animata",
+    "ja": "%@ のグラフィック（アニメーション）",
+    "pt-BR": "Gráfico %@, animado"
+  },
   "%@ guidelines": {
     "ar": "إرشادات %@",
     "de": "%@ Richtlinien",
@@ -1114,6 +1123,15 @@
     "it": "%@, modello %@",
     "ja": "%@、%@ テンプレート",
     "pt-BR": "%@, modelo %@"
+  },
+  "%@, %@ to %@": {
+    "ar": "%@، من %@ إلى %@",
+    "de": "%@, %@ bis %@",
+    "es": "%@, de %@ a %@",
+    "fr": "%@, de %@ à %@",
+    "it": "%@, da %@ a %@",
+    "ja": "%@、%@ から %@",
+    "pt-BR": "%@, de %@ a %@"
   },
   "%@, %@, %@, values %@ to %@": {
     "ar": "%@، %@، %@، القيم من %@ إلى %@",
@@ -6020,6 +6038,15 @@
     "ja": "バーコード",
     "pt-BR": "Código de barras"
   },
+  "Baseline": {
+    "ar": "خط الأساس",
+    "de": "Grundlinie",
+    "es": "Línea base",
+    "fr": "Ligne de base",
+    "it": "Linea di base",
+    "ja": "ベースライン",
+    "pt-BR": "Linha de base"
+  },
   "Basic": {
     "ar": "أساسي",
     "de": "Einfach",
@@ -6344,6 +6371,15 @@
     "ja": "枠線",
     "pt-BR": "Bordas"
   },
+  "Both": {
+    "ar": "كلاهما",
+    "de": "Beides",
+    "es": "Ambas",
+    "fr": "Les deux",
+    "it": "Entrambi",
+    "ja": "両方",
+    "pt-BR": "Ambos"
+  },
   "Both arrows ↔": {
     "ar": "سهمان ↔",
     "de": "Pfeile an beiden Enden ↔",
@@ -6577,6 +6613,15 @@
     "it": "Foto e grafiche del brand sono in Aggiungi ▸ Brand, in ogni design.",
     "ja": "ブランドの写真とグラフィックは、どのデザインでも「追加 ▸ ブランド」にあります。",
     "pt-BR": "Fotos e gráficos da marca ficam em Adicionar ▸ Marca, em todos os designs."
+  },
+  "Breathe": {
+    "ar": "تنفّس",
+    "de": "Atmen",
+    "es": "Respirar",
+    "fr": "Respiration",
+    "it": "Respiro",
+    "ja": "ブリーズ",
+    "pt-BR": "Respirar"
   },
   "Bright colours will print duller": {
     "ar": "ستُطبع الألوان الزاهية أبهت",
@@ -8771,6 +8816,15 @@
     "ja": "作成",
     "pt-BR": "Criar"
   },
+  "Create an animation": {
+    "ar": "إنشاء رسوم متحركة",
+    "de": "Animation erstellen",
+    "es": "Crear una animación",
+    "fr": "Créer une animation",
+    "it": "Crea un’animazione",
+    "ja": "アニメーションを作成",
+    "pt-BR": "Criar uma animação"
+  },
   "Crop": {
     "ar": "اقتصاص",
     "de": "Zuschneiden",
@@ -8950,6 +9004,15 @@
     "it": "Guide personalizzate",
     "ja": "カスタムガイド",
     "pt-BR": "Guias personalizadas"
+  },
+  "Custom path": {
+    "ar": "مسار مخصص",
+    "de": "Eigener Pfad",
+    "es": "Trayectoria personalizada",
+    "fr": "Trajectoire personnalisée",
+    "it": "Percorso personalizzato",
+    "ja": "カスタムパス",
+    "pt-BR": "Trajeto personalizado"
   },
   "Custom shape": {
     "ar": "شكل مخصّص",
@@ -10361,6 +10424,15 @@
     "ja": "消したい部分をドラッグしてから「消去」をタップします",
     "pt-BR": "Arraste sobre o que deve sair e toque em Apagar"
   },
+  "Drag the element along the path it should take": {
+    "ar": "اسحب العنصر على المسار الذي يجب أن يسلكه",
+    "de": "Zieh das Element den Weg entlang, den es nehmen soll",
+    "es": "Arrastra el elemento por el recorrido que debe seguir",
+    "fr": "Faites glisser l’élément le long du trajet qu’il doit suivre",
+    "it": "Trascina l’elemento lungo il percorso che deve seguire",
+    "ja": "動かしたい経路に沿って要素をドラッグします",
+    "pt-BR": "Arraste o elemento pelo trajeto que ele deve fazer"
+  },
   "Drag the handle at the left of a row's lower edge to make it taller.": {
     "ar": "اسحب المقبض في يسار الحافة السفلية للصف لجعله أطول.",
     "de": "Ziehen Sie den Griff links an der Unterkante einer Zeile, um sie höher zu machen.",
@@ -10477,6 +10549,15 @@
     "it": "Sognante",
     "ja": "ドリーミー",
     "pt-BR": "Sonhador"
+  },
+  "Drift": {
+    "ar": "انجراف",
+    "de": "Treiben",
+    "es": "Deriva",
+    "fr": "Dérive",
+    "it": "Deriva",
+    "ja": "ドリフト",
+    "pt-BR": "Deriva"
   },
   "Drop": {
     "ar": "قطرة",
@@ -10621,6 +10702,15 @@
     "it": "EAN-13 richiede 12 o 13 cifre",
     "ja": "EAN-13 には 12 桁か 13 桁の数字が必要です",
     "pt-BR": "EAN-13 precisa de 12 ou 13 dígitos"
+  },
+  "Each element on the page moves in turn. An element's own animation is kept.": {
+    "ar": "يتحرك كل عنصر في الصفحة بدوره. وتبقى الحركة الخاصة بالعنصر كما هي.",
+    "de": "Jedes Element der Seite bewegt sich der Reihe nach. Die eigene Animation eines Elements bleibt erhalten.",
+    "es": "Cada elemento de la página se mueve por turnos. Se conserva la animación propia de cada elemento.",
+    "fr": "Chaque élément de la page s’anime à tour de rôle. L’animation propre d’un élément est conservée.",
+    "it": "Ogni elemento della pagina si muove a turno. L’animazione propria di un elemento viene mantenuta.",
+    "ja": "ページ上の要素が順番に動きます。要素自体のアニメーションはそのまま残ります。",
+    "pt-BR": "Cada elemento da página se move por vez. A animação própria de um elemento é mantida."
   },
   "Each one goes on a new page after this one. Hold one to use it on this page instead.": {
     "ar": "يُضاف كل قالب في صفحة جديدة بعد هذه الصفحة. اضغط مطولًا على أحدها لاستخدامه في هذه الصفحة بدلًا من ذلك.",
@@ -11207,6 +11297,15 @@
     "ja": "入力",
     "pt-BR": "Entrada"
   },
+  "Enter\u0004animation": {
+    "ar": "دخول",
+    "de": "Eintritt",
+    "es": "Entrada",
+    "fr": "Entrée",
+    "it": "Entrata",
+    "ja": "登場",
+    "pt-BR": "Entrada"
+  },
   "Enter a size from %@": {
     "ar": "أدخل حجمًا من %@",
     "de": "Gib eine Größe von %@ ein",
@@ -11613,6 +11712,15 @@
     "fr": "Quitter",
     "it": "Esci",
     "ja": "終了",
+    "pt-BR": "Saída"
+  },
+  "Exit\u0004animation": {
+    "ar": "خروج",
+    "de": "Austritt",
+    "es": "Salida",
+    "fr": "Sortie",
+    "it": "Uscita",
+    "ja": "退場",
     "pt-BR": "Saída"
   },
   "Expand to whiteboard": {
@@ -13450,6 +13558,15 @@
     "it": "Tieni premuto sulla pagina vuota e trascina per disegnare un riquadro: tutto ciò che tocca viene selezionato. Tieni premuto su un elemento per aggiungerlo alla selezione o toglierlo. Selezione multipla, nella barra degli strumenti o nel menu, fa sì che ogni tocco aggiunga o rimuova un elemento fino a Fine. Una selezione multipla si sposta, si ridimensiona e ruota come un tutt’uno.",
     "ja": "ページの空いている所を長押ししてドラッグすると範囲を描けます。触れたものはすべて選択されます。素材を長押しすると、選択に追加したり選択から外したりできます。ツールバーやメニューの「複数選択」を使うと、「完了」までタップするたびに素材を追加・削除できます。複数選択したものは 1 つとして移動、サイズ変更、回転します。",
     "pt-BR": "Toque e segure na página vazia e arraste para desenhar uma área: tudo o que ela tocar é selecionado. Toque e segure um elemento para adicioná-lo à seleção ou removê-lo dela. Selecionar vários, na barra de ferramentas ou no menu, faz cada toque adicionar ou remover um elemento até Concluído. Uma seleção múltipla se move, redimensiona e gira como um só item."
+  },
+  "Hold the element and drag it along the path it should take": {
+    "ar": "اضغط مطولًا على العنصر واسحبه على المسار الذي يجب أن يسلكه",
+    "de": "Halte das Element und zieh es den Weg entlang, den es nehmen soll",
+    "es": "Mantén pulsado el elemento y arrástralo por el recorrido que debe seguir",
+    "fr": "Maintenez l’élément et faites-le glisser le long du trajet qu’il doit suivre",
+    "it": "Tieni premuto l’elemento e trascinalo lungo il percorso che deve seguire",
+    "ja": "要素を押さえたまま、動かしたい経路に沿ってドラッグします",
+    "pt-BR": "Segure o elemento e arraste-o pelo trajeto que ele deve fazer"
   },
   "Hold this page half a second less": {
     "ar": "تقصير ثبات هذه الصفحة نصف ثانية",
@@ -15854,6 +15971,15 @@
       "other": "Mover %d designs"
     }
   },
+  "Move audio": {
+    "ar": "نقل الصوت",
+    "de": "Audio verschieben",
+    "es": "Mover audio",
+    "fr": "Déplacer l’audio",
+    "it": "Sposta audio",
+    "ja": "オーディオを移動",
+    "pt-BR": "Mover áudio"
+  },
   "Move behind": {
     "ar": "نقل إلى الخلف",
     "de": "Nach hinten verschieben",
@@ -18137,6 +18263,15 @@
     "ja": "ページを整理",
     "pt-BR": "Organizar páginas"
   },
+  "Orient to path": {
+    "ar": "التوجيه حسب المسار",
+    "de": "Am Pfad ausrichten",
+    "es": "Orientar a la trayectoria",
+    "fr": "Orienter selon le trajet",
+    "it": "Orienta lungo il percorso",
+    "ja": "経路に合わせて回転",
+    "pt-BR": "Orientar pelo trajeto"
+  },
   "Original": {
     "ar": "الأصلي",
     "de": "Original",
@@ -18467,6 +18602,15 @@
       "other": "Página 1 em exibição; aplica-se a todas as %d páginas, em uma só etapa."
     }
   },
+  "Page animations": {
+    "ar": "حركات الصفحة",
+    "de": "Seitenanimationen",
+    "es": "Animaciones de página",
+    "fr": "Animations de page",
+    "it": "Animazioni della pagina",
+    "ja": "ページアニメーション",
+    "pt-BR": "Animações da página"
+  },
   "Page background": {
     "ar": "خلفية الصفحة",
     "de": "Seitenhintergrund",
@@ -18619,6 +18763,15 @@
     "it": "Tavolozze",
     "ja": "パレット",
     "pt-BR": "Paletas"
+  },
+  "Pan": {
+    "ar": "تحريك",
+    "de": "Schwenk",
+    "es": "Paneo",
+    "fr": "Panoramique",
+    "it": "Panoramica",
+    "ja": "パン",
+    "pt-BR": "Panorâmica"
   },
   "Paper": {
     "ar": "الورق",
@@ -18997,6 +19150,24 @@
     "it": "Foto o video…",
     "ja": "写真または動画…",
     "pt-BR": "Foto ou vídeo…"
+  },
+  "Photo pan": {
+    "ar": "تحريك الصورة",
+    "de": "Foto-Schwenk",
+    "es": "Paneo de foto",
+    "fr": "Panoramique photo",
+    "it": "Panoramica foto",
+    "ja": "写真パン",
+    "pt-BR": "Panorâmica da foto"
+  },
+  "Photo zoom": {
+    "ar": "تكبير الصورة",
+    "de": "Foto-Zoom",
+    "es": "Zoom de foto",
+    "fr": "Zoom photo",
+    "it": "Zoom foto",
+    "ja": "写真ズーム",
+    "pt-BR": "Zoom na foto"
   },
   "Photos": {
     "ar": "الصور",
@@ -20353,6 +20524,15 @@
     "it": "Rimuovi dalla cartella",
     "ja": "フォルダーから削除",
     "pt-BR": "Remover da pasta"
+  },
+  "Remove from page": {
+    "ar": "إزالة من الصفحة",
+    "de": "Von der Seite entfernen",
+    "es": "Quitar de la página",
+    "fr": "Retirer de la page",
+    "it": "Rimuovi dalla pagina",
+    "ja": "ページから削除",
+    "pt-BR": "Remover da página"
   },
   "Remove from selection": {
     "ar": "إزالة من التحديد",
@@ -23246,6 +23426,15 @@
     "ja": "顔と人",
     "pt-BR": "Carinhas e pessoas"
   },
+  "Smooth": {
+    "ar": "سلس",
+    "de": "Glatt",
+    "es": "Suave",
+    "fr": "Lisse",
+    "it": "Fluido",
+    "ja": "なめらか",
+    "pt-BR": "Suave"
+  },
   "Smooth line": {
     "ar": "خط ناعم",
     "de": "Glatte Linie",
@@ -23624,6 +23813,15 @@
     "ja": "分割",
     "pt-BR": "Divididas"
   },
+  "Split audio": {
+    "ar": "تقسيم الصوت",
+    "de": "Audio teilen",
+    "es": "Dividir audio",
+    "fr": "Diviser l’audio",
+    "it": "Dividi audio",
+    "ja": "オーディオを分割",
+    "pt-BR": "Dividir áudio"
+  },
   "Split page": {
     "ar": "تقسيم الصفحة",
     "de": "Seite aufteilen",
@@ -23929,6 +24127,15 @@
     "it": "Nota adesiva, %@",
     "ja": "付箋、%@",
     "pt-BR": "Nota adesiva, %@"
+  },
+  "Stomp": {
+    "ar": "دَوس",
+    "de": "Stampfen",
+    "es": "Pisotón",
+    "fr": "Martèlement",
+    "it": "Pestata",
+    "ja": "ストンプ",
+    "pt-BR": "Pisada"
   },
   "Stop": {
     "ar": "إيقاف",
@@ -25478,6 +25685,15 @@
     "ja": "このデザインのファイルを開けません。",
     "pt-BR": "Não é possível abrir o arquivo deste design."
   },
+  "This element is locked": {
+    "ar": "هذا العنصر مقفل",
+    "de": "Dieses Element ist gesperrt",
+    "es": "Este elemento está bloqueado",
+    "fr": "Cet élément est verrouillé",
+    "it": "Questo elemento è bloccato",
+    "ja": "この要素はロックされています",
+    "pt-BR": "Este elemento está bloqueado"
+  },
   "This file is not a Canvia backup.": {
     "ar": "هذا الملف ليس نسخة احتياطية من Canvia.",
     "de": "Diese Datei ist keine Canvia-Sicherung.",
@@ -26180,6 +26396,15 @@
     "ja": "トリミング",
     "pt-BR": "Cortar"
   },
+  "Trim audio": {
+    "ar": "قص الصوت",
+    "de": "Audio kürzen",
+    "es": "Recortar audio",
+    "fr": "Découper l’audio",
+    "it": "Taglia audio",
+    "ja": "オーディオをトリミング",
+    "pt-BR": "Cortar áudio"
+  },
   "Trim end": {
     "ar": "قص النهاية",
     "de": "Ende kürzen",
@@ -26188,6 +26413,24 @@
     "it": "Taglia fine",
     "ja": "終了位置をトリミング",
     "pt-BR": "Cortar fim"
+  },
+  "Trim longer": {
+    "ar": "إطالة القص",
+    "de": "Länger kürzen",
+    "es": "Recortar más largo",
+    "fr": "Allonger la découpe",
+    "it": "Allunga il taglio",
+    "ja": "トリミングを長く",
+    "pt-BR": "Aumentar o corte"
+  },
+  "Trim shorter": {
+    "ar": "تقصير القص",
+    "de": "Kürzer kürzen",
+    "es": "Recortar más corto",
+    "fr": "Raccourcir la découpe",
+    "it": "Accorcia il taglio",
+    "ja": "トリミングを短く",
+    "pt-BR": "Diminuir o corte"
   },
   "Trim start": {
     "ar": "قص البداية",
@@ -26215,6 +26458,15 @@
     "it": "Prova:",
     "ja": "試す:",
     "pt-BR": "Experimente:"
+  },
+  "Tumble": {
+    "ar": "تدحرج",
+    "de": "Purzeln",
+    "es": "Voltereta",
+    "fr": "Culbute",
+    "it": "Capriola",
+    "ja": "タンブル",
+    "pt-BR": "Cambalhota"
   },
   "Turn": {
     "ar": "تدوير",
@@ -26287,6 +26539,15 @@
     "it": "La rotazione si aggancia ogni 45° con uno scatto; continua a ruotare per uscire dall’aggancio.",
     "ja": "回転は 45° ごとにカチッとスナップします。さらに回すとスナップが外れます。",
     "pt-BR": "Ao girar, encaixa a cada 45° com um clique; continue girando para sair do encaixe."
+  },
+  "Twinkle (loop)": {
+    "ar": "وميض (تكرار)",
+    "de": "Funkeln (Schleife)",
+    "es": "Destello (bucle)",
+    "fr": "Scintillement (boucle)",
+    "it": "Scintillio (ciclo)",
+    "ja": "きらめき（ループ）",
+    "pt-BR": "Cintilar (repetir)"
   },
   "Two corners have crossed. Drag them back to the page's own corners.": {
     "ar": "تقاطعت زاويتان. اسحبهما إلى زوايا الصفحة نفسها.",
@@ -27550,6 +27811,15 @@
     "it": "Contenuto della pagina, in ⋮ in basso, elenca tutto dall’alto verso il basso: trascina una riga per la maniglia per riordinarla, bloccala o nascondila con i suoi pulsanti e tienila premuta per rinominarla. Sovrapposti elenca solo ciò che si sovrappone alla selezione. Porta avanti e Porta indietro sono in Altro.",
     "ja": "下部の ⋮ にある「このページの内容」には、すべてが最前面から順に表示されます：行をハンドルでドラッグして重ね順を変え、ボタンでロックや非表示にし、長押しで名前を変更します。「重なり」には選択範囲と重なっているものだけが表示されます。「前面へ」と「背面へ」は「その他」にあります。",
     "pt-BR": "O que há nesta página, em ⋮ embaixo, lista tudo de cima para baixo: arraste uma linha pela alça para reordená-la, bloqueie-a ou oculte-a com os botões dela e segure-a para renomeá-la. Sobrepostos lista só o que se sobrepõe à seleção. Trazer para a frente e Enviar para trás estão em Mais."
+  },
+  "When": {
+    "ar": "متى",
+    "de": "Wann",
+    "es": "Cuándo",
+    "fr": "Quand",
+    "it": "Quando",
+    "ja": "タイミング",
+    "pt-BR": "Quando"
   },
   "While typing": {
     "ar": "أثناء الكتابة",
