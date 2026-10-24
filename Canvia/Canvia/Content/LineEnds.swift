@@ -69,9 +69,10 @@ enum LineEnds {
 
     static func scale(of el: Element) -> Double { scale(el.capScale) }
 
-    /// `capScale` as written: none for 1.
+    /// `capScale` as written, to the tenth as the Android twin writes it
+    /// (LineEnds.withScale): none for 1.
     static func written(_ scale: Double) -> Double? {
-        let held = self.scale(scale)
+        let held = (self.scale(scale) * 10).rounded() / 10
         return abs(held - 1) < 1e-9 ? nil : held
     }
 
@@ -176,7 +177,8 @@ enum LineEnds {
     }
 
     /// A head as SVG path data, each point written by `at`: polygons as
-    /// M…L…Z, polylines M…L, a circle as two half arcs.
+    /// M…L…Z, polylines M…L, a circle as two half arcs from its right,
+    /// as the Android twin writes them (Fixtures/line-ends.json).
     static func svgData(_ head: Head, at: (CGPoint) -> String, number: (Double) -> String) -> String {
         switch head.outline {
         case .polygon(let points):
@@ -187,7 +189,7 @@ enum LineEnds {
             let r = number(radius)
             let left = at(CGPoint(x: Double(center.x) - radius, y: Double(center.y)))
             let right = at(CGPoint(x: Double(center.x) + radius, y: Double(center.y)))
-            return "M\(right)A\(r) \(r) 0 1 0 \(left)A\(r) \(r) 0 1 0 \(right)Z"
+            return "M\(right)A\(r) \(r) 0 1 1 \(left)A\(r) \(r) 0 1 1 \(right)Z"
         }
     }
 

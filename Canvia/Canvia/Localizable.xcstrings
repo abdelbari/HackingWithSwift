@@ -3658,6 +3658,59 @@
         }
       }
     },
+    "%@ mask frame" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إطار قناع %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maskenrahmen %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ mask frame"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marco de máscara %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cadre masque %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cornice maschera %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ マスクフレーム"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moldura de máscara %@"
+          }
+        }
+      }
+    },
     "%@ mockup" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6092,6 +6145,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ · %@"
+          }
+        }
+      }
+    },
+    "%@ · %lld bpm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld نبضة/دقيقة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld BPM"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld bpm"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld bpm"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld bpm"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld bpm"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld BPM"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld bpm"
           }
         }
       }
@@ -10385,59 +10491,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld / %lld"
-          }
-        }
-      }
-    },
-    "%lld BPM" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld نبضة/دقيقة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld BPM"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld BPM"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld BPM"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld BPM"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld BPM"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld BPM"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld BPM"
           }
         }
       }
@@ -20923,6 +20976,59 @@
         }
       }
     },
+    "%lld°" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld°"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld°"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld°"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld°"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld°"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld°"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld°"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld°"
+          }
+        }
+      }
+    },
     "+ Column" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21565,7 +21671,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2 قطري"
+            "value" : "2 قطريًا"
           }
         },
         "de" : {
@@ -21601,7 +21707,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "斜め 2 分割"
+            "value" : "2 分割（斜め）"
           }
         },
         "pt-BR" : {
@@ -21612,13 +21718,13 @@
         }
       }
     },
-    "2 diagonal, other way" : {
+    "2 diagonal, the other way" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2 قطري، بالاتجاه الآخر"
+            "value" : "2 قطريًا بالاتجاه الآخر"
           }
         },
         "de" : {
@@ -21630,7 +21736,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2 diagonal, other way"
+            "value" : "2 diagonal, the other way"
           }
         },
         "es" : {
@@ -21642,7 +21748,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2 en diagonale, dans l’autre sens"
+            "value" : "2 en diagonale, dans l'autre sens"
           }
         },
         "it" : {
@@ -21654,7 +21760,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "斜め 2 分割（逆向き）"
+            "value" : "2 分割（逆の斜め）"
           }
         },
         "pt-BR" : {
@@ -21820,6 +21926,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "2 sobre 3"
+          }
+        }
+      }
+    },
+    "2 slanted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 مائلان"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 schräg"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 slanted"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 inclinados"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 inclinés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 inclinati"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 分割（傾き）"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 inclinados"
           }
         }
       }
@@ -22131,66 +22290,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "円 3 つ"
+            "value" : "3 つの円"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "3 círculos"
-          }
-        }
-      }
-    },
-    "3 diagonal" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 قطري"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 diagonal"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 diagonal"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 en diagonal"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 en diagonale"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 in diagonale"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "斜め 3 分割"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 na diagonal"
           }
         }
       }
@@ -22219,31 +22325,31 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3 inclinadas"
+            "value" : "3 inclinados"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3 inclinées"
+            "value" : "3 inclinés"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3 inclinate"
+            "value" : "3 inclinati"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "傾き 3 分割"
+            "value" : "3 分割（傾き）"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3 inclinadas"
+            "value" : "3 inclinados"
           }
         }
       }
@@ -22407,6 +22513,59 @@
         }
       }
     },
+    "4 diagonal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 قطريًا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 diagonal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 diagonal"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 en diagonal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 en diagonale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 in diagonale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 分割（斜め）"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 na diagonal"
+          }
+        }
+      }
+    },
     "4 stacked" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22460,59 +22619,6 @@
         }
       }
     },
-    "4 triangles" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "4 مثلثات"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "4 Dreiecke"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "4 triangles"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "4 triángulos"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "4 triangles"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "4 triangoli"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "三角形 4 つ"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "4 triângulos"
-          }
-        }
-      }
-    },
     "40 to 8000 px" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22562,6 +22668,218 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De 40 a 8000 px"
+          }
+        }
+      }
+    },
+    "5 mosaic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فسيفساء من 5"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaik aus 5"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 mosaic"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico de 5"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaïque de 5"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico da 5"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 枚モザイク"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico de 5"
+          }
+        }
+      }
+    },
+    "6 mosaic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فسيفساء من 6"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaik aus 6"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6 mosaic"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico de 6"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaïque de 6"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico da 6"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6 枚モザイク"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico de 6"
+          }
+        }
+      }
+    },
+    "7 mosaic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فسيفساء من 7"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaik aus 7"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 mosaic"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico de 7"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaïque de 7"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico da 7"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 枚モザイク"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico de 7"
+          }
+        }
+      }
+    },
+    "9 mosaic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فسيفساء من 9"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaik aus 9"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "9 mosaic"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico de 9"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaïque de 9"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico da 9"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "9 枚モザイク"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mosaico de 9"
           }
         }
       }
@@ -26023,7 +26341,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Farbpunkt hinzufügen"
+            "value" : "Farbstopp hinzufügen"
           }
         },
         "en" : {
@@ -26053,7 +26371,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "色の位置を追加"
+            "value" : "カラー停止点を追加"
           }
         },
         "pt-BR" : {
@@ -29468,6 +29786,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajustar os cantos"
+          }
+        }
+      }
+    },
+    "Admit one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تذكرة دخول"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eintrittskarte"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Admit one"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrada individual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrée unique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingresso singolo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入場券"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrada individual"
           }
         }
       }
@@ -33063,59 +33434,6 @@
         }
       }
     },
-    "Arched window" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "نافذة مقوسة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bogenfenster"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arched window"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ventana en arco"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fenêtre cintrée"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finestra ad arco"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アーチ窓"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Janela em arco"
-          }
-        }
-      }
-    },
     "Arches" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36092,6 +36410,59 @@
         }
       }
     },
+    "Bean" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حبة فاصولياء"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bohne"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bean"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Judía"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haricot"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fagiolo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "豆"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feijão"
+          }
+        }
+      }
+    },
     "Bean Blob" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36993,324 +37364,6 @@
         }
       }
     },
-    "Blob 1" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "بقعة 1"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Klecks 1"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blob 1"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 1"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tache 1"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Macchia 1"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブロブ 1"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 1"
-          }
-        }
-      }
-    },
-    "Blob 2" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "بقعة 2"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Klecks 2"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blob 2"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 2"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tache 2"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Macchia 2"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブロブ 2"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 2"
-          }
-        }
-      }
-    },
-    "Blob 3" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "بقعة 3"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Klecks 3"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blob 3"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 3"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tache 3"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Macchia 3"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブロブ 3"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 3"
-          }
-        }
-      }
-    },
-    "Blob 4" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "بقعة 4"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Klecks 4"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blob 4"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 4"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tache 4"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Macchia 4"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブロブ 4"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 4"
-          }
-        }
-      }
-    },
-    "Blob 5" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "بقعة 5"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Klecks 5"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blob 5"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 5"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tache 5"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Macchia 5"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブロブ 5"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 5"
-          }
-        }
-      }
-    },
-    "Blob 6" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "بقعة 6"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Klecks 6"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blob 6"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 6"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tache 6"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Macchia 6"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブロブ 6"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mancha 6"
-          }
-        }
-      }
-    },
     "Blobs" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37731,6 +37784,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Negrito"
+          }
+        }
+      }
+    },
+    "Bold brush" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فرشاة عريضة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kräftiger Pinsel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bold brush"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincel grueso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinceau épais"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pennellata decisa"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太いブラシ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincel grosso"
           }
         }
       }
@@ -39908,6 +40014,59 @@
         }
       }
     },
+    "Brick wall" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جدار من الطوب"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziegelmauer"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brick wall"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pared de ladrillos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mur de briques"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muro di mattoni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レンガの壁"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parede de tijolos"
+          }
+        }
+      }
+    },
     "Bright colours will print duller" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -40923,320 +41082,108 @@
         }
       }
     },
-    "Brush stroke 1" : {
+    "Brush swash" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ضربة فرشاة 1"
+            "value" : "ضربة فرشاة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pinselstrich 1"
+            "value" : "Pinselschwung"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brush stroke 1"
+            "value" : "Brush swash"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pincelada 1"
+            "value" : "Trazo de pincel"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coup de pinceau 1"
+            "value" : "Coup de pinceau"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pennellata 1"
+            "value" : "Pennellata"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ブラシストローク 1"
+            "value" : "ブラシのストローク"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pincelada 1"
+            "value" : "Pincelada"
           }
         }
       }
     },
-    "Brush stroke 2" : {
+    "Brush wave" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ضربة فرشاة 2"
+            "value" : "فرشاة متموجة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pinselstrich 2"
+            "value" : "Pinselwelle"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brush stroke 2"
+            "value" : "Brush wave"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pincelada 2"
+            "value" : "Pincelada ondulada"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coup de pinceau 2"
+            "value" : "Pinceau ondulé"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pennellata 2"
+            "value" : "Pennellata ondulata"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ブラシストローク 2"
+            "value" : "波のブラシ"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pincelada 2"
-          }
-        }
-      }
-    },
-    "Brush stroke 3" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ضربة فرشاة 3"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pinselstrich 3"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brush stroke 3"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincelada 3"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Coup de pinceau 3"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pennellata 3"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブラシストローク 3"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincelada 3"
-          }
-        }
-      }
-    },
-    "Brush stroke 4" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ضربة فرشاة 4"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pinselstrich 4"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brush stroke 4"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincelada 4"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Coup de pinceau 4"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pennellata 4"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブラシストローク 4"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincelada 4"
-          }
-        }
-      }
-    },
-    "Brush stroke 5" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ضربة فرشاة 5"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pinselstrich 5"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brush stroke 5"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincelada 5"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Coup de pinceau 5"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pennellata 5"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブラシストローク 5"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincelada 5"
-          }
-        }
-      }
-    },
-    "Brush stroke 6" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ضربة فرشاة 6"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pinselstrich 6"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brush stroke 6"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincelada 6"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Coup de pinceau 6"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pennellata 6"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブラシストローク 6"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pincelada 6"
+            "value" : "Pincelada ondulada"
           }
         }
       }
@@ -41883,7 +41830,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "هادئة"
+            "value" : "هادئ"
           }
         },
         "de" : {
@@ -41901,7 +41848,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tranquila"
+            "value" : "Tranquilo"
           }
         },
         "fr" : {
@@ -41913,7 +41860,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Calma"
+            "value" : "Calmo"
           }
         },
         "ja" : {
@@ -41925,7 +41872,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Calma"
+            "value" : "Calmo"
           }
         }
       }
@@ -43793,6 +43740,59 @@
         }
       }
     },
+    "Change colour" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تغيير اللون"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farbe ändern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change colour"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar color"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer la couleur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia colore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "色を変更"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudar cor"
+          }
+        }
+      }
+    },
     "Change shape" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -45185,7 +45185,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مريحة"
+            "value" : "استرخاء"
           }
         },
         "de" : {
@@ -45203,7 +45203,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Relajada"
+            "value" : "Relajado"
           }
         },
         "fr" : {
@@ -45215,7 +45215,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rilassata"
+            "value" : "Rilassato"
           }
         },
         "ja" : {
@@ -46818,6 +46818,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fechar a grade de páginas"
+          }
+        }
+      }
+    },
+    "Cloud blob" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سحابة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wolke"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloud blob"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nube"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuvola"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雲形"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuvem"
           }
         }
       }
@@ -50835,7 +50888,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مؤسسية"
+            "value" : "مؤسسي"
           }
         },
         "de" : {
@@ -50853,7 +50906,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Corporativa"
+            "value" : "Corporativo"
           }
         },
         "fr" : {
@@ -50877,7 +50930,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Corporativa"
+            "value" : "Corporativo"
           }
         }
       }
@@ -53850,6 +53903,59 @@
         }
       }
     },
+    "Coupon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قسيمة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gutschein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coupon"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cupón"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coupon"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coupon"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クーポン"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cupom"
+          }
+        }
+      }
+    },
     "Create" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -54969,7 +55075,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تدرّج مخصص"
+            "value" : "تدرج مخصص"
           }
         },
         "de" : {
@@ -56349,43 +56455,43 @@
         }
       }
     },
-    "Deckled edges" : {
+    "Deckled edge" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حواف خشنة"
+            "value" : "حافة مخرّمة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Büttenränder"
+            "value" : "Büttenrand"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deckled edges"
+            "value" : "Deckled edge"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bordes irregulares"
+            "value" : "Borde barbado"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bords frangés"
+            "value" : "Bord frangé"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bordi sfrangiati"
+            "value" : "Bordo sfrangiato"
           }
         },
         "ja" : {
@@ -56397,7 +56503,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bordas irregulares"
+            "value" : "Borda irregular"
           }
         }
       }
@@ -60478,6 +60584,59 @@
         }
       }
     },
+    "Diagonal brush" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فرشاة قطرية"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagonaler Pinsel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagonal brush"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincel en diagonal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinceau en diagonale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pennellata diagonale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "斜めのブラシ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincel diagonal"
+          }
+        }
+      }
+    },
     "Diamond" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -62416,19 +62575,19 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Double arche"
+            "value" : "Double arc"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Arco doppio"
+            "value" : "Doppio arco"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ダブルアーチ"
+            "value" : "二連アーチ"
           }
         },
         "pt-BR" : {
@@ -62504,7 +62663,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Doppelter Rand"
+            "value" : "Doppelrahmen"
           }
         },
         "en" : {
@@ -62528,13 +62687,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bordo doppio"
+            "value" : "Doppio bordo"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "二重の枠"
+            "value" : "二重枠"
           }
         },
         "pt-BR" : {
@@ -64820,6 +64979,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solto no lugar. Imagens, texto e links de outros apps podem ser arrastados direto para a página."
+          }
+        }
+      }
+    },
+    "Dry brush" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فرشاة جافة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trockener Pinsel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dry brush"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincel seco"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinceau sec"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pennello secco"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドライブラシ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincel seco"
           }
         }
       }
@@ -68858,13 +69070,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حجم الطرفين"
+            "value" : "حجم الأطراف"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Größe der Enden"
+            "value" : "Endengröße"
           }
         },
         "en" : {
@@ -75599,59 +75811,6 @@
         }
       }
     },
-    "Flower" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "زهرة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blume"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Flower"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Flor"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fleur"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fiore"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "花"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Flor"
-          }
-        }
-      }
-    },
     "Focus" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -77242,6 +77401,59 @@
         }
       }
     },
+    "Frames and grids" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الإطارات والشبكات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rahmen und Raster"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frames and grids"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcos y cuadrículas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cadres et grilles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cornici e griglie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームとグリッド"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Molduras e grades"
+          }
+        }
+      }
+    },
     "Free" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -78086,59 +78298,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Funil"
-          }
-        }
-      }
-    },
-    "Gallery frame" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إطار معرض"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Galerierahmen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gallery frame"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Marco de galería"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cadre de galerie"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cornice da galleria"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ギャラリーフレーム"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moldura de galeria"
           }
         }
       }
@@ -80860,7 +81019,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مبهجة"
+            "value" : "مبهج"
           }
         },
         "de" : {
@@ -80884,13 +81043,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Joyeuse"
+            "value" : "Joyeux"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allegra"
+            "value" : "Allegro"
           }
         },
         "ja" : {
@@ -86333,7 +86492,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sofortbild quadratisch"
+            "value" : "Quadratisches Sofortbild"
           }
         },
         "en" : {
@@ -98265,218 +98424,6 @@
         }
       }
     },
-    "Mosaic of 5" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "فسيفساء من 5"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaik aus 5"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaic of 5"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico de 5"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaïque de 5"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico da 5"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "5 枚のモザイク"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico de 5"
-          }
-        }
-      }
-    },
-    "Mosaic of 6" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "فسيفساء من 6"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaik aus 6"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaic of 6"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico de 6"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaïque de 6"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico da 6"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "6 枚のモザイク"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico de 6"
-          }
-        }
-      }
-    },
-    "Mosaic of 7" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "فسيفساء من 7"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaik aus 7"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaic of 7"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico de 7"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaïque de 7"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico da 7"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "7 枚のモザイク"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico de 7"
-          }
-        }
-      }
-    },
-    "Mosaic of 9" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "فسيفساء من 9"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaik aus 9"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaic of 9"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico de 9"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaïque de 9"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico da 9"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "9 枚のモザイク"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mosaico de 9"
-          }
-        }
-      }
-    },
     "Most pages" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -104694,6 +104641,59 @@
         }
       }
     },
+    "No frames match “%@”" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا توجد إطارات تطابق «%@»"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Rahmen passen zu „%@“"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No frames match “%@”"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ningún marco coincide con “%@”"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun cadre ne correspond à « %@ »"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna cornice corrisponde a “%@”"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」に一致するフレームはありません"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma moldura corresponde a “%@”"
+          }
+        }
+      }
+    },
     "No grid" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -110619,66 +110619,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "レンガ積み"
+            "value" : "互い違いのレンガ"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tijolos desencontrados"
-          }
-        }
-      }
-    },
-    "Offset brick of 6" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "طوب متداخل من 6"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Versetzte Ziegel aus 6"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Offset brick of 6"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ladrillo desplazado de 6"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Briques décalées de 6"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mattoni sfalsati da 6"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "6 枚のレンガ積み"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tijolos desencontrados de 6"
+            "value" : "Tijolos deslocados"
           }
         }
       }
@@ -117793,6 +117740,59 @@
         }
       }
     },
+    "Pebble" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حصاة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiesel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pebble"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guijarro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Galet"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciottolo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小石"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seixo"
+          }
+        }
+      }
+    },
     "Pen" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -121927,6 +121927,59 @@
         }
       }
     },
+    "Playing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قيد التشغيل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird abgespielt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playing"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduciendo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture en cours"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In riproduzione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生中"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocando"
+          }
+        }
+      }
+    },
     "Plays as the page ends. Several at once leave one after another, the first in last out." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -122559,6 +122612,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Posição…"
+          }
+        }
+      }
+    },
+    "Postage stamp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "طابع بريدي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Briefmarke"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postage stamp"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sello postal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timbre-poste"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Francobollo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切手"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selo postal"
           }
         }
       }
@@ -124475,6 +124581,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Proposta"
+          }
+        }
+      }
+    },
+    "Puddle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بركة ماء"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pfütze"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puddle"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charco"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flaque"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozzanghera"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水たまり"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poça"
           }
         }
       }
@@ -128142,13 +128301,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إزالة نقطة اللون"
+            "value" : "إزالة النقطة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Farbpunkt entfernen"
+            "value" : "Farbstopp entfernen"
           }
         },
         "en" : {
@@ -128178,7 +128337,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "色の位置を削除"
+            "value" : "停止点を削除"
           }
         },
         "pt-BR" : {
@@ -130489,7 +130648,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@をリセット"
+            "value" : "%@ をリセット"
           }
         },
         "pt-BR" : {
@@ -132991,6 +133150,59 @@
         }
       }
     },
+    "Round arch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قوس دائري"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rundbogen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Round arch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arco de medio punto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arc en plein cintre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arco a tutto sesto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "半円アーチ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arco redondo"
+          }
+        }
+      }
+    },
     "Round blob" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -133252,6 +133464,112 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Barras arredondadas"
+          }
+        }
+      }
+    },
+    "Rounded card" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بطاقة مستديرة الحواف"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgerundete Karte"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rounded card"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarjeta redondeada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carte arrondie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheda arrotondata"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "角丸カード"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartão arredondado"
+          }
+        }
+      }
+    },
+    "Rounded window" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نافذة مستديرة الحواف"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgerundetes Fenster"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rounded window"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ventana redondeada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenêtre arrondie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finestra arrotondata"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "角丸の窓"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Janela arredondada"
           }
         }
       }
@@ -136405,13 +136723,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حافة متموجة"
+            "value" : "إطار بحافة مموجة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gewellter Passepartout"
+            "value" : "Passepartout mit Wellenrand"
           }
         },
         "en" : {
@@ -136441,13 +136759,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "波形のマット"
+            "value" : "スカラップのマット"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Paspatur ondulado"
+            "value" : "Passe-partout recortado"
           }
         }
       }
@@ -137194,6 +137512,59 @@
         }
       }
     },
+    "Search frames" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابحث عن إطارات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rahmen suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search frames"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar marcos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des cadres"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca cornici"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームを検索"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pesquisar molduras"
+          }
+        }
+      }
+    },
     "Search help" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -137253,7 +137624,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "البحث عن موسيقى"
+            "value" : "ابحث عن موسيقى"
           }
         },
         "de" : {
@@ -144644,13 +145015,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إطار مرسوم"
+            "value" : "إطار مرسوم يدويًا"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skizzierter Rand"
+            "value" : "Skizzenrahmen"
           }
         },
         "en" : {
@@ -144662,13 +145033,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Borde dibujado"
+            "value" : "Borde de boceto"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bordure dessinée"
+            "value" : "Bordure esquissée"
           }
         },
         "it" : {
@@ -144680,13 +145051,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "手描きの枠"
+            "value" : "スケッチ枠"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Borda desenhada"
+            "value" : "Borda de esboço"
           }
         }
       }
@@ -148205,6 +148576,59 @@
         }
       }
     },
+    "Splash" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رذاذ"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spritzer"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Splash"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salpicadura"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éclaboussure"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schizzo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "しぶき"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respingo"
+          }
+        }
+      }
+    },
     "Splice" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -148837,112 +149261,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Colunas empilhadas"
-          }
-        }
-      }
-    },
-    "Stamp" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "طابع"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Briefmarke"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stamp"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sello"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timbre"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Francobollo"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "切手"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selo"
-          }
-        }
-      }
-    },
-    "Stamp edge" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "حافة طابع"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Briefmarkenrand"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stamp edge"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Borde de sello"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bord de timbre"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bordo di francobollo"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "切手の縁"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Borda de selo"
           }
         }
       }
@@ -150696,6 +151014,59 @@
         }
       }
     },
+    "Stop %lld of %lld, %@, at %lld%%" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "النقطة %lld من %lld، %@، عند %lld%%"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farbstopp %lld von %lld, %@, bei %lld %%"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop %lld of %lld, %@, at %lld%%"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parada %lld de %lld, %@, en %lld%%"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point %lld sur %lld, %@, à %lld %%"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Punto %lld di %lld, %@, al %lld%%"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止点 %lld/%lld、%@、%lld%%"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parada %lld de %lld, %@, em %lld%%"
+          }
+        }
+      }
+    },
     "Stop %lld, %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -150904,6 +151275,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Parar exportação"
+          }
+        }
+      }
+    },
+    "Stop positions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مواضع النقاط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Positionen der Farbstopps"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop positions"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posiciones de las paradas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Positions des points"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posizioni dei punti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止点の位置"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posições das paradas"
           }
         }
       }
@@ -153996,7 +154420,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "صورة ملصقة بشريط"
+            "value" : "صورة بشريط لاصق"
           }
         },
         "de" : {
@@ -162433,59 +162857,6 @@
         }
       }
     },
-    "Ticket stub" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "كعب تذكرة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ticketabschnitt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ticket stub"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Talón de entrada"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Talon de billet"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Matrice del biglietto"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "チケットの半券"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canhoto de ingresso"
-          }
-        }
-      }
-    },
     "Tickets" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -162728,7 +163099,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Polaroid inclinée"
+            "value" : "Polaroid incliné"
           }
         },
         "it" : {
@@ -164129,55 +164500,55 @@
         }
       }
     },
-    "Torn edges" : {
+    "Torn circle" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حواف ممزقة"
+            "value" : "دائرة ممزقة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gerissene Ränder"
+            "value" : "Gerissener Kreis"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torn edges"
+            "value" : "Torn circle"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bordes rasgados"
+            "value" : "Círculo rasgado"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bords déchirés"
+            "value" : "Cercle déchiré"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bordi strappati"
+            "value" : "Cerchio strappato"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "破れた縁"
+            "value" : "破れた円"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bordas rasgadas"
+            "value" : "Círculo rasgado"
           }
         }
       }
@@ -164235,108 +164606,108 @@
         }
       }
     },
-    "Torn side" : {
+    "Torn sides" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "جانب ممزق"
+            "value" : "جوانب ممزقة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gerissene Seite"
+            "value" : "Seitlich gerissen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torn side"
+            "value" : "Torn sides"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lado rasgado"
+            "value" : "Lados rasgados"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Côté déchiré"
+            "value" : "Côtés déchirés"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lato strappato"
+            "value" : "Lati strappati"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "片側が破れた紙"
+            "value" : "両端が破れた紙"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lateral rasgada"
+            "value" : "Laterais rasgadas"
           }
         }
       }
     },
-    "Torn top and bottom" : {
+    "Torn top" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ممزق من الأعلى والأسفل"
+            "value" : "حافة علوية ممزقة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Oben und unten gerissen"
+            "value" : "Oben gerissen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torn top and bottom"
+            "value" : "Torn top"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rasgado arriba y abajo"
+            "value" : "Borde superior rasgado"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Déchiré en haut et en bas"
+            "value" : "Haut déchiré"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strappato sopra e sotto"
+            "value" : "Bordo superiore strappato"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上下が破れた紙"
+            "value" : "上が破れた紙"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rasgado em cima e embaixo"
+            "value" : "Topo rasgado"
           }
         }
       }
@@ -168905,7 +169276,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حماسية"
+            "value" : "حيوي"
           }
         },
         "de" : {
@@ -168923,19 +169294,19 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Animada"
+            "value" : "Animado"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Entraînante"
+            "value" : "Entraînant"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ritmata"
+            "value" : "Vivace"
           }
         },
         "ja" : {
@@ -168947,7 +169318,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Animada"
+            "value" : "Animado"
           }
         }
       }
@@ -169584,6 +169955,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Maiúsculas"
+          }
+        }
+      }
+    },
+    "Upright brush" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فرشاة عمودية"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senkrechter Pinsel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upright brush"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincel vertical"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinceau vertical"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pennellata verticale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縦のブラシ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincel vertical"
           }
         }
       }
@@ -171436,7 +171860,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "فيلم عمودي"
+            "value" : "شريط فيلم عمودي"
           }
         },
         "de" : {
@@ -172920,7 +173344,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ساعة"
+            "value" : "ساعة يد"
           }
         },
         "de" : {
@@ -175087,6 +175511,59 @@
         }
       }
     },
+    "Wobble" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شكل متموج"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wackelform"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wobble"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ondulado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ondulé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ondulato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ゆらぎ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ondulado"
+          }
+        }
+      }
+    },
     "Word" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -176206,7 +176683,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تدرّجاتك"
+            "value" : "تدرجاتك"
           }
         },
         "de" : {
@@ -185617,6 +186094,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "digite um espaçamento"
+          }
+        }
+      }
+    },
+    "type a value" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اكتب قيمة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wert eingeben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "type a value"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "escribe un valor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "saisissez une valeur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "digita un valore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "値を入力"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "digite um valor"
           }
         }
       }

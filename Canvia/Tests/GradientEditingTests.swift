@@ -110,6 +110,28 @@ final class GradientEditingTests: XCTestCase {
         XCTAssertNil(plain["gradients"], "a kit without gradients is written as before")
     }
 
+    /// The Android twin's rows: a kit's gradients in the shape a fill is
+    /// written, "position" read for a missing offset, and one that does not
+    /// read left out rather than losing the rest.
+    func testAKitsGradientsReadOneByOne() throws {
+        let text = """
+        {"id":"k","name":"Brand","palettes":[{"name":"Colours","colors":["#112233"]}],"fonts":{},"logos":[],
+        "gradients":[{"kind":"gradient","angle":45,"stops":[{"offset":0,"color":"#ff0000"},{"offset":0.5,"color":"#00ff00"},{"offset":1,"color":"#0000ff"}],"gradientKind":"radial"},
+        {"kind":"gradient","stops":"nonsense"},
+        {"kind":"gradient","angle":90,"stops":[{"position":0,"color":"#000000"},{"position":1,"color":"#ffffff"}]}]}
+        """
+        let kit = try JSONDecoder().decode(BrandKit.self, from: Data(text.utf8))
+        XCTAssertEqual(kit.name, "Brand")
+        XCTAssertEqual(kit.gradients.count, 2)
+        XCTAssertEqual(kit.gradients[0].angle, 45)
+        XCTAssertEqual(kit.gradients[0].gradientKind, "radial")
+        XCTAssertEqual(kit.gradients[0].stops?.map(\.offset), [0, 0.5, 1])
+        XCTAssertEqual(kit.gradients[1].stops?.map(\.color), ["#000000", "#ffffff"])
+        // Written back with offsets, as every fill is.
+        let json = String(decoding: try JSONEncoder().encode(kit), as: UTF8.self)
+        XCTAssertFalse(json.contains("position"), json)
+    }
+
     @MainActor
     func testAFourStopGradientRoundTripsAndExportsEveryStop() throws {
         var shape = Element.shape("rect", w: 200, h: 100)

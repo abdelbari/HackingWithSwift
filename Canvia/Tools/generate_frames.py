@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate both phones' photo grids, decorative photo frames and masks.
+"""Regenerate both phones' photo grids and decorative photo frames.
 
     tools/generate_frames.py [path/to/ios/Resources]
 
@@ -14,14 +14,7 @@ The file is one object:
                 on a columns x rows lattice, cells in reading order (top to
                 bottom, then left to right). A cell's unit rectangle is its
                 lattice numbers over the lattice's — so 0.6 is 3/5, exactly
-                the double both phones' literals give. A grid whose cells
-                are not rectangles — diagonal splits, circles — also has
-                "clip": one entry a cell, a polygon [[x, y], ...] in the
-                cell's own unit square (to the ten-thousandth, clockwise on
-                a y-down page) the picture is cut to, or null for the whole
-                cell; its cells may overlap or leave gaps, and none has a
-                divider to drag. A clipped cell's photo frame is the grid's
-                cell with maskShapeId "gridclip:<grid id>:<cell index>".
+                the double both phones' literals give.
   "photoFrames" the decorative frames, each {"id", "name", "width",
                 "height", "elements": [...]}: a group of ordinary elements in
                 a width x height box, bottom to top — shapes drawn from
@@ -34,6 +27,19 @@ The file is one object:
                 anything whose box would hold its middle, so a tap on the
                 photo there picks the photo: hit testing on both phones goes
                 by an element's box, not its outline.
+                Grids made of slanted or round cells carry "clip": one entry
+                a cell, null for a plain rectangle or the polygon the cell's
+                photo shows through, [[x, y], ...] in the cell's own unit
+                box (0…1 across and down its rectangle). Their cells may
+                overlap, each the bounding box of its polygon on the lattice.
+  "photoMasks"  mask frames a photo is clipped to, each {"id", "name",
+                "category": "brush|torn|blob|arch|badge|ticket", "path",
+                "fillRule"}: "path" SVG path data in the unit square (0…1,
+                absolute M, L, C and Z, to the ten-thousandth), made from
+                seeded noise and simple geometry, nothing downloaded; a hole
+                is wound against its outline, so "nonzero" and "evenodd"
+                draw it alike. A photo takes one as its maskShapeId,
+                "mask:<id>".
   "glyphFrames" the letter and number frames, A to Z then 0 to 9, each
                 {"id": "glyph-A", "frameGlyph": "A", "name": "A", "width",
                 "height", "path"}: the glyph's outline from Bebas Neue
@@ -44,24 +50,11 @@ The file is one object:
                 ShapeLibrary-style path entry a photo is clipped to, as it is
                 to any library shape, through an empty photo frame whose
                 maskShapeId is the entry's id (GlyphFrames in :core).
-  "photoMasks"  the mask frames, each {"id", "name", "category", "path",
-                "fillRule"}: category one of brush, torn, blob, arch,
-                badge and ticket; path an SVG d in the unit square (absolute
-                M, L, C and Z, to the ten-thousandth), made from seeded
-                procedural outlines — noisy offset polylines for the brush
-                strokes, jittered edges for torn paper, wobbling radii for
-                the blobs — nothing downloaded; fillRule "nonzero", or
-                "evenodd" for one with a hole (the ring), whose hole is also
-                wound against its outline so either rule cuts it. A photo is
-                clipped to one through an empty photo frame whose
-                maskShapeId is "mask:<id>", scaled from the unit square to
-                the frame's box as a library shape's 0…100 box is.
 """
 import json
 import math
 import pathlib
 import random
-import re
 import shutil
 import struct
 import sys
@@ -92,61 +85,72 @@ GRIDS = [
     ('fourStack', '4 stacked', 1, 4, [(0, r, 1, 1) for r in range(4)]),
     ('eightMixed', '1 + 7', 4, 3, [(0, 0, 2, 2), (2, 0, 1, 1), (3, 0, 1, 1), (2, 1, 1, 1), (3, 1, 1, 1),
                                    (0, 2, 1, 1), (1, 2, 1, 1), (2, 2, 2, 1)]),
-]
-
-
-def circle_clip(n=48):
-    """A circle filling its cell, as an n-gon, clockwise from the top."""
-    return [(0.5 + 0.5 * math.sin(2 * math.pi * i / n), 0.5 - 0.5 * math.cos(2 * math.pi * i / n)) for i in range(n)]
-
-
-# Mosaics, a brick wall and cut cells: id, name, columns, rows, cells, and
-# for cut ones a clip a cell. A diagonal cut leaves a 0.02 gap either side.
-WHOLE = (0, 0, 1, 1)
-GRIDS += [
-    ('diagonalTwo', '2 diagonal', 1, 1, [WHOLE, WHOLE],
-     [[(0, 0), (0.98, 0), (0, 0.98)], [(1, 0.02), (1, 1), (0.02, 1)]]),
-    ('diagonalTwoOther', '2 diagonal, other way', 1, 1, [WHOLE, WHOLE],
-     [[(0, 0), (1, 0), (1, 0.98), (0.02, 0)], [(0, 0.02), (0.98, 1), (0, 1)]]),
-    ('diagonalThree', '3 diagonal', 1, 1, [WHOLE, WHOLE, WHOLE],
-     [[(0, 0), (0.64, 0), (0, 0.64)], [(0.68, 0), (1, 0), (1, 0.32), (0.32, 1), (0, 1), (0, 0.68)],
-      [(1, 0.36), (1, 1), (0.36, 1)]]),
-    ('slantThree', '3 slanted', 1, 1, [WHOLE, WHOLE, WHOLE],
-     [[(0, 0), (0.38, 0), (0.28, 1), (0, 1)], [(0.4, 0), (0.71, 0), (0.61, 1), (0.3, 1)],
-      [(0.73, 0), (1, 0), (1, 1), (0.63, 1)]]),
-    ('diagonalFour', '4 triangles', 1, 1, [WHOLE, WHOLE, WHOLE, WHOLE],
-     [[(0.02, 0), (0.98, 0), (0.5, 0.48)], [(1, 0.02), (1, 0.98), (0.52, 0.5)],
-      [(0.98, 1), (0.02, 1), (0.5, 0.52)], [(0, 0.98), (0, 0.02), (0.48, 0.5)]]),
-    ('circlesThree', '3 circles', 3, 3, [(0, 1, 1, 1), (1, 1, 1, 1), (2, 1, 1, 1)],
-     [circle_clip(), circle_clip(), circle_clip()]),
-    ('mosaic5', 'Mosaic of 5', 4, 4, [(0, 0, 2, 2), (2, 0, 2, 1), (2, 1, 2, 1), (0, 2, 3, 2), (3, 2, 1, 2)]),
-    ('mosaic6', 'Mosaic of 6', 3, 4, [(0, 0, 2, 2), (2, 0, 1, 1), (2, 1, 1, 1), (0, 2, 1, 2), (1, 2, 1, 2),
-                                      (2, 2, 1, 2)]),
-    ('mosaic7', 'Mosaic of 7', 4, 3, [(0, 0, 1, 1), (1, 0, 2, 2), (3, 0, 1, 1), (0, 1, 1, 2), (3, 1, 1, 1),
-                                      (1, 2, 2, 1), (3, 2, 1, 1)]),
-    ('mosaic9', 'Mosaic of 9', 4, 4, [(0, 0, 2, 2), (2, 0, 1, 1), (3, 0, 1, 1), (2, 1, 1, 1), (3, 1, 1, 1),
-                                      (0, 2, 1, 1), (1, 2, 1, 1), (2, 2, 2, 2), (0, 3, 2, 1)]),
+    ('mosaicFiveBig', '5 mosaic', 3, 3, [(0, 0, 2, 2), (2, 0, 1, 1), (2, 1, 1, 1), (0, 2, 1, 1), (1, 2, 2, 1)]),
+    ('mosaicSix', '6 mosaic', 4, 3, [(0, 0, 2, 2), (2, 0, 2, 1), (2, 1, 1, 1), (3, 1, 1, 2), (0, 2, 1, 1), (1, 2, 2, 1)]),
+    ('mosaicSeven', '7 mosaic', 4, 4, [(0, 0, 2, 2), (2, 0, 2, 1), (2, 1, 1, 1), (3, 1, 1, 1), (0, 2, 1, 2), (1, 2, 3, 1),
+                                       (1, 3, 3, 1)]),
+    ('mosaicNine', '9 mosaic', 4, 4, [(0, 0, 2, 2), (2, 0, 1, 1), (3, 0, 1, 1), (2, 1, 2, 1), (0, 2, 1, 1), (1, 2, 1, 1),
+                                      (2, 2, 2, 2), (0, 3, 1, 1), (1, 3, 1, 1)]),
     ('brick', 'Offset brick', 4, 2, [(0, 0, 2, 1), (2, 0, 2, 1), (0, 1, 1, 1), (1, 1, 2, 1), (3, 1, 1, 1)]),
-    ('brickSix', 'Offset brick of 6', 4, 3, [(0, 0, 2, 1), (2, 0, 2, 1), (0, 1, 1, 1), (1, 1, 2, 1),
-                                            (3, 1, 1, 1), (0, 2, 4, 1)]),
+    ('brickWall', 'Brick wall', 6, 3, [(0, 0, 2, 1), (2, 0, 2, 1), (4, 0, 2, 1), (0, 1, 1, 1), (1, 1, 2, 1), (3, 1, 2, 1),
+                                       (5, 1, 1, 1), (0, 2, 3, 1), (3, 2, 3, 1)]),
+]
+
+# Grids of slanted or round cells: id, name, columns, rows, and each cell's
+# polygon in the grid's unit square. A cell is the polygon's bounding box,
+# which must sit on the lattice's lines; its "clip" is the polygon again in
+# that box's own unit square.
+CLIPPED_GRIDS = [
+    ('diagonalTwo', '2 diagonal', 1, 1, [[(0, 0), (1, 0), (0, 1)], [(1, 0), (1, 1), (0, 1)]]),
+    ('diagonalTwoBack', '2 diagonal, the other way', 1, 1, [[(0, 0), (1, 0), (1, 1)], [(0, 0), (1, 1), (0, 1)]]),
+    ('slantedTwo', '2 slanted', 5, 1, [[(0, 0), (0.6, 0), (0.4, 1), (0, 1)], [(0.6, 0), (1, 0), (1, 1), (0.4, 1)]]),
+    ('slantedThree', '3 slanted', 15, 1, [[(0, 0), (0.4, 0), (4 / 15, 1), (0, 1)],
+                                          [(0.4, 0), (11 / 15, 0), (0.6, 1), (4 / 15, 1)],
+                                          [(11 / 15, 0), (1, 0), (1, 1), (0.6, 1)]]),
+    ('diagonalFour', '4 diagonal', 2, 2, [[(0, 0), (1, 0), (0.5, 0.5)], [(0, 0), (0.5, 0.5), (0, 1)],
+                                          [(1, 0), (1, 1), (0.5, 0.5)], [(0.5, 0.5), (1, 1), (0, 1)]]),
 ]
 
 
-def check_grid(gid, columns, rows, cells, clip=None):
-    """Every lattice square covered exactly once, cells in reading order —
-    or, for a grid with clips, every cell on the lattice and every clip a
-    polygon of three points or more inside its cell."""
+def circle_points(n=48):
+    """A circle through the middle of each side of the unit square, as a
+    polygon of [n] corners from three o'clock, clockwise on the page."""
+    return [(0.5 + 0.5 * math.cos(2 * math.pi * i / n), 0.5 + 0.5 * math.sin(2 * math.pi * i / n)) for i in range(n)]
+
+
+# Three round cells in a row: rectangular cells, each clipped to a circle.
+ROUND_GRIDS = [
+    ('threeCircles', '3 circles', 3, 1, [(0, 0, 1, 1), (1, 0, 1, 1), (2, 0, 1, 1)]),
+]
+
+
+def r4(v):
+    """To the ten-thousandth, -0 as 0."""
+    v = round(v, 4)
+    return 0.0 if v == 0 else v
+
+
+def clipped_grid(gid, name, columns, rows, polygons):
+    """A grid of polygon cells as the file has it: each cell the polygon's
+    bounding box on the lattice, its clip the polygon in that box."""
+    cells, clips = [], []
+    for poly in polygons:
+        xs = [x for x, _ in poly]
+        ys = [y for _, y in poly]
+        left, right, top, bottom = min(xs), max(xs), min(ys), max(ys)
+        cell = (round(left * columns), round(top * rows), round((right - left) * columns), round((bottom - top) * rows))
+        for v, want in ((left, cell[0] / columns), (top, cell[1] / rows), (right, (cell[0] + cell[2]) / columns), (bottom, (cell[1] + cell[3]) / rows)):
+            if abs(v - want) > 1e-9:
+                sys.exit(f'{gid}: a cell is off the lattice')
+        cells.append(cell)
+        clips.append([[r4((x - left) / (right - left)), r4((y - top) / (bottom - top))] for x, y in poly])
+    return {'id': gid, 'name': name, 'columns': columns, 'rows': rows, 'cells': [list(c) for c in cells], 'clip': clips}
+
+
+def check_grid(gid, columns, rows, cells):
+    """Every lattice square covered exactly once, cells in reading order."""
     if not 2 <= len(cells) <= 9:
         sys.exit(f'{gid}: {len(cells)} cells')
-    if clip is not None:
-        if len(clip) != len(cells):
-            sys.exit(f'{gid}: a clip a cell')
-        for i, (c, r, cw, rh) in enumerate(cells):
-            if not (0 <= c and c + cw <= columns and 0 <= r and r + rh <= rows):
-                sys.exit(f'{gid}: cell {i} leaves the lattice')
-            if clip[i] is not None and (len(clip[i]) < 3 or not all(0 <= x <= 1 and 0 <= y <= 1 for x, y in clip[i])):
-                sys.exit(f'{gid}: clip {i} is not a polygon in its cell')
-        return
     seen = {}
     for i, (c, r, cw, rh) in enumerate(cells):
         for x in range(c, c + cw):
@@ -309,307 +313,6 @@ def torn(p, seed_offsets):
     return p.close()
 
 
-# MARK: masks
-
-def unum(v):
-    """A unit-square coordinate to the ten-thousandth."""
-    s = '%.4f' % v
-    s = s.rstrip('0').rstrip('.')
-    return '0' if s in ('-0', '') else s
-
-
-class UnitPath:
-    """Absolute M, L, C and Z in the unit square, to the ten-thousandth."""
-
-    def __init__(self):
-        self.parts = []
-
-    def move(self, x, y):
-        self.parts.append(f'M{unum(x)} {unum(y)}')
-        return self
-
-    def line(self, x, y):
-        self.parts.append(f'L{unum(x)} {unum(y)}')
-        return self
-
-    def curve(self, x1, y1, x2, y2, x, y):
-        self.parts.append(f'C{unum(x1)} {unum(y1)} {unum(x2)} {unum(y2)} {unum(x)} {unum(y)}')
-        return self
-
-    def close(self):
-        self.parts.append('Z')
-        return self
-
-    def polygon(self, pts):
-        self.move(*pts[0])
-        for q in pts[1:]:
-            self.line(*q)
-        return self.close()
-
-    def smooth(self, pts, tension=1.0):
-        """A closed curve through `pts` (each inside the square): Catmull-Rom,
-        as cubics."""
-        n = len(pts)
-        self.move(*pts[0])
-        for i in range(n):
-            p0, p1, p2, p3 = pts[(i - 1) % n], pts[i], pts[(i + 1) % n], pts[(i + 2) % n]
-            # Held to the square, so the curve stays inside it.
-            c1 = (held(p1[0] + (p2[0] - p0[0]) / 6 * tension), held(p1[1] + (p2[1] - p0[1]) / 6 * tension))
-            c2 = (held(p2[0] - (p3[0] - p1[0]) / 6 * tension), held(p2[1] - (p3[1] - p1[1]) / 6 * tension))
-            self.curve(c1[0], c1[1], c2[0], c2[1], p2[0], p2[1])
-        return self.close()
-
-    def circle(self, cx, cy, r, clockwise=True):
-        s = 1 if clockwise else -1
-        self.move(cx + r, cy)
-        self.curve(cx + r, cy + s * r * K, cx + r * K, cy + s * r, cx, cy + s * r)
-        self.curve(cx - r * K, cy + s * r, cx - r, cy + s * r * K, cx - r, cy)
-        self.curve(cx - r, cy - s * r * K, cx - r * K, cy - s * r, cx, cy - s * r)
-        self.curve(cx + r * K, cy - s * r, cx + r, cy - s * r * K, cx + r, cy)
-        return self.close()
-
-    def text(self):
-        return ''.join(self.parts)
-
-
-def held(v):
-    return min(max(v, 0.0), 1.0)
-
-
-def brush(seed, slant, wave, thickness):
-    """A brush stroke: a centre line across the square that waves and
-    slants, offset either side by a width that tapers at both ends, every
-    point jittered — a noisy offset polyline — then smoothed, the ends
-    ragged with a few bristle spikes."""
-    rng = random.Random(seed)
-    n = 18
-    top, bottom = [], []
-    for i in range(n + 1):
-        t = i / n
-        x = 0.04 + 0.92 * t
-        y = 0.5 + slant * (t - 0.5) + wave * math.sin(t * math.pi * 2 + seed)
-        taper = math.sin(math.pi * (0.06 + 0.88 * t)) ** 0.45
-        half = thickness / 2 * taper * (1 + rng.uniform(-0.12, 0.12))
-        top.append((held(x + rng.uniform(-0.006, 0.006)), held(y - half + rng.uniform(-0.009, 0.009))))
-        bottom.append((held(x + rng.uniform(-0.006, 0.006)), held(y + half + rng.uniform(-0.009, 0.009))))
-    # Bristles at either end: a point pulled out between top and bottom.
-    tail = [(held(top[-1][0] + 0.03), held((top[-1][1] * 2 + bottom[-1][1]) / 3)),
-            (held(top[-1][0] - 0.01), held((top[-1][1] + bottom[-1][1]) / 2)),
-            (held(bottom[-1][0] + 0.025), held((top[-1][1] + bottom[-1][1] * 2) / 3))]
-    head = [(held(bottom[0][0] - 0.03), held((top[0][1] + bottom[0][1] * 2) / 3)),
-            (held(bottom[0][0] + 0.01), held((top[0][1] + bottom[0][1]) / 2)),
-            (held(top[0][0] - 0.025), held((top[0][1] * 2 + bottom[0][1]) / 3))]
-    return UnitPath().smooth(top + tail + bottom[::-1] + head, tension=0.9)
-
-
-def ragged(seed, depth, steps, sides='tlbr'):
-    """A sheet with ragged edges on `sides` (top, left, bottom, right):
-    each edge a run of points pulled in by up to `depth`, seeded."""
-    rng = random.Random(seed)
-
-    def d(side):
-        return rng.uniform(0.15, 1.0) * depth if side in sides else 0.0
-    pts = []
-    for i in range(steps):
-        pts.append((i / steps, d('t')))
-    for i in range(steps):
-        pts.append((1 - d('r'), i / steps))
-    for i in range(steps):
-        pts.append((1 - i / steps, 1 - d('b')))
-    for i in range(steps):
-        pts.append((d('l'), 1 - i / steps))
-    return UnitPath().polygon(pts)
-
-
-def deckled(seed):
-    """Deckled paper: small soft waves all round, smoothed."""
-    rng = random.Random(seed)
-    steps = 22
-    pts = []
-    for i in range(steps):
-        pts.append((i / steps, 0.02 + rng.uniform(0, 0.025)))
-    for i in range(steps):
-        pts.append((0.98 - rng.uniform(0, 0.025), i / steps))
-    for i in range(steps):
-        pts.append((1 - i / steps, 0.98 - rng.uniform(0, 0.025)))
-    for i in range(steps):
-        pts.append((0.02 + rng.uniform(0, 0.025), 1 - i / steps))
-    return UnitPath().smooth(pts, tension=0.6)
-
-
-def blob(seed, points=9):
-    """A blob: a radius that wobbles round the centre with three seeded
-    harmonics, smoothed through `points` points."""
-    rng = random.Random(seed)
-    waves = [(k, rng.uniform(0.03, 0.07), rng.uniform(0, 2 * math.pi)) for k in (2, 3, 4)]
-    pts = []
-    for i in range(points):
-        a = 2 * math.pi * i / points - math.pi / 2
-        r = 0.36 + sum(amp * math.sin(k * a + ph) for k, amp, ph in waves)
-        pts.append((held(0.5 + r * math.cos(a)), held(0.5 + r * math.sin(a))))
-    return UnitPath().smooth(pts)
-
-
-def arch(top_ratio):
-    """An arch: a flat foot and straight sides under a half ellipse
-    `top_ratio` of the height tall."""
-    h = top_ratio
-    p = UnitPath().move(0, 1).line(0, h)
-    p.curve(0, h - h * K, 0.5 - 0.5 * K, 0, 0.5, 0)
-    p.curve(0.5 + 0.5 * K, 0, 1, h - h * K, 1, h)
-    return p.line(1, 1).close()
-
-
-def pointed_arch():
-    p = UnitPath().move(0, 1).line(0, 0.45)
-    p.curve(0, 0.2, 0.3, 0.06, 0.5, 0)
-    p.curve(0.7, 0.06, 1, 0.2, 1, 0.45)
-    return p.line(1, 1).close()
-
-
-def double_arch():
-    p = UnitPath()
-    for left in (0.0, 0.52):
-        w = 0.48
-        p.move(left, 1).line(left, 0.3)
-        p.curve(left, 0.3 - 0.3 * K, left + w / 2 - w / 2 * K, 0, left + w / 2, 0)
-        p.curve(left + w / 2 + w / 2 * K, 0, left + w, 0.3 - 0.3 * K, left + w, 0.3)
-        p.line(left + w, 1).close()
-    return p
-
-
-def rounded_arch():
-    """An arch whose foot is rounded too: a window."""
-    p = UnitPath().move(0, 0.85).line(0, 0.5)
-    p.curve(0, 0.5 - 0.5 * K, 0.5 - 0.5 * K, 0, 0.5, 0)
-    p.curve(0.5 + 0.5 * K, 0, 1, 0.5 - 0.5 * K, 1, 0.5)
-    p.line(1, 0.85).curve(1, 0.85 + 0.15 * K, 0.85 + 0.15 * K, 1, 0.85, 1)
-    p.line(0.15, 1).curve(0.15 - 0.15 * K, 1, 0, 0.85 + 0.15 * K, 0, 0.85)
-    return p.close()
-
-
-def ticket():
-    """A ticket: corners rounded, a round notch halfway down each side."""
-    r, n = 0.05, 0.08
-    p = UnitPath().move(r, 0.1).line(1 - r, 0.1)
-    p.curve(1 - r + r * K, 0.1, 1, 0.1 + r - r * K, 1, 0.1 + r)
-    p.line(1, 0.5 - n).curve(1 - n * K, 0.5 - n, 1 - n, 0.5 - n * K, 1 - n, 0.5)
-    p.curve(1 - n, 0.5 + n * K, 1 - n * K, 0.5 + n, 1, 0.5 + n)
-    p.line(1, 0.9 - r).curve(1, 0.9 - r + r * K, 1 - r + r * K, 0.9, 1 - r, 0.9)
-    p.line(r, 0.9).curve(r - r * K, 0.9, 0, 0.9 - r + r * K, 0, 0.9 - r)
-    p.line(0, 0.5 + n).curve(n * K, 0.5 + n, n, 0.5 + n * K, n, 0.5)
-    p.curve(n, 0.5 - n * K, n * K, 0.5 - n, 0, 0.5 - n)
-    p.line(0, 0.1 + r).curve(0, 0.1 + r - r * K, r - r * K, 0.1, r, 0.1)
-    return p.close()
-
-
-def stamp_edge(bites=14):
-    """A postage stamp's edge: half-round bites all round a square."""
-    p = UnitPath()
-    pitch = 1 / bites
-    r = pitch * 0.32
-    pts = []
-
-    def side(start, step, inward, count):
-        for i in range(count):
-            mid = (start[0] + step[0] * (i + 0.5), start[1] + step[1] * (i + 0.5))
-            a = (mid[0] - step[0] * r / pitch, mid[1] - step[1] * r / pitch)
-            b = (mid[0] + step[0] * r / pitch, mid[1] + step[1] * r / pitch)
-            dip = (mid[0] + inward[0] * r, mid[1] + inward[1] * r)
-            pts.append(('L', a))
-            pts.append(('Q', dip, b))
-    side((0, 0), (pitch, 0), (0, 1), bites)
-    side((1, 0), (0, pitch), (-1, 0), bites)
-    side((1, 1), (-pitch, 0), (0, -1), bites)
-    side((0, 1), (0, -pitch), (1, 0), bites)
-    p.move(0, 0)
-    corner = [(1, 0), (1, 1), (0, 1)]
-    k = 0
-    for i, part in enumerate(pts):
-        if part[0] == 'L':
-            p.line(*part[1])
-        else:
-            _, c, b = part
-            cur = pts[i - 1][1]
-            # The quadratic dip raised to a cubic.
-            c1 = (cur[0] + 2 / 3 * (c[0] - cur[0]), cur[1] + 2 / 3 * (c[1] - cur[1]))
-            c2 = (b[0] + 2 / 3 * (c[0] - b[0]), b[1] + 2 / 3 * (c[1] - b[1]))
-            p.curve(c1[0], c1[1], c2[0], c2[1], b[0], b[1])
-            if (i + 1) % (2 * bites) == 0 and k < 3:
-                p.line(*corner[k])
-                k += 1
-    return p.close()
-
-
-def stub():
-    """A ticket stub: each corner bitten round."""
-    r = 0.12
-    p = UnitPath().move(r, 0).line(1 - r, 0)
-    p.curve(1 - r, r * K, 1 - r * K, r, 1, r)
-    p.line(1, 1 - r).curve(1 - r * K, 1 - r, 1 - r, 1 - r * K, 1 - r, 1)
-    p.line(r, 1).curve(r, 1 - r * K, r * K, 1 - r, 0, 1 - r)
-    p.line(0, r).curve(r * K, r, r, r * K, r, 0)
-    return p.close()
-
-
-def radial(n, radius):
-    """A closed polygon of `n` points round the centre, each at radius(i)."""
-    pts = []
-    for i in range(n):
-        a = 2 * math.pi * i / n - math.pi / 2
-        r = radius(i, a)
-        pts.append((0.5 + r * math.cos(a), 0.5 + r * math.sin(a)))
-    return pts
-
-
-def masks():
-    out = []
-
-    def mask(mid, name, category, path, rule='nonzero'):
-        out.append({'id': mid, 'name': name, 'category': category, 'path': path.text(), 'fillRule': rule})
-
-    for i, (slant, wave, thick) in enumerate([(0.0, 0.03, 0.4), (-0.2, 0.02, 0.34), (0.16, 0.05, 0.32),
-                                              (0.0, 0.07, 0.28), (-0.1, 0.0, 0.5), (0.25, 0.04, 0.36)]):
-        mask(f'brush{i + 1}', f'Brush stroke {i + 1}', 'brush', brush(300 + i, slant, wave, thick))
-    mask('tornEdges', 'Torn edges', 'torn', ragged(401, 0.045, 18))
-    mask('deckled', 'Deckled edges', 'torn', deckled(402))
-    mask('tornTop', 'Torn top and bottom', 'torn', ragged(403, 0.07, 20, 'tb'))
-    mask('tornSide', 'Torn side', 'torn', ragged(404, 0.08, 22, 'r'))
-    for i in range(6):
-        mask(f'blob{i + 1}', f'Blob {i + 1}', 'blob', blob(500 + i, 8 + i % 3))
-    mask('arch', 'Arch', 'arch', arch(0.5))
-    mask('pointedArch', 'Pointed arch', 'arch', pointed_arch())
-    mask('doubleArch', 'Double arch', 'arch', double_arch())
-    mask('archWindow', 'Arched window', 'arch', rounded_arch())
-    mask('ticket', 'Ticket', 'ticket', ticket())
-    mask('stampEdge', 'Stamp edge', 'ticket', stamp_edge())
-    mask('ticketStub', 'Ticket stub', 'ticket', stub())
-    mask('ring', 'Ring', 'badge', UnitPath().circle(0.5, 0.5, 0.5).circle(0.5, 0.5, 0.32, clockwise=False), 'evenodd')
-    mask('seal', 'Seal', 'badge', UnitPath().smooth(radial(48, lambda i, a: 0.5 if i % 2 == 0 else 0.45)))
-    mask('starburst', 'Starburst', 'badge', UnitPath().polygon(radial(40, lambda i, a: 0.5 if i % 2 == 0 else 0.41)))
-    mask('hexagon', 'Hexagon', 'badge', UnitPath().polygon([(0.5 + 0.5 * math.sin(math.pi / 3 * i), 0.5 - 0.5 * math.cos(math.pi / 3 * i))
-                                                            for i in range(6)]))
-    mask('octagon', 'Octagon', 'badge', UnitPath().polygon([(0.5 + 0.5 * math.sin(math.pi / 4 * i + math.pi / 8),
-                                                             0.5 - 0.5 * math.cos(math.pi / 4 * i + math.pi / 8)) for i in range(8)]))
-    shield = UnitPath().move(0.5, 0).line(1, 0.12).line(1, 0.45)
-    shield.curve(1, 0.75, 0.75, 0.92, 0.5, 1).curve(0.25, 0.92, 0, 0.75, 0, 0.45).line(0, 0.12)
-    mask('shield', 'Shield', 'badge', shield.close())
-    mask('flower', 'Flower', 'badge', UnitPath().smooth(radial(32, lambda i, a: 0.4 + 0.1 * math.cos(8 * (a + math.pi / 2)))))
-    return out
-
-
-def check_masks(made):
-    categories = {'brush', 'torn', 'blob', 'arch', 'badge', 'ticket'}
-    if len({m['id'] for m in made}) != len(made):
-        sys.exit('mask ids repeat')
-    for m in made:
-        if m['category'] not in categories or m['fillRule'] not in ('nonzero', 'evenodd'):
-            sys.exit(f'{m["id"]}: category or fill rule')
-        numbers = [float(v) for v in re.findall(r'-?\d+(?:\.\d+)?', m['path'])]
-        if not numbers or min(numbers) < 0 or max(numbers) > 1:
-            sys.exit(f'{m["id"]}: leaves the unit square')
-
-
 # MARK: elements
 
 def shape(x, y, w, h, path, fill, stroke=None, stroke_width=None, opacity=None, rotation=None):
@@ -624,11 +327,26 @@ def shape(x, y, w, h, path, fill, stroke=None, stroke_width=None, opacity=None, 
     return el, path
 
 
-def window(x, y, w, h, radius=0, mask=None):
+def window(x, y, w, h, radius=0, mask=None, rotation=None):
     el = {'type': 'image', 'x': x, 'y': y, 'w': w, 'h': h, 'radius': radius}
     if mask:
         el['maskShapeId'] = mask
+    if rotation is not None:
+        el['rotation'] = rotation
     return el, None
+
+
+def tilted_window(cx0, cy0, cw, ch, dx, dy, w, h, rotation):
+    """A window [dx], [dy] into a card at [cx0], [cy0] of [cw] x [ch], both
+    turned [rotation] degrees about the card's middle: the window's own box
+    placed so its middle lands where the turned card carries it, and turned
+    the same."""
+    a = math.radians(rotation)
+    mx, my = cx0 + cw / 2, cy0 + ch / 2
+    wx, wy = cx0 + dx + w / 2 - mx, cy0 + dy + h / 2 - my
+    tx = mx + wx * math.cos(a) - wy * math.sin(a)
+    ty = my + wx * math.sin(a) + wy * math.cos(a)
+    return window(round(tx - w / 2, 2), round(ty - h / 2, 2), w, h, rotation=rotation)
 
 
 def caption(x, y, w, h, text, family, size, weight, colour):
@@ -720,173 +438,494 @@ def frames():
         window(60, 60, 480, 680),
         shape(60, 60, 480, 240, corners, '#efe4d4'),
     ])
-    more_frames(frame)
-    return out
 
-
-def turned(cx, cy, x, y, w, h, degrees):
-    """The box (x, y, w, h) moved as its centre turns `degrees` round
-    (cx, cy): where a part of a turned frame goes, itself turned as much."""
-    a = math.radians(degrees)
-    mx, my = x + w / 2 - cx, y + h / 2 - cy
-    nx = cx + mx * math.cos(a) - my * math.sin(a)
-    ny = cy + mx * math.sin(a) + my * math.cos(a)
-    return round(nx - w / 2, 2), round(ny - h / 2, 2)
-
-
-def ring(p, outer, inner):
-    """A rectangle with a rectangular hole: `outer` and `inner` as (x, y,
-    w, h) in the 0…100 box, the hole wound against the outline."""
-    rect(p, *outer)
-    return rect(p, *inner, clockwise=False)
-
-
-def sketchy(seed, inset, jitter):
-    """A hand-drawn rectangle outline, two strokes wide: each side a few
-    jittered points, the inner edge wound against the outer."""
-    rng = random.Random(seed)
-    p = Path()
-
-    def loop(off, clockwise):
-        pts = []
-        for i in range(6):
-            pts.append((off + (100 - 2 * off) * i / 6, off + rng.uniform(-jitter, jitter)))
-        for i in range(6):
-            pts.append((100 - off + rng.uniform(-jitter, jitter), off + (100 - 2 * off) * i / 6))
-        for i in range(6):
-            pts.append((100 - off - (100 - 2 * off) * i / 6, 100 - off + rng.uniform(-jitter, jitter)))
-        for i in range(6):
-            pts.append((off + rng.uniform(-jitter, jitter), 100 - off - (100 - 2 * off) * i / 6))
-        pts = [(min(max(x, 0), 100), min(max(y, 0), 100)) for x, y in pts]
-        if not clockwise:
-            pts = [pts[0]] + pts[:0:-1]
-        p.move(*pts[0])
-        for q in pts[1:]:
-            p.line(*q)
-        p.close()
-    loop(jitter, True)
-    loop(inset, False)
-    return p
-
-
-def scalloped_rect(p, bumps_x, bumps_y, depth):
-    """A rectangle edged with round bumps, `depth` deep, in the 0…100 box."""
-    def edge(x0, y0, x1, y1, count, ox, oy):
-        for i in range(count):
-            ax, ay = x0 + (x1 - x0) * i / count, y0 + (y1 - y0) * i / count
-            bx, by = x0 + (x1 - x0) * (i + 1) / count, y0 + (y1 - y0) * (i + 1) / count
-            p.curve(ax + ox * depth * 1.3, ay + oy * depth * 1.3, bx + ox * depth * 1.3, by + oy * depth * 1.3, bx, by)
-    d = depth
-    p.move(d, d)
-    edge(d, d, 100 - d, d, bumps_x, 0, -1)
-    edge(100 - d, d, 100 - d, 100 - d, bumps_y, 1, 0)
-    edge(100 - d, 100 - d, d, 100 - d, bumps_x, 0, 1)
-    edge(d, 100 - d, d, d, bumps_y, -1, 0)
-    return p.close()
-
-
-def more_frames(frame):
-    """Round 33's frames: turned and taped prints, a postcard and a stamp,
-    devices, film and drawn, double, scalloped and gallery borders."""
-    # A polaroid turned 6 degrees, in a box with room for its corners.
-    w, h, box = 560, 672, 760
-    left, top = (box - w) / 2, (box - h) / 2
-    cx, cy = box / 2, box / 2
-    wx, wy = turned(cx, cy, left + 34, top + 34, 492, 492, -6)
-    tx, ty = turned(cx, cy, left + 34, top + 560, 492, 70, -6)
-    photo = window(wx, wy, 492, 492)
-    photo[0]['rotation'] = -6
-    words = caption(tx, ty, 492, 70, 'Memories', 'script', 40, 400, '#3d3d3d')
-    words[0]['rotation'] = -6
-    frame('tiltedPolaroid', 'Tilted polaroid', box, box, [
-        shape(left, top, w, h, rect(Path(), 0, 0, 100, 100), '#ffffff', '#e2e2e2', 2, rotation=-6),
-        photo,
-        words,
+    # A polaroid laid down at a slant: card and window turned together
+    # about the same middle.
+    frame('tiltedPolaroid', 'Tilted polaroid', 760, 860, [
+        shape(80, 70, 600, 720, rect(Path(), 0, 0, 100, 100), '#ffffff', '#e2e2e2', 2, rotation=-6),
+        tilted_window(80, 70, 600, 720, 36, 36, 528, 528, -6),
     ])
 
-    tape = rect(Path(), 0, 0, 100, 100)
-    frame('tapedPhoto', 'Taped photo', 700, 560, [
-        shape(20, 30, 660, 510, rect(Path(), 0, 0, 100, 100), '#fdfdfb', '#e5e1d8', 2),
-        window(44, 54, 612, 462),
-        shape(10, 14, 150, 44, tape, '#e9dcb4', opacity=0.85, rotation=-28),
-        shape(540, 14, 150, 44, rect(Path(), 0, 0, 100, 100), '#e9dcb4', opacity=0.85, rotation=28),
+    frame('tapedPhoto', 'Taped photo', 700, 760, [
+        shape(40, 60, 620, 660, rect(Path(), 0, 0, 100, 100), '#fdfcf8', '#e4e0d6', 2),
+        window(70, 90, 560, 600),
+        shape(20, 30, 160, 50, rect(Path(), 0, 0, 100, 100), '#e8dcb0', opacity=0.85, rotation=-30),
+        shape(520, 30, 160, 50, rect(Path(), 0, 0, 100, 100), '#e8dcb0', opacity=0.85, rotation=30),
     ])
 
-    lines = Path()
+    stamp_line = Path()
     for i in range(4):
-        rect(lines, 0, i * 30, 100, 4)
-    stamp = Path()
-    scallops(stamp, 28, 44, 49)
-    frame('postcard', 'Postcard', 900, 600, [
-        shape(0, 0, 900, 600, rect(Path(), 0, 0, 100, 100), '#fbf6ea', '#e4dcc8', 2),
-        shape(462, 40, 4, 520, rect(Path(), 0, 0, 100, 100), '#d9cfb8'),
-        shape(700, 44, 150, 150, stamp, '#d65a4a'),
-        shape(510, 300, 340, 160, lines, '#cbbf9f'),
-        caption(510, 220, 340, 60, 'Wish you were here', 'script', 34, 400, '#5b4a36'),
-        window(36, 36, 400, 528, 6),
+        rect(stamp_line, 0, i * 30, 100, 4)
+    frame('postcard', 'Postcard', 1000, 640, [
+        shape(0, 0, 1000, 640, rect(Path(), 0, 0, 100, 100), '#fbf6ec', '#d8cfbd', 2),
+        window(32, 32, 560, 576),
+        shape(860, 40, 100, 120, rect(Path(), 0, 0, 100, 100), '#ffffff', '#c9bfa8', 2),
+        shape(640, 300, 320, 160, stamp_line, '#c9bfa8'),
+        caption(620, 520, 360, 72, 'Wish you were here', 'script', 34, 400, '#5a4a36'),
     ])
 
-    frame('stamp', 'Stamp', 600, 720, [
-        shape(0, 0, 600, 720, scalloped_rect(Path(), 12, 14, 3.5), '#ffffff', '#ddd5c4', 2),
-        window(48, 48, 504, 560),
-        caption(48, 620, 504, 60, '50c', 'serif', 40, 700, '#7a2e2e'),
+    perforated = Path()
+    holes_per_side = 10
+    perforated.move(0, 0)
+    pitch = 100 / holes_per_side
+    rad = pitch * 0.28
+    for side in range(4):
+        for i in range(holes_per_side):
+            c = (i + 0.5) * pitch
+            a, b = c - rad, c + rad
+            if side == 0:
+                perforated.line(a, 0).curve(a, rad * 1.33, b, rad * 1.33, b, 0)
+            elif side == 1:
+                perforated.line(100, a).curve(100 - rad * 1.33, a, 100 - rad * 1.33, b, 100, b)
+            elif side == 2:
+                perforated.line(100 - a, 100).curve(100 - a, 100 - rad * 1.33, 100 - b, 100 - rad * 1.33, 100 - b, 100)
+            else:
+                perforated.line(0, 100 - a).curve(rad * 1.33, 100 - a, rad * 1.33, 100 - b, 0, 100 - b)
+        perforated.line(*[(100, 0), (100, 100), (0, 100), (0, 0)][side])
+    perforated.close()
+    frame('postageStamp', 'Postage stamp', 600, 720, [
+        shape(0, 0, 600, 720, perforated, '#ffffff', '#d9d9d9', 2),
+        window(50, 50, 500, 540),
+        caption(50, 610, 500, 70, '25c', 'serif', 40, 700, '#7a2e2e'),
     ])
 
-    frame('tablet', 'Tablet', 760, 1000, [
-        shape(0, 0, 760, 1000, rounded(Path(), 0, 0, 100, 100, 7.9, 6), '#1f2228'),
-        window(40, 56, 680, 888, 14),
-        shape(372, 22, 16, 16, ellipse(Path(), 50, 50, 50, 50), '#3a3f47'),
+    frame('tablet', 'Tablet', 900, 680, [
+        shape(0, 0, 900, 680, rounded(Path(), 0, 0, 100, 100, 5, 6.62), '#1d2026'),
+        window(40, 40, 820, 600, 14),
+        shape(872, 330, 12, 20, ellipse(Path(), 50, 50, 50, 50), '#3a3f48'),
     ])
 
-    strap = rounded(Path(), 0, 0, 100, 100, 18, 8)
-    frame('watch', 'Watch', 440, 760, [
-        shape(110, 0, 220, 230, strap, '#2b2f36'),
-        shape(110, 530, 220, 230, rounded(Path(), 0, 0, 100, 100, 18, 8), '#2b2f36'),
-        shape(40, 170, 360, 420, rounded(Path(), 0, 0, 100, 100, 22, 19), '#5d636d'),
-        shape(400, 330, 22, 70, rounded(Path(), 0, 0, 100, 100, 40, 14), '#5d636d'),
-        window(64, 196, 312, 368, 56),
+    frame('watch', 'Watch', 520, 860, [
+        shape(110, 0, 300, 220, rounded(Path(), 0, 0, 100, 100, 18, 24, bottom=False), '#2a2d33'),
+        shape(110, 640, 300, 220, rounded(Path(), 0, 0, 100, 100, 18, 24, top=False), '#2a2d33'),
+        shape(0, 160, 520, 540, rounded(Path(), 0, 0, 100, 100, 26, 25), '#121418'),
+        shape(500, 330, 20, 120, rounded(Path(), 0, 0, 100, 100, 50, 10), '#5a5f68'),
+        window(40, 200, 440, 460, 80),
     ])
 
-    def column(count, height):
+    def side_holes(count, height):
         p = Path()
         pitch = 100 / count
         for i in range(count):
             rounded(p, 0, i * pitch + (pitch - height) / 2, 100, height, 25, height * 0.25)
         return p
-    frame('filmVertical', 'Vertical film', 440, 1000, [
+    frame('verticalFilm', 'Vertical film', 440, 1000, [
         shape(0, 0, 440, 1000, rect(Path(), 0, 0, 100, 100), '#1b1b1d'),
-        shape(14, 10, 26, 980, column(22, 2.2), '#f4f1ea'),
-        shape(400, 10, 26, 980, column(22, 2.2), '#f4f1ea'),
-        window(60, 48, 320, 904, 4),
+        shape(14, 10, 26, 980, side_holes(20, 2.4), '#f4f1ea'),
+        shape(400, 10, 26, 980, side_holes(20, 2.4), '#f4f1ea'),
+        window(60, 48, 320, 904, 6),
     ])
 
-    frame('sketchBorder', 'Sketch border', 700, 700, [
-        shape(0, 0, 700, 700, sketchy(601, 4, 1.2), '#2d2d2d'),
-        window(34, 34, 632, 632),
+    # A hand-drawn border: two wobbly rectangles of pencil, each a thin
+    # ring made of a seeded polyline and its inset.
+    def sketch_ring(seed, inset):
+        rng = random.Random(seed)
+        outer, inner = [], []
+        steps = 16
+        for side in range(4):
+            for i in range(steps):
+                t = i / steps * 100
+                j = rng.uniform(-0.6, 0.6)
+                pt = [(t, inset + j), (100 - inset - j, t), (100 - t, 100 - inset - j), (inset + j, 100 - t)][side]
+                outer.append(pt)
+        for x, y in outer:
+            inner.append((50 + (x - 50) * 0.985, 50 + (y - 50) * 0.985))
+        p = Path().move(*outer[0])
+        for q in outer[1:]:
+            p.line(*q)
+        p.close()
+        p.move(*inner[0])
+        for q in inner[:0:-1]:
+            p.line(*q)
+        return p.close()
+    frame('sketchBorder', 'Sketch border', 800, 800, [
+        shape(0, 0, 800, 800, rect(Path(), 0, 0, 100, 100), '#ffffff'),
+        shape(20, 20, 760, 760, sketch_ring(331, 1.5), '#3b3b3b'),
+        window(60, 60, 680, 680),
     ])
 
-    frame('doubleBorder', 'Double border', 700, 700, [
-        shape(0, 0, 700, 700, ring(Path(), (0, 0, 100, 100), (1.6, 1.6, 96.8, 96.8)), '#1f2430'),
-        shape(28, 28, 644, 644, ring(Path(), (0, 0, 100, 100), (0.9, 0.9, 98.2, 98.2)), '#1f2430'),
-        window(52, 52, 596, 596),
+    double = Path()
+    rect(double, 0, 0, 100, 100)
+    rect(double, 2.5, 2.5, 95, 95, clockwise=False)
+    rect(double, 5, 5, 90, 90)
+    rect(double, 6, 6, 88, 88, clockwise=False)
+    frame('doubleBorder', 'Double border', 800, 1000, [
+        shape(0, 0, 800, 1000, double, '#1f2430'),
+        window(60, 70, 680, 860),
     ])
 
-    frame('scallopedMat', 'Scalloped mat', 700, 860, [
-        shape(0, 0, 700, 860, scalloped_rect(Path(), 9, 11, 3), '#f6e7e1'),
-        window(70, 70, 560, 720, 280),
+    mat = Path()
+    scallop_count = 14
+    mat.move(0, 0)
+    for side in range(4):
+        for i in range(scallop_count):
+            a = i * 100 / scallop_count
+            b = (i + 1) * 100 / scallop_count
+            bump = 100 / scallop_count * 0.6
+            if side == 0:
+                mat.curve(a + (b - a) * 0.2, bump, b - (b - a) * 0.2, bump, b, 0)
+            elif side == 1:
+                mat.curve(100 - bump, a + (b - a) * 0.2, 100 - bump, b - (b - a) * 0.2, 100, b)
+            elif side == 2:
+                mat.curve(100 - a - (b - a) * 0.2, 100 - bump, 100 - b + (b - a) * 0.2, 100 - bump, 100 - b, 100)
+            else:
+                mat.curve(bump, 100 - a - (b - a) * 0.2, bump, 100 - b + (b - a) * 0.2, 0, 100 - b)
+    mat.close()
+    frame('scallopedMat', 'Scalloped mat', 800, 800, [
+        shape(0, 0, 800, 800, mat, '#f6e3e1', '#e2c4c0', 2),
+        window(90, 90, 620, 620, 12),
     ])
 
-    frame('instantSquare', 'Instant square', 620, 740, [
-        shape(0, 0, 620, 740, rect(Path(), 0, 0, 100, 100), '#ffffff', '#e2e2e2', 2),
-        window(40, 40, 540, 540),
-        caption(40, 610, 540, 80, 'Hello', 'script', 48, 400, '#3d3d3d'),
+    frame('instantSquare', 'Instant square', 640, 760, [
+        shape(0, 0, 640, 760, rounded(Path(), 0, 0, 100, 100, 2, 1.68), '#f7f4ee', '#dedad2', 2),
+        window(40, 40, 560, 560),
+        caption(40, 630, 560, 80, 'Hello', 'sans', 40, 600, '#2d2d2d'),
     ])
 
-    frame('galleryFrame', 'Gallery frame', 800, 1000, [
-        shape(0, 0, 800, 1000, ring(Path(), (0, 0, 100, 100), (7.5, 6, 85, 88)), '#6b4a2f'),
-        shape(60, 60, 680, 880, ring(Path(), (0, 0, 100, 100), (11.76, 9.09, 76.47, 81.82)), '#f7f4ee'),
-        window(140, 140, 520, 720),
+    frame('roundedCard', 'Rounded card', 760, 900, [
+        shape(0, 0, 760, 900, rounded(Path(), 0, 0, 100, 100, 8, 6.76), '#ffffff', '#e0e3e8', 2),
+        window(40, 40, 680, 680, 36),
+        caption(40, 760, 680, 90, 'Our story', 'serif', 46, 700, '#1f2430'),
     ])
+    return out
+
+
+# MARK: mask frames
+
+class Unit:
+    """Absolute M, L, C and Z in the unit square, to the ten-thousandth."""
+
+    def __init__(self):
+        self.parts = []
+
+    @staticmethod
+    def n(v):
+        s = '%.4f' % v
+        s = s.rstrip('0').rstrip('.')
+        return '0' if s in ('-0', '') else s
+
+    def move(self, x, y):
+        self.parts.append(f'M{self.n(x)} {self.n(y)}')
+        return self
+
+    def line(self, x, y):
+        self.parts.append(f'L{self.n(x)} {self.n(y)}')
+        return self
+
+    def curve(self, x1, y1, x2, y2, x, y):
+        self.parts.append(f'C{self.n(x1)} {self.n(y1)} {self.n(x2)} {self.n(y2)} {self.n(x)} {self.n(y)}')
+        return self
+
+    def close(self):
+        self.parts.append('Z')
+        return self
+
+    def polygon(self, pts):
+        self.move(*pts[0])
+        for q in pts[1:]:
+            self.line(*q)
+        return self.close()
+
+    def smooth(self, pts):
+        """A closed Catmull-Rom curve through [pts], as cubics, each control
+        point held inside the square so the curve stays in it."""
+        n = len(pts)
+        self.move(*pts[0])
+        for i in range(n):
+            p0, p1, p2, p3 = pts[i - 1], pts[i], pts[(i + 1) % n], pts[(i + 2) % n]
+            self.curve(clamp(p1[0] + (p2[0] - p0[0]) / 6), clamp(p1[1] + (p2[1] - p0[1]) / 6),
+                       clamp(p2[0] - (p3[0] - p1[0]) / 6), clamp(p2[1] - (p3[1] - p1[1]) / 6), p2[0], p2[1])
+        return self.close()
+
+    def ellipse(self, cx, cy, rx, ry, clockwise=True):
+        s = 1 if clockwise else -1
+        self.move(cx + rx, cy)
+        self.curve(cx + rx, cy + s * ry * K, cx + rx * K, cy + s * ry, cx, cy + s * ry)
+        self.curve(cx - rx * K, cy + s * ry, cx - rx, cy + s * ry * K, cx - rx, cy)
+        self.curve(cx - rx, cy - s * ry * K, cx - rx * K, cy - s * ry, cx, cy - s * ry)
+        self.curve(cx + rx * K, cy - s * ry, cx + rx, cy - s * ry * K, cx + rx, cy)
+        return self.close()
+
+    def text(self):
+        return ''.join(self.parts)
+
+
+def clamp(v):
+    return min(1.0, max(0.0, v))
+
+
+def turned(pts, degrees):
+    """[pts] turned about the square's middle."""
+    a = math.radians(degrees)
+    c, s = math.cos(a), math.sin(a)
+    return [(0.5 + (x - 0.5) * c - (y - 0.5) * s, 0.5 + (x - 0.5) * s + (y - 0.5) * c) for x, y in pts]
+
+
+def fitted(pts, margin=0.0):
+    """[pts] stretched to fill the square, less [margin] each side."""
+    xs = [x for x, _ in pts]
+    ys = [y for _, y in pts]
+    left, right, top, bottom = min(xs), max(xs), min(ys), max(ys)
+    return [(margin + (x - left) / (right - left) * (1 - 2 * margin), margin + (y - top) / (bottom - top) * (1 - 2 * margin)) for x, y in pts]
+
+
+def brush(seed, thickness, wobble, angle, taper):
+    """A brush stroke: a wavy centre line across the square, its two edges
+    offset by a thickness that swells and thins, each edge roughened by
+    seeded noise, the ends ragged as bristles leave them."""
+    rng = random.Random(seed)
+    steps = 48
+    phase = rng.uniform(0, math.tau)
+    top, bottom = [], []
+    for i in range(steps + 1):
+        x = i / steps
+        y = 0.5 + wobble * math.sin(phase + x * math.pi * 1.6)
+        swell = thickness * (0.75 + 0.25 * math.sin(phase * 1.7 + x * math.pi * 3))
+        ends = min(1.0, (x / taper) if x < taper else ((1 - x) / taper) if x > 1 - taper else 1.0)
+        half = swell / 2 * (0.35 + 0.65 * ends)
+        top.append((x, y - half + rng.uniform(-0.012, 0.012)))
+        bottom.append((x, y + half + rng.uniform(-0.012, 0.012)))
+    # Bristle teeth at each end.
+    tail = [(rng.uniform(-0.02, 0.03), 0.5 + k * 0.03) for k in (-1, 0, 1)]
+    head = [(1 - rng.uniform(-0.02, 0.03), 0.5 + k * 0.03) for k in (1, 0, -1)]
+    pts = top + head + bottom[::-1] + tail
+    return Unit().polygon(fitted(turned(pts, angle), 0.01)).text()
+
+
+def torn_edge(seed, sides, depth):
+    """A rectangle torn along [sides] ("t", "r", "b", "l"): each torn side a
+    run of seeded jags up to [depth] deep; the others straight."""
+    rng = random.Random(seed)
+    steps = 28
+    pts = []
+
+    def d(side):
+        return rng.uniform(0.2, 1.0) * depth if side in sides else 0.0
+    for i in range(steps):
+        pts.append((i / steps, d('t')))
+    for i in range(steps):
+        pts.append((1 - d('r'), i / steps))
+    for i in range(steps):
+        pts.append((1 - i / steps, 1 - d('b')))
+    for i in range(steps):
+        pts.append((d('l'), 1 - i / steps))
+    return Unit().polygon([(clamp(x), clamp(y)) for x, y in pts]).text()
+
+
+def deckled(seed, bumps, depth):
+    """A deckled card: every edge a row of small soft waves."""
+    rng = random.Random(seed)
+    pts = []
+    for side in range(4):
+        for i in range(bumps * 2):
+            t = i / (bumps * 2)
+            off = depth * (0.5 + 0.5 * math.sin(i * math.pi)) * rng.uniform(0.6, 1.0) if i % 2 else 0.0
+            if side == 0:
+                pts.append((t, off))
+            elif side == 1:
+                pts.append((1 - off, t))
+            elif side == 2:
+                pts.append((1 - t, 1 - off))
+            else:
+                pts.append((off, 1 - t))
+    return Unit().polygon(pts).text()
+
+
+def torn_circle(seed, jags, depth):
+    """A disc with a torn edge: its radius jagged by seeded amounts."""
+    rng = random.Random(seed)
+    pts = []
+    for i in range(jags):
+        a = math.tau * i / jags
+        r = 0.5 - rng.uniform(0, depth)
+        pts.append((0.5 + r * math.cos(a), 0.5 + r * math.sin(a)))
+    return Unit().polygon(pts).text()
+
+
+def blob(seed, lumps):
+    """A soft blob: a radius about the middle made of a few seeded waves,
+    sampled round and joined by a smooth curve, filling the square."""
+    rng = random.Random(seed)
+    waves = [(k, rng.uniform(0.04, 0.12) / k ** 0.5, rng.uniform(0, math.tau)) for k in range(2, 2 + lumps)]
+    pts = []
+    n = 16
+    for i in range(n):
+        a = math.tau * i / n
+        r = 0.42 + sum(amp * math.sin(k * a + ph) for k, amp, ph in waves)
+        pts.append((0.5 + r * math.cos(a), 0.5 + r * math.sin(a)))
+    return Unit().smooth(fitted(pts, 0.02)).text()
+
+
+def arch(kind):
+    u = Unit()
+    if kind == 'round':
+        # A half circle on a rectangle: the top is a half ellipse as wide as
+        # the square and a third as high.
+        u.move(0, 1).line(0, 0.5)
+        u.curve(0, 0.5 - 0.5 * K, 0.5 - 0.5 * K, 0, 0.5, 0)
+        u.curve(0.5 + 0.5 * K, 0, 1, 0.5 - 0.5 * K, 1, 0.5)
+        return u.line(1, 1).close().text()
+    if kind == 'pointed':
+        u.move(0, 1).line(0, 0.45)
+        u.curve(0, 0.2, 0.3, 0.05, 0.5, 0)
+        u.curve(0.7, 0.05, 1, 0.2, 1, 0.45)
+        return u.line(1, 1).close().text()
+    if kind == 'window':
+        r = 0.18
+        u.move(r, 0).line(1 - r, 0).curve(1 - r + r * K, 0, 1, r - r * K, 1, r).line(1, 1).line(0, 1).line(0, r)
+        return u.curve(0, r - r * K, r - r * K, 0, r, 0).close().text()
+    # 'double': two arches side by side, joined at the foot.
+    u.move(0, 1).line(0, 0.3)
+    u.curve(0, 0.3 - 0.3 * K, 0.25 - 0.25 * K, 0, 0.25, 0)
+    u.curve(0.25 + 0.25 * K, 0, 0.5, 0.3 - 0.3 * K, 0.5, 0.3)
+    u.curve(0.5, 0.3 - 0.3 * K, 0.75 - 0.25 * K, 0, 0.75, 0)
+    u.curve(0.75 + 0.25 * K, 0, 1, 0.3 - 0.3 * K, 1, 0.3)
+    return u.line(1, 1).close().text()
+
+
+def ticket(kind):
+    u = Unit()
+    if kind == 'notched':
+        # Half-round bites from the middle of each short side.
+        r = 0.12
+        u.move(0, 0).line(1, 0).line(1, 0.5 - r)
+        u.curve(1 - r * K, 0.5 - r, 1 - r, 0.5 - r * K, 1 - r, 0.5)
+        u.curve(1 - r, 0.5 + r * K, 1 - r * K, 0.5 + r, 1, 0.5 + r)
+        u.line(1, 1).line(0, 1).line(0, 0.5 + r)
+        u.curve(r * K, 0.5 + r, r, 0.5 + r * K, r, 0.5)
+        u.curve(r, 0.5 - r * K, r * K, 0.5 - r, 0, 0.5 - r)
+        return u.close().text()
+    if kind == 'corners':
+        # Quarter-round bites from each corner.
+        r = 0.14
+        u.move(r, 0).line(1 - r, 0).curve(1 - r, r * K, 1 - r * K, r, 1, r)
+        u.line(1, 1 - r).curve(1 - r * K, 1 - r, 1 - r, 1 - r * K, 1 - r, 1)
+        u.line(r, 1).curve(r, 1 - r * K, r * K, 1 - r, 0, 1 - r)
+        u.line(0, r).curve(r * K, r, r, r * K, r, 0)
+        return u.close().text()
+    # 'zigzag': a coupon's pinked ends.
+    teeth = 8
+    pts = [(0.06, 0), (0.94, 0)]
+    for i in range(teeth * 2 + 1):
+        pts.append((1 - (0.06 if i % 2 == 0 else 0), i / (teeth * 2)))
+    pts += [(0.94, 1), (0.06, 1)]
+    for i in range(teeth * 2 + 1):
+        pts.append((0.06 if i % 2 == 0 else 0, 1 - i / (teeth * 2)))
+    return u.polygon(pts).text()
+
+
+def stamp_edge(holes):
+    """A postage stamp: a square whose edges are bitten by [holes] half
+    circles a side."""
+    u = Unit()
+    r = 0.5 / holes * 0.55
+    step = 1 / holes
+    u.move(0, 0)
+    for side in range(4):
+        for i in range(holes):
+            c = (i + 0.5) * step
+            a, b = c - r, c + r
+            if side == 0:
+                u.line(a, 0).curve(a, r * 1.33, b, r * 1.33, b, 0)
+            elif side == 1:
+                u.line(1, a).curve(1 - r * 1.33, a, 1 - r * 1.33, b, 1, b)
+            elif side == 2:
+                u.line(1 - a, 1).curve(1 - a, 1 - r * 1.33, 1 - b, 1 - r * 1.33, 1 - b, 1)
+            else:
+                u.line(0, 1 - a).curve(r * 1.33, 1 - a, r * 1.33, 1 - b, 0, 1 - b)
+        u.line(*[(1, 0), (1, 1), (0, 1), (0, 0)][side])
+    return u.close().text()
+
+
+def seal(points, inner):
+    """A rosette seal: a disc edged with [points] round bumps."""
+    u = Unit()
+    pts = []
+    for i in range(points * 2):
+        a = math.tau * i / (points * 2) - math.pi / 2
+        r = 0.5 if i % 2 == 0 else 0.5 * inner
+        pts.append((0.5 + r * math.cos(a), 0.5 + r * math.sin(a)))
+    return u.smooth(pts).text()
+
+
+def starburst(points, inner):
+    u = Unit()
+    pts = []
+    for i in range(points * 2):
+        a = math.tau * i / (points * 2) - math.pi / 2
+        r = 0.5 if i % 2 == 0 else 0.5 * inner
+        pts.append((0.5 + r * math.cos(a), 0.5 + r * math.sin(a)))
+    return u.polygon(pts).text()
+
+
+def shield():
+    u = Unit()
+    u.move(0, 0).line(1, 0).line(1, 0.45)
+    u.curve(1, 0.75, 0.75, 0.9, 0.5, 1)
+    u.curve(0.25, 0.9, 0, 0.75, 0, 0.45)
+    return u.close().text()
+
+
+def hexagon():
+    return Unit().polygon([(0.5 + 0.5 * math.cos(math.radians(a)), 0.5 + 0.5 * math.sin(math.radians(a))) for a in range(-90, 270, 60)]).text()
+
+
+def ring():
+    """A ring: a disc with a round hole, the hole wound the other way."""
+    u = Unit()
+    u.ellipse(0.5, 0.5, 0.5, 0.5)
+    u.ellipse(0.5, 0.5, 0.3, 0.3, clockwise=False)
+    return u.text()
+
+
+def masks():
+    """The mask frames, in the order the Frames tab lists them."""
+    m = []
+
+    def mask(mid, name, category, path, rule='nonzero'):
+        m.append({'id': mid, 'name': name, 'category': category, 'path': path, 'fillRule': rule})
+    mask('brush-swash', 'Brush swash', 'brush', brush(301, 0.62, 0.05, 0, 0.12))
+    mask('brush-wave', 'Brush wave', 'brush', brush(302, 0.5, 0.1, 0, 0.18))
+    mask('brush-dry', 'Dry brush', 'brush', brush(303, 0.7, 0.03, 0, 0.08))
+    mask('brush-diagonal', 'Diagonal brush', 'brush', brush(304, 0.45, 0.06, -35, 0.15))
+    mask('brush-upright', 'Upright brush', 'brush', brush(305, 0.6, 0.05, 90, 0.12))
+    mask('brush-bold', 'Bold brush', 'brush', brush(306, 0.85, 0.02, 0, 0.1))
+    mask('torn-all', 'Torn paper', 'torn', torn_edge(311, 'trbl', 0.035))
+    mask('torn-top', 'Torn top', 'torn', torn_edge(312, 't', 0.06))
+    mask('torn-sides', 'Torn sides', 'torn', torn_edge(313, 'lr', 0.05))
+    mask('deckled', 'Deckled edge', 'torn', deckled(314, 18, 0.02))
+    mask('torn-circle', 'Torn circle', 'torn', torn_circle(315, 72, 0.035))
+    mask('blob-pebble', 'Pebble', 'blob', blob(321, 2))
+    mask('blob-cloud', 'Cloud blob', 'blob', blob(322, 4))
+    mask('blob-splash', 'Splash', 'blob', blob(323, 6))
+    mask('blob-bean', 'Bean', 'blob', blob(324, 1))
+    mask('blob-puddle', 'Puddle', 'blob', blob(325, 3))
+    mask('blob-wobble', 'Wobble', 'blob', blob(326, 5))
+    mask('arch-round', 'Round arch', 'arch', arch('round'))
+    mask('arch-pointed', 'Pointed arch', 'arch', arch('pointed'))
+    mask('arch-window', 'Rounded window', 'arch', arch('window'))
+    mask('arch-double', 'Double arch', 'arch', arch('double'))
+    mask('ticket-notched', 'Ticket', 'ticket', ticket('notched'))
+    mask('ticket-corners', 'Admit one', 'ticket', ticket('corners'))
+    mask('ticket-coupon', 'Coupon', 'ticket', ticket('zigzag'))
+    mask('badge-stamp', 'Postage stamp', 'badge', stamp_edge(9))
+    mask('badge-seal', 'Seal', 'badge', seal(14, 0.86))
+    mask('badge-starburst', 'Starburst', 'badge', starburst(16, 0.78))
+    mask('badge-shield', 'Shield', 'badge', shield())
+    mask('badge-hexagon', 'Hexagon', 'badge', hexagon())
+    mask('badge-ring', 'Ring', 'badge', ring(), 'evenodd')
+    return m
+
+
+MASK_CATEGORIES = ('brush', 'torn', 'blob', 'arch', 'badge', 'ticket')
+
+
+def check_mask(m):
+    if m['category'] not in MASK_CATEGORIES or m['fillRule'] not in ('nonzero', 'evenodd'):
+        sys.exit(f'{m["id"]}: bad category or rule')
+    nums = [float(v) for v in __import__('re').findall(r'-?\d+(?:\.\d+)?', m['path'])]
+    if not nums or min(nums) < -0.0001 or max(nums) > 1.0001:
+        sys.exit(f'{m["id"]}: leaves the unit square')
 
 
 # MARK: letter and number frames
@@ -1099,13 +1138,15 @@ def main():
     if len(sys.argv) not in (1, 2):
         sys.exit(__doc__)
     grids = []
-    for gid, name, columns, rows, cells, *rest in GRIDS:
-        clip = rest[0] if rest else None
-        check_grid(gid, columns, rows, cells, clip)
-        grid = {'id': gid, 'name': name, 'columns': columns, 'rows': rows, 'cells': [list(c) for c in cells]}
-        if clip is not None:
-            grid['clip'] = [None if poly is None else [[float(unum(x)), float(unum(y))] for x, y in poly] for poly in clip]
-        grids.append(grid)
+    for gid, name, columns, rows, cells in GRIDS:
+        check_grid(gid, columns, rows, cells)
+        grids.append({'id': gid, 'name': name, 'columns': columns, 'rows': rows, 'cells': [list(c) for c in cells]})
+    for gid, name, columns, rows, cells in ROUND_GRIDS:
+        check_grid(gid, columns, rows, cells)
+        circle = [[r4(x), r4(y)] for x, y in circle_points()]
+        grids.append({'id': gid, 'name': name, 'columns': columns, 'rows': rows, 'cells': [list(c) for c in cells], 'clip': [circle for _ in cells]})
+    for gid, name, columns, rows, polygons in CLIPPED_GRIDS:
+        grids.append(clipped_grid(gid, name, columns, rows, polygons))
     if len({g['id'] for g in grids}) != len(grids):
         sys.exit('grid ids repeat')
     made = []
@@ -1117,18 +1158,20 @@ def main():
     lines += [json.dumps(g, ensure_ascii=False, separators=(',', ':')) + (',' if i < len(grids) - 1 else '') for i, g in enumerate(grids)]
     lines += ['],', '"photoFrames":[']
     lines += [json.dumps(f, ensure_ascii=False, separators=(',', ':')) + (',' if i < len(made) - 1 else '') for i, f in enumerate(made)]
+    made_masks = masks()
+    for m in made_masks:
+        check_mask(m)
+    if len({m['id'] for m in made_masks}) != len(made_masks):
+        sys.exit('mask ids repeat')
+    lines += ['],', '"photoMasks":[']
+    lines += [json.dumps(m, ensure_ascii=False, separators=(',', ':')) + (',' if i < len(made_masks) - 1 else '') for i, m in enumerate(made_masks)]
     glyphs = glyph_frames()
     lines += ['],', '"glyphFrames":[']
     lines += [json.dumps(g, ensure_ascii=False, separators=(',', ':')) + (',' if i < len(glyphs) - 1 else '') for i, g in enumerate(glyphs)]
-    shaped = masks()
-    check_masks(shaped)
-    lines += ['],', '"photoMasks":[']
-    lines += [json.dumps(m, ensure_ascii=False, separators=(',', ':')) + (',' if i < len(shaped) - 1 else '') for i, m in enumerate(shaped)]
     lines += [']', '}']
     text = '\n'.join(lines) + '\n'
     RESOURCE.write_text(text, encoding='utf-8')
-    print(f'{len(grids)} grids, {len(made)} frames, {len(glyphs)} glyph frames and {len(shaped)} masks written to '
-          f'{RESOURCE.relative_to(REPO)}')
+    print(f'{len(grids)} grids, {len(made)} frames, {len(made_masks)} masks and {len(glyphs)} glyph frames written to {RESOURCE.relative_to(REPO)}')
     if len(sys.argv) == 2:
         ios = pathlib.Path(sys.argv[1])
         shutil.copyfile(RESOURCE, ios / 'PhotoFrames.json')

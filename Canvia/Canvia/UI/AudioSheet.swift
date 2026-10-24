@@ -768,8 +768,7 @@ struct MusicLibraryList: View {
                         .foregroundStyle(Theme.accent)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(music.name)
-                        Text(verbatim: [MusicLibrary.moodName(music.mood), music.genre, tr("%d BPM", Int(music.bpm))]
-                            .filter { !$0.isEmpty }.joined(separator: " · "))
+                        Text(verbatim: tr("%@ · %d bpm", MusicLibrary.moodName(music.mood), Int(music.bpm)))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

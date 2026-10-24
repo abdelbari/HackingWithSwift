@@ -79,7 +79,9 @@ struct PreciseDial: View {
             set: { v in
                 let landed = DialPrecision.snapped(v, rest: rest, in: range)
                 guard landed != value else { return }
-                if DialPrecision.reachedRest(from: value, to: landed, rest: rest) {
+                // Felt only with the app's Vibration switch on, as every
+                // other haptic is (Haptics).
+                if DialPrecision.reachedRest(from: value, to: landed, rest: rest), Haptics.isOn(.standard) {
                     UISelectionFeedbackGenerator().selectionChanged()
                 }
                 live(landed)

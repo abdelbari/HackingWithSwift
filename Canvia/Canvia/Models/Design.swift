@@ -18,6 +18,24 @@ struct GradientStop: Codable, Equatable, Hashable {
     var color: String
 }
 
+extension GradientStop {
+    private enum CodingKeys: String, CodingKey { case offset, color, position }
+
+    /// Read as "offset", or as "position" — the Android twin's own name for
+    /// it — when a file has no offset.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        color = try c.decode(String.self, forKey: .color)
+        offset = try c.decodeIfPresent(Double.self, forKey: .offset) ?? c.decode(Double.self, forKey: .position)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(offset, forKey: .offset)
+        try c.encode(color, forKey: .color)
+    }
+}
+
 struct Paint: Codable, Equatable, Hashable {
     var kind: String              // "solid" | "gradient" | "pattern" | "image"
     var color: String?            // solid; pattern foreground

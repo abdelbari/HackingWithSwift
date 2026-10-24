@@ -48,9 +48,9 @@ enum ElementNames {
             let noun = tr(english)
             return withWords(el, noun) ?? withColour(colour, noun, tr("%@ " + english, colourName(colour)))
         case .image:
-            // A grid's cut cell is named as any cell is; a mask frame by
-            // its name, as its tile says it.
-            let shape = PhotoGrids.clip(el.maskShapeId) == nil ? ContentLibrary.frameShape(el.maskShapeId) : nil
+            // A grid's cut cell is named as any cell is (its cut is no
+            // frame); a mask frame by its name, as its tile says it.
+            let shape = ContentLibrary.frameShape(el.maskShapeId)
             let frame = MaskFrames.mask(el.maskShapeId).map { tr($0.shape.name) } ?? shape.map { tr(englishNoun($0)) }
             // Named for what it holds, as its sheet names it: "Wi-Fi QR
             // code", "EAN-13 barcode".

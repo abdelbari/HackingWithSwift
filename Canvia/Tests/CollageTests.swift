@@ -288,11 +288,11 @@ final class CollageTests: XCTestCase {
             "two", "three", "four", "onePlusTwo", "bigTop", "nine", "twoStack", "threeStack", "twoByThree", "threeByTwo",
             "oneLeftTwoRight", "oneRightTwoLeft", "twoOverOne", "bigLeftThree", "mosaicFive", "sixMixed", "fourAcross",
             "fourStack", "eightMixed",
-            "diagonalTwo", "diagonalTwoOther", "diagonalThree", "slantThree", "diagonalFour", "circlesThree",
-            "mosaic5", "mosaic6", "mosaic7", "mosaic9", "brick", "brickSix",
+            "mosaicFiveBig", "mosaicSix", "mosaicSeven", "mosaicNine", "brick", "brickWall",
+            "threeCircles", "diagonalTwo", "diagonalTwoBack", "slantedTwo", "slantedThree", "diagonalFour",
         ])
         XCTAssertEqual(PhotoGrids.layouts.map(\.cells.count), [2, 3, 4, 3, 4, 9, 2, 3, 6, 6, 3, 3, 3, 4, 5, 6, 4, 4, 8,
-                                                              2, 2, 3, 3, 4, 3, 5, 6, 7, 9, 5, 6])
+                                                              5, 6, 7, 9, 5, 9, 3, 2, 2, 2, 3, 4])
         // A cut layout's cells overlap or leave gaps; the rest tile the area.
         for layout in PhotoGrids.layouts where !layout.isCut {
             let area = layout.cells.reduce(0.0) { $0 + Double($1.width * $1.height) }
@@ -464,12 +464,12 @@ final class CollageTests: XCTestCase {
     func testTheDecorativeFramesAreTheSharedFilesTwentyEachWithOneWindow() {
         XCTAssertEqual(DecorativeFrames.presets.map(\.id),
                        ["polaroid", "filmStrip", "phone", "laptop", "browserWindow", "tornPaper", "circleStamp", "arch",
-                        "tiltedPolaroid", "tapedPhoto", "postcard", "stamp", "tablet", "watch", "filmVertical",
-                        "sketchBorder", "doubleBorder", "scallopedMat", "instantSquare", "galleryFrame"])
+                        "tiltedPolaroid", "tapedPhoto", "postcard", "postageStamp", "tablet", "watch", "verticalFilm",
+                        "sketchBorder", "doubleBorder", "scallopedMat", "instantSquare", "roundedCard"])
         XCTAssertEqual(DecorativeFrames.presets.map(\.name),
                        ["Polaroid", "Film strip", "Phone", "Laptop", "Browser window", "Torn paper", "Circle stamp", "Arch",
-                        "Tilted polaroid", "Taped photo", "Postcard", "Stamp", "Tablet", "Watch", "Vertical film",
-                        "Sketch border", "Double border", "Scalloped mat", "Instant square", "Gallery frame"])
+                        "Tilted polaroid", "Taped photo", "Postcard", "Postage stamp", "Tablet", "Watch", "Vertical film",
+                        "Sketch border", "Double border", "Scalloped mat", "Instant square", "Rounded card"])
         for preset in DecorativeFrames.presets {
             let els = DecorativeFrames.elements(preset, page: CGSize(width: 1080, height: 1080))
             XCTAssertEqual(els.count, preset.parts.count, preset.id)

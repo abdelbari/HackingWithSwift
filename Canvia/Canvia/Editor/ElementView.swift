@@ -1202,7 +1202,7 @@ struct ImageElementView: View {
     }
 
     private var frame: FrameShape {
-        FrameShape(definition: ContentLibrary.frameShape(element.maskShapeId),
+        FrameShape(definition: ContentLibrary.frameShape(of: element),
                    cornerRadius: element.radius ?? 0)
     }
 

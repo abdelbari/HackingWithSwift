@@ -1,7 +1,8 @@
 // Custom gradient, under the colour sheet's gradients: the gradient there
 // now (GradientEditing), edited in place. A bar with a handle per stop to
-// drag, the stops as colour chips — tap one for the colour sheet, hold it
-// to remove it, + for another — the shape, and for a linear one its angle
+// drag (let go well above or below the bar, it comes off), the stops as
+// colour chips — tap one for the colour sheet, hold it to remove it, + for
+// another — the shape, and for a linear one its angle
 // as chips and a dial. Every change shows as it is made; a tap is one step
 // and so is each drag. Saved to the brand kit on request; kept among
 // Your gradients when the sheet closes.
@@ -23,6 +24,9 @@ struct GradientEditorSection: View {
     @State private var savedToBrand = false
     /// Whether a drag has changed the gradient since it was last kept.
     @State private var dragged = false
+    /// Whether the stop being dragged is far enough off the bar to come off
+    /// as it is let go.
+    @State private var offBar = false
 
     init(store: DesignStore, start: Paint, pick: @escaping (Paint) -> Void, pickLive: ((Paint) -> Void)?) {
         self.store = store
@@ -33,6 +37,10 @@ struct GradientEditorSection: View {
 
     private var stops: [GradientStop] { paint.stops ?? [] }
     private static let space = "gradientBar"
+    private static let barHeight = 36.0
+    /// Let go this far above or below the bar, a stop is taken off — while
+    /// there are more than two — as on the Android twin.
+    private static let offReach = 40.0
     private var kind: String { GradientPreset.kind(of: paint) }
 
     var body: some View {
@@ -98,10 +106,10 @@ struct GradientEditorSection: View {
                     handle(index, stop, width: width)
                 }
             }
-            .frame(height: 36)
+            .frame(height: Self.barHeight)
             .coordinateSpace(name: Self.space)
         }
-        .frame(height: 36)
+        .frame(height: Self.barHeight)
         .padding(.horizontal, 10)
         .designDirection()
     }
@@ -116,9 +124,16 @@ struct GradientEditorSection: View {
             .offset(x: stop.offset * width - 11)
             .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .named(Self.space))
                 .onChanged { drag in
+                    let y = Double(drag.location.y)
+                    offBar = y < -Self.offReach || y > Self.barHeight + Self.offReach
                     live(GradientEditing.moved(paint, at: index, to: Double(drag.location.x) / width))
                 }
-                .onEnded { _ in endDrag() })
+                .onEnded { _ in
+                    // Off the bar, the stop comes off in the drag's one step.
+                    if offBar, GradientEditing.canRemove(paint) { live(GradientEditing.removing(paint, at: index)) }
+                    offBar = false
+                    endDrag()
+                })
             .accessibilityElement()
             .accessibilityLabel(tr("Stop %d", index + 1))
             .accessibilityValue("\(Int((stop.offset * 100).rounded()))%")

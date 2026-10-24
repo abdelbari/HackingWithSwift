@@ -357,7 +357,7 @@ enum PhotoEffects {
         let scale = min(detail, 1024 / max(el.w + 2 * far, el.h + 2 * far, 1))
         let pad = ((far * scale).rounded(.up) + 1) / scale
         let id = [key, "\(el.w)x\(el.h)", "\(el.cropScale ?? 1),\(el.cropX ?? 0.5),\(el.cropY ?? 0.5)",
-                  "\(el.cropFit == true)", "\(el.straighten ?? 0)", el.maskShapeId ?? "", "\(el.radius ?? 0)",
+                  "\(el.cropFit == true)", "\(el.straighten ?? 0)", ContentLibrary.frameShape(of: el)?.id ?? "", "\(el.radius ?? 0)",
                   "\(edge.kind)\(edge.color)\(edge.width)", "\(scale)",
                   "\(el.mask?.hashValue ?? 0)"].joined(separator: "|") as NSString
         if let made = edges.object(forKey: id) { return made }
@@ -372,7 +372,7 @@ enum PhotoEffects {
         let silhouette = UIGraphicsImageRenderer(size: canvas, format: format).image { ctx in
             let cg = ctx.cgContext
             cg.translateBy(x: pad, y: pad)
-            let frame = FrameShape(definition: ContentLibrary.frameShape(el.maskShapeId),
+            let frame = FrameShape(definition: ContentLibrary.frameShape(of: el),
                                    cornerRadius: el.radius ?? 0)
             cg.addPath(frame.path(in: CGRect(x: 0, y: 0, width: el.w, height: el.h)).cgPath)
             cg.clip()

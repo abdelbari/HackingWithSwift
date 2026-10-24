@@ -113,7 +113,7 @@ enum MaskFrames {
 
     private static let byId: [String: Mask] = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
-    /// The mask a maskShapeId ("mask:blob1") names, or nil.
+    /// The mask a maskShapeId ("mask:blob-pebble") names, or nil.
     static func mask(_ id: String?) -> Mask? {
         id.flatMap { byId[$0] }
     }

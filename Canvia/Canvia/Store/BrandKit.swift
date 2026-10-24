@@ -643,7 +643,11 @@ extension BrandKit {
         photos = (try? c.decode([String].self, forKey: .photos)) ?? []
         graphics = (try? c.decode([String].self, forKey: .graphics)) ?? []
         templates = (try? c.decode([String].self, forKey: .templates)) ?? []
-        gradients = ((try? c.decode([Paint].self, forKey: .gradients)) ?? []).filter { $0.kind == "gradient" }
+        // One at a time, so a gradient that cannot be read — or is not one
+        // of two stops or more — is left out rather than losing the rest,
+        // as on the Android twin.
+        gradients = ((try? c.decode([Lossy<Paint>].self, forKey: .gradients)) ?? []).compactMap(\.value)
+            .filter { $0.kind == "gradient" && ($0.stops?.count ?? 0) >= GradientEditing.minStops }
     }
 
     /// Photos, graphics, templates and gradients only when there are some, so a kit

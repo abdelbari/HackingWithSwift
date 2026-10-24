@@ -25,6 +25,7 @@ final class LineEndsTests: XCTestCase {
             let kind = LineEnds.kind(cap)
             let label = "\(cap) \(t) \(scale) \(degrees)"
             XCTAssertEqual(kind.rawValue, cap)
+            XCTAssertEqual(LineEnds.pptxType(kind), row["pptx"] as? String, label)
             XCTAssertEqual(LineEnds.size(thickness: t, scale: scale), try XCTUnwrap(row["size"] as? Double), accuracy: 1e-9, label)
             XCTAssertEqual(LineEnds.back(kind, thickness: t, scale: scale), try XCTUnwrap(row["back"] as? Double), accuracy: 1e-9, label)
             let head = LineEnds.head(kind, tip: CGPoint(x: tip[0], y: tip[1]), angle: degrees * .pi / 180, thickness: t, scale: scale)
@@ -48,6 +49,31 @@ final class LineEndsTests: XCTestCase {
                 near(expected, center, label)
                 XCTAssertEqual(radius, expected[2], accuracy: 1e-4, label)
             }
+        }
+    }
+
+    /// The shared rows for PowerPoint's head size, capScale to the tenth,
+    /// and a head as SVG path data.
+    func testSizesStepsAndSVGPathsAreTheSharedRows() throws {
+        let fixture = try SharedFixture.object("line-ends")
+        for row in try XCTUnwrap(fixture["pptxSizes"] as? [[Any]]) {
+            let scale = try XCTUnwrap(row[0] as? Double)
+            XCTAssertEqual(LineEnds.pptxSize(scale), row[1] as? String, "\(scale)")
+        }
+        for row in try XCTUnwrap(fixture["scaleSteps"] as? [[Any]]) {
+            let scale = try XCTUnwrap(row[0] as? Double)
+            XCTAssertEqual(LineEnds.written(scale), row[1] as? Double, "\(scale)")
+        }
+        for row in try XCTUnwrap(fixture["svg"] as? [[String: Any]]) {
+            let cap = try XCTUnwrap(row["cap"] as? String)
+            let t = try XCTUnwrap(row["thickness"] as? Double)
+            let scale = try XCTUnwrap(row["capScale"] as? Double)
+            let tip = try XCTUnwrap(row["tip"] as? [Double])
+            let degrees = try XCTUnwrap(row["angle"] as? Double)
+            let head = try XCTUnwrap(LineEnds.head(LineEnds.kind(cap), tip: CGPoint(x: tip[0], y: tip[1]),
+                                                   angle: degrees * .pi / 180, thickness: t, scale: scale))
+            func at(_ p: CGPoint) -> String { "\(SVGExporter.num(Double(p.x))) \(SVGExporter.num(Double(p.y)))" }
+            XCTAssertEqual(LineEnds.svgData(head, at: at, number: SVGExporter.num), row["d"] as? String, cap)
         }
     }
 

@@ -358,13 +358,19 @@ enum ContentLibrary {
     }
 
     /// The shape a photo's `maskShapeId` clips it to: a library shape, a
-    /// letter or number frame (GlyphFrames), a mask frame ("mask:<id>",
-    /// MaskFrames) or a grid's cut cell ("gridclip:…", PhotoGrids); nil for
-    /// none, or an id this build does not have, which is no frame rather
-    /// than a wrong one.
+    /// letter or number frame (GlyphFrames) or a mask frame ("mask:<id>",
+    /// MaskFrames); nil for none, or an id this build does not have, which
+    /// is no frame rather than a wrong one.
     static func frameShape(_ id: String?) -> ShapeDef? {
         guard let id else { return nil }
-        return shapeMap[id] ?? GlyphFrames.shape(id) ?? MaskFrames.shape(id) ?? PhotoGrids.clipShape(id)
+        return shapeMap[id] ?? GlyphFrames.shape(id) ?? MaskFrames.shape(id)
+    }
+
+    /// The shape photo `el` is clipped to: its frame (`frameShape`), or
+    /// with none, a grid's cut cell's cut (PhotoGrids.clipShape(of:)), as
+    /// the Android twin's PhotoFrames.shapeOf.
+    static func frameShape(of el: Element) -> ShapeDef? {
+        frameShape(el.maskShapeId) ?? PhotoGrids.clipShape(of: el)
     }
 
     /// The geometry an element draws: its own path data if it has any,

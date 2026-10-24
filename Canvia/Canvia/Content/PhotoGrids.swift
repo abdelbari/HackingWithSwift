@@ -22,11 +22,13 @@
 //
 // A layout whose cells are cut — diagonal splits, a row of circles — has a
 // `clip` in the file: a polygon a cell in its own unit square, or null for
-// the whole cell. Its cells may overlap or leave gaps, it has no dividers
-// to drag, and each cut cell's frame is clipped through its maskShapeId,
-// "gridclip:<layout>:<cell>" (`clipId`), which ContentLibrary.frameShape
-// reads back as a shape, so every renderer and export cuts it, and a touch
-// finds the cell whose cut is under the finger (Geometry.hits).
+// the whole cell. Its cells may overlap or leave gaps, and it has no
+// dividers to drag. A cut cell's cut is read from its grid key — its
+// layout and cell — and never written, as on the Android twin: a cell with
+// a frame of its own (a maskShapeId) is clipped to that instead
+// (`clip(of:)`, ContentLibrary.frameShape(of:)), so every renderer and
+// export cuts it, and a touch finds the cell whose cut is under the finger
+// (Geometry.hits).
 
 import CoreGraphics
 import Foundation
@@ -130,37 +132,29 @@ enum PhotoGrids {
 
     // MARK: cut cells
 
-    /// What a cut cell's maskShapeId starts with.
-    static let clipPrefix = "gridclip:"
-
-    /// The maskShapeId of cell `index` of `layout`: "gridclip:<layout>:<cell>"
-    /// when the cell is cut, else nil.
-    static func clipId(_ layout: Layout, _ index: Int) -> String? {
-        guard layout.clips.indices.contains(index), layout.clips[index] != nil else { return nil }
-        return "\(clipPrefix)\(layout.id):\(index)"
+    /// The cut of grid cell `el`, from its grid key's layout and cell, in
+    /// its own unit square; nil for a photo that is not a cut cell, or one
+    /// with a frame of its own (a maskShapeId), which wins.
+    static func clip(of el: Element) -> [CGPoint]? {
+        guard el.type == .image, el.maskShapeId == nil, let grid = el.grid, let cut = layout(grid.layout),
+              cut.clips.indices.contains(grid.cell) else { return nil }
+        return cut.clips[grid.cell]
     }
 
-    /// The cut a "gridclip:" id names, in its cell's unit square.
-    static func clip(_ id: String?) -> [CGPoint]? {
-        guard let id, id.hasPrefix(clipPrefix) else { return nil }
-        let rest = id.dropFirst(clipPrefix.count)
-        guard let colon = rest.lastIndex(of: ":"), let index = Int(rest[rest.index(after: colon)...]),
-              let layout = layout(String(rest[..<colon])), layout.clips.indices.contains(index) else { return nil }
-        return layout.clips[index]
-    }
-
-    /// A cut cell's clip as a shape: its polygon in the 0…100 box.
-    static func clipShape(_ id: String?) -> ShapeDef? {
-        guard let id, let points = clip(id), let first = points.first else { return nil }
+    /// A cut cell's clip as a shape: its polygon in the 0…100 box, id
+    /// "grid:<layout>:<cell>" as the Android twin names it.
+    static func clipShape(of el: Element) -> ShapeDef? {
+        guard let points = clip(of: el), let first = points.first, let grid = el.grid else { return nil }
         func at(_ p: CGPoint) -> String { "\(SVGExporter.num(Double(p.x) * 100)) \(SVGExporter.num(Double(p.y) * 100))" }
         let d = "M" + at(first) + points.dropFirst().map { "L" + at($0) }.joined() + "Z"
-        return ShapeDef(id: id, name: "Cell", category: "Frames", path: d, rectLike: false, englishName: "cell")
+        return ShapeDef(id: "grid:\(grid.layout):\(grid.cell)", name: "Cell", category: "Frames", path: d,
+                        rectLike: false, englishName: "cell")
     }
 
-    /// Whether `point`, as a share of a cut cell's box (0…1 across and
-    /// down), is inside its cut; true for a cell that is not cut.
-    static func clipContains(_ id: String?, _ point: CGPoint) -> Bool {
-        guard let points = clip(id) else { return true }
+    /// Whether `point`, as a share of cell `el`'s box (0…1 across and
+    /// down), is inside its cut; true for a photo that is not a cut cell.
+    static func clipContains(_ el: Element, _ point: CGPoint) -> Bool {
+        guard let points = clip(of: el) else { return true }
         let path = CGMutablePath()
         path.addLines(between: points)
         path.closeSubpath()
@@ -213,7 +207,6 @@ enum PhotoGrids {
             el.h = (cell.height * innerH - top - bottom).rounded()
             el.group = group
             el.grid = GridCell(id: group, layout: layout.id, cell: index, gutter: gutter, margin: margin)
-            el.maskShapeId = clipId(layout, index)
             return el
         }
     }
@@ -465,7 +458,6 @@ enum PhotoGrids {
             blank.w = f.width
             blank.h = f.height
             blank.grid = GridCell(id: gridId, layout: to.id, cell: index, gutter: spacing, margin: first.margin)
-            blank.maskShapeId = clipId(to, index)
             return blank
         }
         let order = PhotoFrames.readingOrder(newCells).map(\.id)
@@ -487,8 +479,6 @@ enum PhotoGrids {
                 placed.groupTurn = turn
                 placed.rotation = 0
                 placed.grid = target.grid
-                // A cut cell's cut goes with the cell, not the picture.
-                if target.maskShapeId != nil || clip(picture.maskShapeId) != nil { placed.maskShapeId = target.maskShapeId }
                 newCells[at] = placed
             } else {
                 var free = picture
@@ -501,7 +491,6 @@ enum PhotoGrids {
                 free.groupTurn = outer.isEmpty ? nil : turn
                 free.rotation = 0
                 free.grid = nil
-                if clip(free.maskShapeId) != nil { free.maskShapeId = nil }
                 freed.append(free)
                 below += picture.h + spacing
             }

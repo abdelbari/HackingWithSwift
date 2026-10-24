@@ -277,7 +277,7 @@ final class SVGExporterTests: XCTestCase {
         let svg = markup(design(elements: [line]))
         XCTAssertTrue(svg.contains(
             "<line x1=\"16\" y1=\"24\" x2=\"308\" y2=\"24\" stroke=\"#1f2430\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-dasharray=\"12 8\"/>" +
-            "<path d=\"M22 24A6 6 0 1 0 10 24A6 6 0 1 0 22 24Z\" fill=\"#1f2430\"/>" +
+            "<path d=\"M22 24A6 6 0 1 1 10 24A6 6 0 1 1 22 24Z\" fill=\"#1f2430\"/>" +
             "<path d=\"M298 16.8L310 24L298 31.2\" fill=\"none\" stroke=\"#1f2430\" stroke-width=\"4\" " +
             "stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"), svg)
 
@@ -292,7 +292,7 @@ final class SVGExporterTests: XCTestCase {
             "<line x1=\"11\" y1=\"24\" x2=\"305\" y2=\"24\" stroke=\"#1f2430\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-dasharray=\"0 4.4\"/>" +
             "<path d=\"M20 30L10 24L20 18\" fill=\"none\" stroke=\"#1f2430\" stroke-width=\"2\" " +
             "stroke-linecap=\"round\" stroke-linejoin=\"round\"/>" +
-            "<path d=\"M310 24A5 5 0 1 0 300 24A5 5 0 1 0 310 24Z\" fill=\"#1f2430\"/>"), thinSVG)
+            "<path d=\"M310 24A5 5 0 1 1 300 24A5 5 0 1 1 310 24Z\" fill=\"#1f2430\"/>"), thinSVG)
     }
 
     @MainActor

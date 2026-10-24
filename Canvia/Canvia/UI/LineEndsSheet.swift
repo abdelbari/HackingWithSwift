@@ -88,9 +88,9 @@ struct LineEndsSheet: View {
             Slider(value: Binding(
                 get: { value },
                 set: { v in
-                    let held = (v * 20).rounded() / 20
+                    // To the tenth, as both phones write it (LineEnds.written).
                     store.updateSelectedTransient { e in
-                        if e.type == .line { e.capScale = LineEnds.written(held) }
+                        if e.type == .line { e.capScale = LineEnds.written(v) }
                     }
                 }
             ), in: LineEnds.scaleRange, onEditingChanged: { editing in

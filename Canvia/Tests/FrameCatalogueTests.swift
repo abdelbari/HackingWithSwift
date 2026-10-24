@@ -22,7 +22,7 @@ final class FrameCatalogueTests: XCTestCase {
         let masks = MaskFrames.all
         XCTAssertEqual(masks.count, 30)
         XCTAssertEqual(MaskFrames.categories, ["brush", "torn", "blob", "arch", "badge", "ticket"])
-        XCTAssertEqual(MaskFrames.categories.map { c in masks.filter { $0.category == c }.count }, [6, 4, 6, 4, 7, 3])
+        XCTAssertEqual(MaskFrames.categories.map { c in masks.filter { $0.category == c }.count }, [6, 5, 6, 4, 6, 3])
         XCTAssertEqual(Set(masks.map(\.id)).count, 30)
         for mask in masks {
             XCTAssertTrue(mask.id.hasPrefix("mask:"), mask.id)
@@ -33,8 +33,8 @@ final class FrameCatalogueTests: XCTestCase {
             XCTAssertTrue(numbers.allSatisfy { (0...100).contains($0) }, mask.id)
             XCTAssertFalse(SVGPath.path(mask.shape.path).boundingBoxOfPath.isEmpty, mask.id)
         }
-        XCTAssertEqual(MaskFrames.mask("mask:ring")?.fillRule, "evenodd")
-        XCTAssertEqual(MaskFrames.mask("mask:blob1")?.fillRule, "nonzero")
+        XCTAssertEqual(masks.filter { $0.fillRule == "evenodd" }.map(\.id), ["mask:badge-ring"])
+        XCTAssertEqual(MaskFrames.mask("mask:blob-pebble")?.fillRule, "nonzero")
         // The file's raw entries keep the unit square.
         let raw = try XCTUnwrap(PhotoGrids.file.photoMasks?.first?.path)
         XCTAssertTrue(raw.hasPrefix("M0."), raw)
@@ -54,50 +54,56 @@ final class FrameCatalogueTests: XCTestCase {
         XCTAssertEqual(read[0].shape.path, "M0 0L100 0L100 100Z")
         XCTAssertEqual(MaskFrames.filter(read, category: "torn", query: "").map(\.id), ["mask:d"])
         XCTAssertEqual(MaskFrames.filter(MaskFrames.all, category: nil, query: "TICKET").map(\.id),
-                       ["mask:ticket", "mask:stampEdge", "mask:ticketStub"], "by category or name")
-        XCTAssertEqual(MaskFrames.filter(MaskFrames.all, category: "badge", query: "ring").map(\.id), ["mask:ring"])
+                       ["mask:ticket-notched", "mask:ticket-corners", "mask:ticket-coupon"], "by category or name")
+        XCTAssertEqual(MaskFrames.filter(MaskFrames.all, category: "badge", query: "ring").map(\.id), ["mask:badge-ring"])
     }
 
     func testAMaskFrameIsAFrameThatTakesADropAndADetach() throws {
-        let mask = try XCTUnwrap(MaskFrames.mask("mask:blob2"))
+        let mask = try XCTUnwrap(MaskFrames.mask("mask:blob-cloud"))
         let frame = MaskFrames.element(mask, page: CGSize(width: 1080, height: 1920))
         XCTAssertEqual([frame.x, frame.y, frame.w, frame.h], [270, 690, 540, 540])
-        XCTAssertEqual(frame.maskShapeId, "mask:blob2")
+        XCTAssertEqual(frame.maskShapeId, "mask:blob-cloud")
         XCTAssertTrue(PhotoFrames.isEmpty(frame))
         XCTAssertTrue(PhotoFrames.isFrameLike(frame, among: [frame]))
         let free = photo("media:x", x: 2000)
         let dropped = try XCTUnwrap(PhotoFrames.dropped([frame, free], dragged: free.id, onto: frame.id, home: .zero))
         let filled = try XCTUnwrap(dropped.first { $0.id == frame.id })
         XCTAssertEqual(filled.src, "media:x")
-        XCTAssertEqual(filled.maskShapeId, "mask:blob2")
+        XCTAssertEqual(filled.maskShapeId, "mask:blob-cloud")
         let detached = try XCTUnwrap(PhotoFrames.detached(dropped, id: frame.id))
         XCTAssertEqual(detached.count, 2)
         XCTAssertNil(detached[1].maskShapeId)
         // Written as the frame's own key, as every frame's is.
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(frame)) as? [String: Any])
-        XCTAssertEqual(json["maskShapeId"] as? String, "mask:blob2")
-        XCTAssertEqual(ElementNames.name(of: frame), tr("Empty %@ frame", tr("Blob 2")))
+        XCTAssertEqual(json["maskShapeId"] as? String, "mask:blob-cloud")
+        XCTAssertEqual(ElementNames.name(of: frame), tr("Empty %@ frame", tr("Cloud blob")))
     }
 
     // MARK: grids
 
     func testCutGridsCarryAClipACellAndNoDividers() throws {
         let cut = PhotoGrids.layouts.filter(\.isCut).map(\.id)
-        XCTAssertEqual(cut, ["diagonalTwo", "diagonalTwoOther", "diagonalThree", "slantThree", "diagonalFour", "circlesThree"])
+        XCTAssertEqual(cut, ["threeCircles", "diagonalTwo", "diagonalTwoBack", "slantedTwo", "slantedThree", "diagonalFour"])
         let two = try XCTUnwrap(PhotoGrids.layout("diagonalTwo"))
         XCTAssertEqual(two.cells, [CGRect(x: 0, y: 0, width: 1, height: 1), CGRect(x: 0, y: 0, width: 1, height: 1)])
-        XCTAssertEqual(two.clips[0], [CGPoint(x: 0, y: 0), CGPoint(x: 0.98, y: 0), CGPoint(x: 0, y: 0.98)])
+        XCTAssertEqual(two.clips[0], [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 0), CGPoint(x: 0, y: 1)])
         XCTAssertEqual(PhotoGrids.dividers(two, splits: nil), [])
-        XCTAssertEqual(PhotoGrids.dividers(try XCTUnwrap(PhotoGrids.layout("circlesThree")), splits: nil), [])
+        XCTAssertEqual(PhotoGrids.dividers(try XCTUnwrap(PhotoGrids.layout("slantedTwo")), splits: nil), [])
         XCTAssertFalse(try XCTUnwrap(PhotoGrids.layout("brick")).isCut)
 
+        // The cut is read from the cell's grid key and never written, as on
+        // the Android twin; a frame of the cell's own wins over it.
         let cells = PhotoGrids.elements(for: two, width: 1000, height: 1000, margin: 40, gutter: 20)
-        XCTAssertEqual(cells.map(\.maskShapeId), ["gridclip:diagonalTwo:0", "gridclip:diagonalTwo:1"])
-        XCTAssertEqual(PhotoGrids.clipShape(cells[0].maskShapeId)?.path, "M0 0L98 0L0 98Z")
-        XCTAssertNotNil(ContentLibrary.frameShape(cells[1].maskShapeId))
-        XCTAssertNil(PhotoGrids.clip("gridclip:diagonalTwo:7"))
-        XCTAssertNil(PhotoGrids.clip("gridclip:nine:0"), "a cell that is not cut has no clip")
-        XCTAssertNil(PhotoGrids.clipId(try XCTUnwrap(PhotoGrids.layout("nine")), 0))
+        XCTAssertEqual(cells.map(\.maskShapeId), [nil, nil])
+        XCTAssertEqual(PhotoGrids.clipShape(of: cells[0])?.path, "M0 0L100 0L0 100Z")
+        XCTAssertEqual(ContentLibrary.frameShape(of: cells[1])?.path, "M100 0L100 100L0 100Z")
+        XCTAssertEqual(ContentLibrary.frameShape(of: cells[1])?.id, "grid:diagonalTwo:1")
+        var framed = cells[0]
+        framed.maskShapeId = "circle"
+        XCTAssertNil(PhotoGrids.clip(of: framed))
+        XCTAssertEqual(ContentLibrary.frameShape(of: framed)?.id, "circle")
+        let nine = PhotoGrids.elements(for: try XCTUnwrap(PhotoGrids.layout("nine")), width: 1000, height: 1000, margin: 40, gutter: 20)
+        XCTAssertNil(PhotoGrids.clip(of: nine[0]), "a cell that is not cut has no clip")
         XCTAssertEqual(ElementNames.name(of: cells[0]), tr("Empty photo frame"))
 
         // The cell under the finger is the one whose cut is there: the top
@@ -115,19 +121,19 @@ final class FrameCatalogueTests: XCTestCase {
         cells[1].src = "media:b"
         let cut = try XCTUnwrap(PhotoGrids.layout("diagonalTwo"))
         let moved = PhotoGrids.relayout(cells, to: cut)
-        XCTAssertEqual(moved.prefix(2).map(\.maskShapeId), ["gridclip:diagonalTwo:0", "gridclip:diagonalTwo:1"])
+        XCTAssertTrue(moved.prefix(2).allSatisfy { $0.maskShapeId == nil && PhotoGrids.clip(of: $0) != nil })
         XCTAssertEqual(moved.prefix(2).compactMap(\.src).sorted(), ["media:a", "media:b"])
         let back = PhotoGrids.relayout(Array(moved.prefix(2)), to: four)
-        XCTAssertTrue(back.allSatisfy { $0.maskShapeId == nil }, "out of a cut layout, no cut left")
+        XCTAssertTrue(back.allSatisfy { PhotoGrids.clip(of: $0) == nil }, "out of a cut layout, no cut left")
     }
 
     func testTheNewMosaicsTileTheirArea() throws {
-        for id in ["mosaic5", "mosaic6", "mosaic7", "mosaic9", "brick", "brickSix"] {
+        for id in ["mosaicFiveBig", "mosaicSix", "mosaicSeven", "mosaicNine", "brick", "brickWall"] {
             let layout = try XCTUnwrap(PhotoGrids.layout(id), id)
             let area = layout.cells.reduce(0.0) { $0 + Double($1.width * $1.height) }
             XCTAssertEqual(area, 1, accuracy: 1e-9, id)
             XCTAssertTrue(layout.clips.isEmpty, id)
         }
-        XCTAssertEqual(try XCTUnwrap(PhotoGrids.layout("mosaic9")).cells.count, 9)
+        XCTAssertEqual(try XCTUnwrap(PhotoGrids.layout("mosaicNine")).cells.count, 9)
     }
 }

@@ -620,6 +620,15 @@
     "ja": "長さ %@",
     "pt-BR": "%@ de duração"
   },
+  "%@ mask frame": {
+    "ar": "إطار قناع %@",
+    "de": "Maskenrahmen %@",
+    "es": "Marco de máscara %@",
+    "fr": "Cadre masque %@",
+    "it": "Cornice maschera %@",
+    "ja": "%@ マスクフレーム",
+    "pt-BR": "Moldura de máscara %@"
+  },
   "%@ mockup": {
     "ar": "نموذج عرض %@",
     "de": "Mockup von %@",
@@ -1033,6 +1042,15 @@
     "it": "%@ · %@",
     "ja": "%@ · %@",
     "pt-BR": "%@ · %@"
+  },
+  "%@ · %d bpm": {
+    "ar": "%@ · %d نبضة/دقيقة",
+    "de": "%@ · %d BPM",
+    "es": "%@ · %d bpm",
+    "fr": "%@ · %d bpm",
+    "it": "%@ · %d bpm",
+    "ja": "%@ · %d BPM",
+    "pt-BR": "%@ · %d bpm"
   },
   "%@ · Page %d of %d": {
     "ar": "%@ · الصفحة %d من %d",
@@ -1861,15 +1879,6 @@
     "it": "%d / %d",
     "ja": "%d / %d",
     "pt-BR": "%d / %d"
-  },
-  "%d BPM": {
-    "ar": "%d نبضة/دقيقة",
-    "de": "%d BPM",
-    "es": "%d BPM",
-    "fr": "%d BPM",
-    "it": "%d BPM",
-    "ja": "%d BPM",
-    "pt-BR": "%d BPM"
   },
   "%d SmartArt|%d SmartArt": {
     "ar": {
@@ -3920,6 +3929,15 @@
     "ja": "%d%% — 約 %@。PNG と PDF は可逆圧縮のため、この設定は無視されます。",
     "pt-BR": "%d%% — cerca de %@. PNG e PDF não têm perda e ignoram isto."
   },
+  "%d°": {
+    "ar": "%d°",
+    "de": "%d°",
+    "es": "%d°",
+    "fr": "%d°",
+    "it": "%d°",
+    "ja": "%d°",
+    "pt-BR": "%d°"
+  },
   "+ Column": {
     "ar": "+ عمود",
     "de": "+ Spalte",
@@ -4029,21 +4047,21 @@
     "pt-BR": "2 por 3"
   },
   "2 diagonal": {
-    "ar": "2 قطري",
+    "ar": "2 قطريًا",
     "de": "2 diagonal",
     "es": "2 en diagonal",
     "fr": "2 en diagonale",
     "it": "2 in diagonale",
-    "ja": "斜め 2 分割",
+    "ja": "2 分割（斜め）",
     "pt-BR": "2 na diagonal"
   },
-  "2 diagonal, other way": {
-    "ar": "2 قطري، بالاتجاه الآخر",
+  "2 diagonal, the other way": {
+    "ar": "2 قطريًا بالاتجاه الآخر",
     "de": "2 diagonal, andersherum",
     "es": "2 en diagonal, al revés",
-    "fr": "2 en diagonale, dans l’autre sens",
+    "fr": "2 en diagonale, dans l'autre sens",
     "it": "2 in diagonale, al contrario",
-    "ja": "斜め 2 分割（逆向き）",
+    "ja": "2 分割（逆の斜め）",
     "pt-BR": "2 na diagonal, ao contrário"
   },
   "2 left, 1 right": {
@@ -4072,6 +4090,15 @@
     "it": "2 sopra 3",
     "ja": "上2・下3",
     "pt-BR": "2 sobre 3"
+  },
+  "2 slanted": {
+    "ar": "2 مائلان",
+    "de": "2 schräg",
+    "es": "2 inclinados",
+    "fr": "2 inclinés",
+    "it": "2 inclinati",
+    "ja": "2 分割（傾き）",
+    "pt-BR": "2 inclinados"
   },
   "2 stacked": {
     "ar": "2 رأسيًا",
@@ -4124,26 +4151,17 @@
     "es": "3 círculos",
     "fr": "3 cercles",
     "it": "3 cerchi",
-    "ja": "円 3 つ",
+    "ja": "3 つの円",
     "pt-BR": "3 círculos"
-  },
-  "3 diagonal": {
-    "ar": "3 قطري",
-    "de": "3 diagonal",
-    "es": "3 en diagonal",
-    "fr": "3 en diagonale",
-    "it": "3 in diagonale",
-    "ja": "斜め 3 分割",
-    "pt-BR": "3 na diagonal"
   },
   "3 slanted": {
     "ar": "3 مائلة",
     "de": "3 schräg",
-    "es": "3 inclinadas",
-    "fr": "3 inclinées",
-    "it": "3 inclinate",
-    "ja": "傾き 3 分割",
-    "pt-BR": "3 inclinadas"
+    "es": "3 inclinados",
+    "fr": "3 inclinés",
+    "it": "3 inclinati",
+    "ja": "3 分割（傾き）",
+    "pt-BR": "3 inclinados"
   },
   "3 stacked": {
     "ar": "3 رأسيًا",
@@ -4172,6 +4190,15 @@
     "ja": "横に4枚",
     "pt-BR": "4 lado a lado"
   },
+  "4 diagonal": {
+    "ar": "4 قطريًا",
+    "de": "4 diagonal",
+    "es": "4 en diagonal",
+    "fr": "4 en diagonale",
+    "it": "4 in diagonale",
+    "ja": "4 分割（斜め）",
+    "pt-BR": "4 na diagonal"
+  },
   "4 stacked": {
     "ar": "4 رأسيًا",
     "de": "4 übereinander",
@@ -4181,15 +4208,6 @@
     "ja": "縦に4枚",
     "pt-BR": "4 empilhadas"
   },
-  "4 triangles": {
-    "ar": "4 مثلثات",
-    "de": "4 Dreiecke",
-    "es": "4 triángulos",
-    "fr": "4 triangles",
-    "it": "4 triangoli",
-    "ja": "三角形 4 つ",
-    "pt-BR": "4 triângulos"
-  },
   "40 to 8000 px": {
     "ar": "من 40 إلى 8000 بكسل",
     "de": "40 bis 8000 px",
@@ -4198,6 +4216,42 @@
     "it": "Da 40 a 8000 px",
     "ja": "40～8000 px",
     "pt-BR": "De 40 a 8000 px"
+  },
+  "5 mosaic": {
+    "ar": "فسيفساء من 5",
+    "de": "Mosaik aus 5",
+    "es": "Mosaico de 5",
+    "fr": "Mosaïque de 5",
+    "it": "Mosaico da 5",
+    "ja": "5 枚モザイク",
+    "pt-BR": "Mosaico de 5"
+  },
+  "6 mosaic": {
+    "ar": "فسيفساء من 6",
+    "de": "Mosaik aus 6",
+    "es": "Mosaico de 6",
+    "fr": "Mosaïque de 6",
+    "it": "Mosaico da 6",
+    "ja": "6 枚モザイク",
+    "pt-BR": "Mosaico de 6"
+  },
+  "7 mosaic": {
+    "ar": "فسيفساء من 7",
+    "de": "Mosaik aus 7",
+    "es": "Mosaico de 7",
+    "fr": "Mosaïque de 7",
+    "it": "Mosaico da 7",
+    "ja": "7 枚モザイク",
+    "pt-BR": "Mosaico de 7"
+  },
+  "9 mosaic": {
+    "ar": "فسيفساء من 9",
+    "de": "Mosaik aus 9",
+    "es": "Mosaico de 9",
+    "fr": "Mosaïque de 9",
+    "it": "Mosaico da 9",
+    "ja": "9 枚モザイク",
+    "pt-BR": "Mosaico de 9"
   },
   "A QR code is used whole, so it can't be cropped.": {
     "ar": "يُستخدم رمز QR كاملًا، لذا لا يمكن اقتصاصه.",
@@ -4786,11 +4840,11 @@
   },
   "Add a stop": {
     "ar": "إضافة نقطة لون",
-    "de": "Farbpunkt hinzufügen",
+    "de": "Farbstopp hinzufügen",
     "es": "Añadir una parada",
     "fr": "Ajouter un point",
     "it": "Aggiungi un punto",
-    "ja": "色の位置を追加",
+    "ja": "カラー停止点を追加",
     "pt-BR": "Adicionar uma parada"
   },
   "Add a subheading": {
@@ -5380,6 +5434,15 @@
     "it": "Regola gli angoli",
     "ja": "角を調整",
     "pt-BR": "Ajustar os cantos"
+  },
+  "Admit one": {
+    "ar": "تذكرة دخول",
+    "de": "Eintrittskarte",
+    "es": "Entrada individual",
+    "fr": "Entrée unique",
+    "it": "Ingresso singolo",
+    "ja": "入場券",
+    "pt-BR": "Entrada individual"
   },
   "AirPrint, on the paper layout below": {
     "ar": "AirPrint، بتخطيط الورق أدناه",
@@ -6014,15 +6077,6 @@
     "ja": "アーチ",
     "pt-BR": "Arco"
   },
-  "Arched window": {
-    "ar": "نافذة مقوسة",
-    "de": "Bogenfenster",
-    "es": "Ventana en arco",
-    "fr": "Fenêtre cintrée",
-    "it": "Finestra ad arco",
-    "ja": "アーチ窓",
-    "pt-BR": "Janela em arco"
-  },
   "Arches": {
     "ar": "أقواس",
     "de": "Bögen",
@@ -6533,6 +6587,15 @@
     "ja": "基本図形",
     "pt-BR": "Formas básicas"
   },
+  "Bean": {
+    "ar": "حبة فاصولياء",
+    "de": "Bohne",
+    "es": "Judía",
+    "fr": "Haricot",
+    "it": "Fagiolo",
+    "ja": "豆",
+    "pt-BR": "Feijão"
+  },
   "Bean Blob": {
     "ar": "فقاعة حبة الفول",
     "de": "Bohnenklecks",
@@ -6686,60 +6749,6 @@
     "ja": "ブリス",
     "pt-BR": "Felicidade"
   },
-  "Blob 1": {
-    "ar": "بقعة 1",
-    "de": "Klecks 1",
-    "es": "Mancha 1",
-    "fr": "Tache 1",
-    "it": "Macchia 1",
-    "ja": "ブロブ 1",
-    "pt-BR": "Mancha 1"
-  },
-  "Blob 2": {
-    "ar": "بقعة 2",
-    "de": "Klecks 2",
-    "es": "Mancha 2",
-    "fr": "Tache 2",
-    "it": "Macchia 2",
-    "ja": "ブロブ 2",
-    "pt-BR": "Mancha 2"
-  },
-  "Blob 3": {
-    "ar": "بقعة 3",
-    "de": "Klecks 3",
-    "es": "Mancha 3",
-    "fr": "Tache 3",
-    "it": "Macchia 3",
-    "ja": "ブロブ 3",
-    "pt-BR": "Mancha 3"
-  },
-  "Blob 4": {
-    "ar": "بقعة 4",
-    "de": "Klecks 4",
-    "es": "Mancha 4",
-    "fr": "Tache 4",
-    "it": "Macchia 4",
-    "ja": "ブロブ 4",
-    "pt-BR": "Mancha 4"
-  },
-  "Blob 5": {
-    "ar": "بقعة 5",
-    "de": "Klecks 5",
-    "es": "Mancha 5",
-    "fr": "Tache 5",
-    "it": "Macchia 5",
-    "ja": "ブロブ 5",
-    "pt-BR": "Mancha 5"
-  },
-  "Blob 6": {
-    "ar": "بقعة 6",
-    "de": "Klecks 6",
-    "es": "Mancha 6",
-    "fr": "Tache 6",
-    "it": "Macchia 6",
-    "ja": "ブロブ 6",
-    "pt-BR": "Mancha 6"
-  },
   "Blobs": {
     "ar": "فقاعات",
     "de": "Kleckse",
@@ -6811,6 +6820,15 @@
     "it": "Grassetto",
     "ja": "太字",
     "pt-BR": "Negrito"
+  },
+  "Bold brush": {
+    "ar": "فرشاة عريضة",
+    "de": "Kräftiger Pinsel",
+    "es": "Pincel grueso",
+    "fr": "Pinceau épais",
+    "it": "Pennellata decisa",
+    "ja": "太いブラシ",
+    "pt-BR": "Pincel grosso"
   },
   "Bold or italic words inside a text": {
     "ar": "كلمات غامقة أو مائلة داخل نص",
@@ -7181,6 +7199,15 @@
     "ja": "ブリーズ",
     "pt-BR": "Respirar"
   },
+  "Brick wall": {
+    "ar": "جدار من الطوب",
+    "de": "Ziegelmauer",
+    "es": "Pared de ladrillos",
+    "fr": "Mur de briques",
+    "it": "Muro di mattoni",
+    "ja": "レンガの壁",
+    "pt-BR": "Parede de tijolos"
+  },
   "Bright colours will print duller": {
     "ar": "ستُطبع الألوان الزاهية أبهت",
     "de": "Leuchtende Farben werden matter gedruckt",
@@ -7358,59 +7385,23 @@
     "ja": "ブラシのサイズ %d",
     "pt-BR": "Tamanho do pincel %d"
   },
-  "Brush stroke 1": {
-    "ar": "ضربة فرشاة 1",
-    "de": "Pinselstrich 1",
-    "es": "Pincelada 1",
-    "fr": "Coup de pinceau 1",
-    "it": "Pennellata 1",
-    "ja": "ブラシストローク 1",
-    "pt-BR": "Pincelada 1"
+  "Brush swash": {
+    "ar": "ضربة فرشاة",
+    "de": "Pinselschwung",
+    "es": "Trazo de pincel",
+    "fr": "Coup de pinceau",
+    "it": "Pennellata",
+    "ja": "ブラシのストローク",
+    "pt-BR": "Pincelada"
   },
-  "Brush stroke 2": {
-    "ar": "ضربة فرشاة 2",
-    "de": "Pinselstrich 2",
-    "es": "Pincelada 2",
-    "fr": "Coup de pinceau 2",
-    "it": "Pennellata 2",
-    "ja": "ブラシストローク 2",
-    "pt-BR": "Pincelada 2"
-  },
-  "Brush stroke 3": {
-    "ar": "ضربة فرشاة 3",
-    "de": "Pinselstrich 3",
-    "es": "Pincelada 3",
-    "fr": "Coup de pinceau 3",
-    "it": "Pennellata 3",
-    "ja": "ブラシストローク 3",
-    "pt-BR": "Pincelada 3"
-  },
-  "Brush stroke 4": {
-    "ar": "ضربة فرشاة 4",
-    "de": "Pinselstrich 4",
-    "es": "Pincelada 4",
-    "fr": "Coup de pinceau 4",
-    "it": "Pennellata 4",
-    "ja": "ブラシストローク 4",
-    "pt-BR": "Pincelada 4"
-  },
-  "Brush stroke 5": {
-    "ar": "ضربة فرشاة 5",
-    "de": "Pinselstrich 5",
-    "es": "Pincelada 5",
-    "fr": "Coup de pinceau 5",
-    "it": "Pennellata 5",
-    "ja": "ブラシストローク 5",
-    "pt-BR": "Pincelada 5"
-  },
-  "Brush stroke 6": {
-    "ar": "ضربة فرشاة 6",
-    "de": "Pinselstrich 6",
-    "es": "Pincelada 6",
-    "fr": "Coup de pinceau 6",
-    "it": "Pennellata 6",
-    "ja": "ブラシストローク 6",
-    "pt-BR": "Pincelada 6"
+  "Brush wave": {
+    "ar": "فرشاة متموجة",
+    "de": "Pinselwelle",
+    "es": "Pincelada ondulada",
+    "fr": "Pinceau ondulé",
+    "it": "Pennellata ondulata",
+    "ja": "波のブラシ",
+    "pt-BR": "Pincelada ondulada"
   },
   "Bubble": {
     "ar": "فقاعات",
@@ -7521,13 +7512,13 @@
     "pt-BR": "Destaques"
   },
   "Calm": {
-    "ar": "هادئة",
+    "ar": "هادئ",
     "de": "Ruhig",
-    "es": "Tranquila",
+    "es": "Tranquilo",
     "fr": "Calme",
-    "it": "Calma",
+    "it": "Calmo",
     "ja": "穏やか",
-    "pt-BR": "Calma"
+    "pt-BR": "Calmo"
   },
   "Camera": {
     "ar": "الكاميرا",
@@ -7886,6 +7877,15 @@
       "other": "Alterar todos, mais %d elementos em %@"
     }
   },
+  "Change colour": {
+    "ar": "تغيير اللون",
+    "de": "Farbe ändern",
+    "es": "Cambiar color",
+    "fr": "Changer la couleur",
+    "it": "Cambia colore",
+    "ja": "色を変更",
+    "pt-BR": "Mudar cor"
+  },
   "Change shape": {
     "ar": "تغيير الشكل",
     "de": "Form ändern",
@@ -8127,11 +8127,11 @@
     "pt-BR": "Divisa"
   },
   "Chill": {
-    "ar": "مريحة",
+    "ar": "استرخاء",
     "de": "Entspannt",
-    "es": "Relajada",
+    "es": "Relajado",
     "fr": "Détente",
-    "it": "Rilassata",
+    "it": "Rilassato",
     "ja": "チル",
     "pt-BR": "Relaxante"
   },
@@ -8404,6 +8404,15 @@
     "it": "Chiudi la griglia delle pagine",
     "ja": "ページグリッドを閉じる",
     "pt-BR": "Fechar a grade de páginas"
+  },
+  "Cloud blob": {
+    "ar": "سحابة",
+    "de": "Wolke",
+    "es": "Nube",
+    "fr": "Nuage",
+    "it": "Nuvola",
+    "ja": "雲形",
+    "pt-BR": "Nuvem"
   },
   "Coastal": {
     "ar": "ساحلي",
@@ -9105,13 +9114,13 @@
     "pt-BR": "Cantos %d"
   },
   "Corporate": {
-    "ar": "مؤسسية",
+    "ar": "مؤسسي",
     "de": "Business",
-    "es": "Corporativa",
+    "es": "Corporativo",
     "fr": "Entreprise",
     "it": "Aziendale",
     "ja": "コーポレート",
-    "pt-BR": "Corporativa"
+    "pt-BR": "Corporativo"
   },
   "Couldn't add every photo picked.": {
     "ar": "تعذّرت إضافة كل الصور المختارة.",
@@ -9617,6 +9626,15 @@
     "ja": "テンプレートを更新できませんでした",
     "pt-BR": "Não foi possível atualizar o modelo"
   },
+  "Coupon": {
+    "ar": "قسيمة",
+    "de": "Gutschein",
+    "es": "Cupón",
+    "fr": "Coupon",
+    "it": "Coupon",
+    "ja": "クーポン",
+    "pt-BR": "Cupom"
+  },
   "Create": {
     "ar": "إنشاء",
     "de": "Erstellen",
@@ -9807,7 +9825,7 @@
     "pt-BR": "Cor personalizada"
   },
   "Custom gradient": {
-    "ar": "تدرّج مخصص",
+    "ar": "تدرج مخصص",
     "de": "Eigener Verlauf",
     "es": "Degradado personalizado",
     "fr": "Dégradé personnalisé",
@@ -10046,14 +10064,14 @@
     "ja": "小数点以下の桁数",
     "pt-BR": "Casas decimais"
   },
-  "Deckled edges": {
-    "ar": "حواف خشنة",
-    "de": "Büttenränder",
-    "es": "Bordes irregulares",
-    "fr": "Bords frangés",
-    "it": "Bordi sfrangiati",
+  "Deckled edge": {
+    "ar": "حافة مخرّمة",
+    "de": "Büttenrand",
+    "es": "Borde barbado",
+    "fr": "Bord frangé",
+    "it": "Bordo sfrangiato",
     "ja": "耳付きの縁",
-    "pt-BR": "Bordas irregulares"
+    "pt-BR": "Borda irregular"
   },
   "Decor": {
     "ar": "زخارف",
@@ -10775,6 +10793,15 @@
     "ja": "デバイス",
     "pt-BR": "Dispositivos"
   },
+  "Diagonal brush": {
+    "ar": "فرشاة قطرية",
+    "de": "Diagonaler Pinsel",
+    "es": "Pincel en diagonal",
+    "fr": "Pinceau en diagonale",
+    "it": "Pennellata diagonale",
+    "ja": "斜めのブラシ",
+    "pt-BR": "Pincel diagonal"
+  },
   "Diamond": {
     "ar": "معيّن",
     "de": "Raute",
@@ -11103,9 +11130,9 @@
     "ar": "قوس مزدوج",
     "de": "Doppelbogen",
     "es": "Arco doble",
-    "fr": "Double arche",
-    "it": "Arco doppio",
-    "ja": "ダブルアーチ",
+    "fr": "Double arc",
+    "it": "Doppio arco",
+    "ja": "二連アーチ",
     "pt-BR": "Arco duplo"
   },
   "Double arrow": {
@@ -11119,11 +11146,11 @@
   },
   "Double border": {
     "ar": "إطار مزدوج",
-    "de": "Doppelter Rand",
+    "de": "Doppelrahmen",
     "es": "Borde doble",
     "fr": "Double bordure",
-    "it": "Bordo doppio",
-    "ja": "二重の枠",
+    "it": "Doppio bordo",
+    "ja": "二重枠",
     "pt-BR": "Borda dupla"
   },
   "Double tap to select": {
@@ -11512,6 +11539,15 @@
     "it": "Rilasciato. Immagini, testo e link da altre app si possono trascinare direttamente nella pagina.",
     "ja": "配置しました。他のアプリから画像、テキスト、リンクを直接ページにドラッグできます。",
     "pt-BR": "Solto no lugar. Imagens, texto e links de outros apps podem ser arrastados direto para a página."
+  },
+  "Dry brush": {
+    "ar": "فرشاة جافة",
+    "de": "Trockener Pinsel",
+    "es": "Pincel seco",
+    "fr": "Pinceau sec",
+    "it": "Pennello secco",
+    "ja": "ドライブラシ",
+    "pt-BR": "Pincel seco"
   },
   "Duotone": {
     "ar": "ثنائي اللون",
@@ -12198,8 +12234,8 @@
     "pt-BR": "Encerrar apresentação"
   },
   "End size": {
-    "ar": "حجم الطرفين",
-    "de": "Größe der Enden",
+    "ar": "حجم الأطراف",
+    "de": "Endengröße",
     "es": "Tamaño de los extremos",
     "fr": "Taille des extrémités",
     "it": "Dimensione estremità",
@@ -13352,15 +13388,6 @@
     "ja": "上下反転",
     "pt-BR": "Espelhar na vertical"
   },
-  "Flower": {
-    "ar": "زهرة",
-    "de": "Blume",
-    "es": "Flor",
-    "fr": "Fleur",
-    "it": "Fiore",
-    "ja": "花",
-    "pt-BR": "Flor"
-  },
   "Focus": {
     "ar": "التركيز",
     "de": "Fokus",
@@ -13631,6 +13658,15 @@
     "ja": "フレーム",
     "pt-BR": "Molduras"
   },
+  "Frames and grids": {
+    "ar": "الإطارات والشبكات",
+    "de": "Rahmen und Raster",
+    "es": "Marcos y cuadrículas",
+    "fr": "Cadres et grilles",
+    "it": "Cornici e griglie",
+    "ja": "フレームとグリッド",
+    "pt-BR": "Molduras e grades"
+  },
   "Free": {
     "ar": "حر",
     "de": "Frei",
@@ -13774,15 +13810,6 @@
     "it": "Imbuto",
     "ja": "ファネル",
     "pt-BR": "Funil"
-  },
-  "Gallery frame": {
-    "ar": "إطار معرض",
-    "de": "Galerierahmen",
-    "es": "Marco de galería",
-    "fr": "Cadre de galerie",
-    "it": "Cornice da galleria",
-    "ja": "ギャラリーフレーム",
-    "pt-BR": "Moldura de galeria"
   },
   "Gap %@": {
     "ar": "المسافة %@",
@@ -14250,11 +14277,11 @@
     "pt-BR": "A escrita à mão virou texto — Desfazer mantém os traços"
   },
   "Happy": {
-    "ar": "مبهجة",
+    "ar": "مبهج",
     "de": "Fröhlich",
     "es": "Alegre",
-    "fr": "Joyeuse",
-    "it": "Allegra",
+    "fr": "Joyeux",
+    "it": "Allegro",
     "ja": "ハッピー",
     "pt-BR": "Alegre"
   },
@@ -15184,7 +15211,7 @@
   },
   "Instant square": {
     "ar": "صورة فورية مربعة",
-    "de": "Sofortbild quadratisch",
+    "de": "Quadratisches Sofortbild",
     "es": "Instantánea cuadrada",
     "fr": "Instantané carré",
     "it": "Istantanea quadrata",
@@ -17252,42 +17279,6 @@
     "ja": "その他のサイズ",
     "pt-BR": "Mais tamanhos"
   },
-  "Mosaic of 5": {
-    "ar": "فسيفساء من 5",
-    "de": "Mosaik aus 5",
-    "es": "Mosaico de 5",
-    "fr": "Mosaïque de 5",
-    "it": "Mosaico da 5",
-    "ja": "5 枚のモザイク",
-    "pt-BR": "Mosaico de 5"
-  },
-  "Mosaic of 6": {
-    "ar": "فسيفساء من 6",
-    "de": "Mosaik aus 6",
-    "es": "Mosaico de 6",
-    "fr": "Mosaïque de 6",
-    "it": "Mosaico da 6",
-    "ja": "6 枚のモザイク",
-    "pt-BR": "Mosaico de 6"
-  },
-  "Mosaic of 7": {
-    "ar": "فسيفساء من 7",
-    "de": "Mosaik aus 7",
-    "es": "Mosaico de 7",
-    "fr": "Mosaïque de 7",
-    "it": "Mosaico da 7",
-    "ja": "7 枚のモザイク",
-    "pt-BR": "Mosaico de 7"
-  },
-  "Mosaic of 9": {
-    "ar": "فسيفساء من 9",
-    "de": "Mosaik aus 9",
-    "es": "Mosaico de 9",
-    "fr": "Mosaïque de 9",
-    "it": "Mosaico da 9",
-    "ja": "9 枚のモザイク",
-    "pt-BR": "Mosaico de 9"
-  },
   "Most pages": {
     "ar": "معظم الصفحات",
     "de": "Die meisten Seiten",
@@ -18353,6 +18344,15 @@
     "ja": "フレームなし",
     "pt-BR": "Sem moldura"
   },
+  "No frames match “%@”": {
+    "ar": "لا توجد إطارات تطابق «%@»",
+    "de": "Keine Rahmen passen zu „%@“",
+    "es": "Ningún marco coincide con “%@”",
+    "fr": "Aucun cadre ne correspond à « %@ »",
+    "it": "Nessuna cornice corrisponde a “%@”",
+    "ja": "「%@」に一致するフレームはありません",
+    "pt-BR": "Nenhuma moldura corresponde a “%@”"
+  },
   "No grid": {
     "ar": "بلا شبكة",
     "de": "Kein Raster",
@@ -19358,17 +19358,8 @@
     "es": "Ladrillo desplazado",
     "fr": "Briques décalées",
     "it": "Mattoni sfalsati",
-    "ja": "レンガ積み",
-    "pt-BR": "Tijolos desencontrados"
-  },
-  "Offset brick of 6": {
-    "ar": "طوب متداخل من 6",
-    "de": "Versetzte Ziegel aus 6",
-    "es": "Ladrillo desplazado de 6",
-    "fr": "Briques décalées de 6",
-    "it": "Mattoni sfalsati da 6",
-    "ja": "6 枚のレンガ積み",
-    "pt-BR": "Tijolos desencontrados de 6"
+    "ja": "互い違いのレンガ",
+    "pt-BR": "Tijolos deslocados"
   },
   "Older": {
     "ar": "أقدم",
@@ -20582,6 +20573,15 @@
     "ja": "一時停止中 — Canvia に戻って完了してください",
     "pt-BR": "Pausado — volte ao Canvia para terminar"
   },
+  "Pebble": {
+    "ar": "حصاة",
+    "de": "Kiesel",
+    "es": "Guijarro",
+    "fr": "Galet",
+    "it": "Ciottolo",
+    "ja": "小石",
+    "pt-BR": "Seixo"
+  },
   "Pen": {
     "ar": "قلم",
     "de": "Stift",
@@ -21284,6 +21284,15 @@
     "ja": "再生ヘッド：%@。",
     "pt-BR": "Indicador de reprodução em %@."
   },
+  "Playing": {
+    "ar": "قيد التشغيل",
+    "de": "Wird abgespielt",
+    "es": "Reproduciendo",
+    "fr": "Lecture en cours",
+    "it": "In riproduzione",
+    "ja": "再生中",
+    "pt-BR": "Tocando"
+  },
   "Plays as the page ends. Several at once leave one after another, the first in last out.": {
     "ar": "يُشغَّل عند انتهاء الصفحة. إذا كانت عدة عناصر معًا تغادر واحدًا تلو الآخر، الأول دخولًا آخر خروجًا.",
     "de": "Wird am Ende der Seite abgespielt. Mehrere verschwinden nacheinander, das erste zuletzt.",
@@ -21391,6 +21400,15 @@
     "it": "Posizione…",
     "ja": "配置…",
     "pt-BR": "Posição…"
+  },
+  "Postage stamp": {
+    "ar": "طابع بريدي",
+    "de": "Briefmarke",
+    "es": "Sello postal",
+    "fr": "Timbre-poste",
+    "it": "Francobollo",
+    "ja": "切手",
+    "pt-BR": "Selo postal"
   },
   "Postcard": {
     "ar": "بطاقة بريدية",
@@ -21721,6 +21739,15 @@
     "it": "Proposta",
     "ja": "提案書",
     "pt-BR": "Proposta"
+  },
+  "Puddle": {
+    "ar": "بركة ماء",
+    "de": "Pfütze",
+    "es": "Charco",
+    "fr": "Flaque",
+    "it": "Pozzanghera",
+    "ja": "水たまり",
+    "pt-BR": "Poça"
   },
   "Pulse (loop)": {
     "ar": "نبض (تكرار)",
@@ -22344,12 +22371,12 @@
     "pt-BR": "Remover foto"
   },
   "Remove stop": {
-    "ar": "إزالة نقطة اللون",
-    "de": "Farbpunkt entfernen",
+    "ar": "إزالة النقطة",
+    "de": "Farbstopp entfernen",
     "es": "Quitar parada",
     "fr": "Supprimer le point",
     "it": "Rimuovi punto",
-    "ja": "色の位置を削除",
+    "ja": "停止点を削除",
     "pt-BR": "Remover parada"
   },
   "Removed the track": {
@@ -22760,7 +22787,7 @@
     "es": "Restablecer %@",
     "fr": "Réinitialiser %@",
     "it": "Reimposta %@",
-    "ja": "%@をリセット",
+    "ja": "%@ をリセット",
     "pt-BR": "Redefinir %@"
   },
   "Reset crop": {
@@ -23186,6 +23213,15 @@
     "ja": "丸い吹き出し",
     "pt-BR": "Balão redondo"
   },
+  "Round arch": {
+    "ar": "قوس دائري",
+    "de": "Rundbogen",
+    "es": "Arco de medio punto",
+    "fr": "Arc en plein cintre",
+    "it": "Arco a tutto sesto",
+    "ja": "半円アーチ",
+    "pt-BR": "Arco redondo"
+  },
   "Round blob": {
     "ar": "فقاعة مستديرة",
     "de": "Runder Klecks",
@@ -23230,6 +23266,24 @@
     "it": "Barre arrotondate",
     "ja": "角丸の棒",
     "pt-BR": "Barras arredondadas"
+  },
+  "Rounded card": {
+    "ar": "بطاقة مستديرة الحواف",
+    "de": "Abgerundete Karte",
+    "es": "Tarjeta redondeada",
+    "fr": "Carte arrondie",
+    "it": "Scheda arrotondata",
+    "ja": "角丸カード",
+    "pt-BR": "Cartão arredondado"
+  },
+  "Rounded window": {
+    "ar": "نافذة مستديرة الحواف",
+    "de": "Abgerundetes Fenster",
+    "es": "Ventana redondeada",
+    "fr": "Fenêtre arrondie",
+    "it": "Finestra arrotondata",
+    "ja": "角丸の窓",
+    "pt-BR": "Janela arredondada"
   },
   "Roundness": {
     "ar": "الاستدارة",
@@ -23775,13 +23829,13 @@
     "pt-BR": "Círculo ondulado"
   },
   "Scalloped mat": {
-    "ar": "حافة متموجة",
-    "de": "Gewellter Passepartout",
+    "ar": "إطار بحافة مموجة",
+    "de": "Passepartout mit Wellenrand",
     "es": "Paspartú festoneado",
     "fr": "Passe-partout festonné",
     "it": "Passe-partout smerlato",
-    "ja": "波形のマット",
-    "pt-BR": "Paspatur ondulado"
+    "ja": "スカラップのマット",
+    "pt-BR": "Passe-partout recortado"
   },
   "Scan a document": {
     "ar": "مسح مستند ضوئيًا",
@@ -23909,6 +23963,15 @@
     "ja": "フォントを検索",
     "pt-BR": "Pesquisar fontes"
   },
+  "Search frames": {
+    "ar": "ابحث عن إطارات",
+    "de": "Rahmen suchen",
+    "es": "Buscar marcos",
+    "fr": "Rechercher des cadres",
+    "it": "Cerca cornici",
+    "ja": "フレームを検索",
+    "pt-BR": "Pesquisar molduras"
+  },
   "Search help": {
     "ar": "البحث في المساعدة",
     "de": "Hilfe durchsuchen",
@@ -23919,7 +23982,7 @@
     "pt-BR": "Pesquisar na ajuda"
   },
   "Search music": {
-    "ar": "البحث عن موسيقى",
+    "ar": "ابحث عن موسيقى",
     "de": "Musik suchen",
     "es": "Buscar música",
     "fr": "Rechercher de la musique",
@@ -25188,13 +25251,13 @@
     "pt-BR": "Deslizar"
   },
   "Sketch border": {
-    "ar": "إطار مرسوم",
-    "de": "Skizzierter Rand",
-    "es": "Borde dibujado",
-    "fr": "Bordure dessinée",
+    "ar": "إطار مرسوم يدويًا",
+    "de": "Skizzenrahmen",
+    "es": "Borde de boceto",
+    "fr": "Bordure esquissée",
     "it": "Bordo a schizzo",
-    "ja": "手描きの枠",
-    "pt-BR": "Borda desenhada"
+    "ja": "スケッチ枠",
+    "pt-BR": "Borda de esboço"
   },
   "Skin tone": {
     "ar": "لون البشرة",
@@ -25802,6 +25865,15 @@
     "ja": "スピン（ループ）",
     "pt-BR": "Girar (repetir)"
   },
+  "Splash": {
+    "ar": "رذاذ",
+    "de": "Spritzer",
+    "es": "Salpicadura",
+    "fr": "Éclaboussure",
+    "it": "Schizzo",
+    "ja": "しぶき",
+    "pt-BR": "Respingo"
+  },
   "Splice": {
     "ar": "وصل",
     "de": "Zusammenschnitt",
@@ -25909,24 +25981,6 @@
     "it": "Colonne in pila",
     "ja": "積み上げ縦棒",
     "pt-BR": "Colunas empilhadas"
-  },
-  "Stamp": {
-    "ar": "طابع",
-    "de": "Briefmarke",
-    "es": "Sello",
-    "fr": "Timbre",
-    "it": "Francobollo",
-    "ja": "切手",
-    "pt-BR": "Selo"
-  },
-  "Stamp edge": {
-    "ar": "حافة طابع",
-    "de": "Briefmarkenrand",
-    "es": "Borde de sello",
-    "fr": "Bord de timbre",
-    "it": "Bordo di francobollo",
-    "ja": "切手の縁",
-    "pt-BR": "Borda de selo"
   },
   "Star": {
     "ar": "نجمة",
@@ -26225,6 +26279,15 @@
     "ja": "色の位置 %d",
     "pt-BR": "Parada %d"
   },
+  "Stop %d of %d, %@, at %d%%": {
+    "ar": "النقطة %d من %d، %@، عند %d%%",
+    "de": "Farbstopp %d von %d, %@, bei %d %%",
+    "es": "Parada %d de %d, %@, en %d%%",
+    "fr": "Point %d sur %d, %@, à %d %%",
+    "it": "Punto %d di %d, %@, al %d%%",
+    "ja": "停止点 %d/%d、%@、%d%%",
+    "pt-BR": "Parada %d de %d, %@, em %d%%"
+  },
   "Stop %d, %@": {
     "ar": "نقطة اللون %d، %@",
     "de": "Farbpunkt %d, %@",
@@ -26260,6 +26323,15 @@
     "it": "Interrompi esportazione",
     "ja": "書き出しを停止",
     "pt-BR": "Parar exportação"
+  },
+  "Stop positions": {
+    "ar": "مواضع النقاط",
+    "de": "Positionen der Farbstopps",
+    "es": "Posiciones de las paradas",
+    "fr": "Positions des points",
+    "it": "Posizioni dei punti",
+    "ja": "停止点の位置",
+    "pt-BR": "Posições das paradas"
   },
   "Stop preview": {
     "ar": "إيقاف المعاينة",
@@ -26790,7 +26862,7 @@
     "pt-BR": "Toque no botão +. Modelos, formas, linhas, estilos de texto, fotos, figurinhas e códigos QR estão todos lá, e a caixa de pesquisa no topo pesquisa em todas as abas."
   },
   "Taped photo": {
-    "ar": "صورة ملصقة بشريط",
+    "ar": "صورة بشريط لاصق",
     "de": "Foto mit Klebeband",
     "es": "Foto con cinta",
     "fr": "Photo scotchée",
@@ -28232,15 +28304,6 @@
     "ja": "チケット",
     "pt-BR": "Ingresso"
   },
-  "Ticket stub": {
-    "ar": "كعب تذكرة",
-    "de": "Ticketabschnitt",
-    "es": "Talón de entrada",
-    "fr": "Talon de billet",
-    "it": "Matrice del biglietto",
-    "ja": "チケットの半券",
-    "pt-BR": "Canhoto de ingresso"
-  },
   "Tickets": {
     "ar": "تذاكر",
     "de": "Tickets",
@@ -28281,7 +28344,7 @@
     "ar": "بولارويد مائلة",
     "de": "Schräges Polaroid",
     "es": "Polaroid inclinada",
-    "fr": "Polaroid inclinée",
+    "fr": "Polaroid incliné",
     "it": "Polaroid inclinata",
     "ja": "傾いたポラロイド",
     "pt-BR": "Polaroid inclinada"
@@ -28520,14 +28583,14 @@
     "ja": "破れ",
     "pt-BR": "Rasgado"
   },
-  "Torn edges": {
-    "ar": "حواف ممزقة",
-    "de": "Gerissene Ränder",
-    "es": "Bordes rasgados",
-    "fr": "Bords déchirés",
-    "it": "Bordi strappati",
-    "ja": "破れた縁",
-    "pt-BR": "Bordas rasgadas"
+  "Torn circle": {
+    "ar": "دائرة ممزقة",
+    "de": "Gerissener Kreis",
+    "es": "Círculo rasgado",
+    "fr": "Cercle déchiré",
+    "it": "Cerchio strappato",
+    "ja": "破れた円",
+    "pt-BR": "Círculo rasgado"
   },
   "Torn paper": {
     "ar": "ورق ممزق",
@@ -28538,23 +28601,23 @@
     "ja": "破れた紙",
     "pt-BR": "Papel rasgado"
   },
-  "Torn side": {
-    "ar": "جانب ممزق",
-    "de": "Gerissene Seite",
-    "es": "Lado rasgado",
-    "fr": "Côté déchiré",
-    "it": "Lato strappato",
-    "ja": "片側が破れた紙",
-    "pt-BR": "Lateral rasgada"
+  "Torn sides": {
+    "ar": "جوانب ممزقة",
+    "de": "Seitlich gerissen",
+    "es": "Lados rasgados",
+    "fr": "Côtés déchirés",
+    "it": "Lati strappati",
+    "ja": "両端が破れた紙",
+    "pt-BR": "Laterais rasgadas"
   },
-  "Torn top and bottom": {
-    "ar": "ممزق من الأعلى والأسفل",
-    "de": "Oben und unten gerissen",
-    "es": "Rasgado arriba y abajo",
-    "fr": "Déchiré en haut et en bas",
-    "it": "Strappato sopra e sotto",
-    "ja": "上下が破れた紙",
-    "pt-BR": "Rasgado em cima e embaixo"
+  "Torn top": {
+    "ar": "حافة علوية ممزقة",
+    "de": "Oben gerissen",
+    "es": "Borde superior rasgado",
+    "fr": "Haut déchiré",
+    "it": "Bordo superiore strappato",
+    "ja": "上が破れた紙",
+    "pt-BR": "Topo rasgado"
   },
   "Touch the design to sample a colour": {
     "ar": "المس التصميم لأخذ عيّنة لون",
@@ -29331,13 +29394,13 @@
     "pt-BR": "Até %d caracteres. Deixe vazio para usar o nome que o Canvia dá."
   },
   "Upbeat": {
-    "ar": "حماسية",
+    "ar": "حيوي",
     "de": "Schwungvoll",
-    "es": "Animada",
-    "fr": "Entraînante",
-    "it": "Ritmata",
+    "es": "Animado",
+    "fr": "Entraînant",
+    "it": "Vivace",
     "ja": "アップビート",
-    "pt-BR": "Animada"
+    "pt-BR": "Animado"
   },
   "Update": {
     "ar": "تحديث",
@@ -29446,6 +29509,15 @@
     "it": "Maiuscolo",
     "ja": "大文字",
     "pt-BR": "Maiúsculas"
+  },
+  "Upright brush": {
+    "ar": "فرشاة عمودية",
+    "de": "Senkrechter Pinsel",
+    "es": "Pincel vertical",
+    "fr": "Pinceau vertical",
+    "it": "Pennellata verticale",
+    "ja": "縦のブラシ",
+    "pt-BR": "Pincel vertical"
   },
   "Use": {
     "ar": "استخدام",
@@ -29784,7 +29856,7 @@
     "pt-BR": "Alinhamento vertical"
   },
   "Vertical film": {
-    "ar": "فيلم عمودي",
+    "ar": "شريط فيلم عمودي",
     "de": "Vertikaler Film",
     "es": "Película vertical",
     "fr": "Film vertical",
@@ -30036,7 +30108,7 @@
     "pt-BR": "Intensidade da distorção"
   },
   "Watch": {
-    "ar": "ساعة",
+    "ar": "ساعة يد",
     "de": "Uhr",
     "es": "Reloj",
     "fr": "Montre",
@@ -30404,6 +30476,15 @@
     "ja": "写真なし",
     "pt-BR": "Sem fotos"
   },
+  "Wobble": {
+    "ar": "شكل متموج",
+    "de": "Wackelform",
+    "es": "Ondulado",
+    "fr": "Ondulé",
+    "it": "Ondulato",
+    "ja": "ゆらぎ",
+    "pt-BR": "Ondulado"
+  },
   "Word": {
     "ar": "كلمة",
     "de": "Wort",
@@ -30594,7 +30675,7 @@
     "pt-BR": "Suas fontes"
   },
   "Your gradients": {
-    "ar": "تدرّجاتك",
+    "ar": "تدرجاتك",
     "de": "Deine Verläufe",
     "es": "Tus degradados",
     "fr": "Vos dégradés",
@@ -32215,6 +32296,15 @@
     "it": "digita una spaziatura",
     "ja": "間隔を入力",
     "pt-BR": "digite um espaçamento"
+  },
+  "type a value": {
+    "ar": "اكتب قيمة",
+    "de": "Wert eingeben",
+    "es": "escribe un valor",
+    "fr": "saisissez une valeur",
+    "it": "digita un valore",
+    "ja": "値を入力",
+    "pt-BR": "digite um valor"
   },
   "vector": {
     "ar": "متجه",
