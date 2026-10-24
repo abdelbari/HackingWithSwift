@@ -346,6 +346,10 @@ struct Page: Codable, Equatable, Identifiable {
     /// still are. Nil is a page as it always was: collapsing takes the key
     /// away, as on the Android twin.
     var whiteboard: PageWhiteboard?
+    /// The PDF page it was made from when a PDF came in as editable text
+    /// (PdfText.editablePage): {"name": "menu.pdf", "page": 1}; nil for any
+    /// other page, and no key.
+    var pdfSource: PdfSource?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -376,6 +380,7 @@ struct Page: Codable, Equatable, Identifiable {
         title = (try? c.decode(String.self, forKey: .title)).flatMap(PageTitles.kept)
         locked = (try? c.decode(Bool.self, forKey: .locked)) == true ? true : nil
         whiteboard = (try? c.decode(PageWhiteboard.self, forKey: .whiteboard)).flatMap { $0.expanded ? $0 : nil }
+        pdfSource = try? c.decode(PdfSource.self, forKey: .pdfSource)
     }
 
     /// As the synthesised encoder wrote it, except that `hidden` and
@@ -403,11 +408,12 @@ struct Page: Codable, Equatable, Identifiable {
         if locked == true { try c.encode(true, forKey: .locked) }
         try c.encodeIfPresent(whiteboard, forKey: .whiteboard)
         try c.encodeIfPresent(pageAnimation, forKey: .pageAnimation)
+        try c.encodeIfPresent(pdfSource, forKey: .pdfSource)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
-        case hidden, title, transitionSeconds, locked, whiteboard, pageAnimation
+        case hidden, title, transitionSeconds, locked, whiteboard, pageAnimation, pdfSource
     }
 }
 

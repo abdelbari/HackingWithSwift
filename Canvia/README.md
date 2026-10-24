@@ -504,6 +504,18 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   the first N of M pages". Replacing a photo with a PDF page draws only
   that page. Refusals elsewhere (crop, erase, handwriting) no longer offer
   an Undo that would take back something unrelated.
+- Editable PDF import: a PDF opened in Canvia or picked from Import asks
+  Editable text (chosen when it has words) or Pictures (exact look). With
+  editable text each page keeps its picture, the words painted over with
+  the median colour round them and locked as a "PDF page" layer, and every
+  paragraph becomes a text box in the nearest of the families, at its
+  size, weight, slant and colour; the page keeps `pdfSource` (its file's
+  name and page number). The words are read by `PdfText` — cross-reference
+  tables and streams, object streams, FlateDecode, the text operators,
+  ToUnicode CMaps and the WinAnsi, MacRoman and Standard encodings — held
+  to golden runs of `Tools/generate_pdf_fixture.py`'s fixture. Encrypted
+  files, Type3 fonts and pages with no words come in as pictures, and a
+  toast says how many.
 - A QR code's words are edited where it sits: Edit code (in place of
   Erase, which would only stop it scanning) opens a field that rewrites
   the code as you type, keeping size, place, turn and frame. While the

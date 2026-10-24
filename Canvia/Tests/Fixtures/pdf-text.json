@@ -1,0 +1,14 @@
+{"pages":[
+{"width":612,"height":792,"type3":false,"runs":[
+{"text":"Café – Menu","x":72,"y":72,"size":24,"font":"Helvetica-Bold","bold":true,"italic":false,"colour":"#1f2430"},
+{"text":"Fresh coffee every day","x":72,"y":152,"size":12,"font":"Times-Roman","bold":false,"italic":false,"colour":"#666666"},
+{"text":"Open until € 5 (pm)","x":72,"y":166,"size":12,"font":"Times-Roman","bold":false,"italic":false,"colour":"#666666"},
+{"text":"Smith’s Bakery","x":72,"y":180,"size":12,"font":"Times-Roman","bold":false,"italic":false,"colour":"#666666"},
+{"text":"Yellow note","x":300,"y":292,"size":12,"font":"Times-Roman","bold":false,"italic":false,"colour":"#ffff00"}
+]},
+{"width":595,"height":842,"type3":false,"runs":[
+{"text":"Hello","x":56,"y":82,"size":30,"font":"Montserrat-Bold","bold":true,"italic":false,"colour":"#cc1a1a"},
+{"text":"abcé ","x":56,"y":142,"size":14,"font":"Lora-Italic","bold":false,"italic":true,"colour":"#cc1a1a"},
+{"text":"xyz","x":56,"y":160,"size":14,"font":"Lora-Italic","bold":false,"italic":true,"colour":"#cc1a1a"}
+]}
+]}

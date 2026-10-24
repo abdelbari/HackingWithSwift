@@ -2948,6 +2948,39 @@
       "other": "%d outros itens"
     }
   },
+  "%d page came in as a picture: its text could not be read.|%d pages came in as pictures: their text could not be read.": {
+    "ar": {
+      "few": "دخلت %d صفحات كصور: تعذّرت قراءة نصها.",
+      "many": "دخلت %d صفحة كصور: تعذّرت قراءة نصها.",
+      "one": "دخلت صفحة واحدة (%d) كصورة: تعذّرت قراءة نصها.",
+      "other": "دخلت %d صفحة كصور: تعذّرت قراءة نصها.",
+      "two": "دخلت صفحتان (%d) كصورتين: تعذّرت قراءة نصهما.",
+      "zero": "دخلت %d صفحة كصور: تعذّرت قراءة نصها."
+    },
+    "de": {
+      "one": "%d Seite kam als Bild: Ihr Text war nicht lesbar.",
+      "other": "%d Seiten kamen als Bilder: Ihr Text war nicht lesbar."
+    },
+    "es": {
+      "one": "%d página entró como imagen: no se pudo leer su texto.",
+      "other": "%d páginas entraron como imágenes: no se pudo leer su texto."
+    },
+    "fr": {
+      "one": "%d page est arrivée en image : son texte n'a pas pu être lu.",
+      "other": "%d pages sont arrivées en images : leur texte n'a pas pu être lu."
+    },
+    "it": {
+      "one": "%d pagina è arrivata come immagine: non è stato possibile leggerne il testo.",
+      "other": "%d pagine sono arrivate come immagini: non è stato possibile leggerne il testo."
+    },
+    "ja": {
+      "other": "%d ページは文字を読み取れなかったため、画像として取り込みました。"
+    },
+    "pt-BR": {
+      "one": "%d página entrou como imagem: não foi possível ler o texto.",
+      "other": "%d páginas entraram como imagens: não foi possível ler o texto."
+    }
+  },
   "%d page copied|%d pages copied": {
     "ar": {
       "few": "تم نسخ %d صفحات",
@@ -11405,6 +11438,15 @@
     "ja": "それぞれこのページの後の新しいページに追加されます。このページで使うには長押ししてください。",
     "pt-BR": "Cada um vai para uma nova página depois desta. Toque e segure um para usá-lo nesta página."
   },
+  "Each page as a picture, exactly as it looks.": {
+    "ar": "كل صفحة صورة، تمامًا كما تبدو.",
+    "de": "Jede Seite als Bild, genau wie sie aussieht.",
+    "es": "Cada página como una imagen, tal como se ve.",
+    "fr": "Chaque page en image, exactement comme elle est.",
+    "it": "Ogni pagina come immagine, esattamente com'è.",
+    "ja": "各ページを見た目そのままの画像にします。",
+    "pt-BR": "Cada página como uma imagem, exatamente como aparece."
+  },
   "Each page holds %@s unless it has its own time, and cuts to the next.": {
     "ar": "تبقى كل صفحة %@ ث ما لم يكن لها وقتها الخاص، ثم تنتقل مباشرةً إلى التالية.",
     "de": "Jede Seite steht %@ s, sofern sie keine eigene Zeit hat, und schneidet dann zur nächsten.",
@@ -11692,6 +11734,15 @@
     "it": "Diapositive modificabili.",
     "ja": "編集できるスライドです。",
     "pt-BR": "Slides editáveis."
+  },
+  "Editable text": {
+    "ar": "نص قابل للتحرير",
+    "de": "Bearbeitbarer Text",
+    "es": "Texto editable",
+    "fr": "Texte modifiable",
+    "it": "Testo modificabile",
+    "ja": "編集できるテキスト",
+    "pt-BR": "Texto editável"
   },
   "Editable vectors for another program.": {
     "ar": "متجهات قابلة للتعديل لبرنامج آخر.",
@@ -15178,6 +15229,15 @@
     "it": "La sua posizione è bloccata.",
     "ja": "位置がロックされています。",
     "pt-BR": "A posição está bloqueada."
+  },
+  "Its words as text boxes you can retype, over a picture of the page.": {
+    "ar": "كلماتها في مربعات نص يمكنك إعادة كتابتها، فوق صورة للصفحة.",
+    "de": "Die Wörter als Textfelder zum Überschreiben, über einem Bild der Seite.",
+    "es": "Sus palabras como cuadros de texto que puedes reescribir, sobre una imagen de la página.",
+    "fr": "Ses mots en zones de texte modifiables, sur une image de la page.",
+    "it": "Le parole come caselle di testo da riscrivere, sopra un'immagine della pagina.",
+    "ja": "文字は打ち直せるテキストボックスに、ページの画像の上に置きます。",
+    "pt-BR": "As palavras como caixas de texto que você pode reescrever, sobre uma imagem da página."
   },
   "JPEG quality": {
     "ar": "جودة JPEG",
@@ -19586,6 +19646,15 @@
     "ja": "オーバーレイ",
     "pt-BR": "Sobrepor"
   },
+  "PDF page": {
+    "ar": "صفحة PDF",
+    "de": "PDF-Seite",
+    "es": "Página PDF",
+    "fr": "Page PDF",
+    "it": "Pagina PDF",
+    "ja": "PDF ページ",
+    "pt-BR": "Página PDF"
+  },
   "PDF…": {
     "ar": "ملف PDF…",
     "de": "PDF …",
@@ -20698,6 +20767,15 @@
     "it": "Immagine: %@",
     "ja": "画像：%@",
     "pt-BR": "Imagem: %@"
+  },
+  "Pictures (exact look)": {
+    "ar": "صور (المظهر نفسه تمامًا)",
+    "de": "Bilder (genaues Aussehen)",
+    "es": "Imágenes (aspecto exacto)",
+    "fr": "Images (rendu exact)",
+    "it": "Immagini (aspetto esatto)",
+    "ja": "画像（見た目そのまま）",
+    "pt-BR": "Imagens (aparência exata)"
   },
   "Pie": {
     "ar": "دائري",
