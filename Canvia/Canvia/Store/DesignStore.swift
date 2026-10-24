@@ -855,6 +855,7 @@ final class DesignStore {
             for p in d.pages.indices {
                 guard let i = d.pages[p].elements.firstIndex(where: { $0.id == id }) else { continue }
                 d.pages[p].elements[i].altText = words
+                d.pages[p].elements[i].altTextSource = nil
             }
         }
     }

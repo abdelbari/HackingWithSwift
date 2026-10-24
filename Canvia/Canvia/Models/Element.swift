@@ -823,6 +823,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// What the element shows, for people who cannot see it: read by
     /// VoiceOver and written into the SVG. Photos mostly.
     var altText: String?
+    /// The picture (its `src`) the alt text was drawn from — Suggest's
+    /// draft, kept as it was — so replacing that picture takes the alt text
+    /// with it (Crop.replaced); nil for alt text typed, and no key.
+    var altTextSource: String?
     /// Only there to look at — a flourish, a background shape — so Check
     /// accessibility does not ask for its alt text. Never false: written
     /// only when true, as `hidden`.
@@ -1158,6 +1162,7 @@ struct Element: Codable, Equatable, Identifiable {
         shadow = try? c.decode(Shadow.self, forKey: .shadow)
         blendMode = try? c.decode(String.self, forKey: .blendMode)
         altText = try? c.decode(String.self, forKey: .altText)
+        altTextSource = (try? c.decode(String.self, forKey: .altTextSource)).flatMap { $0.isEmpty ? nil : $0 }
         decorative = (try? c.decode(Bool.self, forKey: .decorative)) == true ? true : nil
         connectFrom = try? c.decode(String.self, forKey: .connectFrom)
         connectTo = try? c.decode(String.self, forKey: .connectTo)
@@ -1301,7 +1306,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
-        case subgroups, groupTurn
+        case subgroups, groupTurn, altTextSource
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, sides, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, graphicId, bulkField, fill, stroke, strokeWidth, radius, corners, fillRule, pen

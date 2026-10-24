@@ -23693,6 +23693,15 @@
     "ja": "%@ の置き換え先",
     "pt-BR": "Substituir %@ por"
   },
+  "Replace %@ with this": {
+    "ar": "استبدال %@ بهذه",
+    "de": "%@ hierdurch ersetzen",
+    "es": "Reemplazar %@ por esta",
+    "fr": "Remplacer %@ par celle-ci",
+    "it": "Sostituisci %@ con questa",
+    "ja": "%@をこれに置き換える",
+    "pt-BR": "Substituir %@ por esta"
+  },
   "Replace all": {
     "ar": "استبدال الكل",
     "de": "Alle ersetzen",

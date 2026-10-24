@@ -32,6 +32,9 @@ struct ContextToolbar: View {
     @State private var editingAlt = false
     @State private var editingCode = false
     @State private var altDraft = ""
+    /// What Suggest drafted, to tell alt text drawn from the picture from
+    /// alt text typed (Element.altTextSource).
+    @State private var altSuggested: String?
     @State private var editingLink = false
     @State private var linkDraft = ""
     @State private var namingStyle = false
@@ -1290,6 +1293,7 @@ struct ContextToolbar: View {
         }
         toolButton("text.below.photo", "Alt text") {
             altDraft = el.altText ?? ""
+            altSuggested = el.altTextSource == nil ? nil : el.altText
             editingAlt = true
         }
         .alert("Describe this picture", isPresented: $editingAlt) {
@@ -1297,12 +1301,17 @@ struct ContextToolbar: View {
             Button("Suggest") {
                 if let ui = PhotoLibrary.resolve(el.src), let draft = AltText.describe(ui) {
                     altDraft = draft
+                    altSuggested = draft
                 }
                 editingAlt = true
             }
             Button("Save") {
                 let text = altDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                store.updateSelected { $0.altText = text.isEmpty ? nil : text }
+                let drawn = !text.isEmpty && text == altSuggested
+                store.updateSelected { e in
+                    e.altText = text.isEmpty ? nil : text
+                    e.altTextSource = drawn ? e.src : nil
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {

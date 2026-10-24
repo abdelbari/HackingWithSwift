@@ -69,6 +69,9 @@ struct CanvasView: View {
     /// The frame a tile carried from the Add sheet would fill, while it is
     /// over one (LibraryDrag).
     @State private var libraryFrame: String?
+    /// The plain photo a carried picture, or a photo dragged and held,
+    /// would replace if let go now: outlined, with its Replace chip.
+    @State private var libraryReplace: String?
     /// When a tap on the photo in crop mode last landed, for the double tap
     /// that finishes it.
     @State private var lastCropTap: Date?
@@ -194,6 +197,10 @@ struct CanvasView: View {
         var framePhoto: String?
         /// The frame under the finger it would go into, lit up while it is.
         var frameTarget: String?
+        /// The plain photo under it, and — held there replaceHoldSeconds —
+        /// the one whose picture it would swap with, outlined while it is.
+        var swapCandidate: String?
+        var swapTarget: String?
         var resizeOriginal: Element?
         /// The element a dragged line end has snapped to: let go there, the
         /// line is tied to it (LineRoutes).
@@ -713,6 +720,12 @@ struct CanvasView: View {
                     .stroke(Theme.accent, lineWidth: 3 * iz)
                     .background(Self.outline(frame).fill(Theme.accent.opacity(0.14)))
                     .allowsHitTesting(false)
+            }
+        }
+        // The photo it would replace, held over long enough.
+        .overlay {
+            if let id = libraryReplace ?? gesture.swapTarget, let photo = store.element(id) {
+                ReplaceMark(outline: Self.outline(photo), at: CGPoint(x: photo.center.x, y: photo.y), iz: iz)
             }
         }
     }
@@ -2180,6 +2193,10 @@ struct CanvasView: View {
         if let photo = gesture.framePhoto {
             let over = store.frameDropTarget(at: location, dragging: photo)
             if gesture.frameTarget != over { gesture.frameTarget = over }
+            // Held over another plain photo, it would swap pictures with it.
+            let under = over == nil
+                ? DropFromLibrary.replaceTarget(at: location, in: store.page.elements, excluding: photo)?.id : nil
+            holdSwap(under)
         }
         // Over another page in the column, that page lit up: let go
         // there, it goes to that page.
@@ -2245,7 +2262,9 @@ struct CanvasView: View {
             // Let go over a frame, the photo goes into it — the move
             // and the drop one step; over another page in the column,
             // it goes there, one step too; anywhere else it is a move.
-            if !dropIntoFrame(at: location) && !dropOntoPage(at: location) { store.commit() }
+            if !dropIntoFrame(at: location) && !swapPicture(at: location) && !dropOntoPage(at: location) {
+                store.commit()
+            }
         } else {
             store.endGesture()
         }
@@ -2258,6 +2277,30 @@ struct CanvasView: View {
         guard let photo = gesture.framePhoto, let home = gesture.dragOriginals[photo],
               let frame = store.frameDropTarget(at: point, dragging: photo) else { return false }
         return store.dropIntoFrame(photo, onto: frame, home: home)
+    }
+
+    /// The photo being moved under `id`, a plain photo (nil, none): held
+    /// there replaceHoldSeconds, it is outlined as the photo the two would
+    /// swap pictures with; moving off it first gives the hold up.
+    private func holdSwap(_ id: String?) {
+        guard gesture.swapCandidate != id else { return }
+        gesture.swapCandidate = id
+        if gesture.swapTarget != nil { gesture.swapTarget = nil }
+        guard let id else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + DropFromLibrary.replaceHoldSeconds) {
+            if gesture.swapCandidate == id && gesture.dragActive { gesture.swapTarget = id }
+        }
+    }
+
+    /// The photo being moved, let go over the plain photo it was held over,
+    /// swaps pictures with it — Canva does this for frames alone, so here
+    /// only behind the hold; see DesignStore.swapPictures. True when it did.
+    private func swapPicture(at point: CGPoint) -> Bool {
+        guard let photo = gesture.framePhoto, let target = gesture.swapTarget,
+              let home = gesture.dragOriginals[photo],
+              DropFromLibrary.replaceTarget(at: point, in: store.page.elements, excluding: photo)?.id == target
+        else { return false }
+        return store.swapPictures(photo, with: target, home: home)
     }
 
     /// Let go over another page in the column, what moves goes there,
@@ -3237,7 +3280,7 @@ struct CanvasView: View {
         return CanvasDropDelegate(store: store, edges: edges,
                                   locate: { point in (index: index, point: point) },
                                   toContent: { point in slot?.toColumn(point) ?? point },
-                                  hover: { page, frame in libraryHover(page, frame) },
+                                  hover: { page, frame, replacing in libraryHover(page, frame, replacing) },
                                   targeted: $dropTargeted,
                                   fallback: { providers, point in
                                       MainActor.assumeIsolated { CanvasDrop.handle(providers, at: point, store: store) }
@@ -3255,17 +3298,21 @@ struct CanvasView: View {
                                return (index: index, point: slots[index].toPage(point))
                            },
                            toContent: { $0 },
-                           hover: { page, frame in libraryHover(page, frame) },
+                           hover: { page, frame, replacing in libraryHover(page, frame, replacing) },
                            targeted: .constant(false))
     }
 
     /// A carried tile over page `page` of the column, and frame `frame` on
-    /// it: that page outlined when it is not the one worked, the frame lit.
-    private func libraryHover(_ page: Int?, _ frame: String?) {
+    /// it: that page outlined when it is not the one worked, the frame lit;
+    /// and the plain photo `replacing` it has been held over, outlined
+    /// with its Replace chip.
+    private func libraryHover(_ page: Int?, _ frame: String?, _ replacing: String?) {
         let other = page == store.pageIndex ? nil : page
         if gesture.dropPage != other { gesture.dropPage = other }
         let lit = page == store.pageIndex ? frame : nil
         if libraryFrame != lit { libraryFrame = lit }
+        let held = page == store.pageIndex ? replacing : nil
+        if libraryReplace != held { libraryReplace = held }
     }
 
     /// `content` laid out at its size on screen, `height` points tall, and
