@@ -59,7 +59,9 @@ enum FontSwap {
     static func replaced(_ design: Design, from: String, to: String,
                          heightFor: (Element) -> Double) -> Design {
         let source = FontLibrary.resolve(from)
-        guard source != FontLibrary.resolve(to) else { return design }
+        // The id `to` resolves to, as the Android twin stores it.
+        let target = FontLibrary.resolve(to)
+        guard source != target else { return design }
         func matches(_ key: String?) -> Bool { key.map { FontLibrary.resolve($0) == source } ?? false }
         var out = design
         for p in out.pages.indices where !PageLocks.isLocked(out.pages[p]) {
@@ -67,8 +69,8 @@ enum FontSwap {
                 let was = out.pages[p].elements[i]
                 var el = was
                 if ShapeText.carriesWords(el), matches(el.fontFamily) {
-                    el.fontFamily = to
-                    let nearest = FontLibrary.resolveWeight(to, el.fontWeight ?? 400)
+                    el.fontFamily = target
+                    let nearest = FontLibrary.resolveWeight(target, el.fontWeight ?? 400)
                     if el.fontWeight != nil || nearest != 400 { el.fontWeight = nearest }
                 }
                 let spans = el.liveSpans
@@ -76,13 +78,13 @@ enum FontSwap {
                     el.setSpans(spans.map { span in
                         guard matches(span.font) else { return span }
                         var swapped = span
-                        swapped.font = to
-                        swapped.weight = span.weight.map { FontLibrary.resolveWeight(to, $0) }
+                        swapped.font = target
+                        swapped.weight = span.weight.map { FontLibrary.resolveWeight(target, $0) }
                         return swapped
                     })
                 }
                 if var spec = el.chart, matches(spec.font) {
-                    spec.font = to
+                    spec.font = target
                     el.chart = spec
                 }
                 guard el != was else { continue }

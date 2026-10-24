@@ -79,5 +79,12 @@ final class FontScriptsTests: XCTestCase {
         let found = AccessibilityAudit.findings(design).filter { $0.kind == .missingLetters }
         XCTAssertEqual(found.map(\.elementId), [lato.id])
         XCTAssertEqual(found.first?.message, "Letters missing from the font")
+        // Shared: words set in a font of their own are checked in it.
+        var fixed = lato
+        fixed.setSpans([TextSpan(start: 0, end: 6, font: "lora")])
+        XCTAssertFalse(AccessibilityAudit.lacksLetters(fixed))
+        var broken = lora
+        broken.setSpans([TextSpan(start: 0, end: 3, font: "lato")])
+        XCTAssertTrue(AccessibilityAudit.lacksLetters(broken))
     }
 }
