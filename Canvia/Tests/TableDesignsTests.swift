@@ -79,13 +79,22 @@ final class TableDesignsTests: XCTestCase {
     func testADesignsBandsBordersAndFontsGoOnTheCells() throws {
         let made = sample()
         let id = tableId(made)
-        let mono = try XCTUnwrap(Tables.withDesign(made, id: id, design: try XCTUnwrap(TableDesigns.design("mono")),
+        // A word in a font of its own: a design's font takes it, as a font for the box does.
+        let word = cell(made, .text, 1, 1)
+        let spanned = made.map { el -> Element in
+            guard el.id == word.id else { return el }
+            var out = el
+            out.setSpans([TextSpan(start: 0, end: 1, color: "#ff0000", font: "lora")])
+            return out
+        }
+        let mono = try XCTUnwrap(Tables.withDesign(spanned, id: id, design: try XCTUnwrap(TableDesigns.design("mono")),
                                                    accent: "#7c3aed", accent2: "#0ea5e9", heightFor: heightFor))
         XCTAssertEqual(cell(mono, .shape, 0, 0).fill?.color, "#111111")
         XCTAssertEqual(cell(mono, .shape, 2, 0).fill?.color, "#f4f4f5")
         XCTAssertEqual(cell(mono, .shape, 1, 0).fill?.color, "#ffffff")
         XCTAssertEqual(DataGraphics.tableBands(mono, id: id), "#f4f4f5")
         XCTAssertEqual(cell(mono, .text, 1, 1).fontFamily, "roboto-mono")
+        XCTAssertEqual(cell(mono, .text, 1, 1).liveSpans, [TextSpan(start: 0, end: 1, color: "#ff0000")])
         XCTAssertEqual(cell(mono, .text, 0, 1).fontWeight, 700)
         // A dark body keeps no bands, which stripe with white.
         let night = try XCTUnwrap(Tables.withDesign(mono, id: id, design: try XCTUnwrap(TableDesigns.design("night")),

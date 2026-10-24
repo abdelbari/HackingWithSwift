@@ -43,10 +43,9 @@ private struct WordImportHost: ViewModifier {
 
     private func start(_ url: URL) {
         working = true
-        let taken = DesignLibrary.recents().map(\.title)
         Task { @MainActor in
             do {
-                onOpen(try await WordDocs.importFile(at: url, taken: taken))
+                onOpen(try await WordDocs.importFile(at: url))
             } catch {
                 failure = error.localizedDescription
             }
@@ -103,7 +102,7 @@ struct WordDocsOnHome: ViewModifier {
     @MainActor
     private func turn(_ recent: RecentDesign, notes: Bool) {
         guard let design = DesignLibrary.load(id: recent.id),
-              let doc = WordDocs.turnIntoDoc(design, notes: notes, taken: DesignLibrary.recents().map(\.title)) else {
+              let doc = WordDocs.turnIntoDoc(design, notes: notes) else {
             failure = tr("Couldn't make the Doc")
             return
         }

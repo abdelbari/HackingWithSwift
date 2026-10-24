@@ -56,12 +56,12 @@ enum WordDocs {
         return DocxReader.placed(imported, stored: stored).design
     }
 
-    /// The document at `url` as a new Doc on the shelf, named as no other
-    /// there (`taken`), its picture drawn for its card.
+    /// The document at `url` as a new Doc on the shelf, named by its file
+    /// as it is, as the Android twin names it; its picture drawn for its
+    /// card.
     @MainActor
-    static func importFile(at url: URL, taken: [String]) async throws -> Design {
+    static func importFile(at url: URL) async throws -> Design {
         var design = try await Task.detached(priority: .userInitiated) { try WordDocs.read(at: url) }.value
-        design.title = Titles.unique(design.title, taken: taken)
         design.titleAuto = false
         guard DesignLibrary.save(design) else { throw WordError.notSaved }
         DesignLibrary.writeThumbnail(for: design)
@@ -69,13 +69,12 @@ enum WordDocs {
     }
 
     /// Turn into a Doc: a new Doc of `design`'s words — its pages' notes
-    /// too with `notes` — saved on the shelf in its folder, named as no
-    /// other there (`taken`); `design` is left as it is. Nil when it could
-    /// not be saved.
+    /// too with `notes` — saved on the shelf in its folder, named
+    /// "<title> (Doc)" as it is, as the Android twin names it; `design` is
+    /// left as it is. Nil when it could not be saved.
     @MainActor
-    static func turnIntoDoc(_ design: Design, notes: Bool, taken: [String]) -> Design? {
+    static func turnIntoDoc(_ design: Design, notes: Bool) -> Design? {
         var doc = Docs.fromDesign(design, notes: notes)
-        doc.title = Titles.unique(doc.title, taken: taken)
         doc.titleAuto = false
         guard DesignLibrary.save(doc) else { return nil }
         DesignLibrary.writeThumbnail(for: doc)

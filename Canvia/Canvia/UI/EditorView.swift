@@ -1931,7 +1931,7 @@ struct EditorView: View {
         store.finishCrop()
         store.endTextEdit()
         saveNow()
-        guard let doc = WordDocs.turnIntoDoc(store.design, notes: notes, taken: DesignLibrary.recents().map(\.title)) else {
+        guard let doc = WordDocs.turnIntoDoc(store.design, notes: notes) else {
             show(toast: tr("Couldn't make the Doc"), undoable: false)
             return
         }
