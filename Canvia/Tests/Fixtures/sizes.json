@@ -1,0 +1,1377 @@
+[
+ {
+  "id": "insta-post",
+  "name": "Instagram Post",
+  "category": "Social",
+  "width": 1080,
+  "height": 1080,
+  "keywords": [
+   "instagram",
+   "ig",
+   "square",
+   "feed",
+   "post"
+  ]
+ },
+ {
+  "id": "insta-story",
+  "name": "Instagram Story",
+  "category": "Social",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "instagram",
+   "ig",
+   "story",
+   "vertical"
+  ]
+ },
+ {
+  "id": "presentation",
+  "name": "Presentation",
+  "category": "Presentations",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "slides",
+   "deck",
+   "16:9",
+   "keynote",
+   "powerpoint"
+  ]
+ },
+ {
+  "id": "youtube-thumb",
+  "name": "YouTube Thumbnail",
+  "category": "Video",
+  "width": 1280,
+  "height": 720,
+  "keywords": [
+   "youtube",
+   "thumbnail",
+   "video cover"
+  ]
+ },
+ {
+  "id": "facebook-post",
+  "name": "Facebook Post",
+  "category": "Social",
+  "width": 1200,
+  "height": 630,
+  "keywords": [
+   "facebook",
+   "fb",
+   "post"
+  ]
+ },
+ {
+  "id": "poster",
+  "name": "Poster",
+  "category": "Print",
+  "width": 420,
+  "height": 594,
+  "unit": "mm",
+  "dpi": 96,
+  "keywords": [
+   "poster",
+   "a2",
+   "print"
+  ]
+ },
+ {
+  "id": "flyer",
+  "name": "Flyer A5",
+  "category": "Print",
+  "width": 148,
+  "height": 210,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "flyer",
+   "leaflet",
+   "a5",
+   "handout"
+  ]
+ },
+ {
+  "id": "a4",
+  "name": "A4 Document",
+  "category": "Documents",
+  "width": 210,
+  "height": 297,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "a4",
+   "document",
+   "doc",
+   "page",
+   "report"
+  ]
+ },
+ {
+  "id": "business-card",
+  "name": "Business Card",
+  "category": "Print",
+  "width": 3.5,
+  "height": 2,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "business card",
+   "card",
+   "contact"
+  ]
+ },
+ {
+  "id": "quote-card",
+  "name": "Quote Card",
+  "category": "Social",
+  "width": 1440,
+  "height": 1080,
+  "keywords": [
+   "quote",
+   "card"
+  ]
+ },
+ {
+  "id": "logo",
+  "name": "Logo",
+  "category": "Marketing",
+  "width": 800,
+  "height": 800,
+  "keywords": [
+   "logo",
+   "brand",
+   "mark",
+   "icon"
+  ]
+ },
+ {
+  "id": "us-letter",
+  "name": "US Letter Document",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "letter",
+   "document",
+   "doc",
+   "page",
+   "report"
+  ]
+ },
+ {
+  "id": "doc",
+  "name": "Doc",
+  "category": "Documents",
+  "width": 816,
+  "height": 1056,
+  "keywords": [
+   "doc",
+   "docs",
+   "document",
+   "word",
+   "report",
+   "notes",
+   "writing"
+  ]
+ },
+ {
+  "id": "tiktok-video",
+  "name": "TikTok Video",
+  "category": "Video",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "tiktok",
+   "video",
+   "vertical",
+   "short"
+  ]
+ },
+ {
+  "id": "insta-reel",
+  "name": "Instagram Reel",
+  "category": "Video",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "instagram",
+   "ig",
+   "reel",
+   "video",
+   "vertical"
+  ]
+ },
+ {
+  "id": "youtube-video",
+  "name": "YouTube Video",
+  "category": "Video",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "youtube",
+   "video",
+   "16:9"
+  ]
+ },
+ {
+  "id": "youtube-banner",
+  "name": "YouTube Banner",
+  "category": "Video",
+  "width": 2560,
+  "height": 1440,
+  "keywords": [
+   "youtube",
+   "banner",
+   "channel art"
+  ]
+ },
+ {
+  "id": "video-call-background",
+  "name": "Video Call Background",
+  "category": "Video",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "zoom",
+   "teams",
+   "meeting",
+   "virtual background"
+  ]
+ },
+ {
+  "id": "insta-portrait",
+  "name": "Instagram Portrait Post",
+  "category": "Social",
+  "width": 1080,
+  "height": 1350,
+  "keywords": [
+   "instagram",
+   "ig",
+   "portrait",
+   "4:5",
+   "post"
+  ]
+ },
+ {
+  "id": "facebook-story",
+  "name": "Facebook Story",
+  "category": "Social",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "facebook",
+   "fb",
+   "story",
+   "vertical"
+  ]
+ },
+ {
+  "id": "facebook-cover",
+  "name": "Facebook Cover",
+  "category": "Social",
+  "width": 1640,
+  "height": 624,
+  "keywords": [
+   "facebook",
+   "fb",
+   "cover",
+   "banner"
+  ]
+ },
+ {
+  "id": "linkedin-post",
+  "name": "LinkedIn Post",
+  "category": "Social",
+  "width": 1200,
+  "height": 627,
+  "keywords": [
+   "linkedin",
+   "post"
+  ]
+ },
+ {
+  "id": "linkedin-banner",
+  "name": "LinkedIn Banner",
+  "category": "Social",
+  "width": 1584,
+  "height": 396,
+  "keywords": [
+   "linkedin",
+   "banner",
+   "cover",
+   "background"
+  ]
+ },
+ {
+  "id": "x-post",
+  "name": "X Post",
+  "category": "Social",
+  "width": 1600,
+  "height": 900,
+  "keywords": [
+   "x",
+   "twitter",
+   "tweet",
+   "post"
+  ]
+ },
+ {
+  "id": "x-header",
+  "name": "X Header",
+  "category": "Social",
+  "width": 1500,
+  "height": 500,
+  "keywords": [
+   "x",
+   "twitter",
+   "header",
+   "banner"
+  ]
+ },
+ {
+  "id": "pinterest-pin",
+  "name": "Pinterest Pin",
+  "category": "Social",
+  "width": 1000,
+  "height": 1500,
+  "keywords": [
+   "pinterest",
+   "pin"
+  ]
+ },
+ {
+  "id": "phone-wallpaper",
+  "name": "Phone Wallpaper",
+  "category": "Social",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "wallpaper",
+   "phone",
+   "lock screen",
+   "background"
+  ]
+ },
+ {
+  "id": "desktop-wallpaper",
+  "name": "Desktop Wallpaper",
+  "category": "Social",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "wallpaper",
+   "desktop",
+   "computer",
+   "background"
+  ]
+ },
+ {
+  "id": "presentation-4x3",
+  "name": "Presentation (4:3)",
+  "category": "Presentations",
+  "width": 1024,
+  "height": 768,
+  "keywords": [
+   "slides",
+   "deck",
+   "4:3",
+   "standard"
+  ]
+ },
+ {
+  "id": "invitation",
+  "name": "Invitation",
+  "category": "Print",
+  "width": 5,
+  "height": 7,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "invitation",
+   "invite",
+   "party",
+   "wedding"
+  ]
+ },
+ {
+  "id": "postcard",
+  "name": "Postcard",
+  "category": "Print",
+  "width": 6,
+  "height": 4,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "postcard",
+   "card",
+   "mail"
+  ]
+ },
+ {
+  "id": "menu",
+  "name": "Menu",
+  "category": "Print",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "menu",
+   "restaurant",
+   "cafe",
+   "food"
+  ]
+ },
+ {
+  "id": "flyer-letter",
+  "name": "Flyer (US Letter)",
+  "category": "Print",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "flyer",
+   "leaflet",
+   "letter",
+   "handout"
+  ]
+ },
+ {
+  "id": "a3-poster",
+  "name": "Poster (A3)",
+  "category": "Print",
+  "width": 297,
+  "height": 420,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "poster",
+   "a3",
+   "print"
+  ]
+ },
+ {
+  "id": "resume-a4",
+  "name": "Resume (A4)",
+  "category": "Documents",
+  "width": 210,
+  "height": 297,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "resume",
+   "cv",
+   "curriculum vitae",
+   "a4"
+  ]
+ },
+ {
+  "id": "resume-letter",
+  "name": "Resume (US Letter)",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "resume",
+   "cv",
+   "curriculum vitae",
+   "letter"
+  ]
+ },
+ {
+  "id": "certificate",
+  "name": "Certificate",
+  "category": "Documents",
+  "width": 11,
+  "height": 8.5,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "certificate",
+   "award",
+   "diploma"
+  ]
+ },
+ {
+  "id": "infographic",
+  "name": "Infographic",
+  "category": "Marketing",
+  "width": 800,
+  "height": 2000,
+  "keywords": [
+   "infographic",
+   "chart",
+   "data"
+  ]
+ },
+ {
+  "id": "email-header",
+  "name": "Email Header",
+  "category": "Marketing",
+  "width": 600,
+  "height": 200,
+  "keywords": [
+   "email",
+   "newsletter",
+   "header",
+   "banner"
+  ]
+ },
+ {
+  "id": "brochure",
+  "name": "Brochure",
+  "category": "Marketing",
+  "width": 11,
+  "height": 8.5,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "brochure",
+   "trifold",
+   "pamphlet"
+  ]
+ },
+ {
+  "id": "display-ad",
+  "name": "Display Ad",
+  "category": "Marketing",
+  "width": 300,
+  "height": 250,
+  "keywords": [
+   "ad",
+   "advert",
+   "banner",
+   "medium rectangle",
+   "web"
+  ]
+ },
+ {
+  "id": "card",
+  "name": "Card",
+  "category": "Print",
+  "width": 5,
+  "height": 7,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "card",
+   "greeting card",
+   "folded card",
+   "birthday",
+   "thank you"
+  ]
+ },
+ {
+  "id": "calendar-a4",
+  "name": "Calendar (A4)",
+  "category": "Documents",
+  "width": 210,
+  "height": 297,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "calendar",
+   "month",
+   "year",
+   "a4"
+  ]
+ },
+ {
+  "id": "calendar-letter",
+  "name": "Calendar (US Letter)",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "calendar",
+   "month",
+   "year",
+   "letter"
+  ]
+ },
+ {
+  "id": "planner",
+  "name": "Planner",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "planner",
+   "weekly",
+   "daily",
+   "schedule",
+   "to do"
+  ]
+ },
+ {
+  "id": "worksheet-a4",
+  "name": "Worksheet (A4)",
+  "category": "Documents",
+  "width": 210,
+  "height": 297,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "worksheet",
+   "classroom",
+   "lesson",
+   "activity",
+   "a4"
+  ]
+ },
+ {
+  "id": "worksheet-letter",
+  "name": "Worksheet (US Letter)",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "worksheet",
+   "classroom",
+   "lesson",
+   "activity",
+   "letter"
+  ]
+ },
+ {
+  "id": "book-cover",
+  "name": "Book Cover",
+  "category": "Print",
+  "width": 6,
+  "height": 9,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "book",
+   "cover",
+   "ebook",
+   "novel",
+   "kindle"
+  ]
+ },
+ {
+  "id": "album-cover",
+  "name": "Album Cover",
+  "category": "Marketing",
+  "width": 3000,
+  "height": 3000,
+  "keywords": [
+   "album",
+   "cover",
+   "music",
+   "spotify",
+   "single"
+  ]
+ },
+ {
+  "id": "label",
+  "name": "Label",
+  "category": "Print",
+  "width": 4,
+  "height": 3,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "label",
+   "product",
+   "jar",
+   "bottle",
+   "packaging"
+  ]
+ },
+ {
+  "id": "sticker",
+  "name": "Sticker",
+  "category": "Print",
+  "width": 3,
+  "height": 3,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "sticker",
+   "decal",
+   "round",
+   "square"
+  ]
+ },
+ {
+  "id": "bookmark",
+  "name": "Bookmark",
+  "category": "Print",
+  "width": 2,
+  "height": 6,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "bookmark",
+   "reading",
+   "book"
+  ]
+ },
+ {
+  "id": "ticket",
+  "name": "Ticket",
+  "category": "Print",
+  "width": 5.5,
+  "height": 2,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "ticket",
+   "admission",
+   "event",
+   "raffle",
+   "pass"
+  ]
+ },
+ {
+  "id": "gift-certificate",
+  "name": "Gift Certificate",
+  "category": "Print",
+  "width": 8,
+  "height": 3.5,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "gift certificate",
+   "voucher",
+   "gift card",
+   "coupon"
+  ]
+ },
+ {
+  "id": "letterhead-a4",
+  "name": "Letterhead (A4)",
+  "category": "Documents",
+  "width": 210,
+  "height": 297,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "letterhead",
+   "letter",
+   "stationery",
+   "a4"
+  ]
+ },
+ {
+  "id": "letterhead-letter",
+  "name": "Letterhead (US Letter)",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "letterhead",
+   "letter",
+   "stationery"
+  ]
+ },
+ {
+  "id": "newsletter",
+  "name": "Newsletter",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "newsletter",
+   "bulletin",
+   "news",
+   "school",
+   "company"
+  ]
+ },
+ {
+  "id": "magazine",
+  "name": "Magazine (A4)",
+  "category": "Documents",
+  "width": 210,
+  "height": 297,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "magazine",
+   "cover",
+   "editorial",
+   "a4"
+  ]
+ },
+ {
+  "id": "banner",
+  "name": "Banner",
+  "category": "Print",
+  "width": 72,
+  "height": 36,
+  "unit": "in",
+  "dpi": 96,
+  "keywords": [
+   "banner",
+   "vinyl",
+   "sign",
+   "6 x 3 ft",
+   "outdoor"
+  ]
+ },
+ {
+  "id": "facebook-event-cover",
+  "name": "Facebook Event Cover",
+  "category": "Social",
+  "width": 1920,
+  "height": 1005,
+  "keywords": [
+   "facebook",
+   "fb",
+   "event",
+   "cover"
+  ]
+ },
+ {
+  "id": "instagram-ad",
+  "name": "Instagram Ad",
+  "category": "Marketing",
+  "width": 1080,
+  "height": 1080,
+  "keywords": [
+   "instagram",
+   "ig",
+   "ad",
+   "advert",
+   "sponsored"
+  ]
+ },
+ {
+  "id": "twitch-banner",
+  "name": "Twitch Banner",
+  "category": "Video",
+  "width": 1200,
+  "height": 480,
+  "keywords": [
+   "twitch",
+   "banner",
+   "stream",
+   "profile"
+  ]
+ },
+ {
+  "id": "etsy-banner",
+  "name": "Etsy Banner",
+  "category": "Marketing",
+  "width": 3360,
+  "height": 840,
+  "keywords": [
+   "etsy",
+   "banner",
+   "shop",
+   "cover"
+  ]
+ },
+ {
+  "id": "mobile-video",
+  "name": "Mobile Video",
+  "category": "Video",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "mobile",
+   "video",
+   "vertical",
+   "phone",
+   "reel"
+  ]
+ },
+ {
+  "id": "logo-animated",
+  "name": "Animated Logo",
+  "category": "Video",
+  "width": 500,
+  "height": 500,
+  "keywords": [
+   "logo",
+   "animated",
+   "motion",
+   "intro"
+  ]
+ },
+ {
+  "id": "gmail-header",
+  "name": "Gmail Header",
+  "category": "Marketing",
+  "width": 1000,
+  "height": 250,
+  "keywords": [
+   "gmail",
+   "email",
+   "header",
+   "signature",
+   "banner"
+  ]
+ },
+ {
+  "id": "snapchat-geofilter",
+  "name": "Snapchat Geofilter",
+  "category": "Social",
+  "width": 1080,
+  "height": 2340,
+  "keywords": [
+   "snapchat",
+   "geofilter",
+   "filter",
+   "snap"
+  ]
+ },
+ {
+  "id": "podcast-cover",
+  "name": "Podcast Cover",
+  "category": "Marketing",
+  "width": 3000,
+  "height": 3000,
+  "keywords": [
+   "podcast",
+   "cover",
+   "show",
+   "audio",
+   "artwork"
+  ]
+ },
+ {
+  "id": "zoom-background",
+  "name": "Zoom Background",
+  "category": "Video",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "zoom",
+   "video call",
+   "meeting",
+   "virtual background"
+  ]
+ },
+ {
+  "id": "etsy-shop-icon",
+  "name": "Etsy Shop Icon",
+  "category": "Marketing",
+  "width": 500,
+  "height": 500,
+  "keywords": [
+   "etsy",
+   "shop",
+   "icon",
+   "avatar"
+  ]
+ },
+ {
+  "id": "whiteboard",
+  "name": "Whiteboard",
+  "category": "Presentations",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "whiteboard",
+   "brainstorm",
+   "sticky notes",
+   "infinite",
+   "canvas",
+   "mind map"
+  ]
+ },
+ {
+  "id": "website",
+  "name": "Website",
+  "category": "Marketing",
+  "width": 1366,
+  "height": 768,
+  "keywords": [
+   "website",
+   "landing page",
+   "site",
+   "portfolio"
+  ]
+ },
+ {
+  "id": "insta-carousel",
+  "name": "Instagram Carousel",
+  "category": "Social",
+  "width": 3240,
+  "height": 1350,
+  "split": {
+   "columns": 3
+  },
+  "keywords": [
+   "instagram",
+   "ig",
+   "carousel",
+   "swipe",
+   "slides",
+   "panorama",
+   "seamless"
+  ]
+ },
+ {
+  "id": "linkedin-carousel",
+  "name": "LinkedIn Carousel",
+  "category": "Social",
+  "width": 3240,
+  "height": 1350,
+  "split": {
+   "columns": 3
+  },
+  "keywords": [
+   "linkedin",
+   "carousel",
+   "swipe",
+   "slides",
+   "document post"
+  ]
+ },
+ {
+  "id": "highlight-cover",
+  "name": "Instagram Highlight Cover",
+  "category": "Social",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "instagram",
+   "ig",
+   "highlight",
+   "cover",
+   "icon",
+   "story"
+  ]
+ },
+ {
+  "id": "threads-post",
+  "name": "Threads Post",
+  "category": "Social",
+  "width": 1080,
+  "height": 1350,
+  "keywords": [
+   "threads",
+   "post",
+   "portrait"
+  ]
+ },
+ {
+  "id": "shorts-cover",
+  "name": "YouTube Shorts Cover",
+  "category": "Video",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "youtube",
+   "shorts",
+   "tiktok",
+   "cover",
+   "thumbnail",
+   "vertical"
+  ]
+ },
+ {
+  "id": "linkedin-article",
+  "name": "LinkedIn Article Cover",
+  "category": "Social",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "linkedin",
+   "article",
+   "cover",
+   "newsletter"
+  ]
+ },
+ {
+  "id": "facebook-ad",
+  "name": "Facebook Ad",
+  "category": "Marketing",
+  "width": 1080,
+  "height": 1080,
+  "keywords": [
+   "facebook",
+   "fb",
+   "ad",
+   "advert",
+   "sponsored"
+  ]
+ },
+ {
+  "id": "whatsapp-status",
+  "name": "WhatsApp Status",
+  "category": "Social",
+  "width": 1080,
+  "height": 1920,
+  "keywords": [
+   "whatsapp",
+   "status",
+   "story",
+   "vertical"
+  ]
+ },
+ {
+  "id": "twitch-panel",
+  "name": "Twitch Panel",
+  "category": "Video",
+  "width": 320,
+  "height": 160,
+  "keywords": [
+   "twitch",
+   "panel",
+   "stream",
+   "about"
+  ]
+ },
+ {
+  "id": "discord-banner",
+  "name": "Discord Banner",
+  "category": "Social",
+  "width": 960,
+  "height": 540,
+  "keywords": [
+   "discord",
+   "banner",
+   "server",
+   "profile"
+  ]
+ },
+ {
+  "id": "report-a4",
+  "name": "Report (A4)",
+  "category": "Documents",
+  "width": 210,
+  "height": 297,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "report",
+   "annual report",
+   "business",
+   "a4"
+  ]
+ },
+ {
+  "id": "report-letter",
+  "name": "Report (US Letter)",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "report",
+   "annual report",
+   "business",
+   "letter"
+  ]
+ },
+ {
+  "id": "proposal",
+  "name": "Proposal",
+  "category": "Documents",
+  "width": 8.5,
+  "height": 11,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "proposal",
+   "business proposal",
+   "pitch",
+   "quote",
+   "bid"
+  ]
+ },
+ {
+  "id": "lesson-plan-a4",
+  "name": "Lesson Plan (A4)",
+  "category": "Documents",
+  "width": 210,
+  "height": 297,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "lesson plan",
+   "lesson",
+   "teacher",
+   "classroom",
+   "a4"
+  ]
+ },
+ {
+  "id": "mind-map",
+  "name": "Mind Map",
+  "category": "Presentations",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "mind map",
+   "brainstorm",
+   "ideas",
+   "whiteboard"
+  ]
+ },
+ {
+  "id": "flowchart",
+  "name": "Flowchart",
+  "category": "Presentations",
+  "width": 1920,
+  "height": 1080,
+  "keywords": [
+   "flowchart",
+   "flow chart",
+   "process",
+   "diagram",
+   "whiteboard"
+  ]
+ },
+ {
+  "id": "trifold-letter",
+  "name": "Trifold Brochure",
+  "category": "Print",
+  "width": 11,
+  "height": 8.5,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "trifold",
+   "tri-fold",
+   "brochure",
+   "pamphlet",
+   "leaflet"
+  ]
+ },
+ {
+  "id": "rack-card",
+  "name": "Rack Card",
+  "category": "Print",
+  "width": 4,
+  "height": 9,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "rack card",
+   "rack",
+   "card",
+   "hotel",
+   "tourism"
+  ]
+ },
+ {
+  "id": "flyer-a5",
+  "name": "Flyer (A5)",
+  "category": "Print",
+  "width": 148,
+  "height": 210,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "flyer",
+   "leaflet",
+   "a5",
+   "handout"
+  ]
+ },
+ {
+  "id": "flyer-dl",
+  "name": "Flyer (DL)",
+  "category": "Print",
+  "width": 99,
+  "height": 210,
+  "unit": "mm",
+  "dpi": 300,
+  "keywords": [
+   "flyer",
+   "leaflet",
+   "dl",
+   "handout",
+   "slim"
+  ]
+ },
+ {
+  "id": "wedding-invitation",
+  "name": "Wedding Invitation",
+  "category": "Print",
+  "width": 5,
+  "height": 7,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "wedding",
+   "invitation",
+   "invite",
+   "save the date"
+  ]
+ },
+ {
+  "id": "birthday-card",
+  "name": "Birthday Card",
+  "category": "Print",
+  "width": 5,
+  "height": 7,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "birthday",
+   "card",
+   "greeting card",
+   "folded card"
+  ]
+ },
+ {
+  "id": "thank-you-card",
+  "name": "Thank You Card",
+  "category": "Print",
+  "width": 5,
+  "height": 7,
+  "unit": "in",
+  "dpi": 300,
+  "keywords": [
+   "thank you",
+   "card",
+   "greeting card",
+   "folded card"
+  ]
+ },
+ {
+  "id": "tshirt-print",
+  "name": "T-Shirt Print",
+  "category": "Print",
+  "width": 4500,
+  "height": 5400,
+  "keywords": [
+   "t-shirt",
+   "tshirt",
+   "shirt",
+   "tee",
+   "print",
+   "merch"
+  ]
+ },
+ {
+  "id": "tote-print",
+  "name": "Tote Bag Print",
+  "category": "Print",
+  "width": 3600,
+  "height": 3600,
+  "keywords": [
+   "tote",
+   "tote bag",
+   "bag",
+   "print",
+   "merch"
+  ]
+ }
+]

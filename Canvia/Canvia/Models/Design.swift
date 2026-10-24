@@ -368,6 +368,11 @@ struct Page: Codable, Equatable, Identifiable {
     /// (PdfText.editablePage): {"name": "menu.pdf", "page": 1}; nil for any
     /// other page, and no key.
     var pdfSource: PdfSource?
+    /// Cut into slides — an Instagram or LinkedIn carousel, a panorama that
+    /// runs on from one slide to the next — as {"columns": n, "rows": 1}
+    /// (PageSplit); nil for any other page, and no key. An older build
+    /// reading neither key keeps the page as it is.
+    var split: PageSplit?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -399,6 +404,7 @@ struct Page: Codable, Equatable, Identifiable {
         locked = (try? c.decode(Bool.self, forKey: .locked)) == true ? true : nil
         whiteboard = (try? c.decode(PageWhiteboard.self, forKey: .whiteboard)).flatMap { $0.expanded ? $0 : nil }
         pdfSource = try? c.decode(PdfSource.self, forKey: .pdfSource)
+        split = try? c.decode(PageSplit.self, forKey: .split)
     }
 
     /// As the synthesised encoder wrote it, except that `hidden` and
@@ -427,11 +433,12 @@ struct Page: Codable, Equatable, Identifiable {
         try c.encodeIfPresent(whiteboard, forKey: .whiteboard)
         try c.encodeIfPresent(pageAnimation, forKey: .pageAnimation)
         try c.encodeIfPresent(pdfSource, forKey: .pdfSource)
+        try c.encodeIfPresent(split, forKey: .split)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
-        case hidden, title, transitionSeconds, locked, whiteboard, pageAnimation, pdfSource
+        case hidden, title, transitionSeconds, locked, whiteboard, pageAnimation, pdfSource, split
     }
 }
 

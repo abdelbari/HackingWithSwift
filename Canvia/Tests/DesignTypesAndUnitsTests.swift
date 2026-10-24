@@ -66,6 +66,12 @@ final class DesignTypesAndUnitsTests: XCTestCase {
             "letterhead-letter", "newsletter", "magazine", "banner", "facebook-event-cover", "instagram-ad",
             "twitch-banner", "etsy-banner", "mobile-video", "logo-animated", "gmail-header", "snapchat-geofilter",
             "podcast-cover", "zoom-background", "etsy-shop-icon", "whiteboard", "website",
+            // Round 34's.
+            "insta-carousel", "linkedin-carousel", "highlight-cover", "threads-post", "shorts-cover",
+            "linkedin-article", "facebook-ad", "whatsapp-status", "twitch-panel", "discord-banner", "report-a4",
+            "report-letter", "proposal", "lesson-plan-a4", "mind-map", "flowchart", "trifold-letter", "rack-card",
+            "flyer-a5", "flyer-dl", "wedding-invitation", "birthday-card", "thank-you-card", "tshirt-print",
+            "tote-print",
         ])
         XCTAssertEqual(try designType("us-letter").name, "US Letter Document")
         XCTAssertEqual(try designType("resume-letter").name, "Resume (US Letter)")
@@ -174,16 +180,18 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         XCTAssertTrue(SizePreset.search("zzz").isEmpty)
         // Words, not categories: "print" finds what says print, not every
         // type in Print.
-        XCTAssertEqual(SizePreset.search("print").map(\.id), ["poster", "a3-poster"])
+        XCTAssertEqual(SizePreset.search("print").map(\.id), ["tshirt-print", "tote-print", "poster", "a3-poster"])
     }
 
     func testSearchingASizeFindsTheTypesOfThatSize() {
-        let tall = ["insta-story", "tiktok-video", "insta-reel", "facebook-story", "phone-wallpaper", "mobile-video"]
+        let tall = ["insta-story", "tiktok-video", "insta-reel", "facebook-story", "phone-wallpaper", "mobile-video",
+                    "highlight-cover", "shorts-cover", "whatsapp-status"]
         XCTAssertEqual(SizePreset.search("1080x1920").map(\.id), tall)
         XCTAssertEqual(SizePreset.search("1080 × 1920").map(\.id), tall)
         XCTAssertEqual(SizePreset.search("1080 X 1920").map(\.id), tall)
         XCTAssertEqual(SizePreset.search("2480x3508").map(\.id),
-                       ["a4", "resume-a4", "calendar-a4", "worksheet-a4", "letterhead-a4", "magazine"])
+                       ["a4", "resume-a4", "calendar-a4", "worksheet-a4", "letterhead-a4", "magazine", "report-a4",
+                        "lesson-plan-a4"])
         XCTAssertTrue(SizePreset.search("1x1").isEmpty)
     }
 

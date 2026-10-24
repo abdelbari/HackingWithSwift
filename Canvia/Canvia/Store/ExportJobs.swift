@@ -10,18 +10,19 @@ enum ExportJobs {
 
     typealias Work = ExportQueue.Work
 
-    /// PNG or JPEG, a file a page — each PNG in 256 colours with
-    /// `compress` where that is enough smaller (PngWriter), and said where
-    /// it was not.
+    /// PNG or JPEG, a file a page — a file a slide of a carousel page with
+    /// `split` (ExportPlan.tiles) — each PNG in 256 colours with `compress`
+    /// where that is enough smaller (PngWriter), and said where it was not.
     static func pictures(_ snapshot: ExportSnapshot, format: DesignExporter.RasterFormat, scale: Double,
-                         longEdge: Double, quality: Double, transparent: Bool, compress: Bool = false) -> Work {
+                         longEdge: Double, quality: Double, transparent: Bool, compress: Bool = false,
+                         split: Bool = false) -> Work {
         { report in
             let made = try await DesignExporter.exportPictures(
                 design: snapshot.design, range: snapshot.range, current: snapshot.current,
                 format: format, scale: scale, longEdge: longEdge, quality: quality,
                 // JPEG has no alpha channel to be transparent in.
                 transparent: transparent && format == .png, captionTime: snapshot.captionTime,
-                compress: compress && format == .png, progress: report)
+                compress: compress && format == .png, split: split, progress: report)
             return ExportQueue.Result(urls: made.urls, note: made.uncompressed > 0 ? compressFellBack : nil)
         }
     }
@@ -74,14 +75,15 @@ enum ExportJobs {
     }
 
     /// The pictures into Photos rather than the share sheet, each PNG
-    /// compressed as `pictures` does with `compress`. Each is counted as it
-    /// goes in, and what went in is said even after a Cancel — then, as the
-    /// Android twin says it, a PNG that went in uncompressed.
+    /// compressed as `pictures` does with `compress`, a carousel's slides
+    /// in order with `split`, so a post picks them in sequence. Each is
+    /// counted as it goes in, and what went in is said even after a Cancel
+    /// — then, as the Android twin says it, a PNG that went in uncompressed.
     static func picturesToPhotos(_ snapshot: ExportSnapshot, format: DesignExporter.RasterFormat, scale: Double,
                                  longEdge: Double, quality: Double, transparent: Bool,
-                                 compress: Bool = false) -> Work {
+                                 compress: Bool = false, split: Bool = false) -> Work {
         let render = pictures(snapshot, format: format, scale: scale, longEdge: longEdge,
-                              quality: quality, transparent: transparent, compress: compress)
+                              quality: quality, transparent: transparent, compress: compress, split: split)
         return { report in
             let made = try await render(report)
             let outcome = try await PhotoSaver.save(made.urls)

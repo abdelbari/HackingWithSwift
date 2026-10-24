@@ -97,6 +97,13 @@ struct ExportSheet: View {
     /// Save as one ZIP, and the PNG's Compress file (ExportPlan).
     @State private var zip = false
     @State private var pngCompress = false
+    /// A carousel cut into a file a slide (PageSplit): on unless a
+    /// remembered export turned it off.
+    @State private var split = true
+    /// The audio download's voice-overs and clip sound, remembered with
+    /// the rest.
+    @State private var audioVoice = true
+    @State private var audioClips = true
     /// Said beside the share: a PNG that went out uncompressed.
     @State private var exportNote: String?
     /// What Check accessibility finds in the design as it stands, read off
@@ -476,15 +483,50 @@ struct ExportSheet: View {
             if pageRange == .chosen {
                 Button("Choose pages… (\(chosenText))") { choosingPages = true }
             }
-            if ExportPlan.offersZip(format: fileType, files: exportedIndices.count) {
-                Toggle("Save as one ZIP", isOn: $zip)
-                Text(tr("%@, with a file for each page inside.", ExportPlan.zipName(store.design.title)))
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
+            zipRows
         } header: {
             Text("Pages")
         } footer: {
             Text(note)
+        }
+    }
+
+    /// Save as one ZIP, for a type that writes several files — a page's or
+    /// a slide's each.
+    @ViewBuilder
+    private var zipRows: some View {
+        if ExportPlan.offersZip(format: fileType, files: pictureFiles) {
+            Toggle("Save as one ZIP", isOn: $zip)
+            Text(tr("%@, with a file for each page inside.", ExportPlan.zipName(store.design.title)))
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+
+    /// Split into slides, for a picture of a carousel page (PageSplit) —
+    /// never of the selection on its own.
+    private var offersSplit: Bool {
+        !selectionOnly && ExportPlan.offersSplit(format: fileType, design: exportedDesign, pages: exportedIndices)
+    }
+
+    private var pickedSplit: Bool { split && offersSplit }
+
+    /// How many files a picture makes: a file a slide of each carousel page
+    /// when it is cut, else a file a page.
+    private var pictureFiles: Int {
+        ExportPlan.fileCount(design: exportedDesign, pages: exportedIndices, split: pickedSplit)
+    }
+
+    /// A carousel cut into its slides, each its own file, saved in order so
+    /// a post picks them in sequence; a carousel alone, with no Pages row,
+    /// offers its ZIP here.
+    private var splitSection: some View {
+        Section {
+            Toggle("Split into slides", isOn: $split)
+            if split {
+                Text(trn("%d file, one a slide, in order|%d files, one a slide, in order", pictureFiles))
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if store.design.pages.count <= 1 { zipRows }
         }
     }
 
@@ -667,7 +709,7 @@ struct ExportSheet: View {
         }
     }
 
-    private var shareCount: Int { sharedIndices.count }
+    private var shareCount: Int { pickedSplit ? pictureFiles : sharedIndices.count }
 
     /// Said in place of making anything: no pages chosen, or every page
     /// hidden.
@@ -721,7 +763,7 @@ struct ExportSheet: View {
     /// Whether the files go out as one ZIP: asked for, where the type
     /// writes several.
     private var zipping: Bool {
-        zip && ExportPlan.offersZip(format: fileType, files: exportedIndices.count)
+        zip && ExportPlan.offersZip(format: fileType, files: pictureFiles)
     }
 
     /// `work`, its files put in one ZIP when they go out as one.
@@ -743,7 +785,7 @@ struct ExportSheet: View {
             run(tr("Saving to your photos"), format: fileType == "jpg" ? "jpg" : "png") {
                 ExportJobs.picturesToPhotos(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
                                             quality: jpegQuality, transparent: transparent,
-                                            compress: pngCompress && format == .png)
+                                            compress: pngCompress && format == .png, split: pickedSplit)
             }
         }
     }
@@ -853,10 +895,12 @@ struct ExportSheet: View {
         switch fileType {
         case "png":
             qualitySection
+            if offersSplit { splitSection }
             transparencySection
             compressSection
         case "jpg":
             qualitySection
+            if offersSplit { splitSection }
             jpegSection
         case "pdf":
             pdfSection
@@ -1139,7 +1183,8 @@ struct ExportSheet: View {
                                 pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
                                 pptxStyledText: pptxStyledText, suggested: format == suggested,
                                 pdfBookmarks: pdfBookmarks, colourProfile: paper.colourProfile.rawValue,
-                                html: htmlSettings, zip: zip, pngCompress: pngCompress, pdfTagged: pdfTagged).json
+                                html: htmlSettings, zip: zip, pngCompress: pngCompress, pdfTagged: pdfTagged,
+                                audioVoice: audioVoice, audioClips: audioClips, split: split).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -1156,6 +1201,10 @@ struct ExportSheet: View {
         suggested = read != "png" ? read : (defaultFormat == "jpg" ? "jpg" : "png")
         fileType = suggested
         htmlLayout = ExportSuggestion.htmlLayout(store.design)
+        // Clear for a print on a T-shirt or a tote, where the fabric is the
+        // background (DesignTypes.clearBackground).
+        let clear = DesignTypes.suggestsClear(store.design)
+        transparent = clear
         guard let last = ExportLast.read(exportLast) else { return }
         remember = true
         // A Word document is a Doc's alone.
@@ -1164,7 +1213,7 @@ struct ExportSheet: View {
         pdfTagged = last.pdfTagged
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2
         jpegQuality = last.jpegQuality
-        transparent = last.transparent
+        transparent = last.transparent || clear
         pdfNotes = last.pdfNotes
         pdfCompress = last.pdfCompress
         pptxStyledText = last.pptxStyledText
@@ -1175,6 +1224,9 @@ struct ExportSheet: View {
         htmlLoop = last.html.loop
         zip = last.zip
         pngCompress = last.pngCompress
+        split = last.split
+        audioVoice = last.audioVoice
+        audioClips = last.audioClips
         paper.colourProfile = PrintLayout.ColourProfile.of(last.colourProfile)
         pageRange = RangeChoice(rawValue: last.pages) ?? .all
         // After the scale's own change has cleared the field, which it does
@@ -1548,7 +1600,7 @@ struct ExportSheet: View {
 
     private func picturesWork(_ format: DesignExporter.RasterFormat) -> ExportQueue.Work {
         ExportJobs.pictures(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
-                            quality: jpegQuality, transparent: transparent, compress: pngCompress)
+                            quality: jpegQuality, transparent: transparent, compress: pngCompress, split: pickedSplit)
     }
 
     /// How many pages are hidden, and so left out of "All pages" and the

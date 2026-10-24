@@ -628,6 +628,7 @@ struct CanvasView: View {
                 if bleed > 0 { TrimLine(size: store.pageSize, unit: iz) }
                 if store.snapping.showGrid { gridOverlay }
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
+                if let split = store.page.split { seamsOverlay(split) }
                 ForEach(Guides.shown(store.design)) { guide in guideLine(guide) }
                 if store.showsReadingOrder { readingOrderOverlay }
                 if underlineLinks { LinkUnderlines(design: store.design, page: shownPage) }
@@ -1707,6 +1708,33 @@ struct CanvasView: View {
             .frame(width: max(store.pageWidth - 2 * m, 1), height: max(store.pageHeight - 2 * m, 1))
             .position(x: store.pageWidth / 2, y: store.pageHeight / 2)
             .allowsHitTesting(false)
+    }
+
+    /// A carousel's seams, where it is cut into slides (PageSplit): dashed
+    /// across the page, cased so they read on a photo, never printed —
+    /// drawn here, over the page, and never by PageRenderView.
+    private func seamsOverlay(_ split: PageSplit) -> some View {
+        let w = store.pageWidth, h = store.pageHeight
+        let seams = PageSplit.seams(store.pageSize, split)
+        let dash: [CGFloat] = [10 * iz, 6 * iz]
+        let casing = StrokeStyle(lineWidth: 3 * iz, dash: dash)
+        let line = StrokeStyle(lineWidth: 1.5 * iz, dash: dash)
+        return Canvas { context, _ in
+            var path = Path()
+            for x in seams.vertical {
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: h))
+            }
+            for y in seams.horizontal {
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: w, y: y))
+            }
+            context.stroke(path, with: .color(.white.opacity(0.5)), style: casing)
+            context.stroke(path, with: .color(Theme.guide), style: line)
+        }
+        .frame(width: w, height: h)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private func elementHitArea(_ el: Element) -> some View {

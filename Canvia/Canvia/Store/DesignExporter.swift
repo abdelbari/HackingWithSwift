@@ -289,24 +289,56 @@ enum DesignExporter {
         try autoreleasepool { () throws -> CGImage in
             guard let cg = render(design: design, page: page, scale: scale, transparent: transparent,
                                   captionTime: captionTime) else { throw ExportError.renderFailed }
-            guard let destination = CGImageDestinationCreateWithURL(
-                url as CFURL, format.contentType.identifier as CFString, 1, nil)
-            else { throw ExportError.encodeFailed }
-            var properties: [CFString: Any] = [
-                kCGImageDestinationLossyCompressionQuality: max(0.05, min(1, quality)),
-            ]
-            // A design in a physical unit says its dpi, so the picture opens
-            // at the design's true size; one in pixels says nothing, as
-            // before.
-            if let dpi = imageDPI(design: design, page: page, requested: scale) {
-                properties[kCGImagePropertyDPIWidth] = dpi
-                properties[kCGImagePropertyDPIHeight] = dpi
-            }
-            CGImageDestinationAddImage(destination, cg, properties as CFDictionary)
-            guard CGImageDestinationFinalize(destination) else {
-                throw ExportError.encodeFailed
-            }
+            try writePicture(cg, format: format, quality: quality,
+                      dpi: imageDPI(design: design, page: page, requested: scale), to: url)
             return cg
+        }
+    }
+
+    /// `cg` written to `url` as a PNG or a JPEG of `quality` — saying its
+    /// `dpi`, so a design in a physical unit opens at its true size; one in
+    /// pixels says nothing, as before.
+    static func writePicture(_ cg: CGImage, format: RasterFormat, quality: Double, dpi: Double?, to url: URL) throws {
+        guard let destination = CGImageDestinationCreateWithURL(
+            url as CFURL, format.contentType.identifier as CFString, 1, nil)
+        else { throw ExportError.encodeFailed }
+        var properties: [CFString: Any] = [
+            kCGImageDestinationLossyCompressionQuality: max(0.05, min(1, quality)),
+        ]
+        if let dpi {
+            properties[kCGImagePropertyDPIWidth] = dpi
+            properties[kCGImagePropertyDPIHeight] = dpi
+        }
+        CGImageDestinationAddImage(destination, cg, properties as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else {
+            throw ExportError.encodeFailed
+        }
+    }
+
+    /// Page `page`, a carousel cut `split` (PageSplit), as a file a slide
+    /// (ExportPlan.tiles) — "<name>_1.png", "<name>_2.png", … in order, the
+    /// page's number before them among `files` > 1 (ExportPlan.slideName) —
+    /// each written as exportRaster writes a page, and the slides drawn, for
+    /// a PNG's Compress file.
+    @MainActor
+    static func exportSlides(design: Design, page: Page, index: Int, files: Int, split: PageSplit,
+                             format: RasterFormat, scale: Double, quality: Double = 0.92,
+                             transparent: Bool = false, captionTime: Double? = .none) throws -> [(URL, CGImage)] {
+        try autoreleasepool { () throws -> [(URL, CGImage)] in
+            guard let cg = render(design: design, page: page, scale: scale, transparent: transparent,
+                                  captionTime: captionTime) else { throw ExportError.renderFailed }
+            let dpi = imageDPI(design: design, page: page, requested: scale)
+            let tiles = ExportPlan.tiles(size: CGSize(width: cg.width, height: cg.height),
+                                         columns: split.columns, rows: split.rows)
+            var made: [(URL, CGImage)] = []
+            for (k, tile) in tiles.enumerated() {
+                guard let slide = cg.cropping(to: tile) else { throw ExportError.renderFailed }
+                let name = ExportPlan.slideName(design.title, pageIndex: index, files: files, slide: k, ext: format.ext)
+                let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+                try writePicture(slide, format: format, quality: quality, dpi: dpi, to: url)
+                made.append((url, slide))
+            }
+            return made
         }
     }
 
@@ -380,7 +412,7 @@ enum DesignExporter {
     @MainActor
     static func exportPictures(design: Design, range: PageRange, current: Int, format: RasterFormat,
                                scale: Double, longEdge: Double, quality: Double, transparent: Bool,
-                               captionTime: Double?, compress: Bool,
+                               captionTime: Double?, compress: Bool, split: Bool = false,
                                progress: ((Double) -> Void)? = nil) async throws -> (urls: [URL], uncompressed: Int) {
         var uncompressed = 0
         let indices = range.indices(in: design, current: current)
@@ -398,19 +430,31 @@ enum DesignExporter {
             let url = fileURL(for: design, ext: format.ext, suffix: suffix)
             let page = design.pages[index]
             let pageScale = longEdge > 0 ? DesignExporter.scale(forLongEdge: longEdge, size: design.size(for: page)) : scale
-            let cg = try exportRaster(design: design, page: page, format: format,
-                                      scale: pageScale, quality: quality, transparent: transparent,
-                                      captionTime: index == current ? captionTime : nil, to: url)
-            if compress && format == .png {
-                // Drawn here; counted, cut, deflated and written away from
-                // the main actor, so the screen keeps moving.
-                let dpi = imageDPI(design: design, page: page, requested: pageScale)
-                let kept = await Task.detached(priority: .userInitiated) {
-                    DesignExporter.keptCompressed(cg, dpi: dpi, at: url)
-                }.value
-                if !kept { uncompressed += 1 }
+            let pageCaption = index == current ? captionTime : nil
+            // A carousel, when asked, as its slides in order; else the page.
+            let made: [(URL, CGImage)]
+            if split, let cut = page.split {
+                made = try exportSlides(design: design, page: page, index: index, files: indices.count, split: cut,
+                                        format: format, scale: pageScale, quality: quality,
+                                        transparent: transparent, captionTime: pageCaption)
+            } else {
+                let cg = try exportRaster(design: design, page: page, format: format,
+                                          scale: pageScale, quality: quality, transparent: transparent,
+                                          captionTime: pageCaption, to: url)
+                made = [(url, cg)]
             }
-            urls.append(url)
+            for (file, cg) in made {
+                if compress && format == .png {
+                    // Drawn here; counted, cut, deflated and written away from
+                    // the main actor, so the screen keeps moving.
+                    let dpi = imageDPI(design: design, page: page, requested: pageScale)
+                    let kept = await Task.detached(priority: .userInitiated) {
+                        DesignExporter.keptCompressed(cg, dpi: dpi, at: file)
+                    }.value
+                    if !kept { uncompressed += 1 }
+                }
+                urls.append(file)
+            }
             progress?(Double(n + 1) / Double(indices.count))
         }
         do { try await pacer.finish() } catch {

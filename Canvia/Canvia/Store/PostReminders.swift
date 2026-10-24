@@ -115,13 +115,15 @@ enum PostReminders {
         ExportQueue.shared.enqueue(job)
     }
 
-    /// The export a post's format makes.
+    /// The export a post's format makes: a carousel's slides, in order, as
+    /// the one post they make.
     @MainActor
     static func postExport(_ format: String, _ snapshot: ExportSnapshot) -> ExportQueue.Work {
         let settings = MovieExporter.Settings(snapshot.design.motion)
         switch format {
         case "jpg":
-            return ExportJobs.pictures(snapshot, format: .jpeg, scale: 2, longEdge: 0, quality: 0.92, transparent: false)
+            return ExportJobs.pictures(snapshot, format: .jpeg, scale: 2, longEdge: 0, quality: 0.92, transparent: false,
+                                       split: true)
         case "pdf":
             return ExportJobs.pdf(snapshot, flatten: false, tagged: true)
         case "mp4":
@@ -129,7 +131,8 @@ enum PostReminders {
         case "gif":
             return ExportJobs.gif(snapshot, settings: settings)
         default:
-            return ExportJobs.pictures(snapshot, format: .png, scale: 2, longEdge: 0, quality: 0.92, transparent: false)
+            return ExportJobs.pictures(snapshot, format: .png, scale: 2, longEdge: 0, quality: 0.92, transparent: false,
+                                       split: true)
         }
     }
 

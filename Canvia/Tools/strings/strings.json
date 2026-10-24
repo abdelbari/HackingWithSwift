@@ -2486,6 +2486,39 @@
       "other": "%d elementos"
     }
   },
+  "%d file, one a slide, in order|%d files, one a slide, in order": {
+    "ar": {
+      "few": "%d ملفات، ملف لكل شريحة، بالترتيب",
+      "many": "%d ملفًا، ملف لكل شريحة، بالترتيب",
+      "one": "ملف واحد (%d)، ملف لكل شريحة، بالترتيب",
+      "other": "%d ملف، ملف لكل شريحة، بالترتيب",
+      "two": "ملفان (%d)، ملف لكل شريحة، بالترتيب",
+      "zero": "%d ملف، ملف لكل شريحة، بالترتيب"
+    },
+    "de": {
+      "one": "%d Datei, eine pro Folie, in Reihenfolge",
+      "other": "%d Dateien, eine pro Folie, in Reihenfolge"
+    },
+    "es": {
+      "one": "%d archivo, uno por diapositiva, en orden",
+      "other": "%d archivos, uno por diapositiva, en orden"
+    },
+    "fr": {
+      "one": "%d fichier, un par diapositive, dans l’ordre",
+      "other": "%d fichiers, un par diapositive, dans l’ordre"
+    },
+    "it": {
+      "one": "%d file, uno per slide, in ordine",
+      "other": "%d file, uno per slide, in ordine"
+    },
+    "ja": {
+      "other": "%d 個のファイル（スライドごとに1つ、順番どおり）"
+    },
+    "pt-BR": {
+      "one": "%d arquivo, um por slide, em ordem",
+      "other": "%d arquivos, um por slide, em ordem"
+    }
+  },
   "%d file|%d files": {
     "ar": {
       "few": "%d ملفات",
@@ -10547,6 +10580,15 @@
     "ja": "小数点以下の桁数",
     "pt-BR": "Casas decimais"
   },
+  "Decision?": {
+    "ar": "قرار؟",
+    "de": "Entscheidung?",
+    "es": "¿Decisión?",
+    "fr": "Décision ?",
+    "it": "Decisione?",
+    "ja": "判断？",
+    "pt-BR": "Decisão?"
+  },
   "Deckled edge": {
     "ar": "حافة مخرّمة",
     "de": "Büttenrand",
@@ -13538,6 +13580,15 @@
     "ja": "小数点以下を減らす",
     "pt-BR": "Menos casas decimais"
   },
+  "Fewer slides": {
+    "ar": "شرائح أقل",
+    "de": "Weniger Folien",
+    "es": "Menos diapositivas",
+    "fr": "Moins de diapositives",
+    "it": "Meno slide",
+    "ja": "スライドを減らす",
+    "pt-BR": "Menos slides"
+  },
   "File type": {
     "ar": "نوع الملف",
     "de": "Dateityp",
@@ -15560,6 +15611,42 @@
     "ja": "アイコン · %@",
     "pt-BR": "Ícones · %@"
   },
+  "Idea 1": {
+    "ar": "فكرة 1",
+    "de": "Idee 1",
+    "es": "Idea 1",
+    "fr": "Idée 1",
+    "it": "Idea 1",
+    "ja": "アイデア1",
+    "pt-BR": "Ideia 1"
+  },
+  "Idea 2": {
+    "ar": "فكرة 2",
+    "de": "Idee 2",
+    "es": "Idea 2",
+    "fr": "Idée 2",
+    "it": "Idea 2",
+    "ja": "アイデア2",
+    "pt-BR": "Ideia 2"
+  },
+  "Idea 3": {
+    "ar": "فكرة 3",
+    "de": "Idee 3",
+    "es": "Idea 3",
+    "fr": "Idée 3",
+    "it": "Idea 3",
+    "ja": "アイデア3",
+    "pt-BR": "Ideia 3"
+  },
+  "Idea 4": {
+    "ar": "فكرة 4",
+    "de": "Idee 4",
+    "es": "Idea 4",
+    "fr": "Idée 4",
+    "it": "Idea 4",
+    "ja": "アイデア4",
+    "pt-BR": "Ideia 4"
+  },
   "Ideas to start from": {
     "ar": "أفكار للبدء",
     "de": "Ideen für den Anfang",
@@ -17273,6 +17360,15 @@
     "ja": "マジックショートカット",
     "pt-BR": "Atalhos mágicos"
   },
+  "Main idea": {
+    "ar": "الفكرة الرئيسية",
+    "de": "Hauptidee",
+    "es": "Idea principal",
+    "fr": "Idée principale",
+    "it": "Idea principale",
+    "ja": "メインアイデア",
+    "pt-BR": "Ideia principal"
+  },
   "Make %d copy|Make %d copies": {
     "ar": {
       "few": "إنشاء %d نسخ",
@@ -18037,6 +18133,15 @@
     "it": "Altre dimensioni",
     "ja": "その他のサイズ",
     "pt-BR": "Mais tamanhos"
+  },
+  "More slides": {
+    "ar": "شرائح أكثر",
+    "de": "Mehr Folien",
+    "es": "Más diapositivas",
+    "fr": "Plus de diapositives",
+    "it": "Più slide",
+    "ja": "スライドを増やす",
+    "pt-BR": "Mais slides"
   },
   "Most pages": {
     "ar": "معظم الصفحات",
@@ -26453,6 +26558,15 @@
     "ja": "スライド",
     "pt-BR": "Slides"
   },
+  "Slides: %d": {
+    "ar": "الشرائح: %d",
+    "de": "Folien: %d",
+    "es": "Diapositivas: %d",
+    "fr": "Diapositives : %d",
+    "it": "Slide: %d",
+    "ja": "スライド: %d",
+    "pt-BR": "Slides: %d"
+  },
   "Slow": {
     "ar": "بطيء",
     "de": "Langsam",
@@ -26965,6 +27079,15 @@
     "it": "Dividi audio",
     "ja": "オーディオを分割",
     "pt-BR": "Dividir áudio"
+  },
+  "Split into slides": {
+    "ar": "التقسيم إلى شرائح",
+    "de": "In Folien aufteilen",
+    "es": "Dividir en diapositivas",
+    "fr": "Découper en diapositives",
+    "it": "Dividi in slide",
+    "ja": "スライドに分割",
+    "pt-BR": "Dividir em slides"
   },
   "Split page": {
     "ar": "تقسيم الصفحة",

@@ -89,7 +89,7 @@
   "cases": [
     {
       "filter": {},
-      "count": 931,
+      "count": 1009,
       "first": [
         "mega-sale-post",
         "neon-nights-story",
@@ -104,7 +104,7 @@
           "blue"
         ]
       },
-      "count": 144,
+      "count": 153,
       "first": [
         "cards-bold-split",
         "documents-gold-seal-certificate",
@@ -120,7 +120,7 @@
           "brown"
         ]
       },
-      "count": 113,
+      "count": 123,
       "first": [
         "mega-sale-post",
         "flyers-coffee-shop-opening",
@@ -147,7 +147,7 @@
         "photo": false,
         "multiPage": true
       },
-      "count": 34,
+      "count": 64,
       "first": [
         "deck-seed-round-pitch",
         "deck-quarterly-business-review",
@@ -163,7 +163,7 @@
           "black"
         ]
       },
-      "count": 148,
+      "count": 150,
       "first": [
         "neon-nights-story",
         "live-jazz-poster",
@@ -192,7 +192,7 @@
           "teal"
         ]
       },
-      "count": 101,
+      "count": 119,
       "first": [
         "cards-elegant-serif",
         "flyers-cleaning-tear-off",
@@ -208,17 +208,20 @@
         ],
         "multiPage": true
       },
-      "count": 2,
+      "count": 7,
       "first": [
         "website-wedding-day",
-        "animated-deck-1"
+        "animated-deck-1",
+        "proposal-1",
+        "proposal-2",
+        "proposal-3"
       ]
     },
     {
       "filter": {
         "style": "elegant"
       },
-      "count": 174,
+      "count": 190,
       "first": [
         "animated-reel-1",
         "animated-tiktok-6",
