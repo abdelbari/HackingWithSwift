@@ -545,17 +545,32 @@ struct InlineTextField: UIViewRepresentable {
         }
 
         /// Paste: words copied here keep their styles, colours, sizes and
-        /// lists; another app's plain words are pasted as they read — as one
-        /// step (DesignStore.pasteTyped). False when the store does not take
-        /// pastes here, or there is nothing to paste.
-        func pasteWords() -> Bool {
+        /// lists; another app's styled words — its HTML, else its RTF
+        /// (ForeignText) — keep theirs while Keep formatting when pasting
+        /// is on; anything else is pasted as it reads — as one step
+        /// (DesignStore.pasteTyped). `plain`, Paste as plain text, pastes
+        /// the words as they read whatever came with them. False when the
+        /// store does not take pastes here, or there is nothing to paste.
+        func pasteWords(plain: Bool = false) -> Bool {
             guard let view, view.markedTextRange == nil, let paste = parent.onPaste else { return false }
             let board = UIPasteboard.general
-            let clip = RichClipboard.decode(board.data(forPasteboardType: RichClipboard.type))
-            guard let plain = clip?.plain ?? board.string else { return false }
+            let own = plain ? nil : RichClipboard.decode(board.data(forPasteboardType: RichClipboard.type))
+            let clip = own ?? (plain ? nil : ForeignText.clip(on: board))
+            guard let words = clip?.plain ?? board.string else { return false }
             coalescer.close()
-            paste(view.selectedRange, clip, plain)
+            paste(view.selectedRange, clip, words)
             return true
+        }
+
+        /// The field's long-press menu, with Paste as plain text after the
+        /// system's own when there are words to paste.
+        func textView(_ textView: UITextView, editMenuForTextIn range: NSRange,
+                      suggestedActions: [UIMenuElement]) -> UIMenu? {
+            guard parent.onPaste != nil, UIPasteboard.general.hasStrings else { return nil }
+            let plain = UIAction(title: tr("Paste as plain text"), image: UIImage(systemName: "doc.plaintext")) { [weak self] _ in
+                _ = self?.pasteWords(plain: true)
+            }
+            return UIMenu(children: suggestedActions + [plain])
         }
 
         /// The keyboard's Undo: the store's, a burst at a time.

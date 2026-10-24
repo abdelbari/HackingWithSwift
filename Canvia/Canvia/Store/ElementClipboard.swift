@@ -97,6 +97,12 @@ enum ElementClipboard {
                 ? (w * prepared.natural.height / prepared.natural.width).rounded() : w
             return Element.image(src, w: w, h: h)
         }
+        // Styled words from a web page, Notes or Pages, keeping their
+        // styles (ForeignText), while pastes keep formatting.
+        if let clip = ForeignText.clip(on: pasteboard), !clip.plain.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return ForeignText.element(clip, fontSize: max(18, (designWidth / 24).rounded()),
+                                       maxWidth: (designWidth * 0.6).rounded())
+        }
         if pasteboard.hasStrings, let text = pasteboard.string?.trimmingCharacters(in: .whitespacesAndNewlines),
            !text.isEmpty {
             // Read as written, its stars stars, and its bulleted or numbered
