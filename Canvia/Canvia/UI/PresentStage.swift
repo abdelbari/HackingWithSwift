@@ -90,8 +90,8 @@ final class PresentSession {
         design.drawnElements(on: page).contains {
             if Captions.plays($0) { return true }
             return $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
-                || AnimStore.isAnim($0.src) || $0.timing != nil
-        }
+                || AnimStore.isAnim($0.src) || MotionLibrary.isMotion($0.src) || $0.timing != nil
+        } || MotionLibrary.isBackground(page)
     }
 }
 

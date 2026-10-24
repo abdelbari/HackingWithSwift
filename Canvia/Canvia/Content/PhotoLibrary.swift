@@ -61,7 +61,8 @@ enum PhotoLibrary {
 
     /// Resolve an element src: "asset:<id>" -> library, "media:<id>" -> user
     /// file, "video:" and "anim:" -> a clip's or an animated picture's frame,
-    /// "qr:<payload>" -> a generated code.
+    /// "qr:<payload>" -> a generated code, "motion:" -> a generated loop's
+    /// frame (MotionLibrary).
     ///
     /// Every branch is synchronous and deterministic in the src alone. That is
     /// what ElementView's Equatable conformance rests on — see the note above
@@ -74,6 +75,7 @@ enum PhotoLibrary {
         if src.hasPrefix("media:") { return MediaStore.load(String(src.dropFirst(6))) }
         if VideoStore.isVideo(src) { return VideoStore.resolve(src) }
         if AnimStore.isAnim(src) { return AnimStore.resolve(src) }
+        if MotionLibrary.isMotion(src) { return MotionLibrary.resolve(src) }
         if let payload = CodeGenerator.payload(from: src) { return CodeGenerator.qr(payload) }
         // A barcode drawn at the size a new one has on a 1080 page.
         if Barcodes.isBarcode(src) {
@@ -144,6 +146,15 @@ enum PhotoLibrary {
         }
         for spec in ContentLibrary.bundle.photoSpecs.stripes {
             register(spec.id, spec.name, "Patterns") { stripes(spec.colors, angle: spec.angle) }
+        }
+
+        // The generated textures, skies and bokeh (MotionArt), each the
+        // first frame of its kind.
+        for still in MotionLibrary.stills {
+            register(still.id, still.name, still.category) {
+                let size = MotionLibrary.stillSize
+                return MotionArt.image(still, t: 0, width: size.width, height: size.height) ?? UIImage()
+            }
         }
     }
 

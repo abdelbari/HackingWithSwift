@@ -111,6 +111,21 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   (`beatSync` on the track, the old holds in `beatSyncRestore`) and puts
   them back when turned off, and while it is on a dragged page end snaps
   to a beat. A song this phone cannot play says so
+- Enhance voice and Detach audio: a track's sheet and a clip's sound have
+  Enhance voice (`enhance`), a high-pass, a spectral gate, a 3:1
+  compressor and levelling to −16 dB (`VoiceEnhance`, the Android twin's
+  arithmetic), made once per source as `<id>.enh.wav` beside the peaks and
+  heard in Play, Present and the video, with hold to compare; Detach audio
+  in the Clip sheet makes the clip's sound a track of its own
+  (`video:<id>`) and mutes the clip, as one Undo
+- Motion backgrounds and textures: thirty generated loops — drifting
+  meshes, waves, bokeh, confetti, rays, grain, dots, stars, paper light —
+  in Add ▸ Videos and the Background choices, and sixty more still
+  textures among the photos (`Content/Motion.json`, from
+  `Tools/generate_motion.py`, drawn pixel by pixel by `MotionArt` with the
+  script's seeded maths). A loop is a picture `motion:<id>` that plays
+  round in Play, Present, video and GIF, and shows its first frame in a
+  still
 - Mockups: from the Export sheet's Share row and a design's card on Home,
   a page shown on a phone, laptop, tablet, framed print, poster, business
   card, T-shirt, mug and more — twenty-one vector scenes

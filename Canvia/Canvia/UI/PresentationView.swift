@@ -452,7 +452,8 @@ struct PresentationView: View {
     /// goes on the page's clock, so it plays until the last of those.
     private func motionEnd(_ page: Page) -> Double {
         let elements = design.drawnElements(on: page)
-        if elements.contains(where: { VideoStore.isVideo($0.src) || AnimStore.isAnim($0.src) }) { return .infinity }
+        if elements.contains(where: { VideoStore.isVideo($0.src) || AnimStore.isAnim($0.src) || MotionLibrary.isMotion($0.src) })
+            || MotionLibrary.isBackground(page) { return .infinity }
         var end = elements.compactMap { el in el.animation.map { (el.timing?.start ?? 0) + $0.end } }.max() ?? 0
         // A caption box's words change through the page's whole hold.
         if elements.contains(where: { $0.kenBurns != nil || $0.exitAnimation != nil || Captions.plays($0) }) {

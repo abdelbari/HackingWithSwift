@@ -80,7 +80,7 @@ extension DesignStore {
             return false
         }
         guard let src = photo.src, !CodeGenerator.isCode(src), !VideoStore.isVideo(src),
-              !AnimStore.isAnim(src), let image = PhotoLibrary.resolve(src),
+              !AnimStore.isAnim(src), !MotionLibrary.isMotion(src), let image = PhotoLibrary.resolve(src),
               image.size.width > 0, image.size.height > 0 else {
             buzz(.reject)
             announce(tr("This picture can't be brushed."), undoable: false)

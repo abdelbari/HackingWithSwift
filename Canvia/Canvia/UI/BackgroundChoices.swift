@@ -1,8 +1,9 @@
 // What a page's background can be, as the Background sheet and the Add
 // sheet's Background tab both offer it: the default colours, a colour of
-// your own, the brand kit's, the gradients, your own photos and the built-in
-// pictures — and a picture already behind the page, taken back out as a
-// photo. As the Android twin's background panel offers them.
+// your own, the brand kit's, the gradients, your own photos, the built-in
+// pictures and the generated motion loops, which play behind the page as it
+// does — and a picture already behind the page, taken back out as a photo.
+// As the Android twin's background panel offers them.
 
 import SwiftUI
 import PhotosUI
@@ -35,7 +36,26 @@ struct BackgroundChoices: View {
                     BackgroundPhotoTile(store: store, photo: photo)
                 }
             }
+            BackgroundVideos(store: store)
         }
+    }
+}
+
+/// The generated motion loops as the page's background, the one behind it
+/// ringed.
+struct BackgroundVideos: View {
+    @Bindable var store: DesignStore
+
+    var body: some View {
+        Text("Videos").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+        MotionGrid(loops: MotionLibrary.loops, current: current) { loop in
+            store.setBackground(.image(MotionLibrary.src(loop.id, at: nil)))
+        }
+    }
+
+    private var current: String? {
+        if case .image(let src) = store.page.background { return src }
+        return nil
     }
 }
 

@@ -21929,6 +21929,15 @@
     "ja": "効果音を検索",
     "pt-BR": "Pesquisar efeitos sonoros"
   },
+  "Search videos": {
+    "ar": "البحث في الفيديوهات",
+    "de": "Videos suchen",
+    "es": "Buscar vídeos",
+    "fr": "Rechercher des vidéos",
+    "it": "Cerca video",
+    "ja": "動画を検索",
+    "pt-BR": "Pesquisar vídeos"
+  },
   "Searches the text on every page.": {
     "ar": "يبحث في نص كل صفحة.",
     "de": "Durchsucht den Text auf allen Seiten.",
