@@ -638,6 +638,15 @@
     "ja": "長さ %@",
     "pt-BR": "%@ de duração"
   },
+  "%@ long, AAC at 44.1 kHz.": {
+    "ar": "المدة %@، بصيغة AAC بتردد 44.1 كيلوهرتز.",
+    "de": "%@ lang, AAC mit 44,1 kHz.",
+    "es": "Dura %@, AAC a 44,1 kHz.",
+    "fr": "Durée %@, AAC à 44,1 kHz.",
+    "it": "Durata %@, AAC a 44,1 kHz.",
+    "ja": "長さ %@、AAC 44.1 kHz。",
+    "pt-BR": "Duração de %@, AAC a 44,1 kHz."
+  },
   "%@ mask frame": {
     "ar": "إطار قناع %@",
     "de": "Maskenrahmen %@",
@@ -6601,6 +6610,15 @@
     "it": "Audio (%@)",
     "ja": "オーディオ（%@）",
     "pt-BR": "Áudio (%@)"
+  },
+  "Audio (M4A)": {
+    "ar": "صوت (M4A)",
+    "de": "Audio (M4A)",
+    "es": "Audio (M4A)",
+    "fr": "Audio (M4A)",
+    "it": "Audio (M4A)",
+    "ja": "オーディオ（M4A）",
+    "pt-BR": "Áudio (M4A)"
   },
   "Audio tracks and voice-over": {
     "ar": "المسارات الصوتية والتعليق الصوتي",
@@ -13418,6 +13436,15 @@
     "ja": "書き出しを一時停止しました",
     "pt-BR": "Exportação pausada"
   },
+  "Export stopped — open Canvia to finish": {
+    "ar": "توقف التصدير — افتح Canvia للإنهاء",
+    "de": "Export gestoppt – öffne Canvia, um abzuschließen",
+    "es": "Exportación detenida: abre Canvia para terminar",
+    "fr": "Exportation arrêtée : ouvrez Canvia pour terminer",
+    "it": "Esportazione interrotta: apri Canvia per finire",
+    "ja": "書き出しが止まりました — Canvia を開いて完了してください",
+    "pt-BR": "Exportação interrompida — abra o Canvia para terminar"
+  },
   "Exporting": {
     "ar": "جارٍ التصدير",
     "de": "Wird exportiert",
@@ -13426,6 +13453,15 @@
     "it": "Esportazione",
     "ja": "書き出し中",
     "pt-BR": "Exportando"
+  },
+  "Exporting %@": {
+    "ar": "جارٍ تصدير %@",
+    "de": "%@ wird exportiert",
+    "es": "Exportando %@",
+    "fr": "Exportation de %@",
+    "it": "Esportazione di %@",
+    "ja": "%@ を書き出し中",
+    "pt-BR": "Exportando %@"
   },
   "Exporting %d of %d designs": {
     "ar": "جارٍ تصدير التصميم %d من %d",
@@ -15842,6 +15878,15 @@
     "ja": "インチ",
     "pt-BR": "Polegadas"
   },
+  "Include clip sound": {
+    "ar": "تضمين صوت المقاطع",
+    "de": "Clip-Ton einbeziehen",
+    "es": "Incluir sonido de los clips",
+    "fr": "Inclure le son des clips",
+    "it": "Includi audio delle clip",
+    "ja": "クリップの音声を含める",
+    "pt-BR": "Incluir som dos clipes"
+  },
   "Include notes": {
     "ar": "تضمين الملاحظات",
     "de": "Notizen einschließen",
@@ -15868,6 +15913,15 @@
     "it": "Includi video",
     "ja": "動画を含める",
     "pt-BR": "Incluir vídeos"
+  },
+  "Include voice-over": {
+    "ar": "تضمين التعليق الصوتي",
+    "de": "Voice-over einbeziehen",
+    "es": "Incluir locución",
+    "fr": "Inclure la voix off",
+    "it": "Includi voce fuori campo",
+    "ja": "ナレーションを含める",
+    "pt-BR": "Incluir narração"
   },
   "Increase letter spacing": {
     "ar": "زيادة تباعد الأحرف",
@@ -16313,6 +16367,15 @@
     "ja": "保持",
     "pt-BR": "Manter"
   },
+  "Keep Canvia open to finish": {
+    "ar": "أبقِ Canvia مفتوحًا حتى ينتهي",
+    "de": "Lass Canvia geöffnet, bis es fertig ist",
+    "es": "Mantén Canvia abierto hasta que termine",
+    "fr": "Gardez Canvia ouvert jusqu’à la fin",
+    "it": "Tieni Canvia aperto finché non finisce",
+    "ja": "完了するまでCanviaを開いたままにしてください",
+    "pt-BR": "Mantenha o Canvia aberto até terminar"
+  },
   "Keep exporting in the background?": {
     "ar": "هل تريد مواصلة التصدير في الخلفية؟",
     "de": "Im Hintergrund weiter exportieren?",
@@ -16393,6 +16456,15 @@
     "it": "Mantieni nitido il soggetto",
     "ja": "被写体をシャープに保つ",
     "pt-BR": "Manter o objeto principal nítido"
+  },
+  "Keeps going if you leave Canvia": {
+    "ar": "يستمر حتى إن غادرت Canvia",
+    "de": "Läuft weiter, wenn du Canvia verlässt",
+    "es": "Continúa aunque salgas de Canvia",
+    "fr": "Continue si vous quittez Canvia",
+    "it": "Continua anche se esci da Canvia",
+    "ja": "Canviaを離れても続きます",
+    "pt-BR": "Continua se você sair do Canvia"
   },
   "Ken Burns drift in video": {
     "ar": "انجراف Ken Burns في الفيديو",
@@ -17569,6 +17641,15 @@
     "it": "Creazione del documento Word",
     "ja": "Word 文書を作成中",
     "pt-BR": "Criando o documento do Word"
+  },
+  "Making the audio": {
+    "ar": "جارٍ إنشاء الصوت",
+    "de": "Audio wird erstellt",
+    "es": "Creando el audio",
+    "fr": "Création de l’audio",
+    "it": "Creazione dell’audio",
+    "ja": "オーディオを作成中",
+    "pt-BR": "Criando o áudio"
   },
   "Making the post": {
     "ar": "جارٍ إعداد المنشور",
@@ -24635,6 +24716,15 @@
     "ja": "テンプレートとして保存…",
     "pt-BR": "Salvar como modelo…"
   },
+  "Save it to Files or share it: the photos library takes no audio.": {
+    "ar": "احفظه في الملفات أو شاركه: مكتبة الصور لا تقبل الصوت.",
+    "de": "Speichere es in Dateien oder teile es: Die Fotomediathek nimmt keinen Ton auf.",
+    "es": "Guárdalo en Archivos o compártelo: la fototeca no admite audio.",
+    "fr": "Enregistrez-le dans Fichiers ou partagez-le : la photothèque n’accepte pas l’audio.",
+    "it": "Salvalo in File o condividilo: la libreria foto non accetta audio.",
+    "ja": "ファイルに保存するか共有してください。写真ライブラリにはオーディオを保存できません。",
+    "pt-BR": "Salve em Arquivos ou compartilhe: a biblioteca de fotos não aceita áudio."
+  },
   "Save selection as component…": {
     "ar": "حفظ التحديد كمكوّن…",
     "de": "Auswahl als Komponente speichern …",
@@ -25960,6 +26050,15 @@
     "it": "Condividi un PDF pronto per la stampa",
     "ja": "印刷用 PDF を共有",
     "pt-BR": "Compartilhar um PDF para impressão"
+  },
+  "Share audio": {
+    "ar": "مشاركة الصوت",
+    "de": "Audio teilen",
+    "es": "Compartir audio",
+    "fr": "Partager l’audio",
+    "it": "Condividi audio",
+    "ja": "オーディオを共有",
+    "pt-BR": "Compartilhar áudio"
   },
   "Share it. Export the page as an image, the whole thing as a PDF, or the design itself to open on another phone — Android or iPhone.": {
     "ar": "شاركه. صدِّر الصفحة كصورة، أو كل شيء كملف PDF، أو التصميم نفسه لفتحه على هاتف آخر — Android أو iPhone.",
@@ -28663,6 +28762,15 @@
     "it": "Del design",
     "ja": "デザインの設定",
     "pt-BR": "A do design"
+  },
+  "The design's sound on its own: its music, voice-over and clip sound, as in the video.": {
+    "ar": "صوت التصميم وحده: موسيقاه وتعليقه الصوتي وصوت مقاطعه، كما في الفيديو.",
+    "de": "Nur der Ton des Designs: Musik, Voice-over und Clip-Ton, wie im Video.",
+    "es": "Solo el sonido del diseño: su música, locución y sonido de los clips, como en el vídeo.",
+    "fr": "Le son du design seul : sa musique, sa voix off et le son des clips, comme dans la vidéo.",
+    "it": "Solo l’audio del design: musica, voce fuori campo e audio delle clip, come nel video.",
+    "ja": "デザインの音声だけ：動画と同じ音楽、ナレーション、クリップの音声。",
+    "pt-BR": "Só o som do design: a música, a narração e o som dos clipes, como no vídeo."
   },
   "The export sheet says when Check accessibility finds something on the pages you're exporting.": {
     "ar": "تُعلمك لوحة التصدير عندما يجد فحص إمكانية الوصول شيئًا في الصفحات التي تصدّرها.",

@@ -111,10 +111,14 @@ enum QuickActions {
 /// a scene too, and is given the one that shows the slides on it.
 @MainActor
 final class CanviaAppDelegate: NSObject, UIApplicationDelegate {
-    /// An export's notifications: their Share and Open heard here.
+    /// An export's notifications: their Share and Open heard here. And,
+    /// before launch is over as the system asks, the handler an export
+    /// that keeps going out of the app runs under on iOS 26
+    /// (ContinuedExport).
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         ExportNotifications.register()
+        ContinuedExport.register()
         return true
     }
 

@@ -1154,6 +1154,192 @@
           }
         ]
       }
+    },
+    {
+      "name": "pages that never change under a song",
+      "suggested": "m4a",
+      "design": {
+        "id": "d-podcast",
+        "title": "Design",
+        "width": 1920,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#1a1a2e"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 800,
+                "h": 120,
+                "text": "Episode 12"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#1a1a2e"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 800,
+                "h": 120,
+                "text": "Episode 12"
+              }
+            ]
+          },
+          {
+            "id": "p3",
+            "background": {
+              "type": "color",
+              "value": "#1a1a2e"
+            },
+            "elements": [
+              {
+                "id": "e3",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 800,
+                "h": 120,
+                "text": "Episode 12"
+              }
+            ]
+          }
+        ],
+        "audio": [
+          {
+            "src": "audio:song-1",
+            "start": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "one still page under a song",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-cover",
+        "title": "Design",
+        "width": 1920,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#1a1a2e"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 800,
+                "h": 120,
+                "text": "Episode 12"
+              }
+            ]
+          }
+        ],
+        "audio": [
+          {
+            "src": "audio:song-1",
+            "start": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "pages that change under a song",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-changes",
+        "title": "Design",
+        "width": 1920,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#1a1a2e"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 800,
+                "h": 120,
+                "text": "Episode 12"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#1a1a2e"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 800,
+                "h": 120,
+                "text": "Episode 13"
+              }
+            ]
+          },
+          {
+            "id": "p3",
+            "background": {
+              "type": "color",
+              "value": "#1a1a2e"
+            },
+            "elements": [
+              {
+                "id": "e3",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 800,
+                "h": 120,
+                "text": "Episode 12"
+              }
+            ]
+          }
+        ],
+        "audio": [
+          {
+            "src": "audio:song-1",
+            "start": 0
+          }
+        ]
+      }
     }
   ]
 }

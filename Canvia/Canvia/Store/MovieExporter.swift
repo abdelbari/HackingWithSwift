@@ -613,54 +613,107 @@ enum MovieExporter {
         }
     }
 
-    /// What is heard under the video of `pages` (the design's indices, as
-    /// they play, timed by `timings`): the plan, the file each of its
-    /// sources is read from, and whether music there was could not be read.
-    /// A clip filmed without sound, or not on this phone, is silent, and a
-    /// track whose music this phone does not have — chosen on another — is
-    /// no music.
-    @MainActor
-    static func soundMix(design: Design, pages: [Int], timings: [Timing],
-                         settings: Settings) async -> (segments: [AudioMix.Segment], sources: [String: URL], lost: Bool) {
-        let clipsByPage = pages.map { AudioMix.clips(design: design, page: design.pages[$0]) }
-        var sources: [String: URL] = [:]
-        var durations: [String: Double] = [:]
+    /// What the sound of `pages` of `design` is read from: each clip's
+    /// file and length by its id, each track's song and length by its
+    /// store id, each enhanced one's cleaned sound beside it — and whether
+    /// a heard song is not on this phone (`lost`). A clip filmed without
+    /// sound, or not on this phone, is silent, and a track whose music this
+    /// phone does not have — chosen on another — is no music.
+    struct SoundSources {
+        var files: [String: URL] = [:]
+        var clipDurations: [String: Double] = [:]
+        var trackDurations: [String: Double] = [:]
         var lost = false
+    }
+
+    @MainActor
+    static func soundSources(design: Design, pages: [Int]) async -> SoundSources {
+        let clipsByPage = pages.map { AudioMix.clips(design: design, page: design.pages[$0]) }
+        var sound = SoundSources()
         var seen = Set<String>()
         for clip in clipsByPage.joined() where seen.insert(clip.source).inserted {
             guard let file = VideoStore.url(for: clip.source),
                   let seconds = await VideoStore.soundLength(of: clip.source) else { continue }
-            durations[clip.source] = seconds
-            sources[clip.source] = file
+            sound.clipDurations[clip.source] = seconds
+            sound.files[clip.source] = file
         }
         // A clip with Enhance voice on heard from its enhanced sound — its
         // own where that cannot be made.
         for clip in clipsByPage.joined() where clip.playback.enhance {
             let key = AudioMix.enhancedSource(clip.source)
-            guard sources[key] == nil, let file = sources[clip.source] else { continue }
-            sources[key] = await AudioStore.enhancedURL(for: VideoStore.prefix + clip.source) ?? file
+            guard sound.files[key] == nil, let file = sound.files[clip.source] else { continue }
+            sound.files[key] = await AudioStore.enhancedURL(for: VideoStore.prefix + clip.source) ?? file
         }
         // Each track's music once, however many tracks play it.
-        var trackDurations: [String: Double] = [:]
         var heard = Set<String>()
         for track in design.audioTracks where track.volume > 0 {
             guard let id = track.audioId, heard.insert(id).inserted, let file = AudioStore.url(for: id) else { continue }
             if let seconds = await AudioStore.duration(of: id), seconds > 0 {
-                trackDurations[id] = seconds
-                sources[id] = file
+                sound.trackDurations[id] = seconds
+                sound.files[id] = file
             } else {
-                lost = true
+                sound.lost = true
             }
         }
         for track in design.audioTracks where track.volume > 0 && track.enhance {
-            guard let id = track.audioId, let file = sources[id] else { continue }
+            guard let id = track.audioId, let file = sound.files[id] else { continue }
             let key = AudioMix.enhancedSource(id)
-            if sources[key] == nil { sources[key] = await AudioStore.enhancedURL(for: id) ?? file }
+            if sound.files[key] == nil { sound.files[key] = await AudioStore.enhancedURL(for: id) ?? file }
         }
+        return sound
+    }
+
+    /// What is heard under the video of `pages` (the design's indices, as
+    /// they play, timed by `timings`): the plan, the file each of its
+    /// sources is read from, and whether music there was could not be read.
+    @MainActor
+    static func soundMix(design: Design, pages: [Int], timings: [Timing],
+                         settings: Settings) async -> (segments: [AudioMix.Segment], sources: [String: URL], lost: Bool) {
+        let sound = await soundSources(design: design, pages: pages)
+        let clipsByPage = pages.map { AudioMix.clips(design: design, page: design.pages[$0]) }
         let segments = AudioMix.plan(timeline: timings, fps: settings.fps, clipsByPage: clipsByPage,
-                                     clipDurations: durations, tracks: design.audioTracks,
-                                     trackDurations: trackDurations)
-        return (segments, sources, lost)
+                                     clipDurations: sound.clipDurations, tracks: design.audioTracks,
+                                     trackDurations: sound.trackDurations)
+        return (segments, sound.files, sound.lost)
+    }
+
+    // MARK: the sound alone
+
+    /// Whether `pages` of `design` are heard at all — what the File type
+    /// picker offers Audio (M4A) for: the MP4's mix (AudioMix.filmPlan, both
+    /// switches on) has a stretch that lasts and is not silent. Reads every
+    /// clip's and song's length, so it is awaited.
+    @MainActor
+    static func audible(design: Design, pages: [Int]) async -> Bool {
+        guard !pages.isEmpty else { return false }
+        let sound = await soundSources(design: design, pages: pages)
+        return AudioMix.audible(AudioMix.filmPlan(design: design, pages: pages, settings: Settings(design.motion),
+                                                  clipDurations: sound.clipDurations,
+                                                  trackDurations: sound.trackDurations))
+    }
+
+    /// The audio download: the sound of the pages `range` plays, mixed as
+    /// the MP4 mixes it (AudioMix.audioPlan — the same timeline, fades,
+    /// speeds, volumes and beat sync) less the voice-overs without `voice`
+    /// and the clips' sound without `clipSound`, as AAC at 44.1 kHz in
+    /// stereo, 192 kbps, in an .m4a at `url` as long as the timeline
+    /// (Soundtrack.audioOnly). The outcome says when a song heard is not on
+    /// this phone; throws when there is nothing to hear.
+    @MainActor
+    static func exportAudio(design: Design, range: DesignExporter.PageRange = .all, current: Int = 0,
+                            voice: Bool = true, clipSound: Bool = true, to url: URL,
+                            progress: (@Sendable (Double) -> Void)? = nil) async throws -> Outcome {
+        let pages = playedPages(design: design, range: range, current: current)
+        let settings = Settings(design.motion)
+        let sound = await soundSources(design: design, pages: pages)
+        let segments = AudioMix.audioPlan(design: design, pages: pages, settings: settings,
+                                          clipDurations: sound.clipDurations, trackDurations: sound.trackDurations,
+                                          voice: voice, clipSound: clipSound)
+        guard AudioMix.audible(segments) else { throw MovieError.nothingToRender }
+        let seconds = AudioMix.seconds(design: design, pages: pages, settings: settings)
+        let whole = try await Soundtrack.audioOnly(segments: segments, sources: sound.files, seconds: seconds,
+                                                   to: url, progress: progress)
+        return Outcome(musicLost: sound.lost || !whole)
     }
 
     /// A writer started on a video of one size, its input and the adaptor

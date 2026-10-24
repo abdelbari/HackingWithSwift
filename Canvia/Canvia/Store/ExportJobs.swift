@@ -133,6 +133,21 @@ enum ExportJobs {
         }
     }
 
+    /// The design's sound alone (MovieExporter.exportAudio): the pages the
+    /// video would play, their voice-overs with `voice` and their clips'
+    /// sound with `clipSound`, as an .m4a named as the MP4 would be — to
+    /// share or save to Files, as Photos takes no audio. A song not on this
+    /// phone is said beside the share, as a video's is.
+    static func audio(_ snapshot: ExportSnapshot, voice: Bool, clipSound: Bool) -> Work {
+        { report in
+            let url = DesignExporter.fileURL(for: snapshot.design, ext: "m4a")
+            let made = try await MovieExporter.exportAudio(design: snapshot.design, range: snapshot.range,
+                                                           current: snapshot.current, voice: voice,
+                                                           clipSound: clipSound, to: url, progress: report)
+            return ExportQueue.Result(urls: [url], musicLost: made.musicLost)
+        }
+    }
+
     /// The captions of the pages the video plays as one .srt beside it —
     /// every page's cues moved on by where its page starts in the film
     /// (Captions.film) — or nil when there are none.

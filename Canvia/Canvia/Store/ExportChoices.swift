@@ -77,6 +77,16 @@ enum ExportChoices {
     static let paused = tr("Paused — return to Canvia to finish")
     static let shareAction = tr("Share")
     static let openAction = tr("Open")
+    /// An export the system stopped while Canvia was left (ContinuedExport).
+    static let stoppedAway = tr("Export stopped — open Canvia to finish")
+
+    /// Under the pill: on iOS 26 and later an export runs on under the
+    /// system's continued processing task while Canvia is left; before,
+    /// it waits for the app to come back. The Android twin says the first
+    /// always (ExportPlan.KEEPS_GOING).
+    static var keepsGoing: String {
+        ContinuedExport.isSupported ? tr("Keeps going if you leave Canvia") : tr("Keep Canvia open to finish")
+    }
 
     /// "Export failed: <why>", in the sheet or the pill.
     static func failedText(_ reason: String) -> String {
@@ -263,7 +273,7 @@ enum ExportChoices {
 ///  false, and a missing "audioVoice", "audioClips" or "split" true.
 struct ExportLast: Codable, Equatable {
     /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html" |
-    /// "docx" (a Doc's Word document).
+    /// "docx" (a Doc's Word document) | "m4a" (the design's sound alone).
     var format: String
     var scale: Double
     /// The long edge typed, in pixels; nil when the scale applies.
@@ -312,10 +322,10 @@ struct ExportLast: Codable, Equatable {
     var split = true
 
     static let key = "exportLast"
-    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx"]
+    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx", "m4a"]
     /// The export sheet's file types, in the order its picker lists them —
     /// the Android twin's ExportSettings.formats.
-    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx"]
+    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx", "m4a"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     static let styledEditable = "editable"

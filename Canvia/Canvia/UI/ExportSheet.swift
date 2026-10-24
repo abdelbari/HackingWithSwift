@@ -104,6 +104,10 @@ struct ExportSheet: View {
     /// the rest.
     @State private var audioVoice = true
     @State private var audioClips = true
+    /// Whether the pages the video would play are heard at all — what
+    /// Audio (M4A) is offered for — read as the sheet opens, every clip's
+    /// and song's length with it; nil until known.
+    @State private var audible: Bool?
     /// Said beside the share: a PNG that went out uncompressed.
     @State private var exportNote: String?
     /// What Check accessibility finds in the design as it stands, read off
@@ -704,7 +708,7 @@ struct ExportSheet: View {
     private var sharedIndices: [Int] {
         switch fileType {
         case "pdf", "pptx", "html": return pdfIndices
-        case "mp4", "gif": return moviePages
+        case "mp4", "gif", "m4a": return moviePages
         default: return exportedIndices
         }
     }
@@ -715,7 +719,7 @@ struct ExportSheet: View {
     /// hidden.
     private var unavailable: String? { leftOut(sharedIndices) }
 
-    private var canShare: Bool { unavailable == nil }
+    private var canShare: Bool { unavailable == nil && (fileType != "m4a" || audible == true) }
 
     /// What goes into Photos for the chosen type: the pictures, or the
     /// film; nothing for a document.
@@ -750,6 +754,11 @@ struct ExportSheet: View {
             }
         case "gif":
             run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gif(designSnapshot, settings: movieSettings) }
+        case "m4a":
+            // The pages chosen — never the selection — heard on their own.
+            run(tr("Making the audio"), format: "m4a") {
+                ExportJobs.audio(designSnapshot, voice: audioVoice, clipSound: audioClips)
+            }
         case "docx":
             // A Doc as a Word document, from its blocks (DocxWriter).
             guard let doc else { return }
@@ -811,6 +820,7 @@ struct ExportSheet: View {
         case "gif": return tr("Share GIF")
         case "html": return tr("Share web page")
         case "docx": return tr("Share Word document")
+        case "m4a": return tr("Share audio")
         default:
             let kind = type == "jpg" ? "JPG" : "PNG"
             return count > 1 ? trn("Share %d %@|Share %d %@s", count, kind) : tr("Share %@", kind)
@@ -833,11 +843,29 @@ struct ExportSheet: View {
             Text(Self.typeNote(fileType))
         }
         .task(id: revision) { await readA11y() }
+        .task(id: AudibleKey(revision: revision, pages: moviePages)) { await readAudible() }
     }
 
-    /// The file types offered: a Word document is a Doc's alone.
+    /// The file types offered: a Word document is a Doc's alone, and the
+    /// audio is offered only for pages that are heard.
     private var offeredTypes: [String] {
-        ExportLast.fileTypes.filter { $0 != "docx" || doc != nil }
+        ExportLast.fileTypes.filter { ($0 != "docx" || doc != nil) && ($0 != "m4a" || audible == true) }
+    }
+
+    /// What whether the pages are heard is read again for.
+    private struct AudibleKey: Equatable {
+        var revision: Int64
+        var pages: [Int]
+    }
+
+    /// Whether the pages are heard (MovieExporter.audible); nothing heard,
+    /// the audio is no choice, and a sheet that opened on it moves to the
+    /// picture instead.
+    @MainActor
+    private func readAudible() async {
+        let heard = await MovieExporter.audible(design: store.design, pages: moviePages)
+        audible = heard
+        if !heard && fileType == "m4a" { fileType = defaultFormat == "jpg" ? "jpg" : "png" }
     }
 
     private func fileTypeRow(_ type: String) -> some View {
@@ -869,6 +897,7 @@ struct ExportSheet: View {
         case "mp4": return "MP4"
         case "html": return "HTML"
         case "docx": return tr("Word document")
+        case "m4a": return tr("Audio (M4A)")
         default: return "GIF"
         }
     }
@@ -885,6 +914,7 @@ struct ExportSheet: View {
         case "mp4": return tr("A video of the pages, with their motion and music.")
         case "html": return tr("A web page: the pages as sections, with a menu, links and video.")
         case "docx": return tr("A Word document: headings, lists, tables and pictures, to edit in Word.")
+        case "m4a": return tr("The design's sound on its own: its music, voice-over and clip sound, as in the video.")
         default: return tr("A looping animation, without sound.")
         }
     }
@@ -914,8 +944,28 @@ struct ExportSheet: View {
             htmlSection
         case "docx":
             EmptyView()
+        case "m4a":
+            audioSection
         default:
             motionSection
+        }
+    }
+
+    /// The audio download's: how long it runs — the pages' timeline, silence
+    /// and all — and whether the voice-overs and the clips' sound are in it;
+    /// where it goes, which is never Photos.
+    private var audioSection: some View {
+        let seconds = AudioMix.seconds(design: store.design, pages: moviePages,
+                                       settings: MovieExporter.Settings(store.design.motion))
+        let length = Presenter.clockText(seconds.rounded(.up))
+        return Section {
+            Text(leftOut(moviePages) ?? tr("%@ long, AAC at 44.1 kHz.", length))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Toggle("Include voice-over", isOn: $audioVoice)
+            Toggle("Include clip sound", isOn: $audioClips)
+        } footer: {
+            Text("Save it to Files or share it: the photos library takes no audio.")
         }
     }
 
@@ -1562,9 +1612,24 @@ struct ExportSheet: View {
         errorMessage = nil
         musicNote = nil
         exportNote = nil
-        queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, work: job()))
+        queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, title: store.design.title,
+                                      detail: continuedDetail(format), units: continuedUnits(format), work: job()))
         // Kept for next time, when asked to be.
         if let format { rememberSettings(format) }
+    }
+
+    /// What the system shows under "Exporting <title>" while an export
+    /// keeps going out of the app (ContinuedExport): the file type and how
+    /// many pages — "MP4 · 3 pages".
+    private func continuedDetail(_ format: String?) -> String {
+        guard let format else { return "" }
+        return Self.formatName(format) + " · " + trn("%d page|%d pages", sharedIndices.count)
+    }
+
+    /// What it counts in there: a video's or GIF's frames, else its pages.
+    private func continuedUnits(_ format: String?) -> Int {
+        guard format == "mp4" || format == "gif" else { return sharedIndices.count }
+        return MovieExporter.timeline(design: store.design, pages: moviePages, settings: movieSettings).last?.end ?? 0
     }
 
     private func rowLabel(_ title: String, subtitle: String, icon: String) -> some View {
