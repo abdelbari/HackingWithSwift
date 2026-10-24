@@ -99,6 +99,8 @@ struct CanvasView: View {
     /// The part of the column on screen, kept without redrawing the canvas
     /// on every frame of a scroll.
     @State private var seen = ColumnSeen()
+    /// The page scrubber's thumb is held (PageScrubberView).
+    @State private var scrubbing = false
     /// How long the finger was last down on an element, for telling a quick
     /// tap that types from one on its way to a hold.
     @State private var press = PressClock()
@@ -136,6 +138,10 @@ struct CanvasView: View {
         /// The column's left and right edges on screen, in column units;
         /// nil until the canvas has said.
         var across: ClosedRange<Double>?
+        /// The view's top down the column and its height, in column units:
+        /// read by the page scrubber alone (PageScrubberView).
+        var top = 0.0
+        var height = 0.0
     }
 
     /// When the finger last landed on an element, and how long it stayed
@@ -489,6 +495,7 @@ struct CanvasView: View {
     /// header's questions.
     private var columnAware: some View {
         zoomable
+            .overlay { pageScrubber }
             .background {
                 GeometryReader { proxy in
                     Color.clear
@@ -2863,6 +2870,8 @@ struct CanvasView: View {
             return request
         case .frame(let box):
             return CanvasRequest(kind: .frame(slot.columnBox(box)), serial: request.serial)
+        case .columnTop:
+            return request
         }
     }
 
@@ -2876,16 +2885,21 @@ struct CanvasView: View {
             seen.fit = fit
             let across = Double(visible.minX)...Double(max(visible.maxX, visible.minX))
             if seen.across != across { seen.across = across }
+            if seen.top != Double(visible.minY) { seen.top = Double(visible.minY) }
+            if seen.height != Double(visible.height) { seen.height = Double(visible.height) }
             shown = slot.pageBox(visible)
             fitting = fit * slot.scale
             let slots = columnSlots
             let live = Set(PageColumn.livePages(slots, visible: visible))
             if livePages != live { livePages = live }
-            let thumbs = Set(PageColumn.thumbnailPages(slots, visible: visible))
+            // Scrubbing, every page but the one worked is its cached
+            // picture, so far pages are never drawn live as they fly past.
+            var thumbs = Set(PageColumn.thumbnailPages(slots, visible: visible))
+            if scrubbing { thumbs.formUnion(live) }
             if thumbPages != thumbs { thumbPages = thumbs }
             let inView = Set(PageColumn.pages(slots, within: 0, of: visible))
             if pagesInView != inView { pagesInView = inView }
-            let pictures = picturedPages(live, slots: slots, visible: visible, inView: inView.count)
+            let pictures = scrubbing ? live : picturedPages(live, slots: slots, visible: visible, inView: inView.count)
             if picturePages != pictures { picturePages = pictures }
         }
         // Only real changes: every write redraws whatever reads it.
@@ -2959,6 +2973,34 @@ struct CanvasView: View {
             return
         }
         store.requestCanvas(.page)
+    }
+
+    /// The page scrubber at the column's trailing edge, scrolling through
+    /// six pages or more, while nothing holds the view to its page
+    /// (PageScrubber.shows).
+    @ViewBuilder
+    private var pageScrubber: some View {
+        let slots = columnSlots
+        if PageScrubber.shows(pages: slots.count, column: columnOn, busy: pagePinned) {
+            PageScrubberView(store: store, seen: seen, slots: slots,
+                             column: PageColumn.columnHeight(slots, gap: PageColumn.room),
+                             scrubbing: $scrubbing,
+                             onScrub: { top in store.requestCanvas(.columnTop(top)) },
+                             onRelease: { index in scrubbedTo(index) })
+        }
+    }
+
+    /// The scrubber let go over page `index`: the view settles on that
+    /// page's top, and it becomes the one worked; what the scrub drew as
+    /// pictures is drawn live again where it should be.
+    private func scrubbedTo(_ index: Int) {
+        guard store.design.pages.indices.contains(index) else { return }
+        if index != store.pageIndex {
+            pageFromColumn = index
+            store.setPage(index)
+        }
+        store.requestCanvas(.page)
+        republishViewport()
     }
 
     /// The page being worked, its header too, brought into sight.
