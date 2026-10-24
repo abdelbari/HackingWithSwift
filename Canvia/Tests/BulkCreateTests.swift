@@ -108,6 +108,24 @@ final class BulkCreateTests: XCTestCase {
                        ["Ada", "Alan 2", "ada 2", "Badges 2"])
     }
 
+    /// Shared: the Android twin's "separate designs keep no talks, Beat Sync
+    /// holds, master, data or star" finds the same keys gone.
+    func testSeparateDesignsKeepNoTalksHoldsOrMaster() throws {
+        var design = Design(title: "Badges")
+        let pageId = design.pages[0].id
+        design.masterPageId = pageId
+        design.recordings = [Recording(id: "rec_1", createdAt: 1, audio: "talk", camera: "rec_1",
+                                       pages: [RecordingSpan(pageId: pageId, start: 0, end: 2)])]
+        design.beatSyncRestore = [pageId: 2.5]
+        design.starred = true
+        design.bulk = BulkData(columns: ["Name"], rows: [["Ada"]])
+        let one = BulkCreate.separate(design, page: design.pages[0], title: "Ada", now: 1)
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: JSONEncoder().encode(one)) as? [String: Any])
+        for key in ["masterPageId", "recordings", "beatSyncRestore", "bulk", "starred"] {
+            XCTAssertNil(object[key], key)
+        }
+    }
+
     func testTheKeysAreWrittenAndReadBack() throws {
         var design = Design(title: "Badges")
         var text = Element.text("Name")
@@ -144,11 +162,11 @@ final class BulkCreateTests: XCTestCase {
     }
 
     @MainActor
-    func testGeneratingIsOneStepNamedBulkCreate() throws {
+    func testGeneratingIsOneStepNamedBulkCreate() async throws {
         let f = try fixture()
         let store = DesignStore(design: f.design)
         store.measure = { $0.h }
-        let outcome = store.bulkCreatePages(BulkCreate.data(from: f.cells), pictures: f.pictures)
+        let outcome = await store.bulkCreatePages(BulkCreate.data(from: f.cells), pictures: f.pictures)
         XCTAssertEqual(outcome.made, 4)
         XCTAssertEqual(store.design.pages.count, 5)
         XCTAssertEqual(store.design.bulk?.rows.count, 4)
