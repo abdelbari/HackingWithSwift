@@ -174,6 +174,9 @@ enum PptxExporter {
         /// A QR code drawn in its colours alone (CodeGenerator.vector):
         /// its background and its modules, free-form rectangles.
         case code
+        /// Warped words (TextWarp): their bent outlines, one free-form
+        /// shape in the text's colour.
+        case warped
     }
 
     /// The effects styled text carries over as DrawingML; the rest —
@@ -201,6 +204,12 @@ enum PptxExporter {
         switch el.type {
         case .text:
             if flipped { return .picture }
+            // Bent letters as the vectors they are drawn as, unless they
+            // are painted with a gradient or a photo, or have an effect.
+            if TextWarp.isWarped(el) {
+                let plain = el.textFill == nil && TextEffect.from(el.effect) == .none && el.shadow == nil
+                return plain ? .warped : .picture
+            }
             if styled { return isStyledText(el) ? .text : .picture }
             let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
             if gradient || TextEffect.from(el.effect) != .none || TextOutliner.followsAPath(el)
@@ -490,6 +499,11 @@ enum PptxExporter {
                                       photo: poured, ink: average))
             case .shape(let preset):
                 shapes.append(shapeXML(el, preset: preset, id: id, link: link, frame: frame))
+            case .warped:
+                if let outline = TextOutliner.path(for: el) {
+                    shapes.append(outlineXML(el, properties: cNvPr(el, id: id, link: link), steps: steps(of: outline),
+                                             colour: el.color ?? "#1f2430", frame: frame))
+                }
             case .line:
                 shapes.append(lineXML(el, id: id, link: link, frame: frame))
             case .code:
@@ -705,6 +719,38 @@ enum PptxExporter {
         let paint = "<a:solidFill>\(color(colour, opacity: el.opacity))</a:solidFill><a:ln><a:noFill/></a:ln>"
         let shape = "<p:nvSpPr>\(properties)<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
         return "<p:sp>\(shape)<p:spPr>\(elementBox(el, frame: frame))\(geometry)\(paint)</p:spPr></p:sp>"
+    }
+
+    /// `path` as the steps outlineXML writes: its lines, its curves as
+    /// cubics (a quadratic raised to one), its closes.
+    static func steps(of path: CGPath) -> [CodeGenerator.Step] {
+        var out: [CodeGenerator.Step] = []
+        var current = CGPoint.zero
+        path.applyWithBlock { element in
+            let e = element.pointee
+            switch e.type {
+            case .moveToPoint:
+                current = e.points[0]
+                out.append(.move(current))
+            case .addLineToPoint:
+                current = e.points[0]
+                out.append(.line(current))
+            case .addQuadCurveToPoint:
+                let c = e.points[0], p = e.points[1], s = current
+                let a = CGPoint(x: s.x + (c.x - s.x) * 2 / 3, y: s.y + (c.y - s.y) * 2 / 3)
+                let b = CGPoint(x: p.x + (c.x - p.x) * 2 / 3, y: p.y + (c.y - p.y) * 2 / 3)
+                out.append(.cubic(a, b, p))
+                current = p
+            case .addCurveToPoint:
+                current = e.points[2]
+                out.append(.cubic(e.points[0], e.points[1], current))
+            case .closeSubpath:
+                out.append(.close)
+            @unknown default:
+                break
+            }
+        }
+        return out
     }
 
     /// A preset line across the middle of the element's box, with its

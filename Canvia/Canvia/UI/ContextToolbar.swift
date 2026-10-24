@@ -193,6 +193,8 @@ struct ContextToolbar: View {
             toggle("text.justify.leading", "Vertical", active: el.vertical == true) {
                 store.updateSelected { e in
                     e.vertical = e.vertical == true ? nil : true
+                    // A column and a warp exclude each other.
+                    if e.vertical == true { e.warp = nil }
                     // A column wants height; give a one-line box a few rows.
                     if e.vertical == true, e.h < (e.fontSize ?? 42) * 4 { e.h = (e.fontSize ?? 42) * 4 }
                 }
@@ -456,6 +458,7 @@ struct ContextToolbar: View {
                     store.updateSelected { e in
                         e.textPath = preset.data
                         e.curve = nil
+                        e.warp = nil
                         // A path wants room above and below its line.
                         if e.h < (e.fontSize ?? 42) * 3 { e.h = (e.fontSize ?? 42) * 3 }
                     }
@@ -857,7 +860,10 @@ struct ContextToolbar: View {
     /// so straightening the text again returns it to the wrap width the user
     /// chose rather than to whatever the widest arc happened to need.
     private func curve(_ el: inout Element, to degrees: Double) {
-        if abs(degrees) >= TextOutliner.straightBelowDegrees { el.textPath = nil }
+        if abs(degrees) >= TextOutliner.straightBelowDegrees {
+            el.textPath = nil
+            el.warp = nil
+        }
         let centre = CGPoint(x: el.x + el.w / 2, y: el.y + el.h / 2)
         let straight = abs(degrees) < TextOutliner.straightBelowDegrees
         el.curve = straight ? nil : degrees

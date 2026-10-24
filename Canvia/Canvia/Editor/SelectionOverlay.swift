@@ -113,9 +113,15 @@ struct SelectionOverlay: View {
                     TableRowHandles(store: store, edges: rows)
                 }
             }
-            // A whole photo grid selected: the dividers between its cells.
-            if !store.gridDividers.isEmpty {
-                GridDividerHandles(store: store)
+            Group {
+                // A whole photo grid selected: the dividers between its cells.
+                if !store.gridDividers.isEmpty {
+                    GridDividerHandles(store: store)
+                }
+                // Edit shape: a warp's handles, or a path's points.
+                if !store.shapeHandles.isEmpty {
+                    ShapeHandles(store: store)
+                }
             }
 
             Group {
@@ -310,6 +316,7 @@ struct SelectionOverlay: View {
     /// which draws none, has none.
     static func handlesTake(_ point: CGPoint, store: DesignStore) -> Bool {
         if onColumnEdge(point, store: store) || onRowEdge(point, store: store) || onGridDivider(point, store: store) { return true }
+        if ShapeHandles.takes(point, store: store) { return true }
         guard let drawn = ring(store) else { return false }
         let page = reachablePage(store)
         let out = outsets(for: drawn.el, zoom: store.zoom, page: page)

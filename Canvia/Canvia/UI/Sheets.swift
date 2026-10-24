@@ -145,6 +145,9 @@ struct EffectsSheet: View {
                         }
                     }
                     if current != .none { settings(current) }
+                    // Warp: the letters bent in their box, and Edit shape,
+                    // which closes the sheet to show the handles.
+                    WarpSection(store: store, onEditShape: { if store.shapeEditingId != nil { dismiss() } })
                 }
                 .padding()
             }

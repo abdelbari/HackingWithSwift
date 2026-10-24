@@ -828,6 +828,9 @@ struct Element: Codable, Equatable, Identifiable {
     /// Characters stacked top to bottom in columns that run right to left,
     /// the way Japanese and Chinese are set on a poster.
     var vertical: Bool?
+    /// The letters reshaped in their box by eight handles (TextWarp); a
+    /// curve, a path or a column comes first where one is set too.
+    var warp: TextWarpSpec?
     /// Captions on this box (see Captions): the words said in a clip or a
     /// voice-over, timed to the page, drawn one cue at a time as it plays;
     /// nil for an ordinary text box, and no key in the file.
@@ -1009,6 +1012,7 @@ struct Element: Codable, Equatable, Identifiable {
         curve = try? c.decode(Double.self, forKey: .curve)
         textPath = try? c.decode(String.self, forKey: .textPath)
         vertical = try? c.decode(Bool.self, forKey: .vertical)
+        warp = try? c.decode(TextWarpSpec.self, forKey: .warp)
         // Only a text box carries captions; read leniently (Captions).
         captions = type == .text ? try? c.decode(Captions.self, forKey: .captions) : nil
         // Spans made for other words than these — the words changed by a
@@ -1092,7 +1096,7 @@ struct Element: Codable, Equatable, Identifiable {
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, graphicId, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
-        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
+        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical, warp
         case spans, spansText, paragraphs, paragraphsText, captions
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip

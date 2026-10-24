@@ -316,6 +316,7 @@ final class PptxExporterTests: XCTestCase {
         case .line: return "line"
         case .picture: return "picture"
         case .code: return "code"
+        case .warped: return "warped"
         }
     }
 
