@@ -267,6 +267,10 @@ enum DesignPackage {
                 if let src = el.qrLogo, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
             }
         }
+        // A Doc's photos, which live in its image blocks, not on its pages.
+        for block in design.blocks ?? [] where block.type == Docs.image {
+            if let src = block.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
+        }
         return ids
     }
 
@@ -700,6 +704,17 @@ enum DesignPackage {
         if let master = design.masterPageId {
             design.masterPageId = pageIds[master]
         }
+        // A Doc's image blocks move as a photo does.
+        design.blocks = design.blocks.map { blocks in
+            blocks.map { block -> DocBlock in
+                guard block.type == Docs.image else { return block }
+                var next = block
+                next.src = rewrite(block.src)
+                return next
+            }
+        }
+        // A new document's posts are not planned: the original keeps them.
+        design.plannedPosts = nil
         design.audioTracks = design.audioTracks.map { track in
             var next = track
             // A clip's sound follows its clip.

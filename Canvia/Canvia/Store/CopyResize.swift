@@ -68,6 +68,8 @@ enum CopyResize {
         var copy = design
         copy.id = UID.make("doc")
         copy.isStarred = false
+        // A copy's posts are not planned: the original keeps them.
+        copy.plannedPosts = nil
         var pageIds: [String: String] = [:]
         copy.pages = design.pages.map { page in
             let fresh = Copies.of(page)

@@ -41,7 +41,7 @@ enum DocxWriter {
     /// The blocks drawn as pictures, in order: images with a picture, and
     /// charts.
     static func pictures(_ design: Design) -> [DocBlock] {
-        Docs.blocks(design).filter { ($0.type == Docs.image && $0.src != nil) || ($0.type == Docs.chart && $0.chart != nil) }
+        Docs.blocks(design).filter { ($0.type == Docs.image && $0.src != nil) || ($0.type == Docs.chart && Docs.chartSpec($0) != nil) }
     }
 
     private static func twips(_ setup: DocPage) -> (w: Int, h: Int) {
@@ -121,7 +121,7 @@ enum DocxWriter {
             case Docs.table: out += tableXml(b, textTwips: textTwips)
             case Docs.image, Docs.chart:
                 if b.type == Docs.image && b.src == nil { continue }
-                if b.type == Docs.chart && b.chart == nil { continue }
+                if b.type == Docs.chart && Docs.chartSpec(b) == nil { continue }
                 picture += 1
                 out += drawing(picture, descr: esc(Docs.altOf(b) ?? ""), cx: cx, cy: cy)
             default: break

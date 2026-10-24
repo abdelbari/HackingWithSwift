@@ -48,6 +48,9 @@ struct CanviaApp: App {
         SharedInbox.sweep()
         Uploads.seedIfNeeded()
         DesignLibrary.pruneUnusedFiles()
+        // Every planned post's reminder set, as the shelf now stands, as on
+        // the Android twin. Every design is read, so off the main thread.
+        Task.detached(priority: .utility) { PostReminders.rescheduleAll(DesignLibrary.shelfDesigns()) }
         // The bundled fonts and your own, registered with CoreText for this
         // process before anything is measured or drawn.
         FontLibrary.registerBundledFonts()

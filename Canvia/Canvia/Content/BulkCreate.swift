@@ -298,6 +298,7 @@ enum BulkCreate {
         out.recordings = nil
         out.beatSyncRestore = nil
         out.bulk = nil
+        out.plannedPosts = nil
         out.starred = nil
         out.createdAt = now
         out.updatedAt = now

@@ -56,6 +56,26 @@ enum PostReminders {
         center.removeDeliveredNotifications(withIdentifiers: [id])
     }
 
+    /// Every reminder of design `designId` taken away, waiting or shown:
+    /// the design went to Recently deleted.
+    static func cancelAll(designId: String) {
+        let prefix = identifier(designId: designId, postId: "")
+        let center = UNUserNotificationCenter.current()
+        center.getPendingNotificationRequests { requests in
+            center.removePendingNotificationRequests(withIdentifiers: requests.map(\.identifier).filter { $0.hasPrefix(prefix) })
+        }
+        center.getDeliveredNotifications { shown in
+            center.removeDeliveredNotifications(withIdentifiers: shown.map(\.request.identifier).filter { $0.hasPrefix(prefix) })
+        }
+    }
+
+    /// Design `designId`, back from Recently deleted, has its reminders
+    /// again.
+    static func restored(designId: String) {
+        guard let design = DesignLibrary.load(id: designId) else { return }
+        rescheduleAll([design])
+    }
+
     /// The reminders brought in line with `design`'s posts, as they were in
     /// `before`: those gone or done taken away, the rest set.
     static func reschedule(_ design: Design, before: Design) {
@@ -113,9 +133,8 @@ enum PostReminders {
         }
     }
 
-    /// At launch: every post not done whose time is still to come has its
-    /// reminder, as a restore or a design brought in from elsewhere may
-    /// have left one unset.
+    /// At launch and after a restore: every post not done whose time is
+    /// still to come has its reminder, as a restore may have left one unset.
     static func rescheduleAll(_ designs: [Design]) {
         for design in designs {
             for post in PostPlanner.of(design) { schedule(post, of: design) }

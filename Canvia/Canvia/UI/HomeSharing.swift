@@ -47,17 +47,41 @@ struct HomeSharing: ViewModifier {
 
 /// The Export sheet on a design read from its file: a store of its own,
 /// made once, which nothing saves — a Doc's of its pages, its Word document
-/// made from its blocks.
+/// made from its blocks. A Doc is laid out on its pages away from the main
+/// actor, every block measured, as the editor's Export lays it out, the
+/// sheet showing progress meanwhile; closing the sheet drops the layout.
 private struct HomeExportSheet: View {
-    @State private var store: DesignStore
-    private let doc: Design?
+    let design: Design
+    @State private var store: DesignStore?
 
     init(design: Design) {
-        _store = State(initialValue: DesignStore(design: DocPages.drawn(design)))
-        doc = Docs.isDoc(design) ? design : nil
+        self.design = design
+        // Any other design is ready as it is.
+        _store = State(initialValue: Docs.isDoc(design) ? nil : DesignStore(design: design))
     }
 
     var body: some View {
-        ExportSheet(store: store, readOnly: true, doc: doc)
+        exportOrProgress.task { await layOut() }
+    }
+
+    @ViewBuilder
+    private var exportOrProgress: some View {
+        if let store {
+            ExportSheet(store: store, readOnly: true, doc: Docs.isDoc(design) ? design : nil)
+        } else {
+            ProgressView()
+                .presentationDetents([.medium])
+        }
+    }
+
+    @MainActor
+    private func layOut() async {
+        guard store == nil else { return }
+        let doc = design
+        let styles = DocPages.styles()
+        let laid = await Task.detached(priority: .userInitiated) { Docs.paginated(doc, styles: styles) }.value
+        // Closed meanwhile: nothing to show.
+        guard !Task.isCancelled else { return }
+        store = DesignStore(design: laid)
     }
 }

@@ -88,4 +88,35 @@ final class EditorAndHomeParityTests: XCTestCase {
         XCTAssertEqual(raw.pages[0].elements[0].h, 1)
         XCTAssertEqual(raw.title, "Package")
     }
+
+    /// Shared: a Doc's photos, kept in its image blocks, travel in its
+    /// package and come back pointed at where they were stored.
+    func testADocsPhotosTravelAndComeBackRepointed() throws {
+        let blocks = [DocBlock(id: "i", type: Docs.image, src: "media:docpic"), DocBlock(id: "p", type: Docs.p, text: "Hi")]
+        let doc = Docs.withBlocks(Design(title: "Doc", width: 816, height: 1056), blocks)
+        XCTAssertEqual(DesignPackage.mediaIDs(in: doc), ["docpic"])
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("doc-import-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try Data([0xFF, 0xD8, 0xFF, 0xE0]).write(to: directory.appendingPathComponent("docpic.jpg"))
+        let data = try DesignPackage.export(doc, mediaDirectory: directory)
+        let package = try JSONDecoder().decode(DesignPackage.Package.self, from: data)
+        XCTAssertNotNil(package.media["docpic"])
+        let back = try DesignPackage.import(data, mediaDirectory: directory, normalize: false)
+        let src = try XCTUnwrap(back.blocks?.first?.src)
+        XCTAssertTrue(src.hasPrefix("media:"))
+        XCTAssertNotEqual(src, "media:docpic")
+        XCTAssertEqual(back.blocks?.last?.text, "Hi")
+    }
+
+    /// Shared: a Doc's photo, kept in an image block rather than on a page,
+    /// counts as used in Uploads and survives the launch sweep, which keeps
+    /// what photos(in:) finds.
+    func testADocsPhotoCountsAsUsedAndSurvivesTheSweep() {
+        let doc = Docs.withBlocks(Design(title: "Doc", width: 816, height: 1056),
+                                  [DocBlock(id: "i", type: Docs.image, src: "media:docpic")])
+        XCTAssertEqual(DesignLibrary.photos(in: [doc]), ["docpic"])
+        XCTAssertTrue(DesignLibrary.uses(doc, upload: "docpic", kind: .image))
+    }
 }
