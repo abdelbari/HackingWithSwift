@@ -250,7 +250,10 @@ private final class WordReader {
         let size = DocxReader.child(node, "pgSz")
         var paper = setup.size
         if let w = DocxReader.attr(size, "w").flatMap({ Double($0) }), let h = DocxReader.attr(size, "h").flatMap({ Double($0) }) {
-            paper = abs(w - 11906) + abs(h - 16838) < abs(w - 12240) + abs(h - 15840) ? Docs.a4 : Docs.letter
+            // Typed apart, so the compiler weighs one sum at a time.
+            let fromA4: Double = abs(w - 11906) + abs(h - 16838)
+            let fromLetter: Double = abs(w - 12240) + abs(h - 15840)
+            paper = fromA4 < fromLetter ? Docs.a4 : Docs.letter
         }
         let margins = DocxReader.attr(DocxReader.child(node, "pgMar"), "left").flatMap { Double($0) }
             .map { min(max($0 / 20, 0), 216) } ?? setup.margins

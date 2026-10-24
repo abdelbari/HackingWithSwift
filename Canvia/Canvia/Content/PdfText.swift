@@ -276,9 +276,10 @@ enum PdfText {
     /// from `ascent` above the baseline to `descent` below, a point wider
     /// every way — what the page's picture has painted over.
     static func lineBoxes(_ page: TextPage) -> [CGRect] {
-        lines(page.runs).map { line in
-            CGRect(x: line.x - 1, y: line.y - line.size * ascent - 1, width: line.right - line.x + 2,
-                   height: line.size * (ascent + descent) + 2)
+        lines(page.runs).map { (line: PdfLine) -> CGRect in
+            let top: Double = line.y - line.size * ascent - 1
+            let tall: Double = line.size * (ascent + descent) + 2
+            return CGRect(x: line.x - 1, y: top, width: line.right - line.x + 2, height: tall)
         }
     }
 
