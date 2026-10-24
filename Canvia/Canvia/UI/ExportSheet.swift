@@ -56,6 +56,9 @@ struct ExportSheet: View {
     @State private var suggested = "png"
     /// The PDF's outline: a bookmark for each page, by its title.
     @State private var pdfBookmarks = true
+    /// A tagged PDF for screen readers: on unless a remembered export said
+    /// otherwise, and never for a flattened one.
+    @State private var pdfTagged = true
     /// The web page's menu, narrow-screen wrapping and clips
     /// (HTMLExporter.Settings).
     @State private var htmlNav = true
@@ -549,7 +552,8 @@ struct ExportSheet: View {
         switch fileType {
         case "pdf":
             run(tr("Making the PDF"), format: "pdf") {
-                ExportJobs.pdf(designSnapshot, flatten: flatten, notes: pdfNotes, compress: pdfCompress, bookmarks: pdfBookmarks)
+                ExportJobs.pdf(designSnapshot, flatten: flatten, notes: pdfNotes, compress: pdfCompress, bookmarks: pdfBookmarks,
+                               tagged: pdfTagged && !flatten)
             }
         case "print":
             // The design the pictures render, so "Selection only" prints
@@ -818,6 +822,7 @@ struct ExportSheet: View {
                 Text(leftOut(pdfIndices) ?? pdfSubtitle)
                 Text("Flatten draws each PDF page as one 300-dpi picture: no editable text and no links, so a print shop gets no font surprises.")
                 Text("A bookmark for each page, by its title, so a reader can jump between them.")
+                Text("Headings, reading order and alt text a screen reader can follow.")
             }
         }
     }
@@ -830,6 +835,10 @@ struct ExportSheet: View {
         // An outline entry a page, by its title, for a reader's navigation;
         // the file's title and language go in always.
         Toggle("Bookmarks", isOn: $pdfBookmarks)
+        // Headings, reading order and alt text for a screen reader — not
+        // for a flattened file, which is pictures.
+        Toggle("Tagged for screen readers", isOn: Binding(get: { pdfTagged && !flatten }, set: { pdfTagged = $0 }))
+            .disabled(flatten)
         Text(pdfSizeNote)
             .font(.footnote)
             .foregroundStyle(.secondary)
@@ -936,7 +945,7 @@ struct ExportSheet: View {
                                 pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
                                 pptxStyledText: pptxStyledText, suggested: format == suggested,
                                 pdfBookmarks: pdfBookmarks, colourProfile: paper.colourProfile.rawValue,
-                                html: htmlSettings).json
+                                html: htmlSettings, pdfTagged: pdfTagged).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -955,6 +964,7 @@ struct ExportSheet: View {
         remember = true
         if !last.suggested { fileType = last.format }
         pdfBookmarks = last.pdfBookmarks
+        pdfTagged = last.pdfTagged
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2
         jpegQuality = last.jpegQuality
         transparent = last.transparent

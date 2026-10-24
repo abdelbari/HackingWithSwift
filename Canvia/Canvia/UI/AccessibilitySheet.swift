@@ -1,8 +1,9 @@
 // Check accessibility: every finding of one pass, page by page — "5 things
 // on 3 pages" — each with Show, which goes to the element, and its fix:
 // Fix colour, Add alt text (with Suggest from the on-device classifier),
-// Mark decorative, Make it 12. Contrast is a section of its own, with Fix
-// all contrast as one undo step, as Check contrast had it. Show reading
+// Mark decorative, Make it 12, Fix heading level, Make it a heading.
+// Contrast is a section of its own, with Fix all contrast as one undo
+// step, as Check contrast had it. Show reading
 // order numbers the page's elements on the canvas in VoiceOver's order.
 // The Android twin's AccessibilitySheet.
 
@@ -159,6 +160,7 @@ struct AccessibilitySheet: View {
         case .linkText: return "link"
         case .chartColours: return "chart.pie"
         case .readingOrder: return "list.number"
+        case .headings: return "textformat.size"
         case .colourVision: return "eye"
         case .missingLetters: return "character.textbox"
         }
@@ -183,7 +185,7 @@ struct AccessibilitySheet: View {
             altDraft = element(f)?.altText ?? ""
             describing = f
             askingAlt = true
-        case .fixColour, .makeIt12:
+        case .fixColour, .makeIt12, .fixHeadingLevel, .makeHeading:
             let next = AccessibilityAudit.fixed(store.design, f)
             guard next != store.design else { return }
             store.apply { $0 = next }

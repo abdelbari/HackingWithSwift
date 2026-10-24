@@ -1195,6 +1195,9 @@ struct PageRenderView: View {
     /// frame, and what is on the page drawn wherever it is, past the frame
     /// too. Everything that leaves the app draws the flattened page instead.
     var board = false
+    /// A tagged PDF's page (PdfTags): a sentinel before each element, the
+    /// master's first, which the PDF's update turns into marked content.
+    var sentinels = false
 
     var body: some View {
         if board { boardView } else if bleed > 0 { bled } else { trimmed }
@@ -1243,6 +1246,21 @@ struct PageRenderView: View {
 
     @ViewBuilder
     private var drawn: some View {
+        if sentinels { sentinelled } else { plain }
+    }
+
+    /// What `plain` draws, sentinel k before the kth element drawn —
+    /// design.drawnElements(on:), the order the PDF's tags are read in.
+    private var sentinelled: some View {
+        let elements = Array(design.drawnElements(on: page).enumerated())
+        return ForEach(elements, id: \.element.id) { n, el in
+            PdfSentinel(index: n + 1)
+            ElementView(element: el).equatable()
+        }
+    }
+
+    @ViewBuilder
+    private var plain: some View {
         // The master page's elements, behind this page's own. Not on
         // the master itself, and not on a page that opted out.
         ForEach(design.masterElements(behind: page)) { el in
@@ -1264,6 +1282,21 @@ struct PageRenderView: View {
     private var pageNumberValue: (number: Int, count: Int)? {
         guard let index = design.pages.firstIndex(where: { $0.id == page.id }) else { return nil }
         return (index + 1, design.pages.count)
+    }
+}
+
+/// A tagged PDF's sentinel (PdfTags): a speck at the page's top left in
+/// the colour that numbers it, which the PDF's update takes out again.
+struct PdfSentinel: View {
+    let index: Int
+
+    var body: some View {
+        let c = PdfTags.sentinelComponents(index)
+        Rectangle()
+            .fill(Color(.sRGB, red: Double(c.red) / 255, green: Double(c.green) / 255, blue: Double(c.blue) / 255))
+            .frame(width: PdfTags.sentinelSize, height: PdfTags.sentinelSize)
+            .position(x: PdfTags.sentinelSize / 2, y: PdfTags.sentinelSize / 2)
+            .accessibilityHidden(true)
     }
 }
 

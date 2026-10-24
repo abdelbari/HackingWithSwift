@@ -803,6 +803,15 @@ struct Element: Codable, Equatable, Identifiable {
     /// The first letter set large, three lines deep, with the text wrapping
     /// around it.
     var dropCap: Bool?
+    /// What the box is in the document's outline: "title", "h1", "h2",
+    /// "h3", "body", "quote" or "caption" (TextRoles); nil is inferred by
+    /// size. Kept as read, so a role this build does not know survives a
+    /// save; the Android twin's extras key of the same name.
+    var textRole: String?
+    /// The Text panel's Read as: how a screen reader takes the box in an
+    /// export — "h1", "h2", "h3", "p" or "artifact" (TextRoles); nil is as
+    /// its role says. Kept as read, as `textRole` is.
+    var a11yRole: String?
     /// How the element arrives on the page, in video and preview.
     var animation: ElementAnimation?
     /// How the element leaves as its page ends: the same three fields, the
@@ -1000,6 +1009,8 @@ struct Element: Codable, Equatable, Identifiable {
         paragraphSpacing = try? c.decode(Double.self, forKey: .paragraphSpacing)
         textStyleId = try? c.decode(String.self, forKey: .textStyleId)
         dropCap = try? c.decode(Bool.self, forKey: .dropCap)
+        textRole = try? c.decode(String.self, forKey: .textRole)
+        a11yRole = try? c.decode(String.self, forKey: .a11yRole)
         animation = try? c.decode(ElementAnimation.self, forKey: .animation)
         exitAnimation = try? c.decode(ElementAnimation.self, forKey: .exitAnimation)
         kenBurns = try? c.decode(KenBurns.self, forKey: .kenBurns)
@@ -1094,6 +1105,7 @@ struct Element: Codable, Equatable, Identifiable {
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case spans, spansText, paragraphs, paragraphsText, captions
+        case textRole, a11yRole
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch

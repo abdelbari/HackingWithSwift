@@ -1534,11 +1534,20 @@ struct CanvasView: View {
             .accessibilityElement()
             .accessibilityLabel(CanvasAccessibility.label(for: el, on: store.page.elements))
             .accessibilityValue(spokenValue(of: el))
-            .accessibilityAddTraits(store.selection.contains(el.id) ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAddTraits(readerTraits(el))
             .accessibilityHint(el.type == .text ? tr("Double tap to select; double tap and hold to edit")
                                : el.type == .image ? tr("Double tap to select; Crop is in the actions")
                                : tr("Double tap to select"))
             .accessibilityActions { accessibilityActions(for: el) }
+    }
+
+    /// A button, selected when it is — and a heading as well when it reads
+    /// as one (TextRoles), so VoiceOver's rotor can go from heading to
+    /// heading.
+    private func readerTraits(_ el: Element) -> AccessibilityTraits {
+        var traits: AccessibilityTraits = store.selection.contains(el.id) ? [.isButton, .isSelected] : .isButton
+        if TextRoles.isHeading(el, in: store.design) { traits.insert(.isHeader) }
+        return traits
     }
 
     /// A tap on `el` at page point `point` — on its own hit area, or passed

@@ -96,7 +96,7 @@ enum HomeExports {
                                              transparent: settings.transparent)
             case .pdf:
                 render = ExportJobs.pdf(made, flatten: false, notes: settings.pdfNotes, compress: settings.pdfCompress,
-                                        bookmarks: settings.pdfBookmarks)
+                                        bookmarks: settings.pdfBookmarks, tagged: settings.pdfTagged)
             case .designFiles:
                 render = ExportJobs.designFile(made.design)
             }

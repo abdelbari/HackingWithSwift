@@ -256,7 +256,8 @@ enum ExportChoices {
 ///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
 ///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,
 ///  "colourProfile":"rgb","html":{"nav":true,"mobileStack":true,
-///  "embedMedia":true}}. A missing "pptxStyledText" is "editable".
+///  "embedMedia":true},"pdfTagged":true}. A missing "pptxStyledText" is
+///  "editable", and a missing "pdfTagged" false.
 struct ExportLast: Codable, Equatable {
     /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html".
     var format: String
@@ -286,6 +287,11 @@ struct ExportLast: Codable, Equatable {
     /// The web page's menu, narrow-screen wrapping and clips
     /// (HTMLExporter.Settings); missing is every one on.
     var html = HTMLExporter.Settings()
+    /// The PDF's "Tagged for screen readers": a tagged PDF (PdfTags) — on
+    /// for a sheet that remembers nothing, but false when a remembered
+    /// setting has no key, as one written before it has not. Never for a
+    /// flattened PDF or the print one.
+    var pdfTagged = true
 
     static let key = "exportLast"
     static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html"]
@@ -300,13 +306,13 @@ struct ExportLast: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText,
-             suggested, pdfBookmarks, colourProfile, html
+             suggested, pdfBookmarks, colourProfile, html, pdfTagged
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
          pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable,
          suggested: Bool = false, pdfBookmarks: Bool = true, colourProfile: String = "rgb",
-         html: HTMLExporter.Settings = HTMLExporter.Settings()) {
+         html: HTMLExporter.Settings = HTMLExporter.Settings(), pdfTagged: Bool = true) {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -320,6 +326,7 @@ struct ExportLast: Codable, Equatable {
         self.pdfBookmarks = pdfBookmarks
         self.colourProfile = PrintLayout.ColourProfile.of(colourProfile).rawValue
         self.html = html
+        self.pdfTagged = pdfTagged
     }
 
     /// Whether styled text goes out editable, as the setting says.
@@ -348,6 +355,8 @@ struct ExportLast: Codable, Equatable {
         pdfBookmarks = (try? c.decode(Bool.self, forKey: .pdfBookmarks)) ?? true
         colourProfile = PrintLayout.ColourProfile.of(try? c.decode(String.self, forKey: .colourProfile)).rawValue
         html = (try? c.decode(HTMLExporter.Settings.self, forKey: .html)) ?? HTMLExporter.Settings()
+        // A setting from before "pdfTagged" was untagged, and stays so.
+        pdfTagged = (try? c.decode(Bool.self, forKey: .pdfTagged)) ?? false
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -367,6 +376,7 @@ struct ExportLast: Codable, Equatable {
         try c.encode(pdfBookmarks, forKey: .pdfBookmarks)
         try c.encode(colourProfile, forKey: .colourProfile)
         try c.encode(html, forKey: .html)
+        try c.encode(pdfTagged, forKey: .pdfTagged)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -389,6 +399,7 @@ struct ExportLast: Codable, Equatable {
             "\"pdfBookmarks\":" + String(pdfBookmarks),
             "\"colourProfile\":" + Self.quoted(colourProfile),
             "\"html\":" + html.json,
+            "\"pdfTagged\":" + String(pdfTagged),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

@@ -1,0 +1,76 @@
+{
+  "note": "The shared tagged-PDF fixture: PdfTags.outline(design, every page) must give the outline, one line a structure element, indented a space a level, and AccessibilityAudit must find no headings problem. Both phones read this file.",
+  "design": {
+    "id": "d-tags",
+    "title": "Annual report",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {"type": "color", "value": "#ffffff"},
+        "elements": [
+          {"id": "e6", "type": "shape", "shapeId": "rect", "x": 0, "y": 900, "w": 1080, "h": 180, "fill": {"kind": "solid", "color": "#eeeeee"}},
+          {"id": "e1", "type": "text", "text": "Annual report", "x": 100, "y": 60, "w": 880, "h": 100, "fontSize": 80, "fontWeight": 700, "color": "#111111"},
+          {"id": "e2", "type": "text", "text": "The year in short", "x": 100, "y": 200, "w": 880, "h": 56, "fontSize": 44, "color": "#111111"},
+          {"id": "e3", "type": "text", "text": "We grew in **every** region.", "x": 100, "y": 300, "w": 880, "h": 30, "fontSize": 24, "color": "#111111"},
+          {"id": "e4", "type": "image", "src": "img-a", "x": 100, "y": 400, "w": 400, "h": 260, "altText": "Sales by month"},
+          {"id": "e5", "type": "image", "src": "img-b", "x": 600, "y": 400, "w": 380, "h": 260, "decorative": true},
+          {"id": "e7", "type": "text", "text": "Apples\nPears", "x": 100, "y": 700, "w": 880, "h": 60, "fontSize": 24, "color": "#111111", "listStyle": "bullet"},
+          {"id": "e8", "type": "text", "text": "Said the chair", "x": 100, "y": 800, "w": 880, "h": 30, "fontSize": 24, "color": "#111111", "textRole": "quote"}
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {"type": "color", "value": "#ffffff"},
+        "elements": [
+          {"id": "e9", "type": "text", "text": "Regions", "x": 100, "y": 60, "w": 880, "h": 100, "fontSize": 80, "fontWeight": 700, "color": "#111111"},
+          {"id": "e10", "type": "text", "text": "Notes", "x": 100, "y": 200, "w": 880, "h": 30, "fontSize": 24, "color": "#111111", "textRole": "h2"},
+          {"id": "c1", "type": "text", "text": "Region", "x": 100, "y": 300, "w": 300, "h": 40, "fontSize": 24, "fontWeight": 700, "color": "#111111", "table": {"id": "t1", "row": 0, "col": 0}},
+          {"id": "c2", "type": "text", "text": "Sales", "x": 400, "y": 300, "w": 300, "h": 40, "fontSize": 24, "fontWeight": 700, "color": "#111111", "table": {"id": "t1", "row": 0, "col": 1}},
+          {"id": "c3", "type": "text", "text": "North", "x": 100, "y": 340, "w": 300, "h": 40, "fontSize": 24, "color": "#111111", "table": {"id": "t1", "row": 1, "col": 0}},
+          {"id": "c4", "type": "text", "text": "12", "x": 400, "y": 340, "w": 300, "h": 40, "fontSize": 24, "color": "#111111", "table": {"id": "t1", "row": 1, "col": 1}},
+          {"id": "e15", "type": "text", "text": "Table 1: sales", "x": 100, "y": 500, "w": 880, "h": 30, "fontSize": 20, "color": "#111111", "textRole": "caption"},
+          {"id": "e16", "type": "text", "text": "Footer", "x": 100, "y": 1000, "w": 880, "h": 30, "fontSize": 20, "color": "#111111", "a11yRole": "artifact"}
+        ]
+      },
+      {
+        "id": "p3",
+        "hidden": true,
+        "background": {"type": "color", "value": "#ffffff"},
+        "elements": [
+          {"id": "e20", "type": "text", "text": "Draft", "x": 100, "y": 60, "w": 880, "h": 100, "fontSize": 80, "color": "#111111"}
+        ]
+      }
+    ]
+  },
+  "outline": [
+    "Document",
+    " Sect",
+    "  H1",
+    "  H2",
+    "  P",
+    "  Figure",
+    "  L",
+    "   LI",
+    "    LBody",
+    "   LI",
+    "    LBody",
+    "  BlockQuote",
+    " Sect",
+    "  H1",
+    "  H2",
+    "  Table",
+    "   TR",
+    "    TH",
+    "    TH",
+    "   TR",
+    "    TD",
+    "    TD",
+    "  Caption"
+  ],
+  "roles": {"e1": "h1", "e2": "h2", "e3": "body", "e7": "body", "e8": "quote", "e9": "h1", "e10": "h2", "e15": "caption", "e20": "h1"},
+  "textLayer": "<div class=\"sr\"><h1>Annual report</h1><h2>The year in short</h2><p>We grew in every region.</p><ul><li>Apples</li><li>Pears</li></ul><blockquote>Said the chair</blockquote></div>"
+}
