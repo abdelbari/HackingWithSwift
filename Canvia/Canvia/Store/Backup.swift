@@ -21,7 +21,10 @@
 //                            (AccessibilityPrefs), Settings ▸ Proofing's
 //                            "proofTypography", and Home's recent
 //                            searches and templates used ("recentSearches",
-//                            "recentTemplates", RecentSearches)
+//                            "recentTemplates", RecentSearches), and Back
+//                            up automatically's preference ("autoBackup",
+//                            AutoBackup), of which a restore takes how
+//                            often and how many
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and kits' assets are,
 //   videos/<id>.<ext>        their clips,
@@ -119,7 +122,7 @@ enum Backup {
     }
 
     /// The same, with Home's recent searches and templates used, each a
-    /// JSON array — what a backup writes.
+    /// JSON array.
     static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool, proofTypography: Bool = true,
                                accessibility: AccessibilityPrefs.Settings,
                                recentSearches: [String], recentTemplates: [String]) -> Data {
@@ -127,15 +130,27 @@ enum Backup {
                      accessibility: accessibility, recent: (recentSearches, recentTemplates))
     }
 
+    /// The same, with Back up automatically's preference under
+    /// "autoBackup" (AutoBackup) — what a backup writes.
+    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool, proofTypography: Bool,
+                               accessibility: AccessibilityPrefs.Settings,
+                               recentSearches: [String], recentTemplates: [String],
+                               autoBackup: AutoBackup.Config) -> Data {
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge, proofTypography: proofTypography,
+                     accessibility: accessibility, recent: (recentSearches, recentTemplates), autoBackup: autoBackup)
+    }
+
     private static func settingsData(autoLists: Bool, use: String?, exportA11yNudge: Bool?, proofTypography: Bool?,
                                      accessibility: AccessibilityPrefs.Settings,
-                                     recent: ([String]?, [String]?) = (nil, nil)) -> Data {
+                                     recent: ([String]?, [String]?) = (nil, nil),
+                                     autoBackup: AutoBackup.Config? = nil) -> Data {
         var object: [String: Any] = ["autoLists": autoLists]
         if let use { object[UseProfile.key] = use }
         if let exportA11yNudge { object[ExportPlan.a11yNudgeKey] = exportA11yNudge }
         if let proofTypography { object[Proofing.typographySetting] = proofTypography }
         if let searches = recent.0 { object[RecentSearches.searchesKey] = searches }
         if let templates = recent.1 { object[RecentSearches.templatesKey] = templates }
+        if let autoBackup { object[AutoBackup.key] = AutoBackup.object(autoBackup) }
         AccessibilityPrefs.write(accessibility, into: &object)
         return (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data("{}".utf8)
     }
@@ -173,6 +188,14 @@ enum Backup {
             RecentSearches.read($0, limit: RecentSearches.templateLimit, searches: false)
         }
         return (searches, templates)
+    }
+
+    /// The backup's "autoBackup" (AutoBackup); nil when it has none, or
+    /// not an object.
+    static func decodeAutoBackup(_ data: Data?) -> AutoBackup.Config? {
+        guard let data, let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let config = object[AutoBackup.key] as? [String: Any] else { return nil }
+        return AutoBackup.read(config)
     }
 
     /// The backup's "autoLists"; nil when it has none, as an older backup.
@@ -367,7 +390,8 @@ enum Backup {
                                                     proofTypography: Proofing.typographyOn,
                                                     accessibility: AccessibilityPrefs.current(),
                                                     recentSearches: RecentSearches.searches(),
-                                                    recentTemplates: RecentSearches.usedTemplates()))
+                                                    recentTemplates: RecentSearches.usedTemplates(),
+                                                    autoBackup: AutoBackups.shared.config))
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
@@ -577,6 +601,11 @@ enum Backup {
         let recents = decodeRecents(reader.file(settingsFile))
         if let searches = recents.searches { RecentSearches.setSearches(searches) }
         if let templates = recents.templates { RecentSearches.setUsedTemplates(templates) }
+        // How often and how many: the folder, and whether it is on, are
+        // this phone's own to choose.
+        if let auto = decodeAutoBackup(reader.file(settingsFile)) {
+            AutoBackups.shared.update { $0.every = auto.every; $0.keep = auto.keep }
+        }
         // What Canvia is used for, on a phone with no answer yet.
         if UseProfile.current() == nil, let use = UseProfile.decodeSettings(reader.file(UseProfile.settingsFile)) {
             UseProfile.set(use)

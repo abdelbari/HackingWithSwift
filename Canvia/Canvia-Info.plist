@@ -31,7 +31,8 @@
 	An export started in Canvia keeps going once it is left, on iOS 26 and
 	later: each asks for a continued processing task named after it,
 	"com.canvia.export.<job id>", which the wildcard permits
-	(ContinuedExport).
+	(ContinuedExport). "Back up automatically" writes its backup from the
+	processing task "com.canvia.backup", a day apart (AutoBackups).
 -->
 <plist version="1.0">
 <dict>
@@ -172,7 +173,12 @@
 	</array>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
+		<string>com.canvia.backup</string>
 		<string>com.canvia.export.*</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>

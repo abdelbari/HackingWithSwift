@@ -4580,6 +4580,15 @@
     "ja": "Word 文書：見出し、リスト、表、画像を Word で編集できます。",
     "pt-BR": "Um documento do Word: títulos, listas, tabelas e imagens, para editar no Word."
   },
+  "A backup into a folder you choose, daily or weekly, whenever something has changed.": {
+    "ar": "نسخة احتياطية في مجلد تختاره، يوميًا أو أسبوعيًا، كلما تغيّر شيء.",
+    "de": "Eine Sicherung in einen Ordner deiner Wahl, täglich oder wöchentlich, sobald sich etwas geändert hat.",
+    "es": "Una copia de seguridad en la carpeta que elijas, a diario o cada semana, siempre que algo haya cambiado.",
+    "fr": "Une sauvegarde dans le dossier de votre choix, chaque jour ou chaque semaine, dès que quelque chose a changé.",
+    "it": "Un backup in una cartella a tua scelta, ogni giorno o ogni settimana, quando qualcosa è cambiato.",
+    "ja": "何か変更があれば、選んだフォルダに毎日または毎週バックアップします。",
+    "pt-BR": "Um backup numa pasta que você escolher, diário ou semanal, sempre que algo mudar."
+  },
   "A bookmark for each page, by its title, so a reader can jump between them.": {
     "ar": "إشارة مرجعية لكل صفحة باسمها، ليتنقل القارئ بينها.",
     "de": "Ein Lesezeichen je Seite, mit ihrem Titel, damit ein Reader zwischen ihnen springen kann.",
@@ -6674,6 +6683,15 @@
     "ja": "自動の%@色",
     "pt-BR": "Cor %@ automática"
   },
+  "Automatic backup couldn't run — choose the folder again": {
+    "ar": "تعذّر تشغيل النسخ الاحتياطي التلقائي — اختر المجلد مرة أخرى",
+    "de": "Die automatische Sicherung konnte nicht laufen – wähle den Ordner erneut",
+    "es": "No se pudo hacer la copia automática: vuelve a elegir la carpeta",
+    "fr": "La sauvegarde automatique n’a pas pu se faire — choisissez à nouveau le dossier",
+    "it": "Il backup automatico non è riuscito: scegli di nuovo la cartella",
+    "ja": "自動バックアップを実行できませんでした。フォルダをもう一度選んでください",
+    "pt-BR": "Não foi possível fazer o backup automático — escolha a pasta de novo"
+  },
   "Automatic captions aren't available on this phone — import an .srt file or type them": {
     "ar": "التسميات التوضيحية التلقائية غير متاحة على هذا الهاتف — استورد ملف ‎.srt أو اكتبها",
     "de": "Automatische Untertitel sind auf diesem Telefon nicht verfügbar – importiere eine .srt-Datei oder tippe sie ein",
@@ -6746,6 +6764,15 @@
     "ja": "サイズに戻る",
     "pt-BR": "Voltar aos tamanhos"
   },
+  "Back up automatically": {
+    "ar": "النسخ الاحتياطي تلقائيًا",
+    "de": "Automatisch sichern",
+    "es": "Copia de seguridad automática",
+    "fr": "Sauvegarder automatiquement",
+    "it": "Backup automatico",
+    "ja": "自動でバックアップ",
+    "pt-BR": "Fazer backup automaticamente"
+  },
   "Back up everything": {
     "ar": "نسخ كل شيء احتياطيًا",
     "de": "Alles sichern",
@@ -6754,6 +6781,15 @@
     "it": "Fai il backup di tutto",
     "ja": "すべてをバックアップ",
     "pt-BR": "Fazer backup de tudo"
+  },
+  "Back up now": {
+    "ar": "انسخ احتياطيًا الآن",
+    "de": "Jetzt sichern",
+    "es": "Hacer copia ahora",
+    "fr": "Sauvegarder maintenant",
+    "it": "Esegui backup ora",
+    "ja": "今すぐバックアップ",
+    "pt-BR": "Fazer backup agora"
   },
   "Backdrop": {
     "ar": "خلفية",
@@ -8651,6 +8687,15 @@
     "ja": "動画を選択",
     "pt-BR": "Escolher um vídeo"
   },
+  "Choose folder": {
+    "ar": "اختيار مجلد",
+    "de": "Ordner wählen",
+    "es": "Elegir carpeta",
+    "fr": "Choisir un dossier",
+    "it": "Scegli cartella",
+    "ja": "フォルダを選択",
+    "pt-BR": "Escolher pasta"
+  },
   "Choose pages… (%@)": {
     "ar": "اختيار صفحات… (%@)",
     "de": "Seiten auswählen … (%@)",
@@ -9443,6 +9488,15 @@
     "ja": "すでにデザインで使われているコピーはそのままです。",
     "pt-BR": "As cópias que já estão em designs ficam como estão."
   },
+  "Copies to keep": {
+    "ar": "عدد النسخ المحفوظة",
+    "de": "Aufzubewahrende Kopien",
+    "es": "Copias que se conservan",
+    "fr": "Copies à conserver",
+    "it": "Copie da conservare",
+    "ja": "保存するコピー数",
+    "pt-BR": "Cópias a manter"
+  },
   "Copy": {
     "ar": "نسخ",
     "de": "Kopieren",
@@ -9763,6 +9817,15 @@
     "it": "Impossibile creare il documento Word",
     "ja": "Word 文書を作成できませんでした",
     "pt-BR": "Não foi possível criar o documento do Word"
+  },
+  "Couldn't make the audio": {
+    "ar": "تعذّر إنشاء الصوت",
+    "de": "Audio konnte nicht erstellt werden",
+    "es": "No se pudo crear el audio",
+    "fr": "Impossible de créer l’audio",
+    "it": "Impossibile creare l’audio",
+    "ja": "オーディオを作成できませんでした",
+    "pt-BR": "Não foi possível criar o áudio"
   },
   "Couldn't make the brand kit file.": {
     "ar": "تعذّر إنشاء ملف مجموعة العلامة التجارية.",
@@ -10498,6 +10561,15 @@
     "it": "Scontorna",
     "ja": "背景を削除",
     "pt-BR": "Remover fundo"
+  },
+  "Daily": {
+    "ar": "يوميًا",
+    "de": "Täglich",
+    "es": "Diaria",
+    "fr": "Chaque jour",
+    "it": "Ogni giorno",
+    "ja": "毎日",
+    "pt-BR": "Diário"
   },
   "Damaged design": {
     "ar": "تصميم تالف",
@@ -16592,6 +16664,15 @@
     "ja": "大きい順",
     "pt-BR": "Maiores"
   },
+  "Last backed up %@ · %@": {
+    "ar": "آخر نسخة احتياطية %@ · %@",
+    "de": "Zuletzt gesichert: %@ · %@",
+    "es": "Última copia: %@ · %@",
+    "fr": "Dernière sauvegarde : %@ · %@",
+    "it": "Ultimo backup: %@ · %@",
+    "ja": "前回のバックアップ：%@ · %@",
+    "pt-BR": "Último backup: %@ · %@"
+  },
   "Last edited": {
     "ar": "آخر تعديل",
     "de": "Zuletzt bearbeitet",
@@ -19801,6 +19882,15 @@
     "it": "Non animato",
     "ja": "アニメーションなし",
     "pt-BR": "Sem animação"
+  },
+  "Not backed up yet": {
+    "ar": "لم يُنسخ احتياطيًا بعد",
+    "de": "Noch nicht gesichert",
+    "es": "Aún sin copia de seguridad",
+    "fr": "Pas encore sauvegardé",
+    "it": "Nessun backup ancora",
+    "ja": "まだバックアップされていません",
+    "pt-BR": "Ainda sem backup"
   },
   "Not checked, the page on screen": {
     "ar": "لم يتم التحقق، الصفحة المعروضة",
@@ -31582,6 +31672,15 @@
     "it": "Matrimonio",
     "ja": "ウェディング",
     "pt-BR": "Casamento"
+  },
+  "Weekly": {
+    "ar": "أسبوعيًا",
+    "de": "Wöchentlich",
+    "es": "Semanal",
+    "fr": "Chaque semaine",
+    "it": "Ogni settimana",
+    "ja": "毎週",
+    "pt-BR": "Semanal"
   },
   "Weight": {
     "ar": "الوزن",

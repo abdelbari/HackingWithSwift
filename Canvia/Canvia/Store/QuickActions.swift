@@ -112,13 +112,16 @@ enum QuickActions {
 @MainActor
 final class CanviaAppDelegate: NSObject, UIApplicationDelegate {
     /// An export's notifications: their Share and Open heard here. And,
-    /// before launch is over as the system asks, the handler an export
-    /// that keeps going out of the app runs under on iOS 26
-    /// (ContinuedExport).
+    /// before launch is over as the system asks, the handlers of the
+    /// background tasks: an export that keeps going out of the app on iOS
+    /// 26 (ContinuedExport), and an automatic backup (AutoBackups).
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         ExportNotifications.register()
         ContinuedExport.register()
+        // Back up automatically's daily run, and the next one asked for.
+        AutoBackups.register()
+        AutoBackups.schedule(on: AutoBackups.shared.config.on)
         return true
     }
 

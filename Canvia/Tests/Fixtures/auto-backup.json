@@ -1,0 +1,33 @@
+{
+  "note": "AutoBackup: when a backup is due (on, a folder, its interval since lastAt, and the newest design, upload or brand kit changed after lastAt; newest null when there is nothing), and which of a folder's files keep-N pruning deletes, oldest first. The same rows on both phones. A day is 86400000 ms.",
+  "due": [
+    {"name": "never backed up, something to back up", "config": {"on": true, "every": "weekly", "keep": 3, "folder": "f", "lastAt": 0, "lastBytes": 0, "lastError": null}, "now": 1000000000000, "newest": 999999999999, "due": true},
+    {"name": "never backed up, nothing at all", "config": {"on": true, "every": "weekly", "keep": 3, "folder": "f", "lastAt": 0, "lastBytes": 0, "lastError": null}, "now": 1000000000000, "newest": null, "due": false},
+    {"name": "off", "config": {"on": false, "every": "daily", "keep": 3, "folder": "f", "lastAt": 0, "lastBytes": 0, "lastError": null}, "now": 1000000000000, "newest": 999999999999, "due": false},
+    {"name": "no folder", "config": {"on": true, "every": "daily", "keep": 3, "folder": null, "lastAt": 0, "lastBytes": 0, "lastError": null}, "now": 1000000000000, "newest": 999999999999, "due": false},
+    {"name": "daily, exactly a day on, changed", "config": {"on": true, "every": "daily", "keep": 3, "folder": "f", "lastAt": 1000000000000, "lastBytes": 5, "lastError": null}, "now": 1000086400000, "newest": 1000000000001, "due": true},
+    {"name": "daily, a millisecond short of a day", "config": {"on": true, "every": "daily", "keep": 3, "folder": "f", "lastAt": 1000000000000, "lastBytes": 5, "lastError": null}, "now": 1000086399999, "newest": 1000050000000, "due": false},
+    {"name": "daily, a day on, nothing changed", "config": {"on": true, "every": "daily", "keep": 3, "folder": "f", "lastAt": 1000000000000, "lastBytes": 5, "lastError": null}, "now": 1000090000000, "newest": 1000000000000, "due": false},
+    {"name": "weekly, six days on, changed", "config": {"on": true, "every": "weekly", "keep": 3, "folder": "f", "lastAt": 1000000000000, "lastBytes": 5, "lastError": null}, "now": 1000518400000, "newest": 1000100000000, "due": false},
+    {"name": "weekly, seven days on, changed", "config": {"on": true, "every": "weekly", "keep": 3, "folder": "f", "lastAt": 1000000000000, "lastBytes": 5, "lastError": null}, "now": 1000604800000, "newest": 1000100000000, "due": true},
+    {"name": "weekly, a month on, nothing changed", "config": {"on": true, "every": "weekly", "keep": 3, "folder": "f", "lastAt": 1000000000000, "lastBytes": 5, "lastError": null}, "now": 1002592000000, "newest": 999000000000, "due": false},
+    {"name": "after a failure, still due", "config": {"on": true, "every": "daily", "keep": 1, "folder": "f", "lastAt": 1000000000000, "lastBytes": 5, "lastError": "Automatic backup couldn't run — choose the folder again"}, "now": 1000200000000, "newest": 1000100000000, "due": true}
+  ],
+  "prune": [
+    {"name": "three kept of five", "keep": 3,
+     "files": ["Canvia backup 2026-10-03.canviabackup", "Canvia backup 2026-10-01.canviabackup", "notes.txt", "Canvia backup 2026-10-17.canviabackup", "Canvia backup 2026-10-10.canviabackup", "Canvia backup 2026-10-24.canviabackup"],
+     "deleted": ["Canvia backup 2026-10-01.canviabackup", "Canvia backup 2026-10-03.canviabackup"]},
+    {"name": "one kept", "keep": 1,
+     "files": ["Canvia backup 2026-09-30.canviabackup", "Canvia backup 2026-10-24.canviabackup"],
+     "deleted": ["Canvia backup 2026-09-30.canviabackup"]},
+    {"name": "fewer than kept", "keep": 5,
+     "files": ["Canvia backup 2026-10-24.canviabackup", "Canvia backup 2026-10-17.canviabackup"],
+     "deleted": []},
+    {"name": "only our own files", "keep": 1,
+     "files": ["Canvia backup 2026-10-20.zip", "My backup 2026-10-01.canviabackup", "Canvia backup 2026-10-21.canviabackup", "Canvia backup 2026-10-22.canviabackup"],
+     "deleted": ["Canvia backup 2026-10-21.canviabackup"]},
+    {"name": "a copy the folder renamed sorts after its day", "keep": 2,
+     "files": ["Canvia backup 2026-10-22 (1).canviabackup", "Canvia backup 2026-10-22.canviabackup", "Canvia backup 2026-10-15.canviabackup"],
+     "deleted": ["Canvia backup 2026-10-15.canviabackup"]}
+  ]
+}
