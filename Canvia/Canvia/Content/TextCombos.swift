@@ -11,6 +11,11 @@
 // file has them, in a box `w` wide from 0, 0 in a 1080-wide page's units; so
 // both phones put the same elements down.
 //
+// The Animated category's drop in already moving: their texts carry the
+// `animation` (and some an `exitAnimation`) ElementAnimation plays, kept as
+// they go on the page; their tiles play them in a loop (loopHold), still
+// under Reduce Motion.
+//
 // Add ▸ Text browses them by category, with this phone's Recently used
 // (RecentCombos) and, when the brand kit sets a title, heading or body face,
 // each one set in the kit's faces (branded).
@@ -23,7 +28,10 @@ enum TextCombos {
     static let pageShare = 0.72
 
     /// The categories the chips browse by, in their order.
-    static let categories = ["Headline", "Sale", "Quote", "Event", "Wedding", "Social", "Retro", "Minimal", "Badge", "Kids"]
+    static let categories = ["Headline", "Sale", "Quote", "Event", "Wedding", "Social", "Retro", "Minimal", "Badge", "Kids",
+                             animatedCategory]
+    /// The category of the combinations that drop in already moving.
+    static let animatedCategory = "Animated"
 
     /// How many combinations Recently used keeps.
     static let recentLimit = 8
@@ -86,6 +94,20 @@ enum TextCombos {
             return Combo(id: id, name: name, tags: entry.tags, w: w, h: h, elements: entry.elements,
                          category: entry.category)
         }
+    }
+
+    /// Whether any of `combo`'s elements moves: an entrance or an exit.
+    static func isAnimated(_ combo: Combo) -> Bool {
+        combo.elements.contains { $0.animation != nil || $0.exitAnimation != nil }
+    }
+
+    /// How long a tile's loop of `combo` lasts, in seconds: its entrances
+    /// to the last one's end, a second to read it, then its longest exit,
+    /// and two seconds at least — the same on both phones.
+    static func loopHold(_ combo: Combo) -> Double {
+        let entrances = combo.elements.compactMap { $0.animation.map { $0.delay + $0.duration } }.max() ?? 0
+        let exits = combo.elements.compactMap { $0.exitAnimation.map { $0.delay + $0.duration } }.max() ?? 0
+        return max(2, entrances + 1 + exits)
     }
 
     static func combo(_ id: String?) -> Combo? {
