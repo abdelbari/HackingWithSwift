@@ -224,12 +224,16 @@ private struct StartGrid: View {
     /// The Filters sheet's choices, as Home's: kept for the session.
     @State private var filter = TemplateFilter.session
     @State private var filtersOpen = false
+    @AppStorage(RecentSearches.templatesKey) private var recentTemplatesText = ""
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
     var body: some View {
         let bucket = ContentLibrary.sizedTemplates(for: preset)
-        let shown = bucket.filter { (category == nil || $0.category == category) && filter.admits($0.shownFacets) }
+        // Each layout once, its colourways in its preview (Templates.grouped).
+        let shown = Templates.grouped(bucket.filter {
+            (category == nil || $0.category == category) && filter.admits($0.shownFacets)
+        })
         VStack(alignment: .leading, spacing: 16) {
             if brandOffered {
                 Toggle("Start with my brand", isOn: $withBrand)
@@ -238,10 +242,12 @@ private struct StartGrid: View {
             }
             // A chip row only earns its space when the size has enough that
             // narrowing it helps.
-            if ContentLibrary.showsTopics(bucket) {
+            if ContentLibrary.showsTopics(bucket) || bucket.contains(where: { $0.shownFacets.animated }) {
                 topicChips(bucket)
             }
             filterRow(empty: shown.isEmpty)
+            // The templates of this size used lately lead, as Home's do.
+            if filter.isEmpty && category == nil { recentRow(bucket) }
             LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                 BlankCard(preset: preset) {
                     // Named for what it is, as the Android twin names it;
@@ -258,7 +264,7 @@ private struct StartGrid: View {
                     }
                 }
                 ForEach(shown) { template in
-                    StartTemplateCard(template: template) { previewing = template }
+                    StartTemplateCard(template: template, showColourways: true) { previewing = template }
                 }
             }
             .sheet(item: $ownSet) { own in
@@ -293,6 +299,17 @@ private struct StartGrid: View {
             TemplatePreviewSheet(template: template, note: TemplateSetSheet.startNote) { chosen, page in
                 onCreate(page.map { chosen.instantiate(for: preset, onlyPage: $0) } ?? chosen.instantiate(for: preset))
             }
+        }
+    }
+
+    /// "Recently used": the templates of this size used lately, when any.
+    @ViewBuilder
+    private func recentRow(_ bucket: [Template]) -> some View {
+        let ids = Set(bucket.map(\.id))
+        let ordered = RecentSearches.decode(recentTemplatesText, limit: RecentSearches.templateLimit, searches: false)
+        let recent = RecentSearches.templates(ordered).filter { ids.contains($0.id) }
+        if !recent.isEmpty {
+            RecentTemplatesRow(templates: recent, inset: 0) { previewing = $0 }
         }
     }
 
@@ -352,10 +369,18 @@ private struct StartGrid: View {
     private func topicChips(_ bucket: [Template]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip(tr("All %d", bucket.count), selected: category == nil) { category = nil }
-                ForEach(ContentLibrary.topics(in: bucket), id: \.self) { name in
-                    chip(name, selected: category == name) {
-                        category = category == name ? nil : name
+                // The Animated topic: the Filters sheet's Animated, a tap away.
+                if bucket.contains(where: { $0.shownFacets.animated }) {
+                    chip(tr("Animated"), selected: filter.animated == true) {
+                        filter.animated = filter.animated == true ? nil : true
+                    }
+                }
+                if ContentLibrary.showsTopics(bucket) {
+                    chip(tr("All %d", bucket.count), selected: category == nil) { category = nil }
+                    ForEach(ContentLibrary.topics(in: bucket), id: \.self) { name in
+                        chip(name, selected: category == name) {
+                            category = category == name ? nil : name
+                        }
                     }
                 }
             }
@@ -403,6 +428,9 @@ private struct BlankCard: View {
 
 private struct StartTemplateCard: View {
     let template: Template
+    /// Where each layout shows once, a base says how many colourways it
+    /// comes in (Templates.grouped).
+    var showColourways = false
     var action: () -> Void
 
     var body: some View {
@@ -416,6 +444,12 @@ private struct StartTemplateCard: View {
                 Text(template.name)
                     .font(.subheadline)
                     .lineLimit(1)
+                if showColourways, let colourways = Templates.colourwaysBadge(template) {
+                    Text(colourways)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
         }
         .buttonStyle(.plain)

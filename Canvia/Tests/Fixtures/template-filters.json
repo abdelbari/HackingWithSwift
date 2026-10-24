@@ -54,12 +54,42 @@
       "animated": false,
       "photo": false,
       "pages": 1
+    },
+    "animated-reel-1": {
+      "colors": [
+        "red",
+        "orange",
+        "green"
+      ],
+      "animated": true,
+      "photo": false,
+      "pages": 1,
+      "style": "elegant"
+    },
+    "animated-deck-1": {
+      "colors": [
+        "white",
+        "grey"
+      ],
+      "animated": true,
+      "photo": false,
+      "pages": 5,
+      "style": "corporate"
+    },
+    "real-estate-insta-post-hero-1-v2": {
+      "colors": [
+        "yellow"
+      ],
+      "animated": false,
+      "photo": true,
+      "pages": 1,
+      "style": "elegant"
     }
   },
   "cases": [
     {
       "filter": {},
-      "count": 217,
+      "count": 931,
       "first": [
         "mega-sale-post",
         "neon-nights-story",
@@ -74,7 +104,7 @@
           "blue"
         ]
       },
-      "count": 55,
+      "count": 144,
       "first": [
         "cards-bold-split",
         "documents-gold-seal-certificate",
@@ -90,7 +120,7 @@
           "brown"
         ]
       },
-      "count": 18,
+      "count": 113,
       "first": [
         "mega-sale-post",
         "flyers-coffee-shop-opening",
@@ -103,12 +133,13 @@
       "filter": {
         "photo": true
       },
-      "count": 4,
+      "count": 353,
       "first": [
         "neon-nights-story",
         "bold-thumbnail-tech",
         "live-jazz-poster",
-        "golden-hour-quote"
+        "golden-hour-quote",
+        "animated-reel-2"
       ]
     },
     {
@@ -116,7 +147,7 @@
         "photo": false,
         "multiPage": true
       },
-      "count": 31,
+      "count": 34,
       "first": [
         "deck-seed-round-pitch",
         "deck-quarterly-business-review",
@@ -132,7 +163,7 @@
           "black"
         ]
       },
-      "count": 28,
+      "count": 148,
       "first": [
         "neon-nights-story",
         "live-jazz-poster",
@@ -145,8 +176,14 @@
       "filter": {
         "animated": true
       },
-      "count": 0,
-      "first": []
+      "count": 42,
+      "first": [
+        "animated-reel-1",
+        "animated-reel-2",
+        "animated-reel-3",
+        "animated-reel-4",
+        "animated-reel-5"
+      ]
     },
     {
       "filter": {
@@ -155,7 +192,7 @@
           "teal"
         ]
       },
-      "count": 23,
+      "count": 101,
       "first": [
         "cards-elegant-serif",
         "flyers-cleaning-tear-off",
@@ -171,9 +208,49 @@
         ],
         "multiPage": true
       },
-      "count": 1,
+      "count": 2,
       "first": [
-        "website-wedding-day"
+        "website-wedding-day",
+        "animated-deck-1"
+      ]
+    },
+    {
+      "filter": {
+        "style": "elegant"
+      },
+      "count": 174,
+      "first": [
+        "animated-reel-1",
+        "animated-tiktok-6",
+        "animated-intro-5",
+        "animated-invite-1",
+        "animated-invite-2"
+      ]
+    },
+    {
+      "filter": {
+        "animated": true,
+        "multiPage": true
+      },
+      "count": 3,
+      "first": [
+        "animated-deck-1",
+        "animated-deck-2",
+        "animated-deck-3"
+      ]
+    },
+    {
+      "filter": {
+        "style": "bold",
+        "photo": true
+      },
+      "count": 28,
+      "first": [
+        "fitness-insta-post-hero-1-v3",
+        "fitness-insta-post-hero-1-v7",
+        "fitness-insta-story-centered-2-v3",
+        "fitness-insta-story-centered-2-v7",
+        "fitness-flyer-letter-hero-3-v3"
       ]
     }
   ]

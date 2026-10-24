@@ -83,6 +83,11 @@ struct HomeView: View {
     @State private var renaming: RecentDesign?
     @State private var renameText = ""
     @State private var query = ""
+    /// Whether the search field has the keyboard: empty, it offers the
+    /// searches and templates of late (RecentSearchRows).
+    @FocusState private var searchFocused: Bool
+    @AppStorage(RecentSearches.searchesKey) private var recentSearchesText = ""
+    @AppStorage(RecentSearches.templatesKey) private var recentTemplatesText = ""
     @State private var sort = DesignLibrary.Sort.recent
     /// The Type and Edited chips under the search.
     @State private var typeFilter = DesignLibrary.TypeFilter.all
@@ -220,7 +225,7 @@ struct HomeView: View {
                 hero
                 // Always there: it finds templates as well as designs, and
                 // an empty shelf still has templates to search.
-                searchBar
+                searchPart
                 if !recents.isEmpty { shelfFilterChips }
                 if loaded && recents.isEmpty && damaged.isEmpty && trashed.isEmpty {
                     firstRunCard
@@ -594,7 +599,11 @@ struct HomeView: View {
         let found = ContentLibrary.filteredTemplates(in: templateCategory, matching: query, facets: templateFilter)
         // What Canvia is used for leads, browsing everything.
         let browsing = templateCategory == nil && query.trimmingCharacters(in: .whitespaces).isEmpty
-        let matching = browsing ? UseProfile.templatesFirst(use, found) { $0.category } : found
+        let ordered = browsing ? UseProfile.templatesFirst(use, found) { $0.category } : found
+        // Each layout once, its colourways in its preview — but every one a
+        // search finds.
+        let searching = !query.trimmingCharacters(in: .whitespaces).isEmpty
+        let matching = searching ? ordered : Templates.grouped(ordered)
         // Starred templates first.
         let starred = Set(Favorites.ids(of: "template"))
         return matching.filter { starred.contains($0.id) } + matching.filter { !starred.contains($0.id) }
@@ -653,6 +662,11 @@ struct HomeView: View {
                         yoursOnly.toggle()
                         templateCategory = nil
                     }
+                }
+                // The Animated topic: the Filters sheet's Animated, a tap away.
+                chip(tr("Animated"), selected: templateFilter.animated == true, systemImage: "play.circle") {
+                    filterSession.filter.animated = templateFilter.animated == true ? nil : true
+                    yoursOnly = false
                 }
                 ForEach(UseProfile.categories(use, ContentLibrary.templateCategories), id: \.self) { category in
                     chip(category, selected: templateCategory == category) {
@@ -907,6 +921,14 @@ struct HomeView: View {
             TextField("Search designs, sizes and templates", text: $query)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .focused($searchFocused)
+                .submitLabel(.search)
+                // A search is remembered as it is sent, and as the field is
+                // left with words in it — a result tapped.
+                .onSubmit { RecentSearches.remember(query) }
+                .onChange(of: searchFocused) { was, now in
+                    if was && !now { RecentSearches.remember(query) }
+                }
             if !query.isEmpty {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
@@ -917,6 +939,35 @@ struct HomeView: View {
         .padding(10)
         .background(Theme.card, in: RoundedRectangle(cornerRadius: 10))
         .padding(.horizontal)
+    }
+
+    /// The search field, and under it, while it is empty and has the
+    /// keyboard, what was searched and used lately.
+    private var searchPart: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            searchBar
+            if searchFocused && query.trimmingCharacters(in: .whitespaces).isEmpty { recentSearchPart }
+        }
+    }
+
+    /// The searches made lately and the templates used lately, under the
+    /// search field while it is empty and has the keyboard.
+    @ViewBuilder
+    private var recentSearchPart: some View {
+        let searches = RecentSearches.decode(recentSearchesText)
+        let used = recentTemplates
+        if !searches.isEmpty {
+            RecentSearchRows(searches: searches) { query = $0 }
+        }
+        if !used.isEmpty {
+            RecentTemplatesRow(templates: used) { previewing = $0 }
+        }
+    }
+
+    /// The templates used lately, newest first.
+    private var recentTemplates: [Template] {
+        RecentSearches.templates(RecentSearches.decode(recentTemplatesText, limit: RecentSearches.templateLimit,
+                                                       searches: false))
     }
 
     private var sortMenu: some View {
@@ -1737,6 +1788,10 @@ struct HomeView: View {
             TemplateFilterChips(filter: $filterSession.filter)
                 .padding(.horizontal)
             templateCategoryChips
+            // The templates used lately lead the templates, under All.
+            if showsRecentTemplates {
+                RecentTemplatesRow(templates: recentTemplates) { previewing = $0 }
+            }
             if templateCategory == nil {
                 BrandTemplatesRow(kit: brandKit, entries: shownUserTemplates, tileWidth: 160,
                                   titleFont: .headline, inset: 16) { userTemplateCard($0) }
@@ -1774,6 +1829,13 @@ struct HomeView: View {
                 create(page.map { chosen.instantiate(onlyPage: $0) } ?? chosen.instantiate())
             }
         }
+    }
+
+    /// Recently used leads the templates: under All, with nothing searched
+    /// or filtered, once there is one.
+    private var showsRecentTemplates: Bool {
+        templateCategory == nil && !yoursOnly && templateFilter.isEmpty
+            && query.trimmingCharacters(in: .whitespaces).isEmpty && !recentTemplates.isEmpty
     }
 
     private var shownUserTemplates: [UserTemplate] {
@@ -1852,6 +1914,9 @@ struct HomeView: View {
         return template.pageCount > 1 ? line + " · " + trn("%d page|%d pages", template.pageCount) : line
     }
 
+    /// The search, trimmed; empty when nothing is searched.
+    private var searchedFor: String { query.trimmingCharacters(in: .whitespaces) }
+
     private var templatesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
             ForEach(shownTemplates) { template in
@@ -1869,6 +1934,11 @@ struct HomeView: View {
                             Text(templateCaption(template))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            if searchedFor.isEmpty, let colourways = Templates.colourwaysBadge(template) {
+                                Text(colourways)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)

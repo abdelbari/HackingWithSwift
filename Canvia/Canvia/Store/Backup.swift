@@ -17,8 +17,10 @@
 //   settings.json            the settings that travel, in one object:
 //                            {"autoLists": true, "canvia.use": …} — what
 //                            Canvia is used for only when it was answered
-//                            (UseProfile), and Settings ▸ Accessibility's
-//                            (AccessibilityPrefs)
+//                            (UseProfile), Settings ▸ Accessibility's
+//                            (AccessibilityPrefs), and Home's recent
+//                            searches and templates used ("recentSearches",
+//                            "recentTemplates", RecentSearches)
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and kits' assets are,
 //   videos/<id>.<ext>        their clips,
@@ -112,11 +114,23 @@ enum Backup {
         settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge, accessibility: accessibility)
     }
 
+    /// The same, with Home's recent searches and templates used, each a
+    /// JSON array — what a backup writes.
+    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool,
+                               accessibility: AccessibilityPrefs.Settings,
+                               recentSearches: [String], recentTemplates: [String]) -> Data {
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge, accessibility: accessibility,
+                     recent: (recentSearches, recentTemplates))
+    }
+
     private static func settingsData(autoLists: Bool, use: String?, exportA11yNudge: Bool?,
-                                     accessibility: AccessibilityPrefs.Settings) -> Data {
+                                     accessibility: AccessibilityPrefs.Settings,
+                                     recent: ([String]?, [String]?) = (nil, nil)) -> Data {
         var object: [String: Any] = ["autoLists": autoLists]
         if let use { object[UseProfile.key] = use }
         if let exportA11yNudge { object[ExportPlan.a11yNudgeKey] = exportA11yNudge }
+        if let searches = recent.0 { object[RecentSearches.searchesKey] = searches }
+        if let templates = recent.1 { object[RecentSearches.templatesKey] = templates }
         AccessibilityPrefs.write(accessibility, into: &object)
         return (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data("{}".utf8)
     }
@@ -125,6 +139,21 @@ enum Backup {
     static func decodeA11yNudge(_ data: Data?) -> Bool? {
         guard let data, let settings = try? JSONDecoder().decode(Settings.self, from: data) else { return nil }
         return settings.exportA11yNudge
+    }
+
+    /// The backup's recent searches and templates used, each nil when it
+    /// has none — read as a stored list is (RecentSearches.read).
+    static func decodeRecents(_ data: Data?) -> (searches: [String]?, templates: [String]?) {
+        guard let data, let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return (nil, nil)
+        }
+        let searches = (object[RecentSearches.searchesKey] as? [Any]).map {
+            RecentSearches.read($0, limit: RecentSearches.searchLimit, searches: true)
+        }
+        let templates = (object[RecentSearches.templatesKey] as? [Any]).map {
+            RecentSearches.read($0, limit: RecentSearches.templateLimit, searches: false)
+        }
+        return (searches, templates)
     }
 
     /// The backup's "autoLists"; nil when it has none, as an older backup.
@@ -316,7 +345,9 @@ enum Backup {
         // it was answered: one settings.json for both.
         try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn, use: UseProfile.current(),
                                                     exportA11yNudge: ExportPlan.remindsA11y(),
-                                                    accessibility: AccessibilityPrefs.current()))
+                                                    accessibility: AccessibilityPrefs.current(),
+                                                    recentSearches: RecentSearches.searches(),
+                                                    recentTemplates: RecentSearches.usedTemplates()))
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
@@ -519,6 +550,10 @@ enum Backup {
             UserDefaults.standard.set(remind, forKey: ExportPlan.a11yNudgeKey)
         }
         AccessibilityPrefs.apply(AccessibilityPrefs.decodeSettings(reader.file(settingsFile)))
+        // Home's recent searches and templates used, as the backup has them.
+        let recents = decodeRecents(reader.file(settingsFile))
+        if let searches = recents.searches { RecentSearches.setSearches(searches) }
+        if let templates = recents.templates { RecentSearches.setUsedTemplates(templates) }
         // What Canvia is used for, on a phone with no answer yet.
         if UseProfile.current() == nil, let use = UseProfile.decodeSettings(reader.file(UseProfile.settingsFile)) {
             UseProfile.set(use)

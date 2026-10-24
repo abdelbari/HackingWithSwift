@@ -2135,6 +2135,39 @@
       "other": "%d gráficos"
     }
   },
+  "%d colourway|%d colourways": {
+    "ar": {
+      "few": "%d أنظمة ألوان",
+      "many": "%d نظام ألوان",
+      "one": "%d نظام ألوان",
+      "other": "%d نظام ألوان",
+      "two": "%d نظاما ألوان",
+      "zero": "%d نظام ألوان"
+    },
+    "de": {
+      "one": "%d Farbvariante",
+      "other": "%d Farbvarianten"
+    },
+    "es": {
+      "one": "%d combinación de colores",
+      "other": "%d combinaciones de colores"
+    },
+    "fr": {
+      "one": "%d coloris",
+      "other": "%d coloris"
+    },
+    "it": {
+      "one": "%d variante di colore",
+      "other": "%d varianti di colore"
+    },
+    "ja": {
+      "other": "%d 種類の配色"
+    },
+    "pt-BR": {
+      "one": "%d combinação de cores",
+      "other": "%d combinações de cores"
+    }
+  },
   "%d column|%d columns": {
     "ar": {
       "few": "%d أعمدة",
@@ -6650,6 +6683,15 @@
     "ja": "太字",
     "pt-BR": "Negrito"
   },
+  "Bold\u0004style": {
+    "ar": "جريء",
+    "de": "Auffällig",
+    "es": "Llamativo",
+    "fr": "Audacieux",
+    "it": "Audace",
+    "ja": "大胆",
+    "pt-BR": "Marcante"
+  },
   "Bold or italic words inside a text": {
     "ar": "كلمات غامقة أو مائلة داخل نص",
     "de": "Fette oder kursive Wörter in einem Text",
@@ -8072,6 +8114,15 @@
     "ja": "検索をクリア",
     "pt-BR": "Limpar pesquisa"
   },
+  "Clear search history": {
+    "ar": "مسح سجل البحث",
+    "de": "Suchverlauf löschen",
+    "es": "Borrar el historial de búsqueda",
+    "fr": "Effacer l’historique de recherche",
+    "it": "Cancella la cronologia delle ricerche",
+    "ja": "検索履歴を消去",
+    "pt-BR": "Limpar histórico de pesquisa"
+  },
   "Clear word colours and sizes": {
     "ar": "مسح ألوان الكلمات وأحجامها",
     "de": "Wortfarben und -größen entfernen",
@@ -8842,6 +8893,15 @@
     "it": "Angoli %d",
     "ja": "角 %d",
     "pt-BR": "Cantos %d"
+  },
+  "Corporate": {
+    "ar": "مؤسسي",
+    "de": "Geschäftlich",
+    "es": "Corporativo",
+    "fr": "Professionnel",
+    "it": "Aziendale",
+    "ja": "ビジネス",
+    "pt-BR": "Corporativo"
   },
   "Couldn't add every photo picked.": {
     "ar": "تعذّرت إضافة كل الصور المختارة.",
@@ -11710,6 +11770,15 @@
     "it": "Gomito",
     "ja": "エルボー",
     "pt-BR": "Cotovelo"
+  },
+  "Elegant": {
+    "ar": "أنيق",
+    "de": "Elegant",
+    "es": "Elegante",
+    "fr": "Élégant",
+    "it": "Elegante",
+    "ja": "エレガント",
+    "pt-BR": "Elegante"
   },
   "Elements": {
     "ar": "العناصر",
@@ -16820,6 +16889,15 @@
     "ja": "その他の色",
     "pt-BR": "Mais cores"
   },
+  "More colourways": {
+    "ar": "أنظمة ألوان أخرى",
+    "de": "Weitere Farbvarianten",
+    "es": "Más combinaciones de colores",
+    "fr": "Plus de coloris",
+    "it": "Altre varianti di colore",
+    "ja": "ほかの配色",
+    "pt-BR": "Mais combinações de cores"
+  },
   "More decimals": {
     "ar": "منازل عشرية أكثر",
     "de": "Mehr Dezimalstellen",
@@ -21874,6 +21952,15 @@
     "it": "Rimuovi foto",
     "ja": "写真を削除",
     "pt-BR": "Remover foto"
+  },
+  "Remove “%@”": {
+    "ar": "إزالة «%@»",
+    "de": "„%@“ entfernen",
+    "es": "Quitar «%@»",
+    "fr": "Retirer « %@ »",
+    "it": "Rimuovi «%@»",
+    "ja": "「%@」を削除",
+    "pt-BR": "Remover “%@”"
   },
   "Removed the track": {
     "ar": "تمت إزالة المسار",
@@ -30067,6 +30154,15 @@
     "it": "angolare",
     "ja": "円錐",
     "pt-BR": "angular"
+  },
+  "animated": {
+    "ar": "متحرك",
+    "de": "animiert",
+    "es": "animada",
+    "fr": "animé",
+    "it": "animato",
+    "ja": "アニメーション付き",
+    "pt-BR": "animado"
   },
   "arrow": {
     "ar": "سهم",

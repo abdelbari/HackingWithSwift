@@ -340,6 +340,7 @@ struct InsertSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             // Your own first, every size, fitted to this page.
             EditorYourTemplates(store: store, search: search) { dismiss() }
+            if search.isEmpty { recentTemplatesRow }
             if !exactTemplates.isEmpty {
                 Toggle("Every size, fitted to this page", isOn: $everySizeTemplates)
                     .toggleStyle(.button)
@@ -373,6 +374,25 @@ struct InsertSheet: View {
                 // One page: onto this page, or as a new page when this one has
                 // something on it, as a tap did before the preview.
                 if page == nil && chosen.pageCount > 1 { applyAll(chosen) } else { usePage(chosen, page ?? 0) }
+            }
+        }
+    }
+
+    /// "Recently used": the templates used lately, newest first, as Home's
+    /// and the Start sheet's lead theirs (RecentSearches).
+    @ViewBuilder
+    private var recentTemplatesRow: some View {
+        let recent = RecentSearches.templates(RecentSearches.usedTemplates())
+        if !recent.isEmpty {
+            Text("Recently used")
+                .font(.subheadline.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(recent) { template in
+                        templateTile(template).frame(width: 120)
+                    }
+                }
             }
         }
     }
@@ -418,6 +438,7 @@ struct InsertSheet: View {
     private func addAsPage(_ template: Template, page index: Int) {
         let page = template.makePage(at: index, width: store.pageWidth, height: store.pageHeight)
         store.addTemplatePage(page, name: template.name)
+        RecentSearches.used(template.id)
         dismiss()
     }
 
@@ -435,6 +456,7 @@ struct InsertSheet: View {
         guard !store.refusesLockedPage() else { return }
         store.applyTemplateSet(template.makePages(width: store.pageWidth, height: store.pageHeight),
                                name: template.name)
+        RecentSearches.used(template.id)
         dismiss()
     }
 
@@ -457,6 +479,7 @@ struct InsertSheet: View {
         store.selection.removeAll()
         store.buzz(.confirm)
         store.announce(tr("Started over from \u{201C}%@\u{201D}", template.name))
+        RecentSearches.used(template.id)
         dismiss()
     }
 
@@ -2189,11 +2212,26 @@ struct TemplateThumb: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(alignment: .bottomTrailing) { PageCountBadge(count: badge ? template.pageCount : 1) }
+        .overlay(alignment: .topLeading) { if template.shownFacets.animated { PlayBadge() } }
         .task {
             if image == nil {
                 image = TemplateThumbCache.thumbnail(for: template)
             }
         }
+    }
+}
+
+/// An animated template's small play badge, as Canva's card has: it plays
+/// in its preview. Said as "animated" with the card.
+struct PlayBadge: View {
+    var body: some View {
+        Image(systemName: "play.fill")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 20, height: 20)
+            .background(.black.opacity(0.6), in: Circle())
+            .padding(6)
+            .accessibilityLabel(tr("animated"))
     }
 }
 

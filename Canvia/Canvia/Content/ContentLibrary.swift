@@ -18,12 +18,44 @@ struct ShapeDef: Codable, Identifiable {
 }
 
 /// One page of a template that has several: what is on it, and the title
-/// and presenter notes the page it makes is given, when it has them.
+/// and presenter notes the page it makes is given, when it has them — and,
+/// for an animated one, how it plays, as a design's page keeps it: its own
+/// animation, how it gives way to the next and the seconds it holds.
 struct TemplatePage: Codable {
     var background: Background
     var elements: [Element]
     var title: String? = nil
     var notes: String? = nil
+    var pageAnimation: PageAnimation? = nil
+    var transition: String? = nil
+    var holdSeconds: Double? = nil
+
+    init(background: Background, elements: [Element], title: String? = nil, notes: String? = nil,
+         pageAnimation: PageAnimation? = nil, transition: String? = nil, holdSeconds: Double? = nil) {
+        self.background = background
+        self.elements = elements
+        self.title = title
+        self.notes = notes
+        self.pageAnimation = pageAnimation
+        self.transition = transition
+        self.holdSeconds = holdSeconds
+    }
+
+    /// How it plays, read leniently: a key of the wrong kind is none.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        background = try c.decode(Background.self, forKey: .background)
+        elements = try c.decode([Element].self, forKey: .elements)
+        title = try? c.decodeIfPresent(String.self, forKey: .title)
+        notes = try? c.decodeIfPresent(String.self, forKey: .notes)
+        pageAnimation = try? c.decodeIfPresent(PageAnimation.self, forKey: .pageAnimation)
+        transition = try? c.decodeIfPresent(String.self, forKey: .transition)
+        holdSeconds = try? c.decodeIfPresent(Double.self, forKey: .holdSeconds)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case background, elements, title, notes, pageAnimation, transition, holdSeconds
+    }
 }
 
 struct Template: Codable, Identifiable {
@@ -43,10 +75,28 @@ struct Template: Codable, Identifiable {
     /// generator (TemplateFacets); nil, for one written before, is a
     /// template of no colour, still, without photos, of its pages.
     var facets: TemplateFacets? = nil
+    /// How a template of one page plays, at its top as the generator writes
+    /// it (TemplatePage); a template of several has them on each page.
+    var pageAnimation: PageAnimation? = nil
+    var transition: String? = nil
+    var holdSeconds: Double? = nil
+    /// The industry it was written for — "real-estate", "fitness", … — or
+    /// "animated", as the generator's packs name it; nil for the rest.
+    var topic: String? = nil
+    /// The template this is a colourway of, its base; nil for a base or a
+    /// template with no colourways.
+    var variantOf: String? = nil
+    /// The sound an animated template starts with, as a design's tracks
+    /// ("audio"), which a design made from it keeps.
+    var audio: [AudioTrack]? = nil
 
     private enum CodingKeys: String, CodingKey {
         case id, name, category, width, height, background, elements, pages, facets
+        case pageAnimation, transition, holdSeconds, topic, variantOf, audio
     }
+
+    /// Its base and every colourway of it share this: the base's id.
+    var family: String { variantOf ?? id }
 
     /// Its facets, or those of a template with none written.
     var shownFacets: TemplateFacets { facets ?? TemplateFacets(pages: pageCount) }
@@ -54,7 +104,8 @@ struct Template: Codable, Identifiable {
     /// The template's pages, in order: one for a single-page template.
     var pageSpecs: [TemplatePage] {
         if let pages, !pages.isEmpty { return pages }
-        return [TemplatePage(background: background, elements: elements)]
+        return [TemplatePage(background: background, elements: elements, pageAnimation: pageAnimation,
+                             transition: transition, holdSeconds: holdSeconds)]
     }
 
     var pageCount: Int { pageSpecs.count }
@@ -65,6 +116,8 @@ struct Template: Codable, Identifiable {
     func instantiate() -> Design {
         var design = Design(title: name, width: width, height: height)
         design.pages = pageSpecs.map { makePage($0, scale: 1, dx: 0, dy: 0) }
+        // The sound an animated template starts with goes with it.
+        design.audio = audio
         if let type = SizePreset.all.first(where: { $0.unit != nil && $0.w == width && $0.h == height }) {
             design.unit = type.unit
             design.dpi = type.dpi
@@ -103,6 +156,7 @@ struct Template: Codable, Identifiable {
         } else {
             design = Design(title: name, width: preset.w, height: preset.h)
             design.pages = pageSpecs.indices.map { makePage(at: $0, width: preset.w, height: preset.h) }
+            design.audio = audio
         }
         design.unit = preset.unit
         design.dpi = preset.dpi
@@ -139,6 +193,9 @@ struct Template: Codable, Identifiable {
     private func makePage(_ spec: TemplatePage, scale: Double, dx: Double, dy: Double) -> Page {
         var page = Page(background: spec.background, notes: spec.notes?.isEmpty == false ? spec.notes : nil)
         page.title = spec.title.flatMap(PageTitles.kept)
+        page.pageAnimation = spec.pageAnimation
+        page.transition = spec.transition
+        page.holdSeconds = spec.holdSeconds
         page.elements = spec.elements.map { item in
             var el = Self.fitted(item, scale: scale, dx: dx, dy: dy)
             el.id = UID.make()
@@ -189,6 +246,12 @@ extension Template {
         let listed = try c.decodeIfPresent([TemplatePage].self, forKey: .pages) ?? []
         pages = listed.isEmpty ? nil : listed
         facets = try? c.decodeIfPresent(TemplateFacets.self, forKey: .facets)
+        pageAnimation = try? c.decodeIfPresent(PageAnimation.self, forKey: .pageAnimation)
+        transition = try? c.decodeIfPresent(String.self, forKey: .transition)
+        holdSeconds = try? c.decodeIfPresent(Double.self, forKey: .holdSeconds)
+        topic = try? c.decodeIfPresent(String.self, forKey: .topic)
+        variantOf = try? c.decodeIfPresent(String.self, forKey: .variantOf)
+        audio = try? c.decodeIfPresent([AudioTrack].self, forKey: .audio)
         if let first = listed.first {
             background = first.background
             elements = first.elements
@@ -381,10 +444,11 @@ enum ContentLibrary {
         return seen
     }
 
-    /// Templates in a category (nil is all of them) whose name or category
-    /// matches the query (empty is all of them), and that `facets` lets
-    /// through (TemplateFilter.admits; an empty filter lets all through) —
-    /// the Android twin's Templates.filtered.
+    /// Templates in a category (nil is all of them) whose name, category or
+    /// topic (its words, "real estate" for "real-estate") matches the query
+    /// (empty is all of them), and that `facets` lets through
+    /// (TemplateFilter.admits; an empty filter lets all through) — the
+    /// Android twin's Templates.filtered.
     static func filteredTemplates(in category: String?, matching query: String,
                                   facets: TemplateFilter = TemplateFilter(),
                                   among library: [Template] = templates) -> [Template] {
@@ -392,8 +456,15 @@ enum ContentLibrary {
         return library.filter { t in
             (category == nil || t.category == category) && facets.admits(t.shownFacets)
                 && (needle.isEmpty || t.name.localizedCaseInsensitiveContains(needle)
-                    || t.category.localizedCaseInsensitiveContains(needle))
+                    || t.category.localizedCaseInsensitiveContains(needle)
+                    || topicWords(t).localizedCaseInsensitiveContains(needle))
         }
+    }
+
+    /// A template's topic as words: "real estate" for "real-estate"; empty
+    /// for none.
+    static func topicWords(_ template: Template) -> String {
+        template.topic?.replacingOccurrences(of: "-", with: " ") ?? ""
     }
 
     /// Templates whose page is exactly this size, in library order, and

@@ -5,7 +5,8 @@ import Foundation
 import Observation
 
 /// A template's facets, as its JSON has them under "facets":
-/// {"colors": ["blue", "white"], "animated": false, "photo": false, "pages": 1}.
+/// {"colors": ["blue", "white"], "animated": false, "photo": false, "pages": 1},
+/// and for a template of a style its "style", one of TemplateFilter.styles.
 /// Worked out once, by the templates generator (facets_of), so both phones
 /// agree: `colors` are up to three of TemplateFilter.colors, most first,
 /// each covering more than 12% of the template, weighing every page's
@@ -16,12 +17,15 @@ struct TemplateFacets: Codable, Equatable {
     var animated = false
     var photo = false
     var pages = 1
+    var style: String?
 
-    init(colors: [String] = [], animated: Bool = false, photo: Bool = false, pages: Int = 1) {
+    init(colors: [String] = [], animated: Bool = false, photo: Bool = false, pages: Int = 1,
+         style: String? = nil) {
         self.colors = colors
         self.animated = animated
         self.photo = photo
         self.pages = pages
+        self.style = style
     }
 
     /// Anything missing, or not of its kind, reads as a template with none.
@@ -31,29 +35,33 @@ struct TemplateFacets: Codable, Equatable {
         animated = (try? c.decode(Bool.self, forKey: .animated)) ?? false
         photo = (try? c.decode(Bool.self, forKey: .photo)) ?? false
         pages = (try? c.decode(Int.self, forKey: .pages)) ?? 1
+        style = try? c.decode(String.self, forKey: .style)
     }
 
-    private enum CodingKeys: String, CodingKey { case colors, animated, photo, pages }
+    private enum CodingKeys: String, CodingKey { case colors, animated, photo, pages, style }
 }
 
 /// The Filters sheet's choices. Each that is set narrows the templates; an
 /// empty filter lets every one through. `colors` lets through a template
 /// with ANY of them (the simplest rule: each dot picked adds its
-/// templates); `animated` and `photo` a template that is, or is not; and
-/// `multiPage` a set of several pages (true) or a single page (false).
+/// templates); `animated` and `photo` a template that is, or is not;
+/// `multiPage` a set of several pages (true) or a single page (false); and
+/// `style` a template of that style — one at a time, the simplest rule.
 struct TemplateFilter: Equatable {
     var colors: Set<String> = []
     var animated: Bool?
     var photo: Bool?
     var multiPage: Bool?
+    var style: String?
 
-    var isEmpty: Bool { colors.isEmpty && animated == nil && photo == nil && multiPage == nil }
+    var isEmpty: Bool { colors.isEmpty && animated == nil && photo == nil && multiPage == nil && style == nil }
 
     func admits(_ facets: TemplateFacets) -> Bool {
         (colors.isEmpty || facets.colors.contains { colors.contains($0) })
             && (animated == nil || facets.animated == animated)
             && (photo == nil || facets.photo == photo)
             && (multiPage == nil || (facets.pages > 1) == multiPage)
+            && (style == nil || facets.style == style)
     }
 
     /// One of the dismissible chips under the search: what it says, and
@@ -65,7 +73,7 @@ struct TemplateFilter: Equatable {
     }
 
     /// The chips for what is set, in the sheet's order: each colour, then
-    /// Animated, With photos, Single page or Set.
+    /// Animated, With photos, Single page or Set, then the style.
     var chips: [Chip] {
         var out: [Chip] = []
         for c in Self.allColors where colors.contains(c) {
@@ -88,7 +96,27 @@ struct TemplateFilter: Equatable {
             rest.multiPage = nil
             out.append(Chip(label: multiPage ? tr("Set", context: "pages") : tr("Single page"), without: rest))
         }
+        if let style {
+            var rest = self
+            rest.style = nil
+            out.append(Chip(label: Self.styleName(style), without: rest))
+        }
         return out
+    }
+
+    /// The styles a template can be filtered by, in the sheet's order —
+    /// the generator's STYLES.
+    static let styles = ["minimal", "bold", "elegant", "playful", "corporate"]
+
+    /// A style's name, on its chip and in the sheet.
+    static func styleName(_ id: String) -> String {
+        switch id {
+        case "minimal": return tr("Minimal")
+        case "bold": return tr("Bold", context: "style")
+        case "elegant": return tr("Elegant")
+        case "playful": return tr("Playful")
+        default: return tr("Corporate")
+        }
     }
 
     /// The twelve colours, in the sheet's order — the generator's
