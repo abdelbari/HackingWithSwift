@@ -59,12 +59,16 @@ extension MovieExporter {
             try track?.insertTimeRange(whole, of: sound, at: .zero)
         }
         var cameraID = kCMPersistentTrackID_Invalid
+        var cameraTurn = CGAffineTransform.identity
         let faces = try await cameraAsset.loadTracks(withMediaType: .video)
         if let face = faces.first,
            let faceTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) {
             let length = try await cameraAsset.load(.duration)
             try faceTrack.insertTimeRange(CMTimeRange(start: .zero, duration: CMTimeMinimum(length, duration)), of: face, at: .zero)
             cameraID = faceTrack.trackID
+            // A clip from the Android twin keeps the sensor's pixels and
+            // says how to turn them in the track; this phone's are upright.
+            cameraTurn = try await face.load(.preferredTransform)
         }
         let size = try await picture.load(.naturalSize)
         let rect = RecordingPlan.bubbleRect(bubble, width: Double(size.width), height: Double(size.height))
@@ -74,7 +78,7 @@ extension MovieExporter {
         video.renderSize = size
         video.frameDuration = CMTime(value: 1, timescale: CMTimeScale(talkFps))
         video.instructions = [TalkBubbleInstruction(timeRange: whole, film: pictureTrack.trackID, camera: cameraID,
-                                                    rect: rect, radius: radius)]
+                                                    cameraTurn: cameraTurn, rect: rect, radius: radius)]
         guard let export = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
             throw MovieError.writerFailed("the export could not start")
         }
@@ -101,13 +105,18 @@ final class TalkBubbleInstruction: NSObject, AVVideoCompositionInstructionProtoc
     let passthroughTrackID = kCMPersistentTrackID_Invalid
     let film: CMPersistentTrackID
     let camera: CMPersistentTrackID
+    /// The camera track's preferred transform: how its frames are turned
+    /// upright.
+    let cameraTurn: CGAffineTransform
     let rect: CGRect
     let radius: CGFloat
 
-    init(timeRange: CMTimeRange, film: CMPersistentTrackID, camera: CMPersistentTrackID, rect: CGRect, radius: CGFloat) {
+    init(timeRange: CMTimeRange, film: CMPersistentTrackID, camera: CMPersistentTrackID,
+         cameraTurn: CGAffineTransform, rect: CGRect, radius: CGFloat) {
         self.timeRange = timeRange
         self.film = film
         self.camera = camera
+        self.cameraTurn = cameraTurn
         self.rect = rect
         self.radius = radius
         let tracks = camera == kCMPersistentTrackID_Invalid ? [film] : [film, camera]
@@ -136,10 +145,23 @@ final class TalkBubbleCompositor: NSObject, AVVideoCompositing, @unchecked Senda
         var image = CIImage(cvPixelBuffer: base)
         if instruction.camera != kCMPersistentTrackID_Invalid,
            let face = request.sourceFrame(byTrackID: instruction.camera) {
-            image = Self.bubbled(CIImage(cvPixelBuffer: face), over: image, rect: instruction.rect, radius: instruction.radius)
+            let upright = CIImage(cvPixelBuffer: face).oriented(Self.orientation(of: instruction.cameraTurn))
+            image = Self.bubbled(upright, over: image, rect: instruction.rect, radius: instruction.radius)
         }
         context.render(image, to: out)
         request.finish(withComposedVideoFrame: out)
+    }
+
+    /// The quarter turn a track's preferred transform makes, as the
+    /// orientation that turns its frames upright: 90° as an upright phone's
+    /// camera is written (.right), 270° (.left), 180° (.down), else none.
+    static func orientation(of turn: CGAffineTransform) -> CGImagePropertyOrientation {
+        switch (turn.a.rounded(), turn.b.rounded(), turn.c.rounded(), turn.d.rounded()) {
+        case (0, 1, -1, 0): return .right
+        case (0, -1, 1, 0): return .left
+        case (-1, 0, 0, -1): return .down
+        default: return .up
+        }
     }
 
     /// `camera` filling `rect` (top-left origin) of `base`, cut to a

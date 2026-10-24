@@ -1,8 +1,9 @@
 // Present and record's capture: the microphone, and the front camera when
 // it is on, through one AVCaptureSession, each written by an AVAssetWriter —
 // the voice as AAC in an .m4a (44.1 kHz, one channel, as VoiceRecorder
-// writes it), the camera as H.264 in an .mp4, upright and mirrored as the
-// presenter sees themselves. Pausing drops what comes in and takes the gap
+// writes it), the camera as H.264 in an .mp4, upright and not mirrored —
+// as the camera sees, as the Android twin writes it; only the preview is
+// mirrored, as the presenter sees themselves. Pausing drops what comes in and takes the gap
 // out of both files' clocks, so a talk paused for a minute plays on without
 // a minute of silence. A call or another app taking the microphone pauses
 // it (`onInterrupted`). The Android twin records the same with Camera2 and
@@ -100,7 +101,7 @@ final class TalkRecorder: NSObject, @unchecked Sendable,
             if connection.isVideoRotationAngleSupported(90) { connection.videoRotationAngle = 90 }
             if connection.isVideoMirroringSupported {
                 connection.automaticallyAdjustsVideoMirroring = false
-                connection.isVideoMirrored = true
+                connection.isVideoMirrored = false
             }
         }
     }
@@ -117,6 +118,12 @@ final class TalkRecorder: NSObject, @unchecked Sendable,
     /// Starts writing the voice to `audioURL`, and the camera, when it is
     /// on, to `cameraURL`.
     func begin(audioURL: URL, cameraURL: URL) throws {
+        if observers.isEmpty {
+            // A take after one that kept nothing: stop() let the audio
+            // session go and stopped watching for calls, so both come back.
+            try AVAudioSession.sharedInstance().setActive(true)
+            watchInterruptions()
+        }
         try? FileManager.default.removeItem(at: audioURL)
         try? FileManager.default.removeItem(at: cameraURL)
         let writer = try AVAssetWriter(outputURL: audioURL, fileType: .m4a)
