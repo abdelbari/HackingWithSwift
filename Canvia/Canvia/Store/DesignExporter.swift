@@ -646,7 +646,7 @@ enum DesignExporter {
         let pxToPt = PrintLayout.pxToPt(design)
         cg.saveGState()
         cg.concatenate(cg.ctm.inverted())
-        cg.addDestination(destination(page.id), at: CGPoint(x: 0, y: pageHeight))
+        cg.addDestination(destination(page.id) as CFString, at: CGPoint(x: 0, y: pageHeight))
         for area in areas {
             let rect = CGRect(x: area.rect.minX * pxToPt,
                               y: pageHeight - area.rect.maxY * pxToPt,
@@ -657,7 +657,7 @@ enum DesignExporter {
                 guard let target = URL(string: url) else { continue }
                 cg.setURL(target as CFURL, for: rect)
             case .page(let id):
-                cg.setDestination(destination(id), for: rect)
+                cg.setDestination(destination(id) as CFString, for: rect)
             }
         }
         cg.restoreGState()

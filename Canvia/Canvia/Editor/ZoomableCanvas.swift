@@ -1109,9 +1109,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
 }
 
 /// Two fingers on the selection: decided the moment the second finger lands
-/// — `decides`, given both touches — and
-/// failed at once when they are not, so the scroll view's pinch and pan,
-/// which wait for it, start as they always did. While it lasts it tells
+/// (`decides`, given both touches), and failed at once when they are not,
+/// so the scroll view's pinch and pan, which wait for it, start as they
+/// always did. While it lasts it tells
 /// how many times as far apart the fingers are as they landed (`scale`),
 /// and how many degrees their line has turned since (`turn`), clockwise
 /// on screen as a turn on the page is. A third finger ends it.

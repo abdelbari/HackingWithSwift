@@ -637,24 +637,22 @@ struct CanvasView: View {
                 endTargetOutline
             }
 
-            // The band being drawn, and the letters of the match Find and
-            // replace is showing.
+            // The band being drawn, the letters of the match Find and
+            // replace is showing, and a tidied row's or column's handle in
+            // each gap while nothing else has the selection's touches.
             Group {
                 if let band = gesture.marquee { marqueeView(band) }
                 if let match = store.findHighlight, match.pageIndex == store.pageIndex,
                    let el = store.element(match.elementId), store.editingTextId != el.id {
                     findMark(el, match)
                 }
+                if store.cropping == nil && store.graphicCropping == nil && !gesture.dragActive {
+                    TidyGapHandles(store: store)
+                }
             }
 
             if let id = store.editingTextId, let el = store.element(id) {
                 if el.type == .shape { shapeTextEditor(el) } else { inlineTextEditor(el) }
-            }
-
-            // A tidied row or column: a handle in each gap, while nothing
-            // else has the selection's touches.
-            if store.cropping == nil && store.graphicCropping == nil && !gesture.dragActive {
-                TidyGapHandles(store: store)
             }
 
             // The modes that take the whole page's touches, over everything.

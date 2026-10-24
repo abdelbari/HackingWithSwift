@@ -57,7 +57,7 @@ final class LibraryDrag {
 
     static let shared = LibraryDrag()
 
-    struct Item {
+    struct Carried {
         var kind: DropFromLibrary.Tile
         /// A photo's or clip's picture, for a frame.
         var src: String?
@@ -70,17 +70,17 @@ final class LibraryDrag {
     static let payload = "canvia-add"
 
     /// The item under way.
-    var item: Item?
+    var item: Carried?
     /// Told as a tile lifts: the sheet goes down to its peek.
     var onLift: (() -> Void)?
 
-    func begin(_ item: Item) {
+    func begin(_ item: Carried) {
         self.item = item
         onLift?()
     }
 
     /// The item, let go of.
-    func take() -> Item? {
+    func take() -> Carried? {
         defer { item = nil }
         return item
     }
@@ -89,7 +89,7 @@ final class LibraryDrag {
 extension View {
     /// A tile of the Add sheet that lifts as it is held and is carried onto
     /// the canvas (LibraryDrag).
-    func libraryDrag(_ item: @escaping () -> LibraryDrag.Item) -> some View {
+    func libraryDrag(_ item: @escaping () -> LibraryDrag.Carried) -> some View {
         onDrag {
             LibraryDrag.shared.begin(item())
             // Words for this app alone: let go in another, nothing lands.
@@ -107,7 +107,7 @@ extension View {
 /// A tile that lifts when there is something for it to carry, and is
 /// only a tile when there is not.
 struct LibraryDragTile: ViewModifier {
-    let item: (() -> LibraryDrag.Item)?
+    let item: (() -> LibraryDrag.Carried)?
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -164,7 +164,7 @@ extension DesignStore {
     /// another in the column): into the frame there, on the page there, or
     /// — a locked page — refused and said. True when anything happened.
     @discardableResult
-    func dropLibraryItem(_ item: LibraryDrag.Item, at point: CGPoint, onPage index: Int) -> Bool {
+    func dropLibraryItem(_ item: LibraryDrag.Carried, at point: CGPoint, onPage index: Int) -> Bool {
         guard design.pages.indices.contains(index), !refusesLockedPage(at: index) else { return false }
         let page = design.pages[index]
         let target = DropFromLibrary.target(point, elements: page.elements, kind: item.kind, page: design.size(for: page))
@@ -196,7 +196,7 @@ struct CanvasDropDelegate: DropDelegate {
     /// The tile under way, when this drag is one: a drag that also carries
     /// a picture or a link is another app's, and a tile left from a drag
     /// let go elsewhere is forgotten.
-    private func carried(_ info: DropInfo) -> LibraryDrag.Item? {
+    private func carried(_ info: DropInfo) -> LibraryDrag.Carried? {
         if info.hasItemsConforming(to: [.image, .url]) {
             LibraryDrag.shared.item = nil
             return nil

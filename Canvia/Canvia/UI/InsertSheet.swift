@@ -1888,9 +1888,9 @@ struct InsertSheet: View {
     }
 
     /// A clip carried out of the sheet, once its first frame says its shape.
-    private func clipDrag(_ id: String) -> LibraryDrag.Item {
+    private func clipDrag(_ id: String) -> LibraryDrag.Carried {
         let store = self.store
-        return LibraryDrag.Item(kind: .clip, src: VideoStore.src(id, at: nil)) { point in
+        return LibraryDrag.Carried(kind: .clip, src: VideoStore.src(id, at: nil)) { point in
             Task {
                 let natural = await Task.detached(priority: .userInitiated) { VideoStore.poster(id)?.size }.value
                 guard let natural else {
@@ -1904,11 +1904,11 @@ struct InsertSheet: View {
     }
 
     /// An SVG graphic of your own or the brand kit's, read and placed.
-    private func graphicDrag(_ id: String) -> LibraryDrag.Item {
+    private func graphicDrag(_ id: String) -> LibraryDrag.Carried {
         let store = self.store
         let width = store.pageWidth, height = store.pageHeight
         let url = MediaStore.graphicURL(id)
-        return LibraryDrag.Item(kind: .svgGraphic, src: nil) { point in
+        return LibraryDrag.Carried(kind: .svgGraphic, src: nil) { point in
             Task {
                 let read = await Task.detached(priority: .userInitiated) {
                     GraphicRead.of(url, keep: false, pageWidth: width, pageHeight: height)
@@ -1925,8 +1925,8 @@ struct InsertSheet: View {
         }
     }
 
-    private func iconDrag(_ icon: IconDef) -> LibraryDrag.Item {
-        LibraryDrag.Item(kind: .icon, src: nil) { point in
+    private func iconDrag(_ icon: IconDef) -> LibraryDrag.Carried {
+        LibraryDrag.Carried(kind: .icon, src: nil) { point in
             let fill = IconLibrary.fill(for: store.page, brandColours: BrandKit.load().colors)
             let el = IconLibrary.element(icon, pageWidth: store.pageWidth, pageHeight: store.pageHeight, fill: fill)
             guard store.add(el) else { return }
@@ -1935,16 +1935,16 @@ struct InsertSheet: View {
         }
     }
 
-    private func packDrag(_ graphic: GraphicDef) -> LibraryDrag.Item {
-        LibraryDrag.Item(kind: .graphic, src: nil) { point in
+    private func packDrag(_ graphic: GraphicDef) -> LibraryDrag.Carried {
+        LibraryDrag.Carried(kind: .graphic, src: nil) { point in
             guard store.addPackGraphic(graphic) else { return }
             ElementSearch.remember(.graphic, graphic.id)
             store.moveAdded(to: point)
         }
     }
 
-    private func stickerDrag(_ glyph: String) -> LibraryDrag.Item {
-        LibraryDrag.Item(kind: .sticker, src: nil) { point in
+    private func stickerDrag(_ glyph: String) -> LibraryDrag.Carried {
+        LibraryDrag.Carried(kind: .sticker, src: nil) { point in
             guard store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18)) else { return }
             ElementSearch.remember(.sticker, glyph)
             EmojiCatalogue.remember(glyph)
@@ -2093,7 +2093,7 @@ private struct PictureTile: ViewModifier {
         return content
             .libraryDrag {
                 let size = natural()
-                return LibraryDrag.Item(kind: .photo, src: src) { point in
+                return LibraryDrag.Carried(kind: .photo, src: src) { point in
                     InsertSheet.pictureDrop(store, src: src, natural: size, at: point)
                 }
             }

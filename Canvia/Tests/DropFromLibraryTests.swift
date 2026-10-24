@@ -79,8 +79,8 @@ final class DropFromLibraryTests: XCTestCase {
         return DesignStore(design: d)
     }
 
-    private func sticker(_ s: DesignStore) -> LibraryDrag.Item {
-        LibraryDrag.Item(kind: .sticker, src: nil) { point in
+    private func sticker(_ s: DesignStore) -> LibraryDrag.Carried {
+        LibraryDrag.Carried(kind: .sticker, src: nil) { point in
             s.add(.sticker("⭐", size: 100))
             s.moveAdded(to: point)
         }
@@ -88,7 +88,7 @@ final class DropFromLibraryTests: XCTestCase {
 
     func testADropIntoAFrameIsOneReplaceStep() {
         let s = store()
-        let photo = LibraryDrag.Item(kind: .photo, src: "asset:new") { _ in XCTFail("not on the page") }
+        let photo = LibraryDrag.Carried(kind: .photo, src: "asset:new", place: { _ in XCTFail("not on the page") })
         XCTAssertTrue(s.dropLibraryItem(photo, at: CGPoint(x: 200, y: 200), onPage: 0))
         XCTAssertEqual(s.element("frame")?.src, "asset:new")
         XCTAssertEqual(s.selection, ["frame"])
