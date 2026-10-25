@@ -42,6 +42,7 @@ enum PhotoEdits {
             || el.edge != nil
             || el.fx != nil
             || el.retouch != nil
+            || el.retouchFace != nil
     }
 
     static func reset(_ el: inout Element) {
@@ -56,6 +57,7 @@ enum PhotoEdits {
         el.edge = nil
         el.fx = nil
         el.retouch = nil
+        el.retouchFace = nil
     }
 
     /// The photo as Hold to compare shows it: its filter, dials, duotone
@@ -72,6 +74,7 @@ enum PhotoEdits {
         out.edge = nil
         out.fx = nil
         out.retouch = nil
+        out.retouchFace = nil
         return out
     }
 
@@ -1243,6 +1246,7 @@ enum ImageFilterEngine {
     static func makesLater(_ el: Element) -> Bool {
         guard !isCode(el) else { return false }
         let brushed = el.mask?.strokes.isEmpty == false || RetouchLayer.kept(el.retouch) != nil
+            || el.retouchFace?.draws == true
         return (el.adjustments?.clarity ?? 0) != 0 || (el.pixelate ?? 0) > 0 || el.fx?.draws == true || brushed
     }
 
@@ -1273,7 +1277,7 @@ enum ImageFilterEngine {
         let mix = partly ? "@\(Int((share * 100).rounded()))" : ""
         let soft = crisp && preset == .dreamy ? "|crisp" : ""
         let key = "\(cacheKey)|\(preset.rawValue)\(mix)\(adjustments.signature)\(tone)\(effects.signature)\(soft)"
-        let brushed = effects.mask != nil || !effects.retouch.isEmpty
+        let brushed = effects.mask != nil || !effects.retouch.isEmpty || effects.faces != nil
         let madeLater = later && (adjustments.clarity != 0 || effects.block > 1 || effects.fx != nil || brushed)
         let slot = madeLater ? bakeSlot(picture: cacheKey, owner: owner) : ""
         if let cached = cache.object(forKey: key as NSString) {
@@ -1291,6 +1295,7 @@ enum ImageFilterEngine {
             quick.clarity = 0
             var plain = effects
             plain.block = 0
+            plain.faces = nil
             plain.fx = nil
             plain.retouch = []
             plain.blocks = []
@@ -1328,6 +1333,14 @@ enum ImageFilterEngine {
         // its matrix towards the identity.
         if partly { output = dissolved(input, into: output, share) }
         output = adjusted(output, adjustments, extent: extent)
+        // Face retouch after the dials, before the effects, as the Android
+        // twin's PixelLook does it: its faces are shares of the picture, so
+        // a smaller copy smooths as far in proportion.
+        if let faces = effects.faces {
+            output = throughPixels(output, extent: extent) { bytes, width, height in
+                FaceRetouch.applyBytes(&bytes, width: width, height: height, retouch: faces)
+            }
+        }
         // Focus on the corrected picture, before the blocks, as the Android
         // twin bakes them.
         var stopgap = false
@@ -1406,6 +1419,14 @@ enum ImageFilterEngine {
         for (i, layer) in effects.retouch.enumerated() {
             if layer.adjusts {
                 output = adjustedOver(output, layer, extent: extent, subject: subject)
+                continue
+            }
+            // A smoothing brush is worked out a pixel at a time, only where
+            // its strokes cover, as on the Android twin.
+            if layer.kind == RetouchLayer.smooth {
+                output = throughPixels(output, extent: extent) { bytes, width, height in
+                    FaceRetouch.smoothed(&bytes, width: width, height: height, layer: layer)
+                }
                 continue
             }
             guard let cover = ImageMasking.coverage(layer, picture: extent.size) else { continue }

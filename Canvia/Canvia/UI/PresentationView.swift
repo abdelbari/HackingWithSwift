@@ -23,6 +23,8 @@
 // the music from its start — kept in the design, so a kiosk keeps looping.
 // The presenter's effects (Presenter.effects) come from the keys 1 to 9, B,
 // C, O, Q, U and X, or the sparkle button's grid, and show on both screens.
+// Live captions (LiveCaptions.swift) — the button beside Loop, or Shift-C —
+// show what the presenter says over the slide on both screens too.
 
 import SwiftUI
 
@@ -96,6 +98,10 @@ struct PresentationView: View {
     /// touch that pinched keeps that until it ends, however it ends.
     @GestureState private var touching = false
     @State private var pinchedThisTouch = false
+    /// Live captions' setting, kept as the "presentCaptions" preference
+    /// (LiveCaptionLines.Settings), and the ears that hear the presenter.
+    @AppStorage(LiveCaptionLines.pref) private var captionsPref = ""
+    @State private var captioner = LiveCaptioner()
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     init(design: Design, startPage: Int = 0, announcesStart: Bool = false,
@@ -162,6 +168,7 @@ struct PresentationView: View {
             UIApplication.shared.isIdleTimerDisabled = false
             if ExternalDisplay.shared.session === session { ExternalDisplay.shared.session = nil }
         }
+        .modifier(LiveCaptionsHost(session: session, captioner: captioner, pref: $captionsPref))
         .onReceive(clock) { now = $0 }
         .onChange(of: ExternalDisplay.shared.attached) { _, attached in displayChanged(attached) }
         .task { heard = await PageSound.heard(in: design) }
@@ -341,6 +348,7 @@ struct PresentationView: View {
             soundButton
             autoplayButton
             loopButton
+            captionsButton
             effectsButton
         }
     }
@@ -606,6 +614,7 @@ struct PresentationView: View {
                 soundButton
                 autoplayButton
                 loopButton
+                captionsButton
                 effectsButton
                 Button { showingNotes.toggle() } label: {
                     // A blank note, dimmed, when this page has none — as on
@@ -683,6 +692,22 @@ struct PresentationView: View {
         .accessibilityValue(session.loop ? tr("On") : tr("Off"))
     }
 
+    /// Live captions: the switch, their size and where they sit.
+    private var captionsButton: some View {
+        LiveCaptionsButton(settings: captionSettings)
+    }
+
+    private var captionSettings: Binding<LiveCaptionLines.Settings> {
+        Binding(get: { LiveCaptionLines.Settings.decoded(captionsPref) }, set: { captionsPref = $0.encoded() })
+    }
+
+    /// Shift-C: live captions on or off — C alone is confetti.
+    private func toggleCaptions() {
+        var settings = LiveCaptionLines.Settings.decoded(captionsPref)
+        settings.on.toggle()
+        captionsPref = settings.encoded()
+    }
+
     /// The effects' grid, for a phone with no keyboard to give them.
     private var effectsButton: some View {
         Button { showingEffects = true } label: { Image(systemName: "sparkles").padding(10) }
@@ -723,6 +748,7 @@ struct PresentationView: View {
                 key(.end, tr("Last page")) { turn(to: design.visiblePageIndices.last) }
             }
             key(.escape, tr("End presentation")) { dismiss() }
+            key("c", tr("Live captions"), modifiers: .shift) { toggleCaptions() }
             // The effects' keys: 1 to 9, B, C, O, Q, U and X.
             ForEach(Presenter.effects) { effect in
                 effectKeys(effect)
@@ -737,7 +763,8 @@ struct PresentationView: View {
         let typed = KeyEquivalent(Character(effect.key))
         key(typed, effect.name) { show(effect: effect.id) }
         if effect.key.first?.isLetter == true {
-            key(typed, effect.name, modifiers: .shift) { show(effect: effect.id) }
+            // Shift-C is live captions, so confetti is C alone.
+            if effect.key != "c" { key(typed, effect.name, modifiers: .shift) { show(effect: effect.id) } }
             key(typed, effect.name, modifiers: .capsLock) { show(effect: effect.id) }
         }
     }

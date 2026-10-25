@@ -4,7 +4,10 @@
 // them with Back, Next, Pause and Finish, the page's notes under it for the
 // presenter alone. Each page turn is timed on the talk's own clock, paused
 // time left out (RecordingPlan.Capture). Finish keeps the voice and the
-// camera with the design's media and hands back the recording. A refused
+// camera with the design's media and hands back the recording — with Burn
+// in captions ticked, the words said heard from the voice once it is
+// recorded (Recording.captions), which the talk's video shows and saves
+// beside it as an .srt. A refused
 // microphone says so, with Settings; a call or another app pauses the talk.
 // The Android twin's RecordStudio.
 
@@ -36,6 +39,9 @@ struct TalkStudio: View {
     @State private var pausedFor = 0.0
     @State private var pausedAt: Date?
     @State private var countTask: Task<Void, Never>?
+    /// Burn in captions: the words said heard from the voice once it is
+    /// recorded, shown in the talk's video and saved beside it as an .srt.
+    @State private var burnCaptions = false
 
     private var shown: [Int] { design.visiblePageIndices }
 
@@ -169,6 +175,8 @@ struct TalkStudio: View {
                 }
             }
             .pickerStyle(.menu)
+            // Offered where the phone can caption by itself.
+            if CaptionSpeech.isAvailable(language: design.language) { burnCaptionsToggle }
             Button { startCountdown() } label: {
                 Text("Start").font(.headline).frame(maxWidth: .infinity)
             }
@@ -176,6 +184,18 @@ struct TalkStudio: View {
             .disabled(micRefused)
         }
         .foregroundStyle(.white)
+    }
+
+    private var burnCaptionsToggle: some View {
+        Toggle(isOn: $burnCaptions) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Burn in captions")
+                Text("What you say is captioned in the video and saved beside it as an .srt.")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+        .tint(Theme.accent)
     }
 
     private var liveControls: some View {
@@ -296,8 +316,14 @@ struct TalkStudio: View {
             // A talk finished before any page was held long enough to keep
             // (RecordingPlan.minSpan) is nothing, as a voice that could not
             // be kept is — as the Android twin says it.
+            // Burn in captions: the words said, heard from the voice just
+            // recorded — the microphone was the recorder's while it ran.
+            var said: [CaptionCue] = []
+            if burnCaptions, !spans.isEmpty, let voice = files.audio {
+                said = (try? await CaptionSpeech.transcribe(voice, from: 0, to: end, language: design.language)) ?? []
+            }
             guard !spans.isEmpty, let voice = files.audio,
-                  let kept = Self.keep(voice: voice, camera: files.camera, spans: spans) else {
+                  let kept = Self.keep(voice: voice, camera: files.camera, spans: spans, captions: said) else {
                 problem = tr("Nothing was recorded")
                 phase = .setup
                 // The camera back on screen for another take.
@@ -311,7 +337,7 @@ struct TalkStudio: View {
 
     /// The files moved in with the design's media — the voice as music,
     /// the camera as a clip — under a new recording's id.
-    static func keep(voice: URL, camera: URL?, spans: [RecordingSpan]) -> Recording? {
+    static func keep(voice: URL, camera: URL?, spans: [RecordingSpan], captions: [CaptionCue] = []) -> Recording? {
         let id = Recordings.newId()
         let audio = Recordings.audioFile(id)
         let fm = FileManager.default
@@ -325,6 +351,7 @@ struct TalkStudio: View {
             let file = Recordings.cameraFile(id)
             if (try? fm.moveItem(at: camera, to: VideoStore.directory.appendingPathComponent(file))) != nil { kept = file }
         }
-        return Recording(id: id, createdAt: Date().timeIntervalSince1970 * 1000, audio: audio, camera: kept, pages: spans)
+        return Recording(id: id, createdAt: Date().timeIntervalSince1970 * 1000, audio: audio, camera: kept, pages: spans,
+                         captions: captions)
     }
 }

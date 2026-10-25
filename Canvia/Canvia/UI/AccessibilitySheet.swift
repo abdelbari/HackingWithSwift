@@ -1,6 +1,7 @@
 // Check accessibility: every finding of one pass, page by page — "5 things
 // on 3 pages" — each with Show, which goes to the element, and its fix:
-// Fix colour, Add alt text (with Suggest from the on-device classifier),
+// Fix colour, Add alt text (with Suggest from the on-device classifier, and
+// "Use: …" for what the app already knows of the picture),
 // Mark decorative, Make it 12, Fix heading level, Make it a heading, Add
 // captions — which opens the clip's or the voice-over's captions over the
 // editor (DesignStore.captionsAsked). Clips filmed without sound are not
@@ -28,6 +29,10 @@ struct AccessibilitySheet: View {
     /// thread as the sheet opens; until they are, every clip is taken to
     /// have some.
     @State private var silentClips: Set<String> = []
+    /// What the app already knows of each picture missing a description,
+    /// by element id (AltText.suggest), read off the main thread: its row's
+    /// "Use: …".
+    @State private var suggestions: [String: String] = [:]
 
     var body: some View {
         NavigationStack {
@@ -63,8 +68,12 @@ struct AccessibilitySheet: View {
             .alert("Describe this picture", isPresented: $askingAlt) {
                 TextField("What it shows", text: $altDraft)
                 Button("Suggest") {
-                    if let f = describing, let el = element(f), let ui = PhotoLibrary.resolve(el.src),
-                       let draft = AltText.describe(ui) {
+                    // Vision's classifier, and where it is unsure what the
+                    // app already knows (read off the main thread as the
+                    // sheet opened, loadSuggestions).
+                    if let f = describing, let el = element(f),
+                       let draft = PhotoLibrary.resolve(el.src).flatMap({ AltText.describe($0) })
+                        ?? suggestions[el.id] {
                         altDraft = draft
                     }
                     // The alert closes on any button; open it again, with
@@ -84,6 +93,7 @@ struct AccessibilitySheet: View {
             silentClips = await Self.silentClips(in: store.design)
             refresh()
         }
+        .task(id: altTextMissing) { await loadSuggestions() }
         // Edits made under the sheet — an undo, a colour changed by hand —
         // are checked again.
         .onChange(of: store.design) { _, _ in refresh() }
@@ -163,6 +173,13 @@ struct AccessibilitySheet: View {
                 }
             }
             .controlSize(.small)
+            // What the app already knows of it; written only when tapped.
+            if f.fix == .addAltText, let id = f.elementId, let suggestion = suggestions[id] {
+                Button(tr("Use: %@", suggestion)) { useSuggestion(suggestion, f) }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .lineLimit(2)
+            }
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .contain)
@@ -239,6 +256,42 @@ struct AccessibilitySheet: View {
         guard let id = f.elementId else { return }
         let next = AccessibilityAudit.markedDecorative(store.design, pageIndex: f.pageIndex, elementId: id)
         store.apply { $0 = next }
+        refresh()
+    }
+
+    /// The elements whose row offers Add alt text, which the suggestions
+    /// are read for again as they change.
+    private var altTextMissing: [String] {
+        findings.filter { $0.fix == .addAltText }.compactMap(\.elementId)
+    }
+
+    /// Each such element's suggestion: what the phone knows of it besides
+    /// the design (AltText.hints) read off the main thread, the libraries
+    /// looked up on it.
+    private func loadSuggestions() async {
+        let elements = findings.filter { $0.fix == .addAltText }.compactMap { element($0) }
+        let hints = await Task.detached(priority: .utility) { () -> [String: AltText.Hints] in
+            var out: [String: AltText.Hints] = [:]
+            for el in elements { out[el.id] = AltText.hints(for: el) }
+            return out
+        }.value
+        var made: [String: String] = [:]
+        for el in elements { made[el.id] = AltText.suggest(el, hints: hints[el.id] ?? AltText.Hints()) }
+        suggestions = made
+    }
+
+    /// "Use: …": `text` as the finding's element's description, kept with
+    /// its picture's src (altTextSource) so a Replace takes it away, as one
+    /// step. Not on a locked page.
+    private func useSuggestion(_ text: String, _ f: AccessibilityAudit.Finding) {
+        guard let id = f.elementId, !store.refusesLockedPage(at: f.pageIndex) else { return }
+        store.apply { design in
+            if design.pages.indices.contains(f.pageIndex),
+               let i = design.pages[f.pageIndex].elements.firstIndex(where: { $0.id == id }) {
+                design.pages[f.pageIndex].elements[i].altText = text
+                design.pages[f.pageIndex].elements[i].altTextSource = design.pages[f.pageIndex].elements[i].src
+            }
+        }
         refresh()
     }
 

@@ -18,8 +18,9 @@ struct BrushSession: Equatable {
     enum Kind: String {
         /// Erase and Restore: the element's mask.
         case mask
-        /// A retouch layer of that kind.
-        case blur, pixelate
+        /// A retouch layer of that kind; smooth is Face retouch's Retouch
+        /// brush.
+        case blur, pixelate, smooth
         /// A new adjust layer's painted area (AreaAdjust).
         case adjust
     }
@@ -70,6 +71,7 @@ struct BrushSession: Equatable {
         case .mask: return nil
         case .blur: return RetouchLayer.blur
         case .pixelate: return RetouchLayer.pixelate
+        case .smooth: return RetouchLayer.smooth
         case .adjust: return RetouchLayer.adjusting
         }
     }

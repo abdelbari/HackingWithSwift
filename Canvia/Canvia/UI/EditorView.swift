@@ -56,6 +56,8 @@ enum EditorSheet: String, Identifiable {
     /// More's "Details": the design's size, pages, dates, storage and
     /// fonts (DesignDetailsSheet).
     case details
+    /// Crop mode's Expand: the photo grown to a new shape (ExpandSheet).
+    case expand
     var id: String { rawValue }
 }
 
@@ -322,6 +324,10 @@ struct EditorView: View {
             if sheet != .highlightWords, store.wordHighlightTarget != nil { store.wordHighlightTarget = nil }
             if sheet != .photoInLetters, store.photoAdjustTarget != nil { store.photoAdjustTarget = nil }
             if sheet != .insert, insertUploads != nil { insertUploads = nil }
+            if sheet != .expand, store.expandingPhoto != nil {
+                store.expandingPhoto = nil
+                store.expandedToPage = nil
+            }
         }
         // Crop, typing, the pen or the eraser taking the page ends Select
         // multiple as a panel does, the selection kept — as on the Android
@@ -1549,6 +1555,14 @@ struct EditorView: View {
             Button { store.flipCrop() } label: { Image(systemName: "flip.horizontal").frame(width: 30, height: 30) }
                 .accessibilityLabel("Flip")
                 .accessibilityAddTraits(photo?.flipH == true ? .isSelected : [])
+            // Grows the picture to a new shape (ExpandSheet); not for a
+            // clip, an animated picture or a code.
+            Button {
+                store.openExpand()
+                if store.expandingPhoto != nil { activeSheet = .expand }
+            } label: { Image(systemName: "arrow.up.left.and.arrow.down.right").frame(width: 30, height: 30) }
+                .accessibilityLabel("Expand")
+                .disabled(!DesignStore.isStillPhoto(photo))
             Button {
                 store.finishCrop()
                 activeSheet = .crop
@@ -1757,6 +1771,10 @@ struct EditorView: View {
             FiltersSheet(store: store)
         case .crop:
             CropSheet(store: store)
+        case .expand:
+            if let id = store.expandingPhoto {
+                ExpandSheet(store: store, id: id)
+            }
         case .position:
             PositionSheet(store: store)
         case .layers:

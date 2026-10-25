@@ -1803,6 +1803,17 @@ final class DesignStore {
     /// captions of "video:<id>" — the Clip sheet's — or "audio:<trackId>" —
     /// the track's in Audio; the sheet that opens them takes it.
     var captionsAsked: String?
+    /// The photo whose faces Face retouch is looking for, and the one it
+    /// found none in, which the Filters sheet says so of
+    /// (FaceRetouching.swift).
+    var findingFaces: String?
+    var noFacesIn: String?
+    /// The photo whose Expand sheet is open, whether its new picture is
+    /// being made, and the photo just grown to the page's shape, which the
+    /// sheet offers Set as background for (PhotoExpanding.swift).
+    var expandingPhoto: String?
+    var expandBusy = false
+    var expandedToPage: String?
 
     func beginErasing(_ id: String) {
         if element(id)?.locked == true {

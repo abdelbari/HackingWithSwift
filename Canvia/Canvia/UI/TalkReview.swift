@@ -1,5 +1,6 @@
 // A design's recorded talks, newest first: each with Play — the pages as
-// the talk turned them, the voice and the camera in its bubble — Export MP4,
+// the talk turned them, the voice and the camera in its bubble — Export MP4
+// (with its burnt-in captions as an .srt beside it),
 // Re-record, Delete and where its camera bubble sits. Opened after a talk is
 // recorded, and from the editor's Present menu. The Android twin's
 // RecordingsSheet. TalkSheets hangs the studio and this sheet on the editor
@@ -19,6 +20,8 @@ struct TalkReviewSheet: View {
     @State private var playing: Recording?
     @State private var exporting: String?
     @State private var shared: URL?
+    /// A talk's burnt-in captions as an .srt, shared beside its video.
+    @State private var sharedCaptions: URL?
     @State private var problem: String?
 
     var body: some View {
@@ -42,7 +45,7 @@ struct TalkReviewSheet: View {
             TalkPlayer(design: design, recording: talk)
         }
         .sheet(item: Binding(get: { shared.map(ShareURL.init) }, set: { if $0 == nil { shared = nil } })) { item in
-            ShareSheet(urls: [item.url])
+            ShareSheet(urls: [item.url] + (sharedCaptions.map { [$0] } ?? []))
         }
     }
 
@@ -89,6 +92,19 @@ struct TalkReviewSheet: View {
         }
     }
 
+    /// A talk's burnt-in captions (Recording.captions) as an .srt beside its
+    /// video, timed from the talk's start; nil for none.
+    static func captionsFile(_ design: Design, _ talk: Recording) -> URL? {
+        guard !talk.captions.isEmpty else { return nil }
+        let url = DesignExporter.fileURL(for: design, ext: "srt")
+        do {
+            try Data(Captions.srt(talk.captions).utf8).write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
     /// The talk as an MP4, to share.
     private func export(_ talk: Recording) {
         exporting = talk.id
@@ -97,6 +113,7 @@ struct TalkReviewSheet: View {
         Task { @MainActor in
             do {
                 try await MovieExporter.exportTalk(design: design, recording: talk, to: url)
+                sharedCaptions = Self.captionsFile(design, talk)
                 shared = url
             } catch {
                 problem = ExportChoices.failedText(error.localizedDescription)

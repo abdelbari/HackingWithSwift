@@ -306,7 +306,12 @@ struct RetouchLayer: Codable, Equatable, Hashable {
     static let blur = "blur"
     static let pixelate = "pixelate"
     static let adjusting = "adjust"
-    static let kinds = [blur, pixelate, adjusting]
+    /// Face retouch's Retouch brush: the surface blur (FaceRetouch.Kernel)
+    /// of radius amount × `smoothShare` of the shorter side, skin or not.
+    static let smooth = "smooth"
+    static let kinds = [blur, pixelate, adjusting, smooth]
+    /// A smoothing at full amount reaches 1% of the shorter side.
+    static let smoothShare = 0.01
 
     /// Where an adjust layer's dials go.
     static let brushArea = "brush"

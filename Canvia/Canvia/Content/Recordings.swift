@@ -6,8 +6,12 @@
 //     {"id": "rec_x", "createdAt": ms, "audio": "rec_x.m4a",
 //      "camera": "rec_x.mp4" | null,
 //      "bubble": {"corner": "bottomLeft", "size": 0.22, "shape": "circle"},
-//      "pages": [{"pageId": "p1", "start": 0.0, "end": 12.4}]}
+//      "pages": [{"pageId": "p1", "start": 0.0, "end": 12.4}],
+//      "captions": [{"start": 0.4, "end": 2.1, "text": "Hello"}]}
 //
+// `captions` — Burn in captions, only when ticked and heard — are the words
+// said, timed from the talk's start, burnt into the talk's film
+// (RecordingPlan.film) and written beside it as an .srt.
 // The voice is music of the design's (AudioStore's "rec_x.m4a"), the camera
 // a clip of its own (VideoStore's "rec_x", an .mp4), so both travel in a
 // design file, a backup and a version as its music and clips do. A
@@ -71,15 +75,18 @@ struct Recording: Codable, Equatable, Identifiable {
     var camera: String?
     var bubble = RecordingBubble()
     var pages: [RecordingSpan] = []
+    /// The words said, burnt into its film; none unless asked for.
+    var captions: [CaptionCue] = []
 
     init(id: String, createdAt: Double, audio: String, camera: String?,
-         bubble: RecordingBubble = RecordingBubble(), pages: [RecordingSpan] = []) {
+         bubble: RecordingBubble = RecordingBubble(), pages: [RecordingSpan] = [], captions: [CaptionCue] = []) {
         self.id = id
         self.createdAt = createdAt
         self.audio = audio
         self.camera = camera
         self.bubble = bubble
         self.pages = pages
+        self.captions = captions
     }
 
     /// One without an id or a voice does not read; a span that does not,
@@ -93,10 +100,12 @@ struct Recording: Codable, Equatable, Identifiable {
         bubble = (try? c.decode(RecordingBubble.self, forKey: .bubble)) ?? RecordingBubble()
         let spans = (try? c.decode([Lossy<RecordingSpan>].self, forKey: .pages))?.compactMap(\.value) ?? []
         pages = spans.filter { $0.end > $0.start && $0.start.isFinite && $0.end.isFinite }
+        let cues = (try? c.decode([Lossy<CaptionCue>].self, forKey: .captions))?.compactMap(\.value) ?? []
+        captions = cues.filter { $0.end > $0.start && !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 
     /// Keys in the twin's order, the camera written as null when there is
-    /// none, the time whole.
+    /// none, the time whole, and captions only when it has some.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
@@ -105,9 +114,10 @@ struct Recording: Codable, Equatable, Identifiable {
         if let camera { try c.encode(camera, forKey: .camera) } else { try c.encodeNil(forKey: .camera) }
         try c.encode(bubble, forKey: .bubble)
         try c.encode(pages, forKey: .pages)
+        if !captions.isEmpty { try c.encode(captions, forKey: .captions) }
     }
 
-    private enum CodingKeys: String, CodingKey { case id, createdAt, audio, camera, bubble, pages }
+    private enum CodingKeys: String, CodingKey { case id, createdAt, audio, camera, bubble, pages, captions }
 
     /// How long the talk is: the last page's end.
     var duration: Double { pages.map(\.end).max() ?? 0 }

@@ -531,10 +531,12 @@ enum DesignLibrary {
             if let id = photoID(el.src) { found.insert(id) }
             // A shape filled with a photo uses it too, a text whose letters
             // are filled with one, a cut-out the picture before its cut,
-            // which Restore paints back, and a QR code its logo.
+            // which Restore paints back, an expanded photo the picture it was
+            // grown from, and a QR code its logo.
             if let id = photoID(el.fill?.src) { found.insert(id) }
             if let id = photoID(el.textFill?.src) { found.insert(id) }
             if let id = photoID(el.mask?.base) { found.insert(id) }
+            if let id = photoID(el.expandedFrom?.src) { found.insert(id) }
             if let id = photoID(el.qrLogo) { found.insert(id) }
         }
     }

@@ -1060,6 +1060,17 @@ struct Element: Codable, Equatable, Identifiable {
     /// Blur and pixelate brushed onto parts of the picture, in order (see
     /// MaskRaster); nil is none, and no key in the file.
     var retouch: [RetouchLayer]?
+    /// Face retouch (FaceRetouch): the faces found when it was turned on,
+    /// and how much they are smoothed; nil is none, and no key in the file.
+    var retouchFace: FaceRetouch?
+    /// What an expanded photo came from (PhotoExpand): the picture before,
+    /// where it lies in this one and the fill; nil is never expanded, and
+    /// no key in the file.
+    var expandedFrom: PhotoExpand.Origin?
+    /// The mockup scene a picture added from Mockups was made in, kept as a
+    /// graphic keeps its `graphicId`: what a suggested description names
+    /// (AltText.suggest). As the Android twin keeps it.
+    var mockupId: String?
     /// What the file's `clip` key holds: on a photo or clip its playback
     /// (`clip`), on anything else the part of it shown (`clipBox`). Read
     /// and written through those two.
@@ -1281,6 +1292,9 @@ struct Element: Codable, Equatable, Identifiable {
         fx = try? c.decode(PhotoFx.self, forKey: .fx)
         mask = ImageMask.kept(try? c.decode(ImageMask.self, forKey: .mask))
         retouch = RetouchLayer.kept((try? c.decode([Lossy<RetouchLayer>].self, forKey: .retouch))?.compactMap(\.value))
+        retouchFace = FaceRetouch.kept(try? c.decode(FaceRetouch.self, forKey: .retouchFace))
+        expandedFrom = try? c.decode(PhotoExpand.Origin.self, forKey: .expandedFrom)
+        mockupId = (try? c.decode(String.self, forKey: .mockupId)).flatMap { $0.isEmpty ? nil : $0 }
         // The `clip` key is a photo's playback, and anything else's crop.
         if type == .image {
             clip = (try? c.decode(ClipPlayback.self, forKey: .clipField)).flatMap { $0.isDefault ? nil : $0 }
@@ -1342,7 +1356,7 @@ struct Element: Codable, Equatable, Identifiable {
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
         case clipField = "clip"
-        case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch
+        case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch, retouchFace, expandedFrom, mockupId
         case qrColor, qrBackground, qrMargin, qrDots, qrEyes, qrLogo, qrEc, barcodeText, qrForm
         case glyph
         case thickness, dash, startCap, endCap, capScale

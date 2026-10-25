@@ -147,6 +147,9 @@ final class PageSound {
     /// Main actor use only.
     private static var holders = 0
     private static var presenters = 0
+    /// Whether a presentation holds the phone's sound: what live captions
+    /// hand the sound back to as they stop (LiveCaptioner).
+    static var presentationHolds: Bool { presenters > 0 }
 
     /// How often each track's level follows its fades, in seconds; every
     /// tenth tick every player is checked against its clock.
@@ -343,9 +346,19 @@ final class PageSound {
     }
 
     /// The phone's sound: shared and silenced by the switch for Play, taken
-    /// for a presentation. Left alone while dictation has the microphone.
+    /// for a presentation. Left alone while dictation, a voice-over or live
+    /// captions have the microphone — live captions playing the sound beside
+    /// it, so the presentation still counts as holding it.
     private func takeSession() {
-        guard !holdsSession, !Dictation.shared.isListening, !VoiceRecorder.shared.isRecording else { return }
+        guard !holdsSession, !Dictation.shared.isListening, !VoiceRecorder.shared.isRecording,
+              !LiveCaptionFeed.listening else {
+            if !holdsSession, LiveCaptionFeed.listening {
+                holdsSession = true
+                PageSound.holders += 1
+                if presenting { PageSound.presenters += 1 }
+            }
+            return
+        }
         holdsSession = true
         PageSound.holders += 1
         if presenting { PageSound.presenters += 1 }
@@ -363,7 +376,7 @@ final class PageSound {
         if presenting { PageSound.presenters -= 1 }
         // Dictation or a voice-over took the session while this held it: it
         // is theirs now, and they let it go when they stop.
-        guard !Dictation.shared.isListening, !VoiceRecorder.shared.isRecording else { return }
+        guard !Dictation.shared.isListening, !VoiceRecorder.shared.isRecording, !LiveCaptionFeed.listening else { return }
         let session = AVAudioSession.sharedInstance()
         // Another still plays — Play started while Present faded out — so the
         // session stays, shared again once no presentation holds it.

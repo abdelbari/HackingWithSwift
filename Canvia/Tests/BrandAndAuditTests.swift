@@ -87,6 +87,30 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertEqual(packed.pages[0].elements[0].qrLogo?.hasPrefix("media:"), true)
     }
 
+    /// The Android twin's DesignPackageTest row: an expanded photo's
+    /// original, which Undo expand and Change fill go back to, travels with
+    /// the design and comes back re-pointed.
+    func testAnExpandedPhotosOriginalTravelsAndComesBackRepointed() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pkg-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try Data([0x89, 0x50, 0x4e, 0x47, 5]).write(to: dir.appendingPathComponent("big.png"))
+        try Data([0xff, 0xd8, 0xff, 0xe0, 6]).write(to: dir.appendingPathComponent("orig.jpg"))
+        var grown = Element.image("media:big")
+        let rect = CGRect(x: 0, y: 0.125, width: 1, height: 0.75)
+        grown.expandedFrom = PhotoExpand.Origin(src: "media:orig", rect: rect, mode: PhotoExpand.mirror)
+        var d = Design(title: "Grown", width: 400, height: 300)
+        d.pages[0].elements = [grown]
+        XCTAssertEqual(DesignPackage.mediaIDs(in: d), ["big", "orig"])
+        XCTAssertEqual(DesignLibrary.photos(in: [d]), ["big", "orig"])
+        let back = try DesignPackage.import(try DesignPackage.export(d, mediaDirectory: dir), mediaDirectory: dir)
+        let origin = try XCTUnwrap(back.pages[0].elements[0].expandedFrom)
+        XCTAssertTrue(origin.src.hasPrefix("media:") && origin.src != "media:orig", origin.src)
+        XCTAssertEqual(origin.rect, rect)
+        XCTAssertEqual(origin.mode, PhotoExpand.mirror)
+        XCTAssertEqual(try Data(contentsOf: dir.appendingPathComponent("\(origin.src.dropFirst(6)).jpg")), Data([0xff, 0xd8, 0xff, 0xe0, 6]))
+    }
+
     /// A design file exactly as the Android twin writes it — the same bytes
     /// its own tests pin (core/src/test/resources/android-package.canvia.json
     /// in canvacloneandroid). If either side changes the format, one of the two

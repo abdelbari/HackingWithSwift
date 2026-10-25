@@ -234,11 +234,12 @@ enum PhotoEffects {
 
     // MARK: drawing, in the filter engine's pass
 
-    /// The effects the filter engine draws into the picture itself: pixelate
-    /// (its block in the picture's pixels), focus, and the fx; the blur and
-    /// pixelate brushed on (`retouch`, each pixelate's block in `blocks`);
-    /// and the mask, while it has strokes.
+    /// The effects the filter engine draws into the picture itself: the
+    /// face retouch, pixelate (its block in the picture's pixels), focus,
+    /// and the fx; the blur and pixelate brushed on (`retouch`, each
+    /// pixelate's block in `blocks`); and the mask, while it has strokes.
     struct Plan: Hashable {
+        var faces: FaceRetouch?
         var block = 0
         var focus: FocusBlur?
         var fx: PhotoFx?
@@ -253,6 +254,7 @@ enum PhotoEffects {
         var signature: String {
             guard !isNone else { return "" }
             var out = block > 1 ? "|px\(block)" : ""
+            if let faces { out += "|fr\(faces.amount),\(faces.faces.hashValue)" }
             if let f = focus {
                 out += "|fo\(f.x),\(f.y),\(f.radius),\(f.amount)\(f.subject ? "s" : "")"
             }
@@ -273,7 +275,7 @@ enum PhotoEffects {
         let blocks = retouch.map { layer in
             layer.kind == RetouchLayer.pixelate ? blockPixels(el, picture: picture, pixelate: layer.share) : 0
         }
-        return Plan(block: block > 1 ? block : 0, focus: el.focusBlur.flatMap { $0.amount > 0 ? $0 : nil },
+        return Plan(faces: el.retouchFace.flatMap { $0.draws ? $0 : nil }, block: block > 1 ? block : 0, focus: el.focusBlur.flatMap { $0.amount > 0 ? $0 : nil },
                     fx: el.fx.flatMap { $0.draws ? $0 : nil }, retouch: retouch, blocks: blocks,
                     mask: el.mask.flatMap { $0.strokes.isEmpty ? nil : $0 })
     }
