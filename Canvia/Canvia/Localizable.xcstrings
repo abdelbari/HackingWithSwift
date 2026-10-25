@@ -150919,6 +150919,59 @@
         }
       }
     },
+    "Select a sticker or a graphic to give it an outline." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حدّد ملصقًا أو رسمًا لتمنحه حدًّا خارجيًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle einen Sticker oder eine Grafik aus, um ihm eine Kontur zu geben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a sticker or a graphic to give it an outline."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona un sticker o un gráfico para darle un contorno."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionnez un autocollant ou un graphique pour lui donner un contour."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleziona uno sticker o un elemento grafico per dargli un contorno."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステッカーかグラフィックを選択すると輪郭を付けられます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecione um adesivo ou um gráfico para dar a ele um contorno."
+          }
+        }
+      }
+    },
     "Select a table's cell to change its rows and columns." : {
       "extractionState" : "manual",
       "localizations" : {

@@ -26300,6 +26300,15 @@
     "ja": "ページ上の写真を選択すると置き換えられます。",
     "pt-BR": "Selecione uma foto na página para substituí-la."
   },
+  "Select a sticker or a graphic to give it an outline.": {
+    "ar": "حدّد ملصقًا أو رسمًا لتمنحه حدًّا خارجيًا.",
+    "de": "Wähle einen Sticker oder eine Grafik aus, um ihm eine Kontur zu geben.",
+    "es": "Selecciona un sticker o un gráfico para darle un contorno.",
+    "fr": "Sélectionnez un autocollant ou un graphique pour lui donner un contour.",
+    "it": "Seleziona uno sticker o un elemento grafico per dargli un contorno.",
+    "ja": "ステッカーかグラフィックを選択すると輪郭を付けられます。",
+    "pt-BR": "Selecione um adesivo ou um gráfico para dar a ele um contorno."
+  },
   "Select a table's cell to change its rows and columns.": {
     "ar": "حدّد خلية في جدول لتغيير صفوفه وأعمدته.",
     "de": "Wähle eine Tabellenzelle aus, um Zeilen und Spalten zu ändern.",
