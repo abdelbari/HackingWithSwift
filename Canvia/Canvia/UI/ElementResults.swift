@@ -6,24 +6,37 @@
 // — each its first eight, best first, with See all for the rest; and each
 // hit drawn as its own tab draws it. A tap is the sheet's to carry out, as
 // its own tab would. As the Android twin's ElementResults.
+//
+// The filter chips sit above them (ElementFilterChips); with the filters
+// leaving nothing, Clear filters puts every hit back.
 
 import SwiftUI
 
 struct ElementResults: View {
     let query: String
+    /// The brand kit's colours, offered after the colour filter's own.
+    var brandColours: [String] = []
     let onInsert: (ElementSearch.Hit) -> Void
     /// The section shown whole, after See all.
     @State private var all: ElementSearch.Shelf?
+    /// The chips' filters, as last chosen while the app runs.
+    @State private var filter = ElementSearch.sessionFilter
 
     var body: some View {
-        let hits = ElementSearch.results(query)
+        let found = ElementSearch.results(query)
+        let hits = ElementSearch.filtered(found, filter)
         let sections = ElementSearch.sections(hits)
         VStack(alignment: .leading, spacing: 8) {
-            if hits.isEmpty {
+            if !found.isEmpty {
+                ElementFilterChips(hits: found, brandColours: brandColours, filter: $filter)
+            }
+            if found.isEmpty {
                 Text(ElementSearch.nothingFound(query))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.top, 8)
+            } else if hits.isEmpty {
+                filteredOut
             } else if let open = all, let found = sections.first(where: { $0.section == open }) {
                 heading(open.title) {
                     Button("All results") { all = nil }
@@ -41,6 +54,23 @@ struct ElementResults: View {
         }
         .padding()
         .onChange(of: query) { all = nil }
+        .onChange(of: filter) {
+            all = nil
+            ElementSearch.sessionFilter = filter
+        }
+    }
+
+    /// The filters leave nothing: say so, and offer them all back.
+    private var filteredOut: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("No elements match these filters.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Button("Clear filters") { filter = ElementSearch.Filter() }
+                .font(.subheadline.weight(.semibold))
+                .tint(Theme.accent)
+        }
+        .padding(.top, 8)
     }
 
     /// A section's first eight, and See all when it has more.

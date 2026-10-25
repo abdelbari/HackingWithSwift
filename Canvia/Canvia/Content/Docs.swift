@@ -548,7 +548,12 @@ enum Docs {
             var picture = Element.image(src, w: width, h: (width * pictureRatio + 0.5).rounded(.down))
             picture.x = x
             picture.y = y
-            if let alt = first.alt?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty { picture.altText = alt }
+            // A description the document's picture came with goes with it
+            // (altTextSource), as on the Android twin (AltText.fromPicture).
+            if let alt = first.alt?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
+                picture.altText = alt
+                picture.altTextSource = src
+            }
             return [picture]
         case table:
             let (rows, header) = tableRows(first)
@@ -878,7 +883,10 @@ enum Docs {
             var pic = Element.image(src, w: 600, h: 600)
             pic.x = 1200
             pic.y = t.y + t.h + 48
-            if let alt = picture.alt?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty { pic.altText = alt }
+            if let alt = picture.alt?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
+                pic.altText = alt
+                pic.altTextSource = src
+            }
             els.append(pic)
         }
         return Page(elements: els)

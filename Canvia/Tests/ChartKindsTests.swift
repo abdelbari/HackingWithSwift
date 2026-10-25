@@ -30,7 +30,7 @@ final class ChartKindsTests: XCTestCase {
     // MARK: the new kinds
 
     func testTheNewKindsKeepTheirKeysLabelsAndOrder() {
-        let kinds = Array(DataGraphics.ChartKind.allCases.dropFirst(11))
+        let kinds = Array(DataGraphics.ChartKind.allCases.dropFirst(11).prefix(6))
         XCTAssertEqual(kinds.map(\.rawValue), ["radar", "bubble", "funnel", "pictogram", "heatmap", "progressDial"])
         XCTAssertEqual(kinds.map(\.name), ["Radar", "Bubble", "Funnel", "Pictogram", "Heat map", "Progress dial"])
         XCTAssertEqual(kinds.filter(\.hasScale), [.radar, .bubble])

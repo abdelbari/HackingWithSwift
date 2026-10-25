@@ -299,6 +299,10 @@ enum DataGraphics {
     enum ChartKind: String, CaseIterable, Identifiable {
         case column, bar, line, pie, donut, stackedColumn, stackedBar, area, progressRing, progressBar, scatter
         case radar, bubble, funnel, pictogram, heatmap, progressDial
+        /// Each stack as shares of 100 against a scale from 0 to 100%. A
+        /// build without them keeps the kind as written and offers no Edit
+        /// chart; the Android twin's lenient read draws them stacked.
+        case stackedColumn100, stackedBar100
         var id: String { rawValue }
         var name: String {
             switch self {
@@ -319,6 +323,8 @@ enum DataGraphics {
             case .pictogram: return tr("Pictogram")
             case .heatmap: return tr("Heat map")
             case .progressDial: return tr("Progress dial")
+            case .stackedColumn100: return tr("100% stacked column")
+            case .stackedBar100: return tr("100% stacked bar")
             }
         }
 
@@ -326,6 +332,7 @@ enum DataGraphics {
         var hasScale: Bool {
             switch self {
             case .column, .bar, .line, .stackedColumn, .stackedBar, .area, .scatter, .radar, .bubble: return true
+            case .stackedColumn100, .stackedBar100: return true
             case .pie, .donut, .progressRing, .progressBar, .funnel, .pictogram, .heatmap, .progressDial: return false
             }
         }
@@ -346,7 +353,19 @@ enum DataGraphics {
         var colourByRow: Bool { self == .pie || self == .donut || self == .funnel || self == .pictogram }
 
         /// Bars whose gap and far-end rounding (`gap`, `roundBars`) apply.
-        var hasBars: Bool { self == .column || self == .bar || self == .stackedColumn || self == .stackedBar }
+        var hasBars: Bool { self == .column || self == .bar || isStacked }
+
+        /// Stacks a row's values one on another: a stacked column or bar, or
+        /// one of 100%.
+        var isStacked: Bool { self == .stackedColumn || self == .stackedBar || isHundred }
+
+        /// Each stack normalised to 100 (normalisedStack).
+        var isHundred: Bool { self == .stackedColumn100 || self == .stackedBar100 }
+
+        /// Shows parts of a whole, so its values can read as shares
+        /// (`labelAs`): a pie's, donut's, funnel's or pictogram's rows of
+        /// their total, a stack's segments of the stack.
+        var isPartToWhole: Bool { colourByRow || isStacked }
 
         /// Drawn as a line whose weight and points (`lineWidth`, `points`)
         /// apply; a radar's outline takes its weight too.
@@ -465,6 +484,69 @@ enum DataGraphics {
     static func shareText(_ share: Double, _ spec: ChartSpec) -> String {
         guard let decimals = spec.decimals else { return "\(Int((share * 100).rounded()))%" }
         return fixed(share * 100, min(max(decimals, 0), 3)) + "%"
+    }
+
+    /// How a part-to-whole chart's values may read (`labelAs`), and where
+    /// its legend may sit (`legendAt`), in the order their pickers offer
+    /// them.
+    static let labelChoices = ["value", "percent", "both"]
+    static let legendPlaces = ["bottom", "top", "right"]
+
+    /// The share of a chart's width a legend down its right takes.
+    static let rightLegendShare = 0.28
+
+    /// A `labelAs` as kept: one of labelChoices, else nil.
+    static func keptLabelAs(_ raw: String) -> String? {
+        labelChoices.contains(raw) ? raw : nil
+    }
+
+    /// A `legendAt` as kept: "top" or "right"; "bottom", the default, and
+    /// anything this build does not know, nil.
+    static func keptLegendAt(_ raw: String) -> String? {
+        raw == "top" || raw == "right" ? raw : nil
+    }
+
+    /// How `spec`'s values read: its `labelAs` on a part-to-whole kind;
+    /// else, and on any other kind always, its kind's own — a pie's or a
+    /// donut's share, as they have always written it, anything else its
+    /// value. The rule the Android twin follows, in the shared rows.
+    static func labelAs(_ spec: ChartSpec) -> String {
+        guard let kind = ChartKind(rawValue: spec.kind) else { return "value" }
+        if kind.isPartToWhole, let set = spec.labelAs.flatMap(keptLabelAs) { return set }
+        return ownLabelAs(spec.kind)
+    }
+
+    /// How a chart of `kind` reads its values when it says nothing: a pie's
+    /// or a donut's share, any other kind's value.
+    static func ownLabelAs(_ kind: String) -> String {
+        kind == ChartKind.pie.rawValue || kind == ChartKind.donut.rawValue ? "percent" : "value"
+    }
+
+    /// A part's label as `spec` reads it (labelAs): `v` as formatValue
+    /// writes it, "$30"; its `share` of the whole, 0…1, as shareText does,
+    /// "25%"; or both, the value and then the share in brackets,
+    /// "$30 (25%)".
+    static func labelText(_ v: Double, share: Double, _ spec: ChartSpec) -> String {
+        switch labelAs(spec) {
+        case "percent": return shareText(share, spec)
+        case "both": return formatValue(v, spec) + " (" + shareText(share, spec) + ")"
+        default: return formatValue(v, spec)
+        }
+    }
+
+    /// What a stack adds up to as it is drawn: its values above 0, whose
+    /// shares its segments' labels say (the Android twin's wholeOf).
+    static func stackWhole(_ values: [Double]) -> Double {
+        values.reduce(0) { $0 + ($1 > 0 ? $1 : 0) }
+    }
+
+    /// A 100% stack's values: each over the sum of the stack's values above
+    /// 0, times 100. A value at or below 0 is 0, as a stack draws none, and
+    /// a stack with nothing above 0 is all 0s.
+    static func normalisedStack(_ values: [Double]) -> [Double] {
+        let sum = stackWhole(values)
+        guard sum > 0, sum.isFinite else { return values.map { _ in 0 } }
+        return values.map { $0 > 0 ? $0 / sum * 100 : 0 }
     }
 
     /// `a`, not negative, to exactly `decimals` places, halves away from
@@ -653,9 +735,11 @@ enum DataGraphics {
     /// "series:<n>". Every such part says what it shows for a screen reader
     /// (ChartSpeech.partLabel), kept as its alt text.
     ///
-    /// A legend takes a row along the bottom, value labels room above the
-    /// columns or beside the bars (a stack's total, a slice's share), and
-    /// gridlines go behind, at quarters. With all three off and one series,
+    /// A legend takes a row along the bottom — or the top, or 28% of the
+    /// width down the right, as its legendAt says — value labels room above
+    /// the columns or beside the bars (a stack's total, a slice's share, or
+    /// each segment's own as labelAs says), and gridlines go behind, at
+    /// quarters; a 100% stack's always, its scale 0 to 100. With all three off and one series,
     /// the five first kinds are exactly what they always were. Progress
     /// kinds read the first value, clamped to 0...100, and write it
     /// themselves, with no legend.
@@ -697,14 +781,23 @@ enum DataGraphics {
         let byItem = kind.colourByRow || (count == 1 && (kind == .column || kind == .bar))
         let faint = normalised(ink)
         let legendH = legend && kind.hasLegend ? labelSize * 1.6 : 0
+        // A legend in a row along the foot or the top, or stacked down the
+        // right in 28% of the width.
+        let legendAt = legendH > 0 ? (spec.legendAt.flatMap(keptLegendAt) ?? "bottom") : "bottom"
+        let legendW: Double = legendAt == "right" ? frame.width * rightLegendShare : 0
+        let legendRow: Double = legendW > 0 ? 0 : legendH
+        // A 100% stack's scale always has its lines.
+        let ruled = gridlines || kind.isHundred
         // An axis title takes a strip along the foot or up the left side.
         func titled(_ title: String?) -> Bool {
             kind.hasAxisTitles && !(title ?? "").trimmingCharacters(in: .whitespaces).isEmpty
         }
         let xTitleH: Double = titled(spec.xTitle) ? labelSize * 1.6 : 0
         let yTitleW: Double = titled(spec.yTitle) ? labelSize * 1.6 : 0
-        let plot = CGRect(x: frame.minX + yTitleW, y: frame.minY, width: frame.width - yTitleW,
-                          height: frame.height - legendH - xTitleH)
+        let plot = CGRect(x: frame.minX + yTitleW, y: frame.minY + (legendAt == "top" ? legendRow : 0),
+                          width: frame.width - yTitleW - legendW, height: frame.height - legendRow - xTitleH)
+        // A row's share of the whole, for a kind whose rows are its parts.
+        func partShare(_ v: Double) -> Double { total > 0 ? v / total : 0 }
 
         func paint(_ n: Int) -> Paint { colours[n] ?? .solid(colors[n % colors.count]) }
         func hex(_ n: Int) -> String { colours[n]?.primaryColor ?? colors[n % colors.count] }
@@ -741,8 +834,8 @@ enum DataGraphics {
             return t
         }
         /// A value's label beside the end of a bar, centred on its height.
-        func valueBeside(_ v: Double, end: Double, y: Double, h: Double, valueW: Double) -> Element {
-            var t = label(formatValue(v, spec), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3,
+        func valueBeside(_ v: Double, end: Double, y: Double, h: Double, valueW: Double, text: String? = .none) -> Element {
+            var t = label(text ?? formatValue(v, spec), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3,
                           align: "left", part: "value")
             t.y = y + (h - t.h) / 2
             return t
@@ -767,15 +860,25 @@ enum DataGraphics {
             out.corners = column ? [r, r, 0, 0] : [0, r, r, 0]
             return out
         }
-        func gridAcross(top: Double, plotH: Double) {
-            guard gridlines else { return }
+        /// A segment's label in the middle of `box`, in ink that reads on
+        /// colour `n`.
+        func inside(_ text: String, _ box: CGRect, on n: Int) -> Element {
+            var t = label(text, x: 0, y: 0, w: box.width, part: "value")
+            t.x = box.midX - t.w / 2
+            t.y = box.midY - t.h / 2
+            t.color = ColorTheory.readableInk(on: hex(n))
+            return t
+        }
+        func gridAcross(top: Double, plotH: Double, left: Double? = nil, width: Double? = nil) {
+            guard ruled else { return }
+            let x0 = left ?? Double(plot.minX), w0 = width ?? Double(plot.width)
             for g in 0...4 {
-                out.append(part(bar(w: plot.width.rounded(), h: 1, x: plot.minX.rounded(),
+                out.append(part(bar(w: w0.rounded(), h: 1, x: x0.rounded(),
                                     y: (top + plotH * Double(g) / 4).rounded(), fill: .solid(faint + "33")), "grid"))
             }
         }
         func gridDown(left: Double, plotW: Double, top: Double, plotH: Double) {
-            guard gridlines else { return }
+            guard ruled else { return }
             for g in 0...4 {
                 out.append(part(bar(w: 1, h: plotH.rounded(), x: (left + plotW * Double(g) / 4).rounded(),
                                     y: top.rounded(), fill: .solid(faint + "33")), "grid"))
@@ -871,7 +974,7 @@ enum DataGraphics {
             func at(_ i: Int, _ s: Double) -> CGPoint {
                 CGPoint(x: 50 + 50 * s * cos(angle(i)), y: 50 + 50 * s * sin(angle(i)))
             }
-            if gridlines {
+            if ruled {
                 for g in 1...4 {
                     let ring = polyline((0..<n).map { at($0, Double(g) / 4) }) + " Z"
                     var grid = shape(ring, x: box.minX, y: box.minY, w: box.width, h: box.height, fill: .solid("#00000000"))
@@ -925,7 +1028,7 @@ enum DataGraphics {
                     let path = "M\(num(50 - 50 * a)) 0 L\(num(50 + 50 * a)) 0 L\(num(50 + 50 * b)) 100 L\(num(50 - 50 * b)) 100 Z"
                     out.append(said(shape(path, x: left, y: top, w: plotW, h: bandH, fill: paint(i)), i, i))
                 }
-                var t = label(formatValue(firsts[i], spec), x: left, y: 0, w: plotW, part: "value")
+                var t = label(labelText(firsts[i], share: partShare(firsts[i]), spec), x: left, y: 0, w: plotW, part: "value")
                 // On the stage when it is wide enough for it, else in the labels' ink.
                 let inside = plotW * min(a, b) >= labelSize * 3
                 t.y = top + (bandH - t.h) / 2
@@ -943,7 +1046,8 @@ enum DataGraphics {
             let icon = IconLibrary.icon(spec.icon ?? defaultIcon) ?? IconLibrary.icon(defaultIcon)
             let outline = icon?.path ?? wedge(from: 0, sweep: 2 * .pi, inner: 0)
             let labelW: Double = min(plot.width * 0.28, labelSize * 9)
-            let valueW: Double = values ? labelSize * 4 : 0
+            // Room for its values beside the icons; more when each says its share too.
+            let valueW: Double = values ? labelSize * (labelAs(spec) == "both" ? 6 : 4) : 0
             let areaW: Double = plot.width - labelW - valueW
             let left: Double = plot.minX + labelW
             let slot: Double = plot.height / Double(rows.count)
@@ -966,7 +1070,10 @@ enum DataGraphics {
                         out.append(said(shape(cut, x: x, y: top, w: side, h: side, fill: paint(i)), i, i))
                     }
                 }
-                if values { out.append(valueBeside(firsts[i], end: left + areaW, y: top, h: side, valueW: valueW)) }
+                if values {
+                    out.append(valueBeside(firsts[i], end: left + areaW, y: top, h: side, valueW: valueW,
+                                           text: labelText(firsts[i], share: partShare(firsts[i]), spec)))
+                }
                 out.append(rowLabel(row.label, top: top, h: side, labelW: labelW))
             }
         }
@@ -1038,37 +1145,61 @@ enum DataGraphics {
         }
 
         switch kind {
-        case .column, .stackedColumn:
-            let stacked = kind == .stackedColumn
+        case .column, .stackedColumn, .stackedColumn100:
+            let stacked = kind.isStacked
+            // Each segment labelled in itself — a 100% stack's, or one that
+            // says its share — rather than the stack with its total above,
+            // as on the Android twin.
+            let shares = values && stacked && (kind.isHundred || labelAs(spec) != "value")
             let labelH: Double = labelSize * 1.6
-            let valueH: Double = values ? labelH : 0
+            let valueH: Double = values && !shares ? labelH : 0
+            // A 100% stack's scale is labelled up the left: 0% to 100%.
+            let tickW: Double = kind.isHundred ? labelSize * 2.5 : 0
+            let plotX: Double = plot.minX + tickW
+            let plotW: Double = plot.width - tickW
             let top: Double = plot.minY + valueH
             let plotH: Double = plot.height - labelH - valueH
             let base: Double = top + plotH
-            let slot: Double = plot.width / Double(rows.count)
+            let slot: Double = plotW / Double(rows.count)
             let barW: Double = slot * barShare
-            let range = axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
+            let range = kind.isHundred ? (low: 0.0, high: 100.0)
+                : axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
             // How far up the plot `v` stands, held to the scale.
             func up(_ v: Double) -> Double {
                 guard range.high > range.low else { return 0 }
                 return plotH * (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
             }
-            gridAcross(top: top, plotH: plotH)
+            gridAcross(top: top, plotH: plotH, left: plotX, width: plotW)
+            if kind.isHundred {
+                for g in 0...4 {
+                    var t = label("\(100 - 25 * g)%", x: plotX - tickW, y: 0, w: tickW - labelSize * 0.3, align: "right", part: "axis")
+                    t.y = top + plotH * Double(g) / 4 - t.h / 2
+                    out.append(t)
+                }
+            }
             for (i, row) in rows.enumerated() {
-                let left: Double = plot.minX + slot * Double(i) + (slot - barW) / 2
+                let left: Double = plotX + slot * Double(i) + (slot - barW) / 2
                 if stacked {
+                    let shown = kind.isHundred ? normalisedStack(row.values) : row.values
+                    let whole = stackWhole(row.values)
                     var below = 0.0
                     // Only the top segment of a stack has its end rounded.
-                    let last = row.values.lastIndex { $0 > 0 }
-                    for (j, v) in row.values.enumerated() where v > 0 && range.high > range.low {
+                    let last = shown.lastIndex { $0 > 0 }
+                    for (j, v) in shown.enumerated() where v > 0 && range.high > range.low {
                         let y0 = (base - up(below + v)).rounded()
                         let y1 = (base - up(below)).rounded()
                         let segment = bar(w: barW.rounded(), h: y1 - y0, x: left.rounded(), y: y0, fill: paint(j))
                         out.append(said(j == last ? farEnd(segment, column: true) : segment, j, i))
+                        // Its label in the middle of it, where it is tall enough to hold one.
+                        if shares && y1 - y0 >= labelSize * 1.25 {
+                            let raw = row.values[j]
+                            out.append(inside(labelText(raw, share: whole > 0 ? raw / whole : 0, spec),
+                                              segment.frame, on: j))
+                        }
                         below += v
                     }
                     let sum = row.values.reduce(0, +)
-                    if values {
+                    if values && !shares {
                         out.append(valueAbove(sum, cx: left + barW / 2, foot: base - up(sum), w: barW))
                     }
                 } else {
@@ -1083,37 +1214,57 @@ enum DataGraphics {
                         if values { out.append(valueAbove(v, cx: x + w / 2, foot: base - h, w: w)) }
                     }
                 }
-                out.append(label(row.label, x: plot.minX + slot * Double(i), y: base + labelSize * 0.3, w: slot))
+                out.append(label(row.label, x: plotX + slot * Double(i), y: base + labelSize * 0.3, w: slot))
             }
-        case .bar, .stackedBar:
-            let stacked = kind == .stackedBar
+        case .bar, .stackedBar, .stackedBar100:
+            let stacked = kind.isStacked
+            let shares = values && stacked && (kind.isHundred || labelAs(spec) != "value")
+            // A 100% stack's scale is labelled along the foot: 0% to 100%.
+            let tickH: Double = kind.isHundred ? labelSize * 1.6 : 0
+            let plotH: Double = plot.height - tickH
             let labelW: Double = min(plot.width * 0.28, labelSize * 9)
-            let valueW: Double = values ? labelSize * 4 : 0
+            let valueW: Double = values && !shares ? labelSize * 4 : 0
             let plotW: Double = plot.width - labelW - valueW
             let left: Double = plot.minX + labelW
-            let slot: Double = plot.height / Double(rows.count)
+            let slot: Double = plotH / Double(rows.count)
             let barH: Double = slot * barShare
-            let range = axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
+            let range = kind.isHundred ? (low: 0.0, high: 100.0)
+                : axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
             // How far along the plot `v` reaches, held to the scale.
             func along(_ v: Double) -> Double {
                 guard range.high > range.low else { return 0 }
                 return plotW * (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
             }
-            gridDown(left: left, plotW: plotW, top: Double(plot.minY), plotH: Double(plot.height))
+            gridDown(left: left, plotW: plotW, top: Double(plot.minY), plotH: plotH)
+            if kind.isHundred {
+                for g in 0...4 {
+                    var t = label("\(25 * g)%", x: 0, y: plot.minY + plotH + labelSize * 0.3, w: labelSize * 2.5, part: "axis")
+                    t.x = left + plotW * Double(g) / 4 - t.w / 2
+                    out.append(t)
+                }
+            }
             for (i, row) in rows.enumerated() {
                 let top: Double = (plot.minY + slot * Double(i) + (slot - barH) / 2).rounded()
                 if stacked {
+                    let shown = kind.isHundred ? normalisedStack(row.values) : row.values
+                    let whole = stackWhole(row.values)
                     var before = 0.0
-                    let last = row.values.lastIndex { $0 > 0 }
-                    for (j, v) in row.values.enumerated() where v > 0 && range.high > range.low {
+                    let last = shown.lastIndex { $0 > 0 }
+                    for (j, v) in shown.enumerated() where v > 0 && range.high > range.low {
                         let x0 = (left + along(before)).rounded()
                         let x1 = (left + along(before + v)).rounded()
                         let segment = bar(w: x1 - x0, h: barH.rounded(), x: x0, y: top, fill: paint(j))
                         out.append(said(j == last ? farEnd(segment, column: false) : segment, j, i))
+                        // Its label in the middle of it, where it is long enough to hold one.
+                        if shares && x1 - x0 >= labelSize * 3 {
+                            let raw = row.values[j]
+                            out.append(inside(labelText(raw, share: whole > 0 ? raw / whole : 0, spec),
+                                              segment.frame, on: j))
+                        }
                         before += v
                     }
                     let sum = row.values.reduce(0, +)
-                    if values {
+                    if values && !shares {
                         out.append(valueBeside(sum, end: left + along(sum), y: top, h: barH.rounded(), valueW: valueW))
                     }
                 } else {
@@ -1144,7 +1295,9 @@ enum DataGraphics {
                     // Halfway across the slice, in ink that reads on it.
                     let middle = start + sweep / 2
                     let reach = side / 2 * (inner > 0 ? (1 + inner) / 2 : 0.62)
-                    var t = label(shareText(v / total, spec), x: 0, y: 0, w: labelSize * 3, part: "value")
+                    let both = labelAs(spec) == "both"
+                    var t = label(labelText(v, share: v / total, spec), x: 0, y: 0, w: labelSize * (both ? 6 : 3),
+                                  part: "value")
                     t.x = plot.midX + reach * cos(middle) - t.w / 2
                     t.y = plot.midY + reach * sin(middle) - t.h / 2
                     t.color = ColorTheory.readableInk(on: hex(i))
@@ -1259,15 +1412,27 @@ enum DataGraphics {
             // What each colour is: the items' labels where each item has its
             // own, else the series' names — a swatch and a word each, across.
             let names = byItem ? rows.map(\.label) : data.names
-            let top: Double = frame.minY + frame.height - legendH
-            let slot: Double = frame.width / Double(names.count)
             let swatch = (labelSize * 0.8).rounded()
-            for (i, name) in names.enumerated() {
-                let x = frame.minX + slot * Double(i)
+            func entry(_ name: String, _ i: Int, x: Double, top: Double, w: Double) {
                 out.append(part(bar(w: swatch, h: swatch, x: x.rounded(), y: (top + (legendH - swatch) / 2).rounded(), fill: paint(i)), "legend"))
-                var t = label(name, x: x + swatch * 1.5, y: 0, w: slot - swatch * 1.5, align: "left", part: "legend")
+                var t = label(name, x: x + swatch * 1.5, y: 0, w: w - swatch * 1.5, align: "left", part: "legend")
                 t.y = top + (legendH - t.h) / 2
                 out.append(t)
+            }
+            if legendW > 0 {
+                // One under another down the right, the column centred on
+                // the frame's height.
+                let first: Double = max(frame.minY, frame.midY - legendH * Double(names.count) / 2)
+                for (i, name) in names.enumerated() {
+                    entry(name, i, x: frame.maxX - legendW + labelSize * 0.5, top: first + legendH * Double(i),
+                          w: legendW - labelSize * 0.5)
+                }
+            } else {
+                let top: Double = legendAt == "top" ? frame.minY : frame.minY + frame.height - legendH
+                let slot: Double = frame.width / Double(names.count)
+                for (i, name) in names.enumerated() {
+                    entry(name, i, x: frame.minX + slot * Double(i), top: top, w: slot)
+                }
             }
         }
         return out.map { var e = $0; e.group = group; return e }

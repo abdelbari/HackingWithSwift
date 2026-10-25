@@ -32,6 +32,9 @@ struct ContextToolbar: View {
     @State private var editingAlt = false
     @State private var editingCode = false
     @State private var altDraft = ""
+    /// What Suggest drafted, to tell alt text drawn from the picture from
+    /// alt text typed (Element.altTextSource).
+    @State private var altSuggested: String?
     @State private var editingLink = false
     @State private var linkDraft = ""
     @State private var namingStyle = false
@@ -1094,6 +1097,46 @@ struct ContextToolbar: View {
             }
             cornersMenu(el)
         }
+        // Any other straight-edged shape rounds its corners too, and a star
+        // counts its points, a polygon its sides (ShapeGeometry).
+        if let shaped = store.shapedSelection, shaped.id == el.id, let id = el.shapeId {
+            if ShapeGeometry.rounds(id) {
+                sliderControl("Corner rounding", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in
+                    store.updateSelectedTransient { $0.radius = v }
+                }
+            }
+            if let key = ShapeGeometry.countKey(id) { countStepper(key, el: el, id: id) }
+        }
+    }
+
+    /// A star's points or a polygon's sides, one more or one fewer a tap,
+    /// each a step named Shape; VoiceOver adjusts it up and down.
+    private func countStepper(_ key: String, el: Element, id: String) -> some View {
+        let n = Int(ShapeGeometry.value(id, el.shapeParams, key))
+        let range = ShapeGeometry.limits[key] ?? 3...12
+        let title = key == "points" ? tr("Points", context: "star") : tr("Sides")
+        return VStack(spacing: 2) {
+            HStack(spacing: 6) {
+                Button { store.setShapeParameter(key, to: Double(n - 1)) } label: { Image(systemName: "minus") }
+                    .disabled(Double(n) <= range.lowerBound)
+                Text(verbatim: "\(n)")
+                    .font(.body.monospacedDigit())
+                    .frame(minWidth: 24)
+                Button { store.setShapeParameter(key, to: Double(n + 1)) } label: { Image(systemName: "plus") }
+                    .disabled(Double(n) >= range.upperBound)
+            }
+            Text(title).font(Theme.controlLabel)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(Text(verbatim: "\(n)"))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: store.setShapeParameter(key, to: Double(n + 1))
+            case .decrement: store.setShapeParameter(key, to: Double(n - 1))
+            @unknown default: break
+            }
+        }
     }
 
     /// How wide a filled shape's border is — down to None, which takes it
@@ -1284,6 +1327,7 @@ struct ContextToolbar: View {
         }
         toolButton("text.below.photo", "Alt text") {
             altDraft = el.altText ?? ""
+            altSuggested = el.altTextSource == nil ? nil : el.altText
             editingAlt = true
         }
         .alert("Describe this picture", isPresented: $editingAlt) {
@@ -1291,12 +1335,17 @@ struct ContextToolbar: View {
             Button("Suggest") {
                 if let ui = PhotoLibrary.resolve(el.src), let draft = AltText.describe(ui) {
                     altDraft = draft
+                    altSuggested = draft
                 }
                 editingAlt = true
             }
             Button("Save") {
                 let text = altDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                store.updateSelected { $0.altText = text.isEmpty ? nil : text }
+                let drawn = !text.isEmpty && text == altSuggested
+                store.updateSelected { e in
+                    e.altText = text.isEmpty ? nil : text
+                    e.altTextSource = drawn ? e.src : nil
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {

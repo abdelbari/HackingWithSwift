@@ -139,6 +139,9 @@ final class DocsTests: XCTestCase {
         XCTAssertEqual(slides.pages[1].elements[0].text, "One")
         XCTAssertTrue(TextLists.isList(slides.pages[1].elements[1]))
         XCTAssertEqual(slides.pages[2].elements.last?.altText, "A photo")
+        // The description came with the picture: a picture put in its place
+        // takes it away (altTextSource).
+        XCTAssertEqual(slides.pages[2].elements.last?.altTextSource, "media:p")
         XCTAssertFalse(Docs.isDoc(slides))
     }
 

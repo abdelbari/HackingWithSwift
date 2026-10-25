@@ -3458,6 +3458,39 @@
       "other": "%d prontos"
     }
   },
+  "%d result|%d results": {
+    "ar": {
+      "few": "%d نتائج",
+      "many": "%d نتيجة",
+      "one": "نتيجة واحدة (%d)",
+      "other": "%d نتيجة",
+      "two": "نتيجتان (%d)",
+      "zero": "%d نتيجة"
+    },
+    "de": {
+      "one": "%d Ergebnis",
+      "other": "%d Ergebnisse"
+    },
+    "es": {
+      "one": "%d resultado",
+      "other": "%d resultados"
+    },
+    "fr": {
+      "one": "%d résultat",
+      "other": "%d résultats"
+    },
+    "it": {
+      "one": "%d risultato",
+      "other": "%d risultati"
+    },
+    "ja": {
+      "other": "%d 件の結果"
+    },
+    "pt-BR": {
+      "one": "%d resultado",
+      "other": "%d resultados"
+    }
+  },
   "%d row|%d rows": {
     "ar": {
       "few": "%d صفوف",
@@ -4294,6 +4327,24 @@
     "it": "1. Aggiungi dati",
     "ja": "1. データを追加",
     "pt-BR": "1. Adicionar dados"
+  },
+  "100% stacked bar": {
+    "ar": "أشرطة مكدسة 100%",
+    "de": "Gestapelte Balken (100 %)",
+    "es": "Barras apiladas al 100 %",
+    "fr": "Barres empilées à 100 %",
+    "it": "Barre in pila al 100%",
+    "ja": "100% 積み上げ横棒",
+    "pt-BR": "Barras empilhadas 100%"
+  },
+  "100% stacked column": {
+    "ar": "أعمدة مكدسة 100%",
+    "de": "Gestapelte Säulen (100 %)",
+    "es": "Columnas apiladas al 100 %",
+    "fr": "Colonnes empilées à 100 %",
+    "it": "Colonne in pila al 100%",
+    "ja": "100% 積み上げ縦棒",
+    "pt-BR": "Colunas empilhadas 100%"
   },
   "2 across": {
     "ar": "2 أفقيًا",
@@ -6497,6 +6548,15 @@
     "ja": "終点に矢印 →",
     "pt-BR": "Seta no final →"
   },
+  "Arrow head": {
+    "ar": "رأس السهم",
+    "de": "Pfeilspitze",
+    "es": "Punta de flecha",
+    "fr": "Pointe de la flèche",
+    "it": "Punta della freccia",
+    "ja": "矢じり",
+    "pt-BR": "Ponta da seta"
+  },
   "Arrow left": {
     "ar": "سهم لليسار",
     "de": "Pfeil nach links",
@@ -8438,6 +8498,15 @@
     "ja": "入力したデータからグラフや表を作成",
     "pt-BR": "Gráfico ou tabela a partir de dados digitados"
   },
+  "Charts": {
+    "ar": "المخططات",
+    "de": "Diagramme",
+    "es": "Gráficos",
+    "fr": "Graphiques",
+    "it": "Grafici",
+    "ja": "グラフ",
+    "pt-BR": "Gráficos"
+  },
   "Charts and tables": {
     "ar": "المخططات والجداول",
     "de": "Diagramme und Tabellen",
@@ -8644,6 +8713,15 @@
     "it": "Scegli foto o video",
     "ja": "写真または動画を選択",
     "pt-BR": "Escolher fotos ou vídeos"
+  },
+  "Choose the types of element to show": {
+    "ar": "اختر أنواع العناصر التي تظهر",
+    "de": "Wähle die Elementtypen, die angezeigt werden",
+    "es": "Elige los tipos de elemento que se muestran",
+    "fr": "Choisir les types d’éléments à afficher",
+    "it": "Scegli i tipi di elemento da mostrare",
+    "ja": "表示する素材の種類を選びます",
+    "pt-BR": "Escolha os tipos de elemento a mostrar"
   },
   "Choose…": {
     "ar": "اختيار…",
@@ -9577,6 +9655,15 @@
     "it": "Angolo",
     "ja": "角",
     "pt-BR": "Canto"
+  },
+  "Corner rounding": {
+    "ar": "تدوير الزوايا",
+    "de": "Eckenrundung",
+    "es": "Redondeo de esquinas",
+    "fr": "Arrondi des angles",
+    "it": "Arrotondamento angoli",
+    "ja": "角の丸み",
+    "pt-BR": "Arredondamento dos cantos"
   },
   "Corners": {
     "ar": "الزوايا",
@@ -12023,6 +12110,15 @@
     "ja": "描画",
     "pt-BR": "Desenhar"
   },
+  "Draw with stylus only": {
+    "ar": "الرسم بالقلم فقط",
+    "de": "Nur mit Stift zeichnen",
+    "es": "Dibujar solo con lápiz",
+    "fr": "Dessiner uniquement au stylet",
+    "it": "Disegna solo con la penna",
+    "ja": "スタイラスでのみ描く",
+    "pt-BR": "Desenhar só com a caneta"
+  },
   "Draw with your finger": {
     "ar": "ارسم بإصبعك",
     "de": "Mit dem Finger zeichnen",
@@ -13708,6 +13804,24 @@
     "it": "Pellicola",
     "ja": "フィルムストリップ",
     "pt-BR": "Tira de filme"
+  },
+  "Filter: %@, off": {
+    "ar": "عامل التصفية: %@، غير مفعّل",
+    "de": "Filter: %@, aus",
+    "es": "Filtro: %@, desactivado",
+    "fr": "Filtre : %@, désactivé",
+    "it": "Filtro: %@, non attivo",
+    "ja": "フィルター：%@、オフ",
+    "pt-BR": "Filtro: %@, desativado"
+  },
+  "Filter: %@, on": {
+    "ar": "عامل التصفية: %@، مفعّل",
+    "de": "Filter: %@, an",
+    "es": "Filtro: %@, activado",
+    "fr": "Filtre : %@, activé",
+    "it": "Filtro: %@, attivo",
+    "ja": "フィルター：%@、オン",
+    "pt-BR": "Filtro: %@, ativado"
   },
   "Filters": {
     "ar": "الفلاتر",
@@ -15917,6 +16031,15 @@
     "ja": "内側",
     "pt-BR": "Interna"
   },
+  "Inner radius": {
+    "ar": "نصف القطر الداخلي",
+    "de": "Innenradius",
+    "es": "Radio interior",
+    "fr": "Rayon intérieur",
+    "it": "Raggio interno",
+    "ja": "内側の半径",
+    "pt-BR": "Raio interno"
+  },
   "Instagram post (1080)": {
     "ar": "منشور Instagram (1080)",
     "de": "Instagram-Beitrag (1080)",
@@ -16424,6 +16547,15 @@
     "ja": "種類",
     "pt-BR": "Tipo"
   },
+  "Labels": {
+    "ar": "التسميات",
+    "de": "Beschriftungen",
+    "es": "Etiquetas",
+    "fr": "Étiquettes",
+    "it": "Etichette",
+    "ja": "ラベル",
+    "pt-BR": "Rótulos"
+  },
   "Landscape": {
     "ar": "أفقي",
     "de": "Querformat",
@@ -16612,6 +16744,15 @@
     "it": "Legenda",
     "ja": "凡例",
     "pt-BR": "Legenda"
+  },
+  "Legend position": {
+    "ar": "موضع وسيلة الإيضاح",
+    "de": "Position der Legende",
+    "es": "Posición de la leyenda",
+    "fr": "Position de la légende",
+    "it": "Posizione della legenda",
+    "ja": "凡例の位置",
+    "pt-BR": "Posição da legenda"
   },
   "Length": {
     "ar": "الطول",
@@ -19238,6 +19379,15 @@
     "ja": "以前のバージョンはまだありません。編集中は数分ごと、またエディタを閉じるたびに保存されます。",
     "pt-BR": "Ainda não há versões anteriores. Uma é salva a cada dois minutos enquanto você edita e sempre que você sai do editor."
   },
+  "No elements match these filters.": {
+    "ar": "لا توجد عناصر تطابق عوامل التصفية هذه.",
+    "de": "Keine Elemente entsprechen diesen Filtern.",
+    "es": "Ningún elemento coincide con estos filtros.",
+    "fr": "Aucun élément ne correspond à ces filtres.",
+    "it": "Nessun elemento corrisponde a questi filtri.",
+    "ja": "このフィルターに一致する素材はありません。",
+    "pt-BR": "Nenhum elemento corresponde a esses filtros."
+  },
   "No exit": {
     "ar": "بلا خروج",
     "de": "Kein Ausgang",
@@ -19768,6 +19918,15 @@
     "it": "Non usato in nessun design",
     "ja": "どのデザインでも使われていません",
     "pt-BR": "Não usado em nenhum design"
+  },
+  "Notch": {
+    "ar": "الشق",
+    "de": "Kerbe",
+    "es": "Muesca",
+    "fr": "Encoche",
+    "it": "Tacca",
+    "ja": "切り込み",
+    "pt-BR": "Entalhe"
   },
   "Notes": {
     "ar": "الملاحظات",
@@ -20434,6 +20593,15 @@
     "it": "Un dito disegna, due spostano la pagina",
     "ja": "1 本指で描画、2 本指でページを移動",
     "pt-BR": "Um dedo desenha, dois movem a página"
+  },
+  "One finger moves the page": {
+    "ar": "إصبع واحد يحرّك الصفحة",
+    "de": "Ein Finger verschiebt die Seite",
+    "es": "Un dedo mueve la página",
+    "fr": "Un doigt déplace la page",
+    "it": "Un dito sposta la pagina",
+    "ja": "1本指でページを動かします",
+    "pt-BR": "Um dedo move a página"
   },
   "One of each": {
     "ar": "واحد من كلٍّ",
@@ -21665,6 +21833,15 @@
     "ja": "サイズに対する割合（%d～%d）",
     "pt-BR": "Porcentagem do tamanho, de %d a %d"
   },
+  "Percentage": {
+    "ar": "النسبة المئوية",
+    "de": "Prozentsatz",
+    "es": "Porcentaje",
+    "fr": "Pourcentage",
+    "it": "Percentuale",
+    "ja": "パーセンテージ",
+    "pt-BR": "Porcentagem"
+  },
   "Personal": {
     "ar": "شخصي",
     "de": "Persönlich",
@@ -22376,6 +22553,15 @@
     "ja": "点",
     "pt-BR": "Pontos"
   },
+  "Points\u0004star": {
+    "ar": "الرؤوس",
+    "de": "Zacken",
+    "es": "Puntas",
+    "fr": "Branches",
+    "it": "Punte",
+    "ja": "頂点の数",
+    "pt-BR": "Pontas"
+  },
   "Polaroid": {
     "ar": "بولارويد",
     "de": "Polaroid",
@@ -22591,6 +22777,15 @@
     "it": "Tieni premuto per indicare sullo schermo",
     "ja": "長押しで画面を指し示します",
     "pt-BR": "Toque e segure para apontar para a tela"
+  },
+  "Pressure": {
+    "ar": "الضغط",
+    "de": "Druck",
+    "es": "Presión",
+    "fr": "Pression",
+    "it": "Pressione",
+    "ja": "筆圧",
+    "pt-BR": "Pressão"
   },
   "Preview": {
     "ar": "معاينة",
@@ -23677,6 +23872,15 @@
     "it": "Sostituisci %@ con",
     "ja": "%@ の置き換え先",
     "pt-BR": "Substituir %@ por"
+  },
+  "Replace %@ with this": {
+    "ar": "استبدال %@ بهذا",
+    "de": "%@ hierdurch ersetzen",
+    "es": "Reemplazar %@ por esto",
+    "fr": "Remplacer %@ par ceci",
+    "it": "Sostituisci %@ con questo",
+    "ja": "%@ をこれに置き換える",
+    "pt-BR": "Substituir %@ por isto"
   },
   "Replace all": {
     "ar": "استبدال الكل",
@@ -26405,6 +26609,15 @@
     "ja": "色をシャッフル",
     "pt-BR": "Embaralhar cores"
   },
+  "Sides": {
+    "ar": "الأضلاع",
+    "de": "Seiten",
+    "es": "Lados",
+    "fr": "Côtés",
+    "it": "Lati",
+    "ja": "辺の数",
+    "pt-BR": "Lados"
+  },
   "Single page": {
     "ar": "صفحة واحدة",
     "de": "Einzelne Seite",
@@ -27434,6 +27647,15 @@
     "ja": "開始位置 %@",
     "pt-BR": "Começa em %@"
   },
+  "Static": {
+    "ar": "ثابت",
+    "de": "Statisch",
+    "es": "Estático",
+    "fr": "Statique",
+    "it": "Statico",
+    "ja": "静止",
+    "pt-BR": "Estático"
+  },
   "Steel": {
     "ar": "فولاذ",
     "de": "Stahl",
@@ -27971,6 +28193,15 @@
     "ja": "表のデザイン",
     "pt-BR": "Estilos de tabela"
   },
+  "Tables": {
+    "ar": "الجداول",
+    "de": "Tabellen",
+    "es": "Tablas",
+    "fr": "Tableaux",
+    "it": "Tabelle",
+    "ja": "表",
+    "pt-BR": "Tabelas"
+  },
   "Tablet": {
     "ar": "جهاز لوحي",
     "de": "Tablet",
@@ -28006,6 +28237,15 @@
     "it": "Taggato per lettori di schermo",
     "ja": "スクリーンリーダー用タグ付き",
     "pt-BR": "Marcado para leitores de tela"
+  },
+  "Tail": {
+    "ar": "الذيل",
+    "de": "Spitze",
+    "es": "Cola",
+    "fr": "Pointe",
+    "it": "Coda",
+    "ja": "しっぽ",
+    "pt-BR": "Cauda"
   },
   "Take %@ out of the brand templates": {
     "ar": "إخراج %@ من قوالب العلامة التجارية",
@@ -28828,6 +29068,15 @@
     "it": "I livelli sono in un ordine diverso da quello di lettura della pagina",
     "ja": "レイヤーの順序がページの読み順と異なります",
     "pt-BR": "As camadas estão em uma ordem diferente da ordem de leitura da página"
+  },
+  "The line swells and thins with your stylus's pressure, or your finger's speed": {
+    "ar": "يزداد الخط سُمكًا ويرقّ مع ضغط القلم أو سرعة الإصبع",
+    "de": "Die Linie wird mit dem Druck des Stifts oder der Geschwindigkeit des Fingers dicker und dünner",
+    "es": "La línea se ensancha y se afina con la presión del lápiz o la velocidad del dedo",
+    "fr": "Le trait s’épaissit et s’affine selon la pression du stylet ou la vitesse du doigt",
+    "it": "La linea si ingrossa e si assottiglia con la pressione della penna o la velocità del dito",
+    "ja": "スタイラスの筆圧や指の速さで線が太くなったり細くなったりします",
+    "pt-BR": "A linha engrossa e afina com a pressão da caneta ou a velocidade do dedo"
   },
   "The locked one stays as it is.": {
     "ar": "يبقى المقفل كما هو.",
@@ -30350,6 +30599,15 @@
     "ja": "種類",
     "pt-BR": "Tipo"
   },
+  "Type\u0004element kind": {
+    "ar": "النوع",
+    "de": "Typ",
+    "es": "Tipo",
+    "fr": "Type",
+    "it": "Tipo",
+    "ja": "種類",
+    "pt-BR": "Tipo"
+  },
   "Type '/' for blocks": {
     "ar": "اكتب «/» للكتل",
     "de": "„/“ tippen für Blöcke",
@@ -31198,6 +31456,15 @@
     "it": "Valle",
     "ja": "谷",
     "pt-BR": "Vale"
+  },
+  "Value": {
+    "ar": "القيمة",
+    "de": "Wert",
+    "es": "Valor",
+    "fr": "Valeur",
+    "it": "Valore",
+    "ja": "値",
+    "pt-BR": "Valor"
   },
   "Values": {
     "ar": "القيم",
@@ -32161,6 +32428,15 @@
     "it": "Il tuo post è pronto da condividere.",
     "ja": "投稿を共有する準備ができました。",
     "pt-BR": "Sua publicação está pronta para compartilhar."
+  },
+  "Your stylus draws, one finger moves the page": {
+    "ar": "القلم يرسم وإصبع واحد يحرّك الصفحة",
+    "de": "Der Stift zeichnet, ein Finger verschiebt die Seite",
+    "es": "El lápiz dibuja; un dedo mueve la página",
+    "fr": "Le stylet dessine, un doigt déplace la page",
+    "it": "La penna disegna, un dito sposta la pagina",
+    "ja": "スタイラスで描き、1本指でページを動かします",
+    "pt-BR": "A caneta desenha; um dedo move a página"
   },
   "Your templates": {
     "ar": "قوالبك",

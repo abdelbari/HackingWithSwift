@@ -6,6 +6,13 @@
 // single undo step. Points are thinned and then smoothed with quadratic
 // curves through the midpoints, which takes the sawtooth out of raw touch
 // samples without pulling the line off the finger.
+//
+// With Pressure on for the pen, each sample also keeps how wide the line is
+// there — 0.35 to 1 of the pen's width, from how hard a Pencil presses or,
+// for a finger, how fast it moves — as the stroke's `widths`, one for each
+// sample the curve passes. Such a stroke is drawn as a filled outline
+// (outline) rather than a stroked line; a build without it draws the line
+// at its one width from the same path data.
 
 import CoreGraphics
 import Foundation
@@ -61,7 +68,143 @@ enum Freehand {
         /// The eraser takes whole strokes rather than the part it passes
         /// over.
         var eraseWhole = false
+        /// The pens whose strokes thin and thicken with pressure or speed,
+        /// each pen's own switch, kept on this phone (pressureKey) as the
+        /// Android twin keeps it.
+        var pressurePens: Set<Pen> = Freehand.savedPressurePens()
+
+        /// Whether this pen's strokes do.
+        var pressure: Bool { pen.hasInk && pressurePens.contains(pen) }
     }
+
+    // MARK: pressure
+
+    /// The settings key the pens drawing with pressure are kept under, on
+    /// this phone: their raw values.
+    static let pressureKey = "drawPressurePens"
+
+    /// The pens drawing with pressure, as kept.
+    static func savedPressurePens() -> Set<Pen> {
+        Set((UserDefaults.standard.stringArray(forKey: pressureKey) ?? []).compactMap { Pen(rawValue: $0) })
+    }
+
+    /// `pens` kept as the ones drawing with pressure.
+    static func savePressurePens(_ pens: Set<Pen>) {
+        UserDefaults.standard.set(pens.map(\.rawValue).sorted(), forKey: pressureKey)
+    }
+
+    /// The thinnest a pressure stroke gets, as a share of the pen's width.
+    static let minWidthFactor = 0.35
+    /// The speed, in page units a second, at which a finger's stroke is as
+    /// thin as it gets.
+    static let fastSpeed = 2000.0
+
+    /// How wide the line is where a Pencil presses with `pressure`, 0…1 of
+    /// its full force: 0.35 at none (its lightest touch), the whole width at
+    /// full, in a straight line between — to the hundredth, as both phones
+    /// keep it (freehand-pressure.json).
+    static func pressureFactor(_ pressure: Double) -> Double {
+        let p = pressure.isFinite ? min(max(pressure, 0), 1) : 1
+        return rounded(minWidthFactor + (1 - minWidthFactor) * p)
+    }
+
+    /// How wide the line is where a finger moves at `speed`, page units a
+    /// second, with no pressure to read: the whole width standing still,
+    /// thinning in a straight line to 0.35 at fastSpeed and beyond.
+    static func speedFactor(_ speed: Double) -> Double {
+        let v = speed.isFinite ? min(max(speed, 0), fastSpeed) : fastSpeed
+        return rounded(1 - (1 - minWidthFactor) * v / fastSpeed)
+    }
+
+    private static func rounded(_ v: Double) -> Double { (v * 100).rounded() / 100 }
+
+    /// The indices of the points `thinned` keeps.
+    static func thinnedIndices(_ points: [CGPoint], minDistance: Double = 2) -> [Int] {
+        var out: [Int] = []
+        for (i, p) in points.enumerated() {
+            if let k = out.last, hypot(p.x - points[k].x, p.y - points[k].y) < minDistance { continue }
+            out.append(i)
+        }
+        return out
+    }
+
+    /// The samples a stroke's path data passes, in its 0…100 box: its start,
+    /// each curve's control but the last, and the last curve's end — one
+    /// for each of its `widths`.
+    static func samples(_ pathData: String) -> [CGPoint] {
+        let n = pathNumbers(pathData)
+        guard n.count >= 2 else { return [] }
+        var out = [CGPoint(x: n[0], y: n[1])]
+        var i = 2
+        while i + 3 < n.count {
+            out.append(i + 7 < n.count ? CGPoint(x: n[i], y: n[i + 1]) : CGPoint(x: n[i + 2], y: n[i + 3]))
+            i += 4
+        }
+        return out
+    }
+
+    /// A pressure stroke's outline in its own box, as path data at its
+    /// size: nil for a stroke drawn at one width, or whose widths do not
+    /// match its samples.
+    static func outline(_ el: Element) -> String? {
+        guard isStroke(el), let widths = el.widths, !widths.isEmpty, let data = el.pathData else { return nil }
+        let points = samples(data).map { CGPoint(x: Double($0.x) / 100 * el.w, y: Double($0.y) / 100 * el.h) }
+        guard points.count == widths.count || (widths.count == 1 && points.count == 2 && points[0] == points[1]) else {
+            return nil
+        }
+        guard let width = el.strokeWidth else { return nil }
+        let radii = widths.map { width * min(max($0, minWidthFactor), 1) / 2 }
+        return outlinePath(widths.count == 1 ? [points[0]] : points, radii: radii)
+    }
+
+    /// The outline of a line through `points`, `radii[i]` from it at each:
+    /// the left edge (each point moved out along the normal to the line
+    /// there, the left of its way on the page) smoothed as the line is
+    /// (segments: through the midpoints, straight to the last), a round
+    /// cap at the end — a half circle round to the right edge — that edge
+    /// back the same way, and a round cap at the start. One point is a
+    /// circle. The rows are shared with the Android twin
+    /// (freehand-pressure.json).
+    static func outlinePath(_ points: [CGPoint], radii: [Double]) -> String {
+        let n = min(points.count, radii.count)
+        guard n > 0 else { return "" }
+        func pt(_ p: CGPoint) -> String { "\(num(Double(p.x))) \(num(Double(p.y)))" }
+        if n == 1 {
+            let c = points[0], r = radii[0]
+            let a = CGPoint(x: Double(c.x) - r, y: Double(c.y)), b = CGPoint(x: Double(c.x) + r, y: Double(c.y))
+            let arc = "A\(num(r)) \(num(r)) 0 1 1 "
+            return "M\(pt(a))\(arc)\(pt(b))\(arc)\(pt(a))Z"
+        }
+        var left: [CGPoint] = [], right: [CGPoint] = []
+        var normal = (x: 0.0, y: -1.0)
+        for i in 0..<n {
+            let a = points[max(i - 1, 0)], b = points[min(i + 1, n - 1)]
+            let tx = Double(b.x - a.x), ty = Double(b.y - a.y)
+            let length = hypot(tx, ty)
+            if length > 0 { normal = (x: ty / length, y: -tx / length) }
+            let p = points[i], r = radii[i]
+            left.append(CGPoint(x: Double(p.x) + normal.x * r, y: Double(p.y) + normal.y * r))
+            right.append(CGPoint(x: Double(p.x) - normal.x * r, y: Double(p.y) - normal.y * r))
+        }
+        /// The curves through `edge` after its first point, as segments
+        /// lays them.
+        func through(_ edge: [CGPoint]) -> String {
+            var d = ""
+            if edge.count > 2 {
+                for i in 1..<(edge.count - 1) {
+                    let mid = CGPoint(x: (edge[i].x + edge[i + 1].x) / 2, y: (edge[i].y + edge[i + 1].y) / 2)
+                    d += "Q\(pt(edge[i])) \(pt(mid))"
+                }
+            }
+            return d + "L\(pt(edge[edge.count - 1]))"
+        }
+        let back = Array(right.reversed())
+        let end = radii[n - 1], start = radii[0]
+        return "M\(pt(left[0]))" + through(left)
+            + "A\(num(end)) \(num(end)) 0 0 1 \(pt(right[n - 1]))" + through(back)
+            + "A\(num(start)) \(num(start)) 0 0 1 \(pt(left[0]))Z"
+    }
+
 
     /// How see-through a highlighter's ink is, as the two hex digits added
     /// to it.
@@ -274,11 +417,26 @@ enum Freehand {
         return laid(e, along: raw)
     }
 
+    /// The element for a stroke whose samples `raw` each have a width
+    /// factor in `widths`: as `element`, and, with Pressure on for the pen,
+    /// the factors of the samples kept as its `widths`.
+    static func element(points raw: [CGPoint], widths: [Double], tool: Tool) -> Element? {
+        guard tool.pressure, widths.count == raw.count, let e = element(points: raw, tool: tool) else {
+            return element(points: raw, tool: tool)
+        }
+        return laid(e, along: raw, factors: widths)
+    }
+
     /// `base` — its ink, width, opacity, blend, glow and group — drawn
     /// along `raw` (page units): placed in the stroke's padded bounds,
-    /// upright and unflipped, with the curve normalised into its box.
-    static func laid(_ base: Element, along raw: [CGPoint]) -> Element? {
-        let points = thinned(raw)
+    /// upright and unflipped, with the curve normalised into its box. With
+    /// `factors`, one a point, its `widths` are the factors of the points
+    /// its path keeps — thinned in page units, then again in its box as
+    /// pathData thins them — to the hundredth, as the Android twin's
+    /// Freehand.built keeps them; without, none.
+    static func laid(_ base: Element, along raw: [CGPoint], factors: [Double]? = nil) -> Element? {
+        let keptAt = thinnedIndices(raw)
+        let points = keptAt.map { raw[$0] }
         guard let box = bounds(of: points, width: base.strokeWidth ?? 0) else { return nil }
         let unit = points.map { p in
             CGPoint(x: (p.x - box.minX) / box.width * 100, y: (p.y - box.minY) / box.height * 100)
@@ -292,7 +450,32 @@ enum Freehand {
         e.flipH = false
         e.flipV = false
         e.pathData = pathData(unit)
+        if let factors, factors.count == raw.count {
+            let widths = thinnedIndices(unit).map { rounded(factors[keptAt[$0]]) }
+            e.widths = widths.isEmpty ? nil : widths
+        } else {
+            e.widths = nil
+        }
         return e
+    }
+
+    /// Each coordinate pair of a pressure stroke's path its width factor, as
+    /// pagePoints lists the pairs: the start's, each control's its
+    /// sample's, each curve's end between its two samples' — as the Android
+    /// twin's pairFactors. Nil for a stroke at one width.
+    private static func pairFactors(_ el: Element) -> [Double]? {
+        guard let data = el.pathData, let w = el.widths, !w.isEmpty else { return nil }
+        let passed = samples(data)
+        guard passed.count == w.count || (w.count == 1 && passed.count == 2 && passed[0] == passed[1]) else { return nil }
+        let pairs = pathNumbers(data).count / 2
+        if w.count == 1 { return Array(repeating: w[0], count: pairs) }
+        if (pairs - 1) / 2 <= 1 { return Array([w[0], (w[0] + w[1]) / 2, w[1]].prefix(pairs)) }
+        return (0..<pairs).map { i in
+            if i == 0 { return w[0] }
+            if i % 2 == 1 { return w[(i + 1) / 2] }
+            let k = i / 2
+            return k + 1 < w.count ? (w[k] + w[k + 1]) / 2 : w[k]
+        }
     }
 
     /// One stroke the eraser cut: its id, and what is left of it — none
@@ -307,8 +490,9 @@ enum Freehand {
     /// `radius` of the path are taken out, and every run of at least two
     /// points left becomes a stroke of its own — a new id, the same ink,
     /// width, opacity, blend, glow and group — laid along them as a stroke
-    /// is drawn. Strokes in drawing order, locked and hidden ones never;
-    /// one that loses no point is not cut.
+    /// is drawn; a pressure stroke's pieces keep the widths of the points
+    /// they keep, as on the Android twin. Strokes in drawing order, locked
+    /// and hidden ones never; one that loses no point is not cut.
     static func erasedPartially(_ elements: [Element], path: [CGPoint], radius: Double) -> [Cut] {
         guard !path.isEmpty else { return [] }
         let sweep: [CGPoint] = path.count == 1 ? [path[0], path[0]] : path
@@ -319,18 +503,19 @@ enum Freehand {
                 (0..<(sweep.count - 1)).contains { distance(p, sweep[$0], sweep[$0 + 1]) <= radius }
             }
             guard gone.contains(true) else { continue }
-            var runs: [[CGPoint]] = [[]]
-            for (p, out) in zip(points, gone) {
+            let factors = pairFactors(el).flatMap { $0.count == points.count ? $0 : nil }
+            var runs: [[Int]] = [[]]
+            for (i, out) in gone.enumerated() {
                 if out {
                     if !(runs.last?.isEmpty ?? true) { runs.append([]) }
                 } else {
-                    runs[runs.count - 1].append(p)
+                    runs[runs.count - 1].append(i)
                 }
             }
             let pieces: [Element] = runs.filter { $0.count >= 2 }.compactMap { run in
                 var base = el
                 base.id = UID.make()
-                return laid(base, along: run)
+                return laid(base, along: run.map { points[$0] }, factors: factors.map { f in run.map { f[$0] } })
             }
             cuts.append(Cut(id: el.id, pieces: pieces))
         }

@@ -355,6 +355,9 @@ final class PptxExporterTests: XCTestCase {
         switch form {
         case .text: return "text"
         case .shape: return "shape"
+        // Built geometry is a shape, as on the Android twin: a preset where
+        // one matches, else free-form.
+        case .geometry: return "shape"
         case .line: return "line"
         case .picture: return "picture"
         case .code: return "code"
@@ -399,7 +402,9 @@ final class PptxExporterTests: XCTestCase {
             (with(rect) { $0.fill = gradient; $0.fill?.gradientKind = "radial" }, "picture"),
             (with(rect) { $0.fill = .image("asset:x") }, "picture"),
             (with(rect) { $0.corners = [8, 0, 0, 8] }, "picture"),
-            (Element.shape("star-5"), "picture"),
+            (Element.shape("star-5"), "shape"),
+            (Element.shape("triangle"), "shape"),
+            (Element.shape("heart"), "picture"),
             (with(rect) { $0.text = "Buy" }, "picture"),
             (with(rect) { $0.pathData = "M0,0L100,100" }, "picture"),
             (with(rect) { $0.chartPart = "series:0" }, "picture"),

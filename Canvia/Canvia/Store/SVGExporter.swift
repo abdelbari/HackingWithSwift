@@ -337,6 +337,11 @@ enum SVGExporter {
         if el.fill?.kind == "gradient", el.fill?.gradientKind == "angular" {
             return bitmapMarkup(el)
         }
+        // A pressure stroke is its outline, filled in its ink.
+        if let outline = Freehand.outline(el) {
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
+                   "<path d=\"\(outline)\" fill=\"\(escape(el.stroke ?? "#1f2430"))\"/></g>"
+        }
         // At the element's own size, placed at its corner: the library draws
         // in a 100-unit box, and scaling that box onto the element in the
         // file would stretch the outline with it — a non-scaling stroke is no
@@ -344,7 +349,11 @@ enum SVGExporter {
         // and a program that ignores it stretches the width by the box.
         let definition = ContentLibrary.shape(for: el)
         let d: String
-        if definition.rectLike == true, let corners = el.corners, corners.count == 4,
+        if let built = ShapeGeometry.outline(el) {
+            // Rounded or shaped (ShapeGeometry): the canvas's own outline,
+            // its arcs as arcs.
+            d = built
+        } else if definition.rectLike == true, let corners = el.corners, corners.count == 4,
            corners.contains(where: { $0 > 0 }), el.w > 0, el.h > 0 {
             // Per-corner radii: the exact path, at the element's size.
             let path = LibraryShape.roundedRect(CGRect(x: 0, y: 0, width: el.w, height: el.h), corners: corners)

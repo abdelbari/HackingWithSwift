@@ -1,0 +1,42 @@
+{
+"about":"Round 34: chart labels and 100% stacks as both phones write them (DataGraphics.labelText, normalised / normalisedStack, the chart JSON). labels: a part's label for a chart of kind with its labelAs, decimals and prefix (absent: none set), its value and its share of its whole (0...1). Only a part-to-whole kind (pie, donut, funnel, pictogram, the stacked kinds) says anything but its value; one with no labelAs says its kind's own - a pie's or donut's share, as it always did, every other kind's value. A share is shareText: a whole percentage, halves away from zero, or to the decimals. Both is the value, a space and the share in brackets. A stack's segment's share is of the stack's values above 0. normalised: a 100% stack's values, each over the sum of those above 0, times 100; a value at or below 0 is 0, and a stack with nothing above 0 is all 0. json: the labelAs and legendAt a chart writes (null: not written) - labelAs only when it is not its kind's own, legendAt only when it is not bottom. Drawn, a 100% stack labels each segment in itself (its value, its share or both, as labelAs says) where it is at least 1.25 labels tall (a column's) or 3 labels long (a bar's), never a total above the stack and no strip kept for one, and its scale 0% to 100% at quarters - up the left in 2.5 labels' width for columns, along the foot in a 1.6 labels' strip for bars - with gridlines always on; a stacked chart whose labelAs is percent or both does the same in its segments. A pie's or donut's label with both is 6 labels wide, a pictogram's value column with both 6 labels (else 4).",
+"labels":[
+{"kind":"pie","value":30,"share":0.25,"text":"25%"},
+{"kind":"pie","value":3,"share":0.75,"text":"75%"},
+{"kind":"pie","labelAs":"value","value":30,"share":0.25,"text":"30"},
+{"kind":"pie","labelAs":"both","value":30,"share":0.25,"text":"30 (25%)"},
+{"kind":"donut","labelAs":"percent","decimals":0,"value":2,"share":0.125,"text":"13%"},
+{"kind":"donut","labelAs":"both","value":3,"share":0.75,"text":"3 (75%)"},
+{"kind":"funnel","value":30,"share":0.25,"text":"30"},
+{"kind":"funnel","labelAs":"percent","value":2,"share":0.125,"text":"13%"},
+{"kind":"pictogram","labelAs":"value","prefix":"$","value":5,"share":0.5,"text":"$5"},
+{"kind":"pictogram","labelAs":"both","prefix":"$","value":30,"share":0.25,"text":"$30 (25%)"},
+{"kind":"column","labelAs":"percent","value":30,"share":0.25,"text":"30"},
+{"kind":"line","labelAs":"both","value":12.5,"share":0.5,"text":"12.5"},
+{"kind":"stackedColumn","value":30,"share":0.25,"text":"30"},
+{"kind":"stackedColumn","labelAs":"percent","decimals":1,"value":1,"share":0.3333333333333333,"text":"33.3%"},
+{"kind":"stackedBar100","labelAs":"both","decimals":2,"value":12.5,"share":0.5,"text":"12.50 (50.00%)"},
+{"kind":"stackedBar100","labelAs":"both","decimals":1,"value":2,"share":0.6666666666666666,"text":"2.0 (66.7%)"},
+{"kind":"stackedColumn100","prefix":"$","value":5,"share":0.5,"text":"$5"},
+{"kind":"stackedColumn100","value":2,"share":0.5,"text":"2"}
+],
+"normalised":[
+{"stack":[1,3],"out":[25,75]},
+{"stack":[2,2],"out":[50,50]},
+{"stack":[1,1,2],"out":[25,25,50]},
+{"stack":[1,2],"out":[33.333333333333336,66.66666666666667]},
+{"stack":[3],"out":[100]},
+{"stack":[0,5,0],"out":[0,100,0]},
+{"stack":[2,-1,2],"out":[50,0,50]},
+{"stack":[0,0],"out":[0,0]},
+{"stack":[-2,-1],"out":[0,0]},
+{"stack":[],"out":[]}
+],
+"json":[
+{"kind":"pie","labelAs":"percent","legendAt":"bottom","writes":{"labelAs":null,"legendAt":null}},
+{"kind":"pie","labelAs":"value","legendAt":"top","writes":{"labelAs":"value","legendAt":"top"}},
+{"kind":"column","labelAs":"value","legendAt":"right","writes":{"labelAs":null,"legendAt":"right"}},
+{"kind":"stackedBar","labelAs":"both","legendAt":"bottom","writes":{"labelAs":"both","legendAt":null}},
+{"kind":"stackedColumn100","labelAs":"percent","legendAt":"right","writes":{"labelAs":"percent","legendAt":"right"}}
+]
+}

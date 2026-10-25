@@ -44,10 +44,21 @@ enum PhotoLibrary {
     private static var builders: [String: (id: String, name: String, category: String, build: () -> UIImage)] = [:]
     private static var order: [String] = []
     private static var loaded = false
+    /// Each picture's seed palette, the colours it is drawn from, most of
+    /// it first.
+    private static var seeds: [String: [String]] = [:]
 
     static var photos: [PhotoDef] {
         ensureLoaded()
         return order.compactMap { builders[$0].map { PhotoDef(id: $0.id, name: $0.name, category: $0.category) } }
+    }
+
+    /// The colours a picture is mostly drawn in: the first three of its
+    /// seed palette — what Add's colour filter matches (ElementSearch
+    /// .filtered). None for an id this library does not draw.
+    static func hues(_ id: String) -> [String] {
+        ensureLoaded()
+        return Array((seeds[id] ?? []).prefix(3))
     }
 
     static func image(id: String) -> UIImage? {
@@ -110,11 +121,17 @@ enum PhotoLibrary {
         return scaled
     }
 
-    private static func register(_ id: String, _ name: String, _ category: String,
+    private static func register(_ id: String, _ name: String, _ category: String, colours: [String],
                                  _ build: @escaping () -> UIImage) {
         guard builders[id] == nil else { return }
         builders[id] = (id, name, category, build)
+        seeds[id] = colours
         order.append(id)
+    }
+
+    /// A mesh, registered with its colours as its seed palette.
+    private static func registerMesh(_ id: String, _ name: String, _ colors: [String], seed: Double) {
+        register(id, name, "Gradients", colours: colors) { mesh(colors, seed: seed) }
     }
 
     private static func ensureLoaded() {
@@ -122,36 +139,38 @@ enum PhotoLibrary {
         loaded = true
 
         // Built-in meshes (parity with the web set templates reference).
-        register("mesh-sunset", "Sunset Mesh", "Gradients") { mesh(["#ff9a8b", "#ff6a88", "#ff99ac", "#fbc2eb", "#f6d365"], seed: 7) }
-        register("mesh-ocean", "Ocean Mesh", "Gradients") { mesh(["#2b5876", "#4e4376", "#00c6fb", "#005bea", "#43e97b"], seed: 21) }
-        register("mesh-candy", "Candy Mesh", "Gradients") { mesh(["#a18cd1", "#fbc2eb", "#fad0c4", "#ff9a9e", "#fecfef"], seed: 33) }
-        register("mesh-forest", "Forest Mesh", "Gradients") { mesh(["#134e5e", "#71b280", "#2af598", "#009efd", "#0f3443"], seed: 55) }
-        register("mesh-ember", "Ember Mesh", "Gradients") { mesh(["#1a1a2e", "#e94560", "#903749", "#53354a", "#ff7b54"], seed: 91) }
-        register("mesh-gold", "Golden Hour", "Gradients") { mesh(["#f8b500", "#fceabb", "#e96443", "#904e95", "#ffd194"], seed: 13) }
+        registerMesh("mesh-sunset", "Sunset Mesh", ["#ff9a8b", "#ff6a88", "#ff99ac", "#fbc2eb", "#f6d365"], seed: 7)
+        registerMesh("mesh-ocean", "Ocean Mesh", ["#2b5876", "#4e4376", "#00c6fb", "#005bea", "#43e97b"], seed: 21)
+        registerMesh("mesh-candy", "Candy Mesh", ["#a18cd1", "#fbc2eb", "#fad0c4", "#ff9a9e", "#fecfef"], seed: 33)
+        registerMesh("mesh-forest", "Forest Mesh", ["#134e5e", "#71b280", "#2af598", "#009efd", "#0f3443"], seed: 55)
+        registerMesh("mesh-ember", "Ember Mesh", ["#1a1a2e", "#e94560", "#903749", "#53354a", "#ff7b54"], seed: 91)
+        registerMesh("mesh-gold", "Golden Hour", ["#f8b500", "#fceabb", "#e96443", "#904e95", "#ffd194"], seed: 13)
 
         // Patterns + scenes.
-        register("geo-triangles", "Triangle Mosaic", "Patterns") { triangles() }
-        register("geo-waves", "Layered Waves", "Patterns") { waves(["#03045e", "#0077b6", "#00b4d8", "#90e0ef", "#caf0f8"]) }
-        register("geo-dots", "Dot Grid", "Patterns") { dots() }
-        register("geo-arcs", "Art Deco Arcs", "Patterns") { arcs() }
-        register("scene-mountains", "Mountain Dusk", "Scenes") { mountains() }
-        register("scene-sunwave", "Retro Sun", "Scenes") { sunwave() }
+        register("geo-triangles", "Triangle Mosaic", "Patterns",
+                 colours: ["#22223b", "#4a4e69", "#9a8c98", "#c9ada7", "#f2e9e4"]) { triangles() }
+        let layered = ["#03045e", "#0077b6", "#00b4d8", "#90e0ef", "#caf0f8"]
+        register("geo-waves", "Layered Waves", "Patterns", colours: layered) { waves(layered) }
+        register("geo-dots", "Dot Grid", "Patterns", colours: ["#10002b", "#e0aaff"]) { dots() }
+        register("geo-arcs", "Art Deco Arcs", "Patterns", colours: ["#1d3557", "#e63946", "#f1faee"]) { arcs() }
+        register("scene-mountains", "Mountain Dusk", "Scenes", colours: ["#845ec2", "#4b3f72", "#ff9e7d"]) { mountains() }
+        register("scene-sunwave", "Retro Sun", "Scenes", colours: ["#0a0e2a", "#ee4266", "#ffd23f"]) { sunwave() }
 
         // Generated specs from the content bundle.
         for spec in ContentLibrary.bundle.photoSpecs.meshes {
-            register(spec.id, spec.name, "Gradients") { mesh(spec.colors, seed: spec.seed) }
+            register(spec.id, spec.name, "Gradients", colours: spec.colors) { mesh(spec.colors, seed: spec.seed) }
         }
         for spec in ContentLibrary.bundle.photoSpecs.waves {
-            register(spec.id, spec.name, "Patterns") { waves(spec.colors) }
+            register(spec.id, spec.name, "Patterns", colours: spec.colors) { waves(spec.colors) }
         }
         for spec in ContentLibrary.bundle.photoSpecs.stripes {
-            register(spec.id, spec.name, "Patterns") { stripes(spec.colors, angle: spec.angle) }
+            register(spec.id, spec.name, "Patterns", colours: spec.colors) { stripes(spec.colors, angle: spec.angle) }
         }
 
         // The generated textures, skies and bokeh (MotionArt), each the
         // first frame of its kind.
         for still in MotionLibrary.stills {
-            register(still.id, still.name, still.category) {
+            register(still.id, still.name, still.category, colours: still.colours) {
                 let size = MotionLibrary.stillSize
                 return MotionArt.image(still, t: 0, width: size.width, height: size.height) ?? UIImage()
             }

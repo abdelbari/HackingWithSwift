@@ -19,13 +19,22 @@ The file is one object:
                 graphic does (SvgImport.graphic): a group of shapes, each in
                 its own colour. "colours" are its fills (a drawn line's
                 stroke) in the order they are first used, at most four,
-                lower-case "#rrggbb", as Colour swap lists them.
+                lower-case "#rrggbb", as Colour swap lists them. "hues"
+                are its dominant colours for the search's colour filter
+                (ElementSearch.filtered), at most three: the fill (or
+                stroke) that covers the most first — each path's area by
+                its outline, a drawn line's as its length times its width —
+                and a tie in the order first used.
   "motion"      on the Animated category's graphics only: "draw" — its
                 lines, stroked <path>s with no fill, draw themselves on in
                 turn; "twinkle" — its sparkles and stars grow and glow one
                 after another, looping; or "float" — it bobs gently, looping.
                 Putting one on a page gives each of its shapes that
                 animation (ElementAnimation.motioned).
+  "stickerHues" each curated sticker's dominant colours, glyph to up to
+                three "#rrggbb", most of the picture first, from the emoji
+                palette below ([EMOJI]) — what the search's colour filter
+                matches a sticker by.
 
 Paths are absolute M, L, C and Z, numbers to a tenth. A hand-drawn line is a
 filled ribbon round its centre line, tapering at its ends, so it scales with
@@ -36,6 +45,7 @@ import json
 import math
 import pathlib
 import random
+import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -734,6 +744,67 @@ LOOKS = {
 }
 
 
+def area_of(part):
+    """How much of its graphic a part covers: a filled path's area by the
+    shoelace sum over each subpath's points (curves by their control
+    points), or a stroked line's length times its width."""
+    numbers = [float(t) for t in re.findall(r'-?\d+(?:\.\d+)?', part[1])]
+    points = list(zip(numbers[0::2], numbers[1::2]))
+    if len(part) == 3:
+        return sum(math.dist(a, b) for a, b in zip(points, points[1:])) * part[2]
+    total = 0.0
+    for chunk in part[1].split('M')[1:]:
+        values = [float(t) for t in re.findall(r'-?\d+(?:\.\d+)?', chunk)]
+        pts = list(zip(values[0::2], values[1::2]))
+        total += abs(sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(pts, pts[1:] + pts[:1]))) / 2
+    return total
+
+
+def hues_of(parts):
+    """A graphic's colours, the one that covers the most first (a tie in
+    first-use order), at most three."""
+    order = colours_of(parts)
+    areas = {c: 0.0 for c in order}
+    for part in parts:
+        areas[part[0]] += area_of(part)
+    return sorted(order, key=lambda c: (-round(areas[c], 1), order.index(c)))[:3]
+
+
+# The emoji palette: the colours the phones' emoji are drawn in, by name.
+EMOJI = {
+    'red': '#e53935', 'orange': '#fb8c00', 'yellow': '#fdd835', 'face': '#fbc02d', 'gold': '#ffb300',
+    'green': '#43a047', 'teal': '#26a69a', 'blue': '#1e88e5', 'sky': '#4fc3f7', 'purple': '#8e24aa',
+    'pink': '#f06292', 'brown': '#8d6e63', 'black': '#212121', 'grey': '#9e9e9e', 'white': '#fafafa',
+}
+
+# Each curated sticker (Stickers.names) by the palette's names, most of the
+# picture first.
+STICKER_HUES = {
+    '🎉': 'yellow red blue', '🎊': 'yellow red pink', '🎈': 'red', '🎂': 'pink brown white', '🎁': 'red yellow',
+    '🥳': 'face pink blue', '🍾': 'green gold', '✨': 'yellow', '🎆': 'purple yellow blue', '🏆': 'gold',
+    '🎖️': 'gold red blue', '💝': 'red pink yellow', '⭐': 'yellow', '🌟': 'yellow', '💫': 'yellow',
+    '❤️': 'red', '🧡': 'orange', '💛': 'yellow', '💚': 'green', '💙': 'blue', '💜': 'purple', '🖤': 'black',
+    '💥': 'red orange yellow', '🔥': 'orange red yellow', '😀': 'face', '😄': 'face', '😁': 'face white',
+    '😊': 'face pink', '😍': 'face red', '😎': 'face black', '🤩': 'face gold', '😂': 'face sky',
+    '😜': 'face red', '😇': 'face sky', '🤔': 'face', '😴': 'face sky', '🙃': 'face', '🌸': 'pink',
+    '🌻': 'yellow brown green', '🌿': 'green', '🍀': 'green', '🌵': 'green', '🌴': 'green brown',
+    '🌈': 'red yellow blue', '☀️': 'yellow orange', '🌙': 'yellow', '🌊': 'blue sky white', '🍁': 'red orange',
+    '🦋': 'blue sky black', '🐝': 'yellow black', '🍕': 'yellow red brown', '🍔': 'brown yellow green',
+    '🌮': 'yellow green red', '🍣': 'orange white', '🍩': 'pink brown', '🍪': 'brown', '🍓': 'red green',
+    '🍉': 'red green', '🥑': 'green brown', '🍦': 'white brown', '☕': 'white brown', '🧁': 'pink brown',
+    '🍰': 'white pink red', '🍇': 'purple green', '📷': 'grey black', '🎧': 'grey black', '🎨': 'brown red blue',
+    '✏️': 'yellow pink', '📚': 'red blue green', '💻': 'grey', '📱': 'black grey', '🎸': 'brown orange',
+    '⏰': 'red white', '💡': 'yellow', '🔑': 'gold', '✂️': 'red grey', '🧭': 'red grey', '🎬': 'black white',
+    '📌': 'red', '📍': 'red', '✅': 'green', '❌': 'red', '❗': 'red', '❓': 'red', '🚀': 'grey red orange',
+    '⚡': 'yellow', '🎯': 'red white', '💎': 'sky blue', '🎵': 'black', '🔔': 'gold', '💬': 'white grey',
+    '👉': 'face',
+}
+
+
+def sticker_hues():
+    return {glyph: [EMOJI[name] for name in names.split()] for glyph, names in STICKER_HUES.items()}
+
+
 def colours_of(parts):
     out = []
     for part in parts:
@@ -775,6 +846,7 @@ def build():
                 'tags': words + [w for w in look.split(' ') if w not in words],
                 'svg': svg_of(width, height, parts),
                 'colours': colours,
+                'hues': hues_of(parts),
             }
             if motion:
                 graphic['motion'] = motion
@@ -788,7 +860,8 @@ def main():
     graphics = build()
     lines = [json.dumps(g, ensure_ascii=False, sort_keys=True, separators=(',', ':')) for g in graphics]
     text = ('{\n"categories":' + json.dumps(CATEGORIES, ensure_ascii=False, separators=(',', ':')) + ',\n'
-            + '"graphics":[\n' + ',\n'.join(lines) + '\n]\n}\n')
+            + '"graphics":[\n' + ',\n'.join(lines) + '\n],\n'
+            + '"stickerHues":' + json.dumps(sticker_hues(), ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n}\n')
     RESOURCE.write_text(text, encoding='utf-8')
     print('%d graphics in %d categories, %d bytes' % (len(graphics), len(CATEGORIES), len(text.encode('utf-8'))))
     if len(sys.argv) == 2:

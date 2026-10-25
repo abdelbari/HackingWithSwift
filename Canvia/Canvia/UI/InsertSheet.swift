@@ -87,7 +87,7 @@ struct InsertSheet: View {
                 ScrollView {
                     Color.clear.frame(height: 0).id(favoritesVersion)
                     if searchesElements {
-                        ElementResults(query: search) { insertHit($0) }
+                        ElementResults(query: search, brandColours: brandKit.colors) { insertHit($0) }
                     } else if nothingMatches {
                         ContentUnavailableView.search(text: search)
                             .padding(.top, 40)
@@ -925,7 +925,7 @@ struct InsertSheet: View {
                                               starred: starred, inFrame: inFrame))
         .modifier(PictureTile(store: store, src: src,
                               natural: { MediaStore.load(id)?.size ?? CGSize(width: 4, height: 3) },
-                              fill: { addToSelectedFrame(src, natural: $0) }))
+                              fill: { addToSelectedFrame(src, natural: $0) }, done: { dismiss() }))
         .contextMenu {
             favoriteButton("upload", id)
             deleteUploadButton(id, kind: .image)
@@ -982,6 +982,13 @@ struct InsertSheet: View {
                                                   starred: starred, inFrame: false))
         .libraryDrag { clipDrag(id) }
         .accessibilityAction(named: Text("Add to the selected frame")) { clipToSelectedFrame(id) }
+        .accessibilityActions {
+            if let photo = store.replaceablePhoto {
+                Button(Self.replaceLabel(photo)) {
+                    if store.dropPicture(VideoStore.src(id, at: nil), intoFrame: photo.id) { dismiss() }
+                }
+            }
+        }
         .contextMenu {
             favoriteButton("upload", id)
             deleteUploadButton(id, kind: .video)
@@ -1645,7 +1652,7 @@ struct InsertSheet: View {
         .accessibilityLabel(AddSheetNames.picture(label, starred: false, inFrame: inFrame))
         .modifier(PictureTile(store: store, src: src,
                               natural: { PhotoLibrary.resolve(src)?.size ?? CGSize(width: 4, height: 3) },
-                              fill: { addToSelectedFrame(src, natural: $0) }))
+                              fill: { addToSelectedFrame(src, natural: $0) }, done: { dismiss() }))
     }
 
     /// One of the built-in pictures, named with its kind and place, starred
@@ -1675,7 +1682,7 @@ struct InsertSheet: View {
             starred: starred, inFrame: inFrame))
         .contextMenu { favoriteButton("photo", photo.id) }
         .modifier(PictureTile(store: store, src: src, natural: { PhotoLibrary.size },
-                              fill: { addToSelectedFrame(src, natural: $0) }))
+                              fill: { addToSelectedFrame(src, natural: $0) }, done: { dismiss() }))
     }
 
     // MARK: brand
@@ -2077,6 +2084,13 @@ struct InsertSheet: View {
         }
     }
 
+    /// A picture tile's action for VoiceOver while a plain photo is
+    /// selected: "Replace photo with this".
+    static func replaceLabel(_ photo: Element) -> String {
+        let name = ElementNames.name(of: photo)
+        return tr("Replace %@ with this", name.prefix(1).lowercased() + name.dropFirst())
+    }
+
     /// A picture tile's "Add to the selected frame", for VoiceOver: what a
     /// drag onto the frame does — into the one frame or cell selected, as
     /// one Replace step — else onto the page as a tap puts it.
@@ -2205,13 +2219,16 @@ struct InsertSheet: View {
 /// page; standing still with Reduce Motion.
 /// A picture tile of the Add sheet: held, it lifts and is carried onto the
 /// page or into a frame (LibraryDrag); and, for VoiceOver, "Add to the
-/// selected frame" does what that drop does (`fill`).
+/// selected frame" does what that drop does (`fill`), and — a plain photo
+/// selected — "Replace <name> with this" what holding it over that photo
+/// does, then the sheet closes (`done`).
 private struct PictureTile: ViewModifier {
     let store: DesignStore
     let src: String
     /// The picture's own size, read when it is needed.
     let natural: () -> CGSize
     let fill: (CGSize) -> Void
+    var done: () -> Void = {}
 
     func body(content: Content) -> some View {
         let store = self.store, src = self.src, natural = self.natural
@@ -2223,6 +2240,13 @@ private struct PictureTile: ViewModifier {
                 }
             }
             .accessibilityAction(named: Text("Add to the selected frame")) { fill(natural()) }
+            .accessibilityActions {
+                if let photo = store.replaceablePhoto {
+                    Button(InsertSheet.replaceLabel(photo)) {
+                        if store.dropPicture(src, intoFrame: photo.id) { done() }
+                    }
+                }
+            }
     }
 }
 

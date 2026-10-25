@@ -222,6 +222,7 @@ struct AccessibilitySheet: View {
             if design.pages.indices.contains(f.pageIndex),
                let i = design.pages[f.pageIndex].elements.firstIndex(where: { $0.id == id }) {
                 design.pages[f.pageIndex].elements[i].altText = text
+                design.pages[f.pageIndex].elements[i].altTextSource = nil
             }
         }
         refresh()

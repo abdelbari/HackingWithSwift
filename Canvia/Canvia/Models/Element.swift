@@ -635,6 +635,11 @@ struct QRFormFields: Codable, Equatable {
 /// `roundBars`; a line's `lineWidth` (1 to 12, scaled by the frame) and its
 /// `points`; and the `icon` a pictogram is drawn in, an Icons.json id,
 /// "person" — not written — when it has none.
+///
+/// How a part-to-whole kind's values read, `labelAs`: "value", "percent" or
+/// "both" (DataGraphics.labelAs), nil for its kind's own; and where the
+/// legend sits, `legendAt`: "top" or "right", nil — never written — for
+/// "bottom". A value this build does not know reads as none.
 struct ChartSpec: Codable, Equatable, Hashable {
     /// "chart_<uid>", shared by every element of the chart.
     var id: String
@@ -671,10 +676,13 @@ struct ChartSpec: Codable, Equatable, Hashable {
     var lineWidth: Double?
     var points: Bool = false
     var icon: String?
+    var labelAs: String?
+    var legendAt: String?
 
     private enum CodingKeys: String, CodingKey {
         case id, kind, data, legend, values, gridlines, font, ink, textScale, smooth, axisMin, axisMax
         case prefix, suffix, decimals, compact, xTitle, yTitle, hole, gap, roundBars, lineWidth, points, icon
+        case labelAs, legendAt
     }
 
     init(id: String = UID.make("chart"), kind: String, data: String,
@@ -725,6 +733,8 @@ struct ChartSpec: Codable, Equatable, Hashable {
         lineWidth = Self.finiteNumber(c, .lineWidth).map { min(max($0, DataGraphics.minLineWidth), DataGraphics.maxLineWidth) }
         points = (try? c.decodeIfPresent(Bool.self, forKey: .points)) ?? false
         icon = (try? c.decodeIfPresent(String.self, forKey: .icon)).flatMap { $0.isEmpty ? nil : $0 }
+        labelAs = (try? c.decodeIfPresent(String.self, forKey: .labelAs)).flatMap(DataGraphics.keptLabelAs)
+        legendAt = (try? c.decodeIfPresent(String.self, forKey: .legendAt)).flatMap(DataGraphics.keptLegendAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -753,6 +763,12 @@ struct ChartSpec: Codable, Equatable, Hashable {
         try c.encodeIfPresent(lineWidth, forKey: .lineWidth)
         if points { try c.encode(true, forKey: .points) }
         if let icon, !icon.isEmpty, icon != DataGraphics.defaultIcon { try c.encode(icon, forKey: .icon) }
+        // Only when it is not its kind's own, as the Android twin writes it:
+        // a pie's "percent" is not written, its "value" is.
+        let ownLabels = DataGraphics.ownLabelAs(kind)
+        try c.encodeIfPresent(labelAs.flatMap(DataGraphics.keptLabelAs).flatMap { $0 == ownLabels ? nil : $0 },
+                              forKey: .labelAs)
+        try c.encodeIfPresent(legendAt.flatMap(DataGraphics.keptLegendAt), forKey: .legendAt)
     }
 
     /// A prefix or suffix as kept: its first 4 characters, an emoji one, as
@@ -811,6 +827,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// What the element shows, for people who cannot see it: read by
     /// VoiceOver and written into the SVG. Photos mostly.
     var altText: String?
+    /// The picture (its `src`) the alt text was drawn from — Suggest's
+    /// draft, kept as it was — so replacing that picture takes the alt text
+    /// with it (Crop.replaced); nil for alt text typed, and no key.
+    var altTextSource: String?
     /// Only there to look at — a flourish, a background shape — so Check
     /// accessibility does not ask for its alt text. Never false: written
     /// only when true, as `hidden`.
@@ -886,6 +906,17 @@ struct Element: Codable, Equatable, Identifiable {
     /// than its ink, width and opacity say: "marker" (see Freehand.Pen);
     /// nil for every other. A build without the marker draws it as ink.
     var pen: String?
+    /// A straight-edged library shape's own parameters (ShapeGeometry): a
+    /// star's "points" and "inner", a polygon's "sides", an arrow's "head"
+    /// and "shaft", a callout's "tailX" and "tailY", a chevron's, ribbon's
+    /// or tag's "notch" — only those that differ from the shape's own, nil
+    /// when none do. A build without them draws the stored shape.
+    var shapeParams: [String: Double]?
+    /// A pressure stroke's width at each sample its curve passes, as a
+    /// share of its `strokeWidth`, 0.35…1 (Freehand.outline): drawn as a
+    /// filled outline. nil for a stroke at one width; a build without it
+    /// draws the line at that width.
+    var widths: [Double]?
 
     // text
     var text: String?
@@ -1140,6 +1171,7 @@ struct Element: Codable, Equatable, Identifiable {
         shadow = try? c.decode(Shadow.self, forKey: .shadow)
         blendMode = try? c.decode(String.self, forKey: .blendMode)
         altText = try? c.decode(String.self, forKey: .altText)
+        altTextSource = (try? c.decode(String.self, forKey: .altTextSource)).flatMap { $0.isEmpty ? nil : $0 }
         decorative = (try? c.decode(Bool.self, forKey: .decorative)) == true ? true : nil
         connectFrom = try? c.decode(String.self, forKey: .connectFrom)
         connectTo = try? c.decode(String.self, forKey: .connectTo)
@@ -1164,6 +1196,11 @@ struct Element: Codable, Equatable, Identifiable {
         corners = try? c.decode([Double].self, forKey: .corners)
         fillRule = (try? c.decode(String.self, forKey: .fillRule)).flatMap { $0 == "nonzero" ? nil : $0 }
         pen = try? c.decode(String.self, forKey: .pen)
+        // Read leniently: a value that is no number is left out.
+        let params = ((try? c.decode([String: Lossy<Double>].self, forKey: .shapeParams)) ?? [:])
+            .compactMapValues(\.value).filter { $0.value.isFinite }
+        shapeParams = params.isEmpty ? nil : params
+        widths = (try? c.decode([Double].self, forKey: .widths)).flatMap { $0.isEmpty ? nil : $0 }
         text = try? c.decode(String.self, forKey: .text)
         fontFamily = try? c.decode(String.self, forKey: .fontFamily)
         fontSize = try? c.decode(Double.self, forKey: .fontSize)
@@ -1279,10 +1316,11 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
-        case subgroups, groupTurn
+        case subgroups, groupTurn, altTextSource
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, sides, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, graphicId, bulkField, fill, stroke, strokeWidth, radius, corners, fillRule, pen
+        case shapeParams, widths
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, curveStart, textPath, vertical, warp
         case spans, spansText, paragraphs, paragraphsText, captions

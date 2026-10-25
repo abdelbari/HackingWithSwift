@@ -126,6 +126,10 @@ struct SelectionOverlay: View {
                 if !store.shapeHandles.isEmpty {
                     ShapeHandles(store: store)
                 }
+                // A star's, arrow's, callout's or notch's own handles.
+                if !store.geometryHandles.isEmpty {
+                    GeometryHandles(store: store)
+                }
             }
 
             Group {
@@ -322,6 +326,7 @@ struct SelectionOverlay: View {
     static func handlesTake(_ point: CGPoint, store: DesignStore) -> Bool {
         if onColumnEdge(point, store: store) || onRowEdge(point, store: store) || onGridDivider(point, store: store) { return true }
         if ShapeHandles.takes(point, store: store) { return true }
+        if GeometryHandles.takes(point, store: store) { return true }
         guard let drawn = ring(store) else { return false }
         let page = reachablePage(store)
         let out = outsets(for: drawn.el, zoom: store.zoom, page: page)

@@ -291,13 +291,19 @@ enum Crop {
     /// does, and a picture dropped or picked into a frame, as the Android
     /// twin's Crop.replaced. What was brushed onto the old picture — its
     /// mask, the picture before its Cut out with it, and its retouch — was
-    /// painted over that picture, and goes with it.
+    /// painted over that picture, and goes with it; and alt text drawn from
+    /// it (`altTextSource` its source) no longer says what shows, and goes
+    /// too. Alt text typed for the frame stays.
     static func replaced(_ el: Element, src: String?) -> Element {
         var out = reset(el)
         out.src = src
         out.straighten = nil
         out.mask = nil
         out.retouch = nil
+        if let from = el.altTextSource, from == el.src, src != el.src {
+            out.altText = nil
+            out.altTextSource = nil
+        }
         return out
     }
 

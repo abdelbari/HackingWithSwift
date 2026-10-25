@@ -22,6 +22,11 @@
 //
 // More like this (`similar`) offers things like a selected icon, sticker,
 // graphic or shape, best first, by the Android twin's rules and rows.
+//
+// The chips under the search narrow its hits (`filtered`): by type, by
+// whether a thing moves, and by colour — a hit whose dominant colours
+// (`hues`) have one within ΔE 20 of the swatch picked. The filters last
+// while the app runs (`sessionFilter`) and never touch Recently used.
 
 import Foundation
 
@@ -261,6 +266,123 @@ enum ElementSearch {
             from = text.index(after: found.lowerBound)
         }
         return false
+    }
+
+    // MARK: filters
+
+    /// Whether a hit moves: any, animated (a graphic that moves) or static
+    /// (anything else).
+    enum Motion: String, CaseIterable {
+        case any, animated, still = "static"
+    }
+
+    /// The types the Type sheet offers, in its order, each the kinds of hit
+    /// it keeps: icons go with the graphics, lines with the shapes and the
+    /// QR code with the charts. The search finds no clips, so it has no
+    /// Videos.
+    enum FilterType: String, CaseIterable, Identifiable {
+        case graphics = "Graphics"
+        case stickers = "Stickers"
+        case shapes = "Shapes"
+        case photos = "Photos"
+        case frames = "Frames"
+        case grids = "Grids"
+        case charts = "Charts"
+        case tables = "Tables"
+
+        var id: String { rawValue }
+        var title: String { tr(rawValue) }
+
+        var kinds: Set<HitKind> {
+            switch self {
+            case .graphics: return [.graphic, .icon]
+            case .stickers: return [.sticker]
+            case .shapes: return [.shape, .line]
+            case .photos: return [.stockArt]
+            case .frames: return [.photoFrame]
+            case .grids: return [.grid]
+            case .charts: return [.chart, .qr]
+            case .tables: return [.table]
+            }
+        }
+    }
+
+    /// What the chips keep: the kinds of hit (nil, or none, is every kind),
+    /// whether they move, and a colour ("#rrggbb") one of their hues must
+    /// be near (nil is any).
+    struct Filter: Equatable {
+        var kinds: Set<HitKind>?
+        var motion: Motion = .any
+        var colour: String?
+
+        /// Keeps every hit.
+        var isEmpty: Bool { (kinds ?? []).isEmpty && motion == .any && colour == nil }
+    }
+
+    /// The most a hue may be from the swatch picked, as CIE76 ΔE, for its
+    /// hit to be kept.
+    static let colourTolerance = 20.0
+
+    /// The colour row's twelve swatches, before the brand kit's colours —
+    /// the emoji palette's (generate_graphics.py), so a sticker's hues
+    /// match one exactly, as on the Android twin.
+    static let swatches = [
+        "#e53935", "#fb8c00", "#fdd835", "#43a047", "#26a69a", "#1e88e5",
+        "#8e24aa", "#f06292", "#8d6e63", "#212121", "#9e9e9e", "#fafafa",
+    ]
+
+    /// The ink an icon comes onto a light page in, its one hue.
+    static let iconHue = "#1f2430"
+
+    /// The filters last chosen, kept while the app runs and forgotten when
+    /// it ends.
+    static var sessionFilter = Filter()
+
+    /// `hits` the filter keeps, in their order (see Filter). The Android
+    /// twin's rule, with the same rows (search-filters.json).
+    static func filtered(_ hits: [Hit], _ filter: Filter) -> [Hit] {
+        hits.filter { hit in
+            if let kinds = filter.kinds, !kinds.isEmpty, !kinds.contains(hit.kind) { return false }
+            switch filter.motion {
+            case .any: break
+            case .animated: if !moves(hit) { return false }
+            case .still: if moves(hit) { return false }
+            }
+            guard let colour = filter.colour else { return true }
+            return hues(of: hit).contains { near($0, colour) }
+        }
+    }
+
+    /// Whether `hit` moves when put on a page: a graphic of the Animated
+    /// kind.
+    static func moves(_ hit: Hit) -> Bool {
+        hit.kind == .graphic && GraphicsLibrary.graphic(hit.id)?.motion != nil
+    }
+
+    /// `hit`'s dominant colours, most of it first: a graphic's and a
+    /// curated sticker's from Graphics.json, an icon's ink (iconHue), a
+    /// stock picture's from its seed palette. A shape, a frame and the rest
+    /// have none: they take the page's colours.
+    static func hues(of hit: Hit) -> [String] {
+        switch hit.kind {
+        case .graphic: return GraphicsLibrary.graphic(hit.id)?.hues ?? []
+        case .icon: return [iconHue]
+        case .sticker: return GraphicsLibrary.stickerHues(hit.id)
+        case .stockArt: return PhotoLibrary.hues(hit.id)
+        default: return []
+        }
+    }
+
+    /// What a screen reader says of a filter chip: "Filter: animated, on".
+    static func filterLabel(_ name: String, on: Bool) -> String {
+        on ? tr("Filter: %@, on", name.lowercased()) : tr("Filter: %@, off", name.lowercased())
+    }
+
+    /// Whether `hue` is within colourTolerance of `colour`; never for one
+    /// that is no colour.
+    static func near(_ hue: String, _ colour: String) -> Bool {
+        guard Cmyk.rgb(hue) != nil, Cmyk.rgb(colour) != nil else { return false }
+        return ColourVision.deltaE(hue, colour) <= colourTolerance
     }
 
     // MARK: Recently used

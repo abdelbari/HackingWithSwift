@@ -857,6 +857,7 @@ final class DesignStore {
             for p in d.pages.indices {
                 guard let i = d.pages[p].elements.firstIndex(where: { $0.id == id }) else { continue }
                 d.pages[p].elements[i].altText = words
+                d.pages[p].elements[i].altTextSource = nil
             }
         }
     }
@@ -1883,8 +1884,10 @@ final class DesignStore {
     }
 
     /// A finished stroke in page units becomes one shape and one undo step;
-    /// nothing is selected, so the next stroke starts clean.
-    func finishStroke(_ points: [CGPoint]) {
+    /// nothing is selected, so the next stroke starts clean. `widths`, one
+    /// for each point, are how wide it is there, kept with Pressure on for
+    /// the pen (Freehand.element).
+    func finishStroke(_ points: [CGPoint], widths: [Double] = []) {
         // The page under the pen may have been locked since it was taken up.
         guard !refusesLockedPage() else { return }
         if let tool = drawing, tool.pen == .eraser {
@@ -1895,7 +1898,7 @@ final class DesignStore {
             }
             return
         }
-        guard let tool = drawing, let el = Freehand.element(points: points, tool: tool) else { return }
+        guard let tool = drawing, let el = Freehand.element(points: points, widths: widths, tool: tool) else { return }
         add(el, centered: false)
         sessionStrokes.append(el.id)
         sessionStepAt = historyVersion
