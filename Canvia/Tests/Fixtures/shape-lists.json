@@ -1,34 +1,23 @@
 {
-  "about": "Words in shapes with lists and spacing: a five-pointed star and a rectangle, each holding a nested list in its own paragraphs, with line, letter and paragraph spacing on the shape. The keys are a text box's — lineHeight, letterSpacing, paragraphSpacing (an extra), paragraphs and paragraphsText — and the words set in the shape's text-safe box (ShapeText) carry them, so each line's marker is a text box's: markers per line, null for none.",
-  "id": "d-shape-lists",
-  "title": "Shape lists",
-  "width": 1080,
-  "height": 1080,
-  "createdAt": 0,
-  "updatedAt": 0,
-  "pages": [
-    {
-      "id": "p1",
-      "background": { "type": "color", "value": "#ffffff" },
-      "elements": [
-        {
-          "id": "star", "type": "shape", "shapeId": "star-5", "x": 100, "y": 100, "w": 500, "h": 500,
-          "text": "Goals\nRead\nWrite\nDaily", "fontSize": 24, "lineHeight": 1.4, "letterSpacing": 1.2,
-          "paragraphSpacing": 0.5,
-          "paragraphs": [{}, { "list": "number" }, { "list": "number" }, { "list": "number", "level": 1 }],
-          "paragraphsText": "Goals\nRead\nWrite\nDaily"
-        },
-        {
-          "id": "card", "type": "shape", "shapeId": "rect", "x": 100, "y": 650, "w": 600, "h": 300,
-          "text": "Plan\nOne\nTwo\nDeep", "fontSize": 30, "lineHeight": 1.2, "letterSpacing": 3,
-          "paragraphs": [{}, { "list": "bullet" }, { "list": "bullet" }, { "list": "bullet", "level": 1 }],
-          "paragraphsText": "Plan\nOne\nTwo\nDeep"
-        }
-      ]
-    }
+  "about": "Words in shapes with lists and spacing on both phones: a five-pointed star and two rectangles as a design writes them, and the text box each one's words are set in (Android ShapeText.box, iOS ShapeText.textElement) — its place on the page in the shape's text-safe box, the spacing it carries from the shape's text-box keys (lineHeight, letterSpacing, paragraphSpacing; null where the shape has none, paragraph spacing 0), and each line's list marker (null for none) and level, a nested list counting as a text box's does.",
+  "elements": [
+    {"id": "star", "type": "shape", "shapeId": "star-5", "x": 0, "y": 0, "w": 400, "h": 400, "fill": {"kind": "solid", "color": "#8b5cf6"},
+      "text": "One\nTwo\nThree\nFour", "fontSize": 20, "letterSpacing": 2, "lineHeight": 1.5, "paragraphSpacing": 0.5,
+      "paragraphs": [{"list": "bullet"}, {"list": "bullet", "level": 1}, {"list": "number", "level": 1}, {"list": "bullet"}],
+      "paragraphsText": "One\nTwo\nThree\nFour"},
+    {"id": "rect", "type": "shape", "shapeId": "rect", "x": 100, "y": 500, "w": 600, "h": 300, "fill": {"kind": "solid", "color": "#ffffff"},
+      "text": "Alpha\n\nBeta", "fontSize": 30, "listStyle": "number", "indent": 1},
+    {"id": "card", "type": "shape", "shapeId": "rect", "x": 100, "y": 850, "w": 600, "h": 300,
+      "text": "Plan\nOne\nTwo\nDeep", "fontSize": 30, "lineHeight": 1.2, "letterSpacing": 3,
+      "paragraphs": [{}, {"list": "bullet"}, {"list": "bullet"}, {"list": "bullet", "level": 1}],
+      "paragraphsText": "Plan\nOne\nTwo\nDeep"}
   ],
-  "markers": {
-    "star": [null, "1.  ", "2.  ", "a.  "],
-    "card": [null, "•  ", "•  ", "◦  "]
+  "boxes": {
+    "star": {"x": 120, "y": 120, "w": 160, "h": 160, "letterSpacing": 2, "lineHeight": 1.5, "paragraphSpacing": 0.5,
+      "markers": ["•  ", "◦  ", "a.  ", "•  "], "levels": [0, 1, 1, 0]},
+    "rect": {"x": 148, "y": 524, "w": 504, "h": 252, "letterSpacing": null, "lineHeight": null, "paragraphSpacing": 0,
+      "markers": ["1.  ", null, "2.  "], "levels": [1, 1, 1]},
+    "card": {"x": 148, "y": 874, "w": 504, "h": 252, "letterSpacing": 3, "lineHeight": 1.2, "paragraphSpacing": 0,
+      "markers": [null, "•  ", "•  ", "◦  "], "levels": [0, 0, 0, 1]}
   }
 }

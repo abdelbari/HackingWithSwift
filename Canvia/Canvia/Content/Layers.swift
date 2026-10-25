@@ -426,13 +426,17 @@ extension Layers {
 
     /// Everything shown whose hit area holds `point` (touches), top-most
     /// first, a group as one row — its outermost group, listed where its
-    /// top-most touched member is, with every member of it, as Layers lists
-    /// a folded group. A group of one is its element's row.
+    /// top-most touched member is, with every shown member of it, as Layers
+    /// lists a folded group. A group with one shown member is that
+    /// element's row. A cropped group's member is touched only where the
+    /// crop shows it, as on the canvas (GraphicClip.shown) and in the
+    /// Android twin's Clips.shows; the rows carry the elements as stored.
     static func hitStack(_ elements: [Element], _ point: CGPoint, touchRadius: Double) -> [LayerRows.Row] {
-        let front = Array(elements.reversed())
+        let front = Array(elements.filter { !$0.isHidden }.reversed())
+        let drawn = GraphicClip.shown(front, in: elements)
         var out: [LayerRows.Row] = []
         var seen: Set<String> = []
-        for el in front where touches(el, point, touchRadius: touchRadius) {
+        for (el, hit) in zip(front, drawn) where touches(hit, point, touchRadius: touchRadius) {
             guard let group = el.group else {
                 out.append(.element(el, member: false))
                 continue

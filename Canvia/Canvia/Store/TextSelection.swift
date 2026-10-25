@@ -221,9 +221,13 @@ extension DesignStore {
 /// at once — and the words in a shape, for the properties that are theirs
 /// too. A change reaches every box it may, in one step, and each box is
 /// measured again; where the boxes read differently, the controls say
-/// "Mixed", and moving one writes its value to all of them. Pure, so the
-/// Android twin's TextSelection runs the same rows over the same fixture
-/// (Fixtures/multi-text.json).
+/// "Mixed", and moving one writes its value to all of them. Boxes read
+/// alike when they read alike as shown — letter spacing in whole percent,
+/// line height to a hundredth, paragraph spacing to a tenth of an em, the
+/// curve in whole degrees, opacity in whole percent, an effect's settings in
+/// whole numbers — so a readout is Mixed only where it shows a difference.
+/// Pure, so the Android twin's TextSelection runs the same rows over the
+/// same fixture (Fixtures/multi-text.json).
 enum TextSelection {
 
     /// What a control changes.
@@ -233,11 +237,12 @@ enum TextSelection {
 
     /// Whether `property` is `el`'s at all, locked or not: an effect or a
     /// curve only a text box's — a shape's words take neither — spacing
-    /// and lists any words, transparency anything.
+    /// and lists a text box's or a shape's with words in it, transparency
+    /// anything's. The Android twin's TextSelection.has.
     static func has(_ el: Element, _ property: Property) -> Bool {
         switch property {
         case .effect, .curve: return el.type == .text
-        case .spacing, .list: return ShapeText.carriesWords(el)
+        case .spacing, .list: return el.type == .text || ShapeText.words(of: el) != nil
         case .opacity: return true
         }
     }
@@ -293,23 +298,26 @@ enum TextSelection {
         TypeReadouts.shared(reading(boxes, .effect).map { TextEffect.from($0.effect) })
     }
 
-    /// A setting of the effect every box has, as drawn; nil when the boxes
-    /// have different effects or different values.
+    /// A setting of the effect every box has, as drawn, in whole numbers;
+    /// nil when the boxes have different effects or different values.
     static func effectValue(_ boxes: [Element], _ param: TextEffectParam) -> Double? {
         guard let kind = effect(boxes) else { return nil }
-        return TypeReadouts.shared(reading(boxes, .effect).map { TextEffect.value($0.effect, param, for: kind) })
+        return TypeReadouts.shared(reading(boxes, .effect).map { TextEffect.value($0.effect, param, for: kind).rounded() })
     }
 
+    /// The letter spacing every box shares, in whole percent of its size.
     static func sharedLetterPercent(_ boxes: [Element]) -> Double? {
-        TypeReadouts.shared(reading(boxes, .spacing).map { letterPercent($0) })
+        TypeReadouts.shared(reading(boxes, .spacing).map { letterPercent($0).rounded() })
     }
 
+    /// The line height every box shares, to a hundredth.
     static func lineHeight(_ boxes: [Element]) -> Double? {
-        TypeReadouts.shared(reading(boxes, .spacing).map { $0.lineHeight ?? 1.25 })
+        TypeReadouts.shared(reading(boxes, .spacing).map { (($0.lineHeight ?? 1.25) * 100).rounded() / 100 })
     }
 
+    /// The paragraph spacing every box shares, in ems to a tenth.
     static func paragraphSpacing(_ boxes: [Element]) -> Double? {
-        TypeReadouts.shared(reading(boxes, .spacing).map { $0.paragraphSpacing ?? 0 })
+        TypeReadouts.shared(reading(boxes, .spacing).map { (($0.paragraphSpacing ?? 0) * 10).rounded() / 10 })
     }
 
     /// The list every line of every box is in — "none" for none — nil
@@ -318,12 +326,14 @@ enum TextSelection {
         TypeReadouts.shared(reading(boxes, .list).flatMap { TextLists.lines($0).map(\.list) })
     }
 
+    /// The curve every box shares, in whole degrees.
     static func curve(_ boxes: [Element]) -> Double? {
-        TypeReadouts.shared(reading(boxes, .curve).map { $0.curve ?? 0 })
+        TypeReadouts.shared(reading(boxes, .curve).map { ($0.curve ?? 0).rounded() })
     }
 
+    /// The opacity every box shares, to a whole percent.
     static func opacity(_ boxes: [Element]) -> Double? {
-        TypeReadouts.shared(reading(boxes, .opacity).map(\.opacity))
+        TypeReadouts.shared(reading(boxes, .opacity).map { ($0.opacity * 100).rounded() / 100 })
     }
 
     /// The deepest and the shallowest level any line of the boxes is at,

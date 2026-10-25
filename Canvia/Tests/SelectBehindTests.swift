@@ -34,8 +34,10 @@ final class SelectBehindTests: XCTestCase {
         let f = try fixture()
         for probe in f.probes {
             let at = try point(probe)
-            let stack = Layers.hitStack(f.elements, at, touchRadius: f.radius)
-            XCTAssertEqual(stack.map(\.id), probe["stack"] as? [String], "at \(at)")
+            // A probe's own radius, where it has one, over the fixture's.
+            let radius = probe["touchRadius"] as? Double ?? f.radius
+            let stack = Layers.hitStack(f.elements, at, touchRadius: radius)
+            XCTAssertEqual(stack.map(\.id), probe["stack"] as? [String], "at \(at) r \(radius)")
         }
     }
 
@@ -52,9 +54,10 @@ final class SelectBehindTests: XCTestCase {
 
     func testAGroupRowCarriesEveryMemberAndItsLayersName() throws {
         let f = try fixture()
-        let stack = Layers.hitStack(f.elements, CGPoint(x: 160, y: 650), touchRadius: f.radius)
-        let group = try XCTUnwrap(stack.first)
-        XCTAssertEqual(group.elements.map(\.id), ["b", "a"])
+        let stack = Layers.hitStack(f.elements, CGPoint(x: 250, y: 250), touchRadius: f.radius)
+        XCTAssertEqual(stack.count, 4)
+        let group = stack[1]
+        XCTAssertEqual(group.elements.map(\.id), ["logo-b", "logo-a"])
         XCTAssertEqual(Layers.rowName(group), LayerRows.groupName(2))
     }
 
@@ -76,17 +79,19 @@ final class SelectBehindTests: XCTestCase {
     func testSelectBehindStepsDownAtTheLastTapAndSelectsALockedOne() throws {
         let f = try fixture()
         var elements = f.elements
-        if let i = elements.firstIndex(where: { $0.id == "photo" }) { elements[i].locked = true }
-        var d = Design(title: "behind", width: 1000, height: 1000)
+        if let i = elements.firstIndex(where: { $0.id == "cover" }) { elements[i].locked = true }
+        var d = Design(title: "behind", width: 1080, height: 1080)
         d.pages = [Page(id: "p1", elements: elements)]
         let store = DesignStore(design: d)
         store.zoom = 1
         store.select("tiny")
         store.lastTapAt = CGPoint(x: 320, y: 320)
         store.selectBehind()
-        XCTAssertEqual(store.selection, ["photo"])
+        XCTAssertEqual(store.selection, ["cover"])
         store.selectBehind()
-        XCTAssertEqual(store.selection, ["bg"])
+        XCTAssertEqual(store.selection, ["card"])
+        store.selectBehind()
+        XCTAssertEqual(store.selection, ["backdrop"])
         store.selectBehind()
         XCTAssertEqual(store.selection, ["tiny"])
     }
