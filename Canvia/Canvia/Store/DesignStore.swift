@@ -3242,9 +3242,10 @@ final class DesignStore {
                 let el = page.elements[i]
                 if self.selection.contains(el.id), VideoStore.isVideo(el.src), !el.locked {
                     page.elements[i].clip = clip.isDefault ? nil : clip
-                } else if let c = el.captions, let source = c.source, let was = retimed[source] {
-                    page.elements[i] = Captions.on(el, Captions(source: source, cues: Captions.retimed(c.cues, from: was, to: clip),
-                                                               style: c.style))
+                } else if var c = el.captions, let source = c.source, let was = retimed[source] {
+                    // Its style, place and colour kept with it.
+                    c.cues = Captions.retimed(c.cues, from: was, to: clip)
+                    page.elements[i] = Captions.on(el, c)
                 }
             }
         }

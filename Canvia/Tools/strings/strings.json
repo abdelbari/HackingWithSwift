@@ -15635,6 +15635,15 @@
     "ja": "ゴールドシマー",
     "pt-BR": "Cintilar dourado"
   },
+  "Gradient": {
+    "ar": "تدرّج",
+    "de": "Verlauf",
+    "es": "Degradado",
+    "fr": "Dégradé",
+    "it": "Sfumatura",
+    "ja": "グラデーション",
+    "pt-BR": "Degradê"
+  },
   "Gradient %d": {
     "ar": "التدرّج %d",
     "de": "Verlauf %d",
@@ -17380,6 +17389,15 @@
     "it": "Caleidoscopio",
     "ja": "万華鏡",
     "pt-BR": "Caleidoscópio"
+  },
+  "Karaoke": {
+    "ar": "كاريوكي",
+    "de": "Karaoke",
+    "es": "Karaoke",
+    "fr": "Karaoké",
+    "it": "Karaoke",
+    "ja": "カラオケ",
+    "pt-BR": "Karaokê"
   },
   "Keep": {
     "ar": "الاحتفاظ",
@@ -26242,6 +26260,15 @@
     "it": "SMS",
     "ja": "SMS",
     "pt-BR": "SMS"
+  },
+  "Safe": {
+    "ar": "آمنة",
+    "de": "Sicher",
+    "es": "Segura",
+    "fr": "Sûre",
+    "it": "Sicura",
+    "ja": "セーフ",
+    "pt-BR": "Segura"
   },
   "Safe zone": {
     "ar": "المنطقة الآمنة",

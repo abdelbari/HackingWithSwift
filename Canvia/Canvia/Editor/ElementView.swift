@@ -282,7 +282,15 @@ struct ElementView: View {
             } else {
                 ShapeElementView(element: el)
             }
-        case .text: TextElementView(element: el, units: motion.unitClock)
+        case .text:
+            // A caption box in Bar style lies on a band its width, black at
+            // 0.6, while it has words to show (Captions.bar).
+            TextElementView(element: el, units: motion.unitClock)
+                .background {
+                    if el.captions?.style == Captions.bar, el.text?.isEmpty == false {
+                        Color.black.opacity(Captions.barAlpha)
+                    }
+                }
         case .image:
             if playsPictures && animationTime == nil && (AnimStore.isAnim(el.src) || MotionLibrary.isMotion(el.src)) {
                 // Play in the editor: the picture on a clock of its own, going

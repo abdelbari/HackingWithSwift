@@ -2,9 +2,22 @@
 // clip or a voice-over, timed to the page, drawn one cue at a time as the
 // page plays. A caption box is an ordinary text element with `captions`:
 // {"source": "video:<id>" | "audio:<trackId>" | null, "cues": [{"start",
-// "end", "text"}, …], "style": "plain" | "box" | "highlightWord"}, its times
-// in page seconds. The renderer draws only the cue at the page's moment —
-// Play, Present, the MP4 and GIF — and a still shows the first cue, or the
+// "end", "text"}, …], "style", "place", "highlight"}, its times in page
+// seconds. The styles: "plain", "box" (a bar behind the words),
+// "highlightWord" (the word being said lit), "outline" (white letters, a
+// black stroke 6% of the type), "pop" (each word grows 0.6 → 1.08 → 1 over
+// 0.18 s as it is said), "karaoke" (the words fill left to right in the
+// highlight colour as they are said), "typewriter" (each word's letters
+// appear over its share of the cue), "bar" (a band the box's width behind
+// the lines, black at 0.6) and "gradient" (the letters in a gradient of
+// the page's colours, set as the style is chosen); a build that does not
+// know one reads it as plain. "place" ("top", "middle", "bottom" or "safe",
+// inside the page's safe zone) is where the box was put, written only when
+// chosen; "highlight" the colour the said words are lit or filled in,
+// "#rrggbb", written only when not `highlightColour`. The renderer draws
+// only the cue at the page's moment — Play, Present, the MP4 and GIF, each
+// word as its style has it then (`frameFor`, held to the shared fixture
+// captions-styles.json) — and a still shows the first cue finished, or the
 // cue at the timeline's playhead. The box's own `text` is kept at the first
 // cue's words, so anything that reads the text alone reads the right thing.
 //
@@ -48,11 +61,41 @@ struct Captions: Codable, Equatable, Hashable {
     var source: String?
     var cues: [CaptionCue] = []
     var style: String = Captions.plain
+    /// Where the box was put: one of `places`; nil when never chosen.
+    var place: String?
+    /// The said words' colour, "#rrggbb"; nil is `highlightColour`.
+    var highlight: String?
 
     static let plain = "plain"
     static let box = "box"
     static let highlightWord = "highlightWord"
-    static let styles = [plain, box, highlightWord]
+    static let outline = "outline"
+    static let pop = "pop"
+    static let karaoke = "karaoke"
+    static let typewriter = "typewriter"
+    static let bar = "bar"
+    static let gradient = "gradient"
+    /// The styles, in the order the Captions sheet's tiles show them.
+    static let styles = [plain, box, highlightWord, outline, pop, karaoke, typewriter, bar, gradient]
+
+    static let top = "top"
+    static let middle = "middle"
+    static let bottom = "bottom"
+    static let safe = "safe"
+    static let places = [top, middle, bottom, safe]
+
+    /// Pop: each word from `popFrom` of its size to `popPeak` and back to
+    /// its own over `popSeconds` from when it is said — rising over the
+    /// first half, settling over the second.
+    static let popSeconds = 0.18
+    static let popFrom = 0.6
+    static let popPeak = 1.08
+    /// Outline's stroke, a share of the type size, and Bar's band's alpha.
+    static let outlineShare = 0.06
+    static let barAlpha = 0.6
+    /// The page's margin above a box put at the top or below one at the
+    /// bottom, a share of its height, as a new box sits.
+    static let placeMargin = 0.06
 
     /// A line holds at most this many characters, and a cue this many lines.
     static let maxLine = 42
@@ -67,13 +110,19 @@ struct Captions: Codable, Equatable, Hashable {
     static let maxCue = 5.0
     static let wordHold = 0.5
 
-    private enum CodingKeys: String, CodingKey { case source, cues, style }
+    private enum CodingKeys: String, CodingKey { case source, cues, style, place, highlight }
 
-    init(source: String? = nil, cues: [CaptionCue] = [], style: String = Captions.plain) {
+    init(source: String? = nil, cues: [CaptionCue] = [], style: String = Captions.plain, place: String? = nil,
+         highlight: String? = nil) {
         self.source = source
         self.cues = cues
         self.style = style
+        self.place = place
+        self.highlight = highlight
     }
+
+    /// The colour the said words are lit or filled in.
+    var highlightInk: String { highlight ?? Self.highlightColour }
 
     /// Leniently, as the Android twin reads them: a cue that cannot be read,
     /// or ends before it starts, is passed over; the cues come sorted by
@@ -85,6 +134,10 @@ struct Captions: Codable, Equatable, Hashable {
         cues = Self.sorted(read)
         let style = (try? c.decodeIfPresent(String.self, forKey: .style)).flatMap { $0 } ?? Self.plain
         self.style = Self.styles.contains(style) ? style : Self.plain
+        let place = (try? c.decodeIfPresent(String.self, forKey: .place)).flatMap { $0 }
+        self.place = place.flatMap { Self.places.contains($0) ? $0 : nil }
+        let ink = (try? c.decodeIfPresent(String.self, forKey: .highlight)).flatMap { $0 }
+        highlight = ink.flatMap { $0.hasPrefix("#") ? $0 : nil }
     }
 
     /// The source written as null when there is none, every cue with its
@@ -94,6 +147,8 @@ struct Captions: Codable, Equatable, Hashable {
         if let source { try c.encode(source, forKey: .source) } else { try c.encodeNil(forKey: .source) }
         try c.encode(Self.sorted(cues), forKey: .cues)
         try c.encode(Self.styles.contains(style) ? style : Self.plain, forKey: .style)
+        try c.encodeIfPresent(place.flatMap { Self.places.contains($0) ? $0 : nil }, forKey: .place)
+        try c.encodeIfPresent(highlight, forKey: .highlight)
     }
 
     /// `cues` each starting no earlier than 0 and ending after it starts,
@@ -134,8 +189,10 @@ struct Captions: Codable, Equatable, Hashable {
         out.dropParagraphs()
         // A cue reads as it was written: its stars are stars.
         out.text = RichText.escapeLiteral(cues.first?.text ?? "")
-        out.captions = Captions(source: captions.source, cues: cues,
-                                style: styles.contains(captions.style) ? captions.style : plain)
+        var kept = captions
+        kept.cues = cues
+        kept.style = styles.contains(captions.style) ? captions.style : plain
+        out.captions = kept
         return out
     }
 
@@ -168,11 +225,15 @@ struct Captions: Codable, Equatable, Hashable {
     /// at `t` alone — none between cues — or the first cue for a still
     /// (nil). A still at a moment (`still`, the editor's playhead at rest)
     /// shows the cue there, or the first cue while the moment is before it,
-    /// so a page whose words start late is not drawn blank. "box" draws a
-    /// highlight bar behind the words (the Highlight text effect);
-    /// "highlightWord" colours the word being said, the words
-    /// sharing the cue's time evenly, in `highlightColour` — the first word
-    /// in a still. A box with no captions is left alone.
+    /// so a page whose words start late is not drawn blank. Each word as
+    /// `frameFor` has it: "box" draws a highlight bar behind the words (the
+    /// Highlight text effect); "highlightWord" and "karaoke" colour what is
+    /// said in the highlight colour, the one whole word or each word's
+    /// letters as far as its fill; "typewriter" leaves the letters still to
+    /// come clear; "pop" sizes each word and leaves one not yet said clear;
+    /// "outline" draws white letters with a black stroke. With no moment —
+    /// a still export, a slide — each is the finished cue. A box with no
+    /// captions is left alone.
     static func shown(_ el: Element, at t: Double?, still: Bool = false) -> Element {
         guard let captions = el.captions else { return el }
         let first = captions.cues.first
@@ -192,17 +253,153 @@ struct Captions: Codable, Equatable, Hashable {
         switch captions.style {
         case box:
             out.effect = TextEffectSpec(type: "highlight")
-        case highlightWord:
-            guard let cue else { break }
-            let words = wordRanges(text)
-            guard !words.isEmpty else { break }
-            let share = t.map { min(max(($0 - cue.start) / (cue.end - cue.start), 0), 0.999999) } ?? 0
-            let word = words[min(words.count - 1, Int((share * Double(words.count)).rounded(.down)))]
-            out.setSpans([TextSpan(start: word.start, end: word.end, color: highlightColour)])
+        case outline:
+            // Outline's stroke is 0.04 of the type at 50, so 6% at 75.
+            out.color = "#ffffff"
+            out.effect = TextEffectSpec(type: "outlined", thickness: outlineShare / 0.04 * 50, color: "#000000")
         default:
             break
         }
+        guard let cue else { return out }
+        let spans = wordSpans(text, frames: frameFor(captions.style, cue: cue, t: t), style: captions.style,
+                              ink: captions.highlightInk)
+        if !spans.isEmpty { out.setSpans(spans) }
         return out
+    }
+
+    /// One word as a style draws it at a moment: its size (1 its own), how
+    /// much of it shows (0 none, 1 all) and how far it is filled or
+    /// typed, 0 to 1 — the lit word's 1 for "highlightWord".
+    struct WordFrame: Equatable {
+        var scale: Double = 1
+        var alpha: Double = 1
+        var fill: Double = 0
+    }
+
+    /// How far through each word of `cue` the moment `t` is, 0 to 1: the
+    /// words share the cue's time evenly, in order.
+    static func wordProgress(_ cue: CaptionCue, _ t: Double) -> [Double] {
+        let n = wordRanges(cue.text).count
+        guard n > 0 else { return [] }
+        let share = (cue.end - cue.start) / Double(n)
+        guard share > 0 else { return Array(repeating: 1, count: n) }
+        return (0..<n).map { i in min(max((t - (cue.start + Double(i) * share)) / share, 0), 1) }
+    }
+
+    /// Each word of `cue` as `style` draws it `t` seconds into the page —
+    /// the rule both phones keep, held to the shared fixture
+    /// captions-styles.json. No moment is the finished cue: every word
+    /// whole and filled, but for "highlightWord", whose first word is lit.
+    static func frameFor(_ style: String, cue: CaptionCue, t: Double?) -> [WordFrame] {
+        let n = wordRanges(cue.text).count
+        guard n > 0 else { return [] }
+        let filled = style == karaoke || style == typewriter
+        guard let t else {
+            if style == highlightWord { return (0..<n).map { WordFrame(fill: $0 == 0 ? 1 : 0) } }
+            return Array(repeating: WordFrame(fill: filled ? 1 : 0), count: n)
+        }
+        let progress = wordProgress(cue, t)
+        switch style {
+        case highlightWord:
+            let span = cue.end - cue.start
+            let share = span > 0 ? min(max((t - cue.start) / span, 0), 0.999999) : 0
+            let lit = min(n - 1, Int((share * Double(n)).rounded(.down)))
+            return (0..<n).map { WordFrame(fill: $0 == lit ? 1 : 0) }
+        case karaoke:
+            return progress.map { WordFrame(fill: $0) }
+        case typewriter:
+            return progress.map { WordFrame(alpha: $0 > 0 ? 1 : 0, fill: $0) }
+        case pop:
+            let each = (cue.end - cue.start) / Double(n)
+            return (0..<n).map { i in
+                let since = t - (cue.start + Double(i) * each)
+                return since < 0 ? WordFrame(scale: popFrom, alpha: 0) : WordFrame(scale: popScale(since))
+            }
+        default:
+            return Array(repeating: WordFrame(), count: n)
+        }
+    }
+
+    /// A popping word's size `since` seconds after it is said.
+    static func popScale(_ since: Double) -> Double {
+        let half = popSeconds / 2
+        if since >= popSeconds { return 1 }
+        if since < half { return popFrom + (popPeak - popFrom) * max(0, since) / half }
+        return popPeak + (1 - popPeak) * (since - half) / half
+    }
+
+    /// The spans that draw `frames` on the words of `text`: lit or filled
+    /// letters in `ink`, letters still to come clear, a word's size.
+    static func wordSpans(_ text: String, frames: [WordFrame], style: String, ink: String) -> [TextSpan] {
+        let units = Array(text.utf16)
+        var out: [TextSpan] = []
+        for (word, frame) in zip(wordRanges(text), frames) {
+            let letters = String(decoding: units[word.start..<word.end], as: UTF16.self)
+            let reach = word.start + filledUnits(letters, share: frame.fill)
+            switch style {
+            case highlightWord, karaoke:
+                if reach > word.start { out.append(TextSpan(start: word.start, end: reach, color: ink)) }
+            case typewriter:
+                if frame.alpha <= 0 {
+                    out.append(TextSpan(start: word.start, end: word.end, color: clearInk))
+                } else if reach < word.end {
+                    out.append(TextSpan(start: reach, end: word.end, color: clearInk))
+                }
+            case pop:
+                if frame.alpha <= 0 || frame.scale != 1 {
+                    out.append(TextSpan(start: word.start, end: word.end, color: frame.alpha <= 0 ? clearInk : nil,
+                                        scale: frame.scale == 1 ? nil : frame.scale))
+                }
+            default:
+                break
+            }
+        }
+        return out
+    }
+
+    /// Letters not yet shown: drawn, so the lines keep their places, but
+    /// clear.
+    static let clearInk = "#00000000"
+
+    /// How many UTF-16 units of `word` a `share` of its letters takes —
+    /// whole characters, rounded down, so a letter is never cut.
+    static func filledUnits(_ word: String, share: Double) -> Int {
+        let count = word.count
+        let shown = min(count, max(0, Int((share * Double(count) + 1e-9).rounded(.down))))
+        return String(word.prefix(shown)).utf16.count
+    }
+
+    /// The box `el` moved to `place` on a page `size`: across the top or
+    /// the bottom `placeMargin` of the page in from its edge, or in its
+    /// middle; "safe" at the foot of the page's safe zone `zone`, inside
+    /// it across, the bottom without one. Only its place changes.
+    static func placed(_ el: Element, _ place: String, size: CGSize, zone: SafeZones.Zone?) -> Element {
+        var out = el
+        let h = Double(size.height)
+        switch place {
+        case top: out.y = h * placeMargin
+        case middle: out.y = (h - el.h) / 2
+        case safe:
+            guard let zone else { return placed(el, bottom, size: size, zone: nil) }
+            let room = SafeZones.safeRect(zone, size: size)
+            out.y = Double(room.maxY) - el.h - h * 0.02
+            out.x = min(max(el.x, Double(room.minX)), max(Double(room.minX), Double(room.maxX) - el.w))
+            if el.w > Double(room.width) {
+                out.w = Double(room.width)
+                out.x = Double(room.minX)
+            }
+        default: out.y = h - el.h - h * placeMargin
+        }
+        return out
+    }
+
+    /// The letters' gradient for "gradient": the page's first two colours
+    /// (DataGraphics.palette) left to right, or its one and white.
+    static func gradientFill(_ palette: [String]) -> Paint {
+        let first = palette.first ?? highlightColour
+        let second = palette.count > 1 ? palette[1] : "#ffffff"
+        return Paint(kind: "gradient", color: nil, angle: 90,
+                     stops: [GradientStop(offset: 0, color: first), GradientStop(offset: 1, color: second)])
     }
 
     /// Each word's start and end in `text`, as UTF-16 offsets, as a span
