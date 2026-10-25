@@ -71,5 +71,13 @@ final class MarkerStyleTests: XCTestCase {
         XCTAssertFalse(props[0].contains("buClr"))
         XCTAssertTrue(props[1].contains("<a:buClr><a:srgbClr val=\"FF0000\"/></a:buClr><a:buSzPct val=\"150000\"/>"), props[1])
         XCTAssertFalse(props[2].contains("buClr"))
+        // Item 2's marker hangs in room 1.5 times as wide, as on the page.
+        func marL(_ p: String) -> Double {
+            guard let r = p.range(of: "marL=\"[0-9]+\"", options: .regularExpression) else { return -1 }
+            return Double(p[r].dropFirst(6).dropLast()) ?? -1
+        }
+        XCTAssertEqual(marL(props[1]), marL(props[0]) * 1.5, accuracy: 1)
+        XCTAssertEqual(marL(props[2]), marL(props[0]))
+        XCTAssertGreaterThan(marL(props[0]), 0)
     }
 }
