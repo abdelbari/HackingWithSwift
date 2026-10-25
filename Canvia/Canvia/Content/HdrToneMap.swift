@@ -2,7 +2,8 @@
 // Android twin's HdrToneMap.kt tone maps the frames its codec cannot: a
 // BT.2020 R'G'B' signal, HLG or PQ, to BT.709 R'G'B', each 0…1. In order:
 // the signal to light — HLG's inverse OETF with the 1.2 system gamma of a
-// 1000-nit display (`peakNits`), or PQ's EOTF, in nits — then the BT.2020
+// 1000-nit display (`peakNits`) on each channel, as AVFoundation converts
+// HLG, or PQ's EOTF, in nits — then the BT.2020
 // to BT.709 matrix in that light, negatives cut to 0, then BT.2390's
 // roll-off from `peakNits` down to SDR white (`whiteNits`), worked in PQ,
 // then BT.709's gamma. Each channel on its own, the simplest rule both
@@ -82,14 +83,35 @@ enum HdrToneMap {
         return v < 0.018 ? 4.5 * v : 1.099 * pow(v, 0.45) - 0.099
     }
 
+    /// HLG's system gamma (BT.2100's OOTF) on a 1000-nit display.
+    static let hlgGamma = 1.2
+
+    /// A signal's light in nits, by `transfer`: HLG's scene light through
+    /// the system gamma, channel by channel.
+    static func nits(_ signal: Double, transfer: String) -> Double {
+        transfer == pq ? pqToNits(signal) : peakNits * pow(hlgToScene(signal), hlgGamma)
+    }
+
     /// `rgb`, a BT.2020 signal in `transfer` ("hlg" or "pq"; anything else
     /// is taken as HLG), as BT.709 R'G'B'.
     static func toneMap(_ rgb: [Double], transfer: String) -> [Double] {
         guard rgb.count == 3 else { return rgb }
-        let light = rgb.map { transfer == pq ? pqToNits($0) : peakNits * pow(hlgToScene($0), 1.2) }
+        let light = rgb.map { nits($0, transfer: transfer) }
         return matrix.map { row in
             let mixed = max(0, row[0] * light[0] + row[1] * light[1] + row[2] * light[2])
             return bt709(rolledOff(mixed) / whiteNits)
         }
+    }
+
+    /// The 10-bit video-range sample `y`, `cb`, `cr`, read with BT.2020's
+    /// non-constant-luminance matrix, as SDR red, green and blue 0…255 —
+    /// the fixture's pixels, the Android twin's rgb.
+    static func rgb(y: Int, cb: Int, cr: Int, transfer: String) -> [Int] {
+        let kr = 0.2627, kb = 0.0593
+        let l = Double(y - 64) / 876, u = Double(cb - 512) / 896, v = Double(cr - 512) / 896
+        let r = l + 2 * (1 - kr) * v
+        let b = l + 2 * (1 - kb) * u
+        let g = (l - kr * r - kb * b) / (1 - kr - kb)
+        return toneMap([r, g, b], transfer: transfer).map { min(255, max(0, Int((255 * $0 + 0.5).rounded(.down)))) }
     }
 }

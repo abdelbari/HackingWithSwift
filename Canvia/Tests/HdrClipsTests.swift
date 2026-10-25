@@ -77,6 +77,28 @@ final class HdrClipsTests: XCTestCase {
         }
     }
 
+    func testTheCurvesAndPixelsMatchTheSharedFixture() throws {
+        let fixture = try SharedFixture.object("hdr-tonemap")
+        let curves = try XCTUnwrap(fixture["curves"] as? [String: [[Double]]])
+        let rules: [(String, (Double) -> Double, Double)] = [
+            ("pq", HdrToneMap.pqToNits, 1e-3), ("hlg", HdrToneMap.hlgToScene, 1e-5),
+            ("rolloff", HdrToneMap.rolledOff, 1e-3), ("oetf709", HdrToneMap.bt709, 1e-5),
+        ]
+        for (name, rule, tolerance) in rules {
+            for point in try XCTUnwrap(curves[name]) {
+                XCTAssertEqual(rule(point[0]), point[1], accuracy: tolerance, "\(name)(\(point[0]))")
+            }
+        }
+        let pixels = try XCTUnwrap(fixture["pixels"] as? [[String: Any]])
+        for row in pixels {
+            let transfer = try XCTUnwrap(row["transfer"] as? String)
+            let sample = try XCTUnwrap(row["ycbcr"] as? [Int])
+            let want = try XCTUnwrap(row["rgb"] as? [Int])
+            XCTAssertEqual(HdrToneMap.rgb(y: sample[0], cb: sample[1], cr: sample[2], transfer: transfer), want,
+                           "\(transfer) \(sample)")
+        }
+    }
+
     func testTheCurvesMeetTheirKnownPoints() {
         // PQ: 10,000 nits at full signal, and back again.
         XCTAssertEqual(HdrToneMap.pqToNits(1), 10000, accuracy: 0.5)
