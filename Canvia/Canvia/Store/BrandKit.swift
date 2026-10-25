@@ -69,9 +69,12 @@ struct BrandPalette: Codable, Equatable {
         return trimmed.isEmpty ? nil : String(trimmed.prefix(nameLimit))
     }
 
-    /// The name `hex` has here, if it has one.
+    /// The name `hex` has here, if it has one — none once `hex` is no
+    /// longer one of the palette's colours.
     func name(of hex: String) -> String? {
-        BrandPalette.key(hex).flatMap { names[$0] }
+        guard let key = BrandPalette.key(hex),
+              colors.contains(where: { BrandPalette.key($0) == key }) else { return nil }
+        return names[key]
     }
 
     /// `hex` given `name`, or its name taken away with nil or a blank.
@@ -539,7 +542,8 @@ struct BrandKit: Codable, Equatable, Identifiable {
     }
 
     /// A colour added to the palette at `palette`, newest first, once, at
-    /// most `limit` of them. With no palettes yet, it starts "Colours".
+    /// most `limit` of them — a colour pushed out takes its name with it.
+    /// With no palettes yet, it starts "Colours".
     mutating func addColor(_ hex: String, palette index: Int = 0) {
         if palettes.isEmpty { palettes = [BrandPalette(name: Self.firstPaletteName, colors: [])] }
         guard palettes.indices.contains(index) else { return }
@@ -547,6 +551,15 @@ struct BrandKit: Codable, Equatable, Identifiable {
         palettes[index].colors.removeAll { $0 == h }
         palettes[index].colors.insert(h, at: 0)
         palettes[index].colors = Array(palettes[index].colors.prefix(Self.limit))
+        palettes[index].names = palettes[index].keptNames
+    }
+
+    /// `hex` taken out of the palette at `palette`, and its name with it,
+    /// so the colour added back has none — as on the Android twin.
+    mutating func removeColor(_ hex: String, palette index: Int) {
+        guard palettes.indices.contains(index) else { return }
+        palettes[index].colors.removeAll { $0.lowercased() == hex.lowercased() }
+        palettes[index].setName(nil, of: hex)
     }
 }
 

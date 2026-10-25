@@ -52,6 +52,22 @@ final class BrandColourNamesTests: XCTestCase {
         }
     }
 
+    /// Shared: a colour taken out, or pushed out by newer ones, has no
+    /// name — not even when added back.
+    func testAColourGoneFromThePaletteHasNoName() throws {
+        let (json, kit) = try fixture()
+        let rows = try XCTUnwrap(json["gone"] as? [[String: Any]])
+        XCTAssertFalse(rows.isEmpty)
+        for row in rows {
+            let label = row["name"] as? String ?? ""
+            var out = kit
+            if let hex = row["remove"] as? String { out.removeColor(hex, palette: 0) }
+            for hex in try XCTUnwrap(row["add"] as? [String]) { out.addColor(hex, palette: 0) }
+            XCTAssertEqual(out.palettes[0].names, row["names"] as? [String: String], label)
+            XCTAssertEqual(out.colourName(try XCTUnwrap(row["probe"] as? String)), row["said"] as? String, label)
+        }
+    }
+
     /// Shared: a swap and a guidelines swatch in the brand's words.
     func testSwapsAndGuidelinesSayTheBrandsWords() throws {
         let (json, kit) = try fixture()
