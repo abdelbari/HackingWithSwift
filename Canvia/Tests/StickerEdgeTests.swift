@@ -80,6 +80,21 @@ final class StickerEdgeTests: XCTestCase {
     }
 
     @MainActor
+    func testATaggedPDFsSentinelsCountTheElementsDrawnNotTheGroupsEdgeCopies() throws {
+        let face = try parts("sticker-face-01", edge: PhotoEdge(kind: "outline", color: "#ff0000", width: 20))
+        var loose = Element.sticker("🎉")
+        loose.id = "loose"
+        let laid = PageRenderView.numbered(PhotoEffects.withGroupEdges([loose] + face))
+        XCTAssertEqual(laid.count, 1 + 2 * face.count)
+        // The edge copies take the number of the part they go before, and
+        // the sentinel goes before the first of them.
+        XCTAssertEqual(laid.map(\.index), [1] + Array(repeating: 2, count: face.count) + Array(2...(face.count + 1)))
+        XCTAssertEqual(laid.filter(\.marks).map(\.index), Array(1...(face.count + 1)))
+        XCTAssertTrue(laid[1].marks && laid[1].element.edgeOnly)
+        XCTAssertFalse(laid[face.count + 1].marks)
+    }
+
+    @MainActor
     func testSVGStrokesAGraphicsOutlineAsAnOutsetPathOnceForTheWholeGroup() throws {
         let arrow = try parts("sticker-arrow-01", edge: PhotoEdge(kind: "outline", color: "#ff0000", width: 20))
         var d = Design(title: "Stickers", width: 1080, height: 1080)

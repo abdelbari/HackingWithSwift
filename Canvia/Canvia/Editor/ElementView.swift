@@ -1613,13 +1613,30 @@ struct PageRenderView: View {
     }
 
     /// What `plain` draws, sentinel k before the kth element drawn —
-    /// design.drawnElements(on:), the order the PDF's tags are read in.
+    /// design.drawnElements(on:), the order the PDF's tags are read in. A
+    /// graphic's outline goes round the whole of it here too
+    /// (PhotoEffects.withGroupEdges), tagged with the part it is laid before.
     private var sentinelled: some View {
-        let elements = Array(design.drawnElements(on: page).enumerated())
-        return ForEach(elements, id: \.element.id) { n, el in
-            PdfSentinel(index: n + 1)
-            ElementView(element: el).equatable()
+        let laid = Self.numbered(PhotoEffects.withGroupEdges(design.drawnElements(on: page)))
+        return ForEach(laid, id: \.element.id) { item in
+            if item.marks { PdfSentinel(index: item.index) }
+            ElementView(element: item.element).equatable()
         }
+    }
+
+    /// `laid` numbered for the PDF's tags: each element its place among
+    /// those drawn, a group's edge copy (Element.edgeOnly) the place of the
+    /// element it is laid before, and a sentinel (`marks`) before the
+    /// first of each number.
+    static func numbered(_ laid: [Element]) -> [(index: Int, marks: Bool, element: Element)] {
+        var out: [(index: Int, marks: Bool, element: Element)] = []
+        var count = 0
+        for el in laid {
+            let index = count + 1
+            out.append((index: index, marks: out.last?.index != index, element: el))
+            if !el.edgeOnly { count += 1 }
+        }
+        return out
     }
 
     @ViewBuilder
