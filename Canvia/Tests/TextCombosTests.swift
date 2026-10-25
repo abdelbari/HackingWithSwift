@@ -468,7 +468,7 @@ extension TextCombosTests {
     // MARK: occasions and topics
 
     /// The categories round 36 added, after Kids and before Animated.
-    private let added = Array(TextCombos.categories.dropFirst(10).prefix(19))
+    private var added: [String] { Array(TextCombos.categories.dropFirst(10).prefix(19)) }
 
     /// Shared: an occasion's combinations name its day in the calendar, and
     /// Coming up shows the nearest one's, in the file's order.
