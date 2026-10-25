@@ -55,6 +55,13 @@ final class ExportFailureTests: XCTestCase {
                         .settings.maxEdge, 1280)
         XCTAssertNil(ExportFailure.suggestion(.codec, settings: ExportFailure.Asked(format: "mp4", maxEdge: 1280)))
 
+        // A GIF is sized by its own budget, and a PDF, print or PowerPoint
+        // file never reads the scale: smaller would make the same file.
+        XCTAssertNil(ExportFailure.suggestion(.tooLarge, settings: ExportFailure.Asked(format: "gif", maxEdge: 1920)))
+        for format in ["pdf", "print", "pptx"] {
+            XCTAssertNil(ExportFailure.suggestion(.tooLarge, settings: ExportFailure.Asked(format: format, scale: 3)))
+        }
+
         // Only a size or an encoder problem suggests trying smaller.
         XCTAssertNil(ExportFailure.suggestion(.noSpace, settings: png))
         XCTAssertNil(ExportFailure.suggestion(.other, settings: png))

@@ -114,11 +114,14 @@ enum ExportFailure {
         var settings: Asked
     }
 
-    /// The video formats, whose suggestion is a lower quality.
-    static let videoFormats: Set<String> = ["mp4", "gif"]
+    /// The video formats, whose suggestion is a lower quality. Not a GIF:
+    /// it is sized by its own budget (MovieExporter.gifPlan, 640 at most),
+    /// so a lower quality would make the same GIF.
+    static let videoFormats: Set<String> = ["mp4"]
 
-    /// The formats a picture is drawn for at a scale.
-    static let scaledFormats: Set<String> = ["png", "jpg", "pdf", "print", "pptx"]
+    /// The formats a picture is drawn for at a scale: only these read it,
+    /// so only these are made smaller at 1×.
+    static let scaledFormats: Set<String> = ["png", "jpg"]
 
     /// What a failure of `kind` suggests trying, made with `settings`: only
     /// a picture or film too large, or one the encoder refused — a film one
