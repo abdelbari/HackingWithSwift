@@ -1803,6 +1803,9 @@ final class DesignStore {
     /// captions of "video:<id>" — the Clip sheet's — or "audio:<trackId>" —
     /// the track's in Audio; the sheet that opens them takes it.
     var captionsAsked: String?
+    /// Check accessibility's Replace on a picture or clip whose file is
+    /// gone, asking the editor for Add in Replace mode (replaceTargetId).
+    var replaceAsked = false
     /// The photo whose faces Face retouch is looking for, and the one it
     /// found none in, which the Filters sheet says so of
     /// (FaceRetouching.swift).

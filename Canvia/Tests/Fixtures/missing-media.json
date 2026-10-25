@@ -1,0 +1,52 @@
+{
+  "about": "MissingMedia.missing: what a design has whose own stored file is gone. `present` are the files this phone has, as MissingMedia.stored writes them (a song as audio:<id>); everything else of the design's own is gone. Page by page, the background before the elements in layer order; then the audio tracks, page index -1. asset:, motion:, qr:, sfx: and music: never count. Both phones read this file.",
+  "design": {
+    "id": "d-missing",
+    "title": "Missing media",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 1700000000000,
+    "updatedAt": 1700000000000,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {"type": "image", "value": "media:bg-gone"},
+        "elements": [
+          {"id": "e1", "type": "image", "src": "media:here", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e2", "type": "image", "src": "media:gone", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e3", "type": "image", "src": "asset:mountain", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e4", "type": "image", "src": "video:clip-gone@2.50", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e5", "type": "image", "src": "qr:https://example.com", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e6", "type": "image", "src": "motion:waves", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e7", "type": "text", "text": "media:gone", "x": 0, "y": 0, "w": 100, "h": 40}
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {"type": "color", "value": "#ffffff"},
+        "elements": [
+          {"id": "e8", "type": "image", "src": "anim:spin-gone", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e9", "type": "image", "src": "video:clip-here", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e10", "type": "image", "src": "media:gone", "x": 0, "y": 0, "w": 100, "h": 100}
+        ]
+      }
+    ],
+    "audio": [
+      {"id": "t1", "src": "audio:song-gone", "name": "Song"},
+      {"id": "t2", "src": "sfx:pop", "name": "Pop"},
+      {"id": "t3", "src": "music:big-idea", "name": "Big idea"},
+      {"id": "t4", "src": "audio:song-here", "name": "Here"},
+      {"id": "t5", "src": "video:clip-gone", "name": "Clip sound"}
+    ]
+  },
+  "present": ["media:here", "video:clip-here", "audio:song-here"],
+  "missing": [
+    {"elementId": "p1", "pageIndex": 0, "kind": "background"},
+    {"elementId": "e2", "pageIndex": 0, "kind": "photo"},
+    {"elementId": "e4", "pageIndex": 0, "kind": "video"},
+    {"elementId": "e8", "pageIndex": 1, "kind": "anim"},
+    {"elementId": "e10", "pageIndex": 1, "kind": "photo"},
+    {"elementId": "t1", "pageIndex": -1, "kind": "audio"},
+    {"elementId": "t5", "pageIndex": -1, "kind": "audio"}
+  ]
+}

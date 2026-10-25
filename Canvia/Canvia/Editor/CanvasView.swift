@@ -1833,7 +1833,9 @@ struct CanvasView: View {
                                 perform: { elementHold(el) }, onPressingChanged: pressed)
             .gesture(moveGesture(el))
             .accessibilityElement()
-            .accessibilityLabel(CanvasAccessibility.label(for: el, on: store.page.elements))
+            // ", missing" after a picture or clip whose file is gone.
+            .accessibilityLabel(MissingMedia.spoken(CanvasAccessibility.label(for: el, on: store.page.elements),
+                                                    missing: MissingMedia.isMissing(el)))
             .accessibilityValue(spokenValue(of: el))
             .accessibilityAddTraits(readerTraits(el))
             .accessibilityHint(el.type == .text ? tr("Double tap to select; double tap and hold to edit")

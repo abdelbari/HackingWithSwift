@@ -21,6 +21,9 @@ struct AudioSheet: View {
     /// the sheet opens.
     @State private var lengths: [String: Double] = [:]
     @State private var importing = false
+    /// The track whose sound is gone that music from Files replaces, by
+    /// id; nil when Files adds a new one.
+    @State private var replacingTrack: String?
     @State private var refused = false
     @State private var micRefused = false
     /// A voice-over under way: counting down, then recording.
@@ -111,7 +114,11 @@ struct AudioSheet: View {
                     .foregroundStyle(.secondary)
             }
             ForEach(tracks) { track in
-                NavigationLink(value: track.id) { trackRow(track) }
+                // A track whose sound is gone says so, with Replace beside it.
+                HStack(spacing: 8) {
+                    NavigationLink(value: track.id) { trackRow(track) }
+                    if MissingMedia.isTrackMissing(track) { replaceChip(track) }
+                }
             }
             .onDelete { offsets in
                 let ids = offsets.map { tracks[$0].id }
@@ -145,12 +152,30 @@ struct AudioSheet: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// "Sound missing · Replace": music from Files in the track's place,
+    /// its start, trim, volume and fades kept.
+    private func replaceChip(_ track: AudioTrack) -> some View {
+        Button {
+            replacingTrack = track.id
+            importing = true
+        } label: {
+            Label(MissingMedia.chipText(.audio), systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(1)
+        }
+        .buttonStyle(.borderless)
+    }
+
     private var addSection: some View {
         Section("Add") {
             Button { showingMusic = true } label: {
                 Label("Music", systemImage: "music.note")
             }
-            Button { importing = true } label: {
+            Button {
+                replacingTrack = nil
+                importing = true
+            } label: {
                 Label("Music from Files…", systemImage: "folder")
             }
             musicMenu
@@ -202,6 +227,8 @@ struct AudioSheet: View {
     /// A file picked in Files: kept among your uploads and added as a track
     /// when it is music this phone plays; turned away, and said, when not.
     private func bringIn(_ result: Result<URL, Error>) {
+        let replacing = replacingTrack
+        replacingTrack = nil
         guard case .success(let url) = result else { return }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
@@ -217,7 +244,11 @@ struct AudioSheet: View {
             }
             Uploads.record(id, kind: .audio)
             lengths[id] = seconds
-            add(id)
+            if let replacing {
+                store.updateAudioTrack(replacing) { $0.src = AudioTrack.src(id) }
+            } else {
+                add(id)
+            }
         }
     }
 

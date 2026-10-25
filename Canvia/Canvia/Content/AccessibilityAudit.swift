@@ -47,8 +47,11 @@
 //    the safe part of the page, one step.
 //  - missingLetters: words — a text's or a shape's — with letters their font
 //    does not have (FontLibrary.covers), which the phone draws in a
-//    stand-in font: Cyrillic in a Latin-only face — last of the kinds on
-//    both phones.
+//    stand-in font: Cyrillic in a Latin-only face.
+//  - missingMedia: a photo or clip whose file is gone from this phone
+//    (MissingMedia, which the caller passes in, as it reads the files):
+//    "Photo missing" or "Video missing", with Replace; a page's background
+//    picture gone, said of the page — last of the kinds on both phones.
 //
 // Findings come page by page; within a page in that order of kinds, and
 // within a kind in layer order, back to front. Hidden elements and hidden
@@ -62,7 +65,7 @@ enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
         case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, headings, colourVision, captions
-        case safeZone, missingLetters
+        case safeZone, missingLetters, missingMedia
     }
 
     /// What a finding's button does.
@@ -74,6 +77,7 @@ enum AccessibilityAudit {
         case makeHeading = "Make it a heading"
         case addCaptions = "Add captions"
         case moveInside = "Move inside"
+        case replace = "Replace"
     }
 
     /// One thing found: {kind, pageIndex, elementId, message, fix}.
@@ -92,7 +96,8 @@ enum AccessibilityAudit {
     /// Every finding. `silentClips` are the clips whose files have no sound
     /// of their own, as far as the phone knows; the rest are taken to have
     /// one.
-    static func findings(_ design: Design, silentClips: Set<String> = []) -> [Finding] {
+    /// `missingMedia` is what MissingMedia found gone; none by default.
+    static func findings(_ design: Design, silentClips: Set<String> = [], missingMedia: [MissingMedia.Absent] = []) -> [Finding] {
         let narration = uncaptionedNarration(design)
         let contrast = Dictionary(grouping: ContrastAudit.audit(design), by: \.pageIndex)
         let holds = filmHolds(design)
@@ -170,8 +175,23 @@ enum AccessibilityAudit {
                 out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
                                    message: missingLettersNote))
             }
+            out += missingFindings(missingMedia, page: p, shown: shown)
         }
         return out
+    }
+
+    /// The missingMedia findings of page `p`: its background, then its
+    /// shown elements, as MissingMedia lists them; a sound is no page's.
+    static func missingFindings(_ items: [MissingMedia.Absent], page p: Int, shown: [Element]) -> [Finding] {
+        let ids = Set(shown.map(\.id))
+        return items.filter { $0.pageIndex == p }.compactMap { item in
+            if item.kind == .background {
+                return Finding(kind: .missingMedia, pageIndex: p, elementId: nil, message: MissingMedia.saying(.background))
+            }
+            guard ids.contains(item.elementId) else { return nil }
+            return Finding(kind: .missingMedia, pageIndex: p, elementId: item.elementId,
+                           message: MissingMedia.saying(item.kind), fix: .replace)
+        }
     }
 
     /// What a text under the safe zone's covered parts is said to be.
@@ -531,7 +551,7 @@ enum AccessibilityAudit {
             let moved = SafeZones.movedInside(box, zone: zone, size: design.size(for: page))
             el.x += moved.minX - box.minX
             el.y += moved.minY - box.minY
-        case .some(.addAltText), .some(.addCaptions), .none:
+        case .some(.addAltText), .some(.addCaptions), .some(.replace), .none:
             return design
         }
         out.pages[f.pageIndex].elements[i] = el

@@ -172,6 +172,8 @@ struct EditorView: View {
             topBar
             if saveFailed { saveFailedBanner }
             if let tip { tipBanner(tip) }
+            // "N items are missing from this design", once as it opens.
+            MissingMediaBanner(store: store)
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store, onBackground: openBackground, onPresent: { present(from: $0) })
                     .overlay { if rulers { RulersView(store: store).allowsHitTesting(!pageTaken) } }
@@ -2303,6 +2305,8 @@ private struct WordRequests: ViewModifier {
 /// Add captions for the clip's Clip sheet, or Audio for a voice-over, in
 /// place of the sheet that asked — each opens its captions
 /// (DesignStore.captionsAsked).
+/// Its Replace, on a picture whose file is gone, asks for Add in Replace
+/// mode (DesignStore.replaceAsked).
 private struct PageAnimationRequest: ViewModifier {
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
@@ -2317,6 +2321,11 @@ private struct PageAnimationRequest: ViewModifier {
             .onChange(of: store.captionsAsked) { _, asked in
                 guard let asked else { return }
                 activeSheet = asked.hasPrefix(AudioTrack.prefix) ? .audio : .clip
+            }
+            .onChange(of: store.replaceAsked) { _, asked in
+                guard asked else { return }
+                store.replaceAsked = false
+                activeSheet = .insert
             }
     }
 }

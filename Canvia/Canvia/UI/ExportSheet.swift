@@ -615,7 +615,7 @@ struct ExportSheet: View {
         // Clips filmed without sound are not asked captions for.
         let silent = await AccessibilitySheet.silentClips(in: design)
         let found = await Task.detached(priority: .utility) {
-            AccessibilityAudit.findings(design, silentClips: silent)
+            AccessibilityAudit.findings(design, silentClips: silent, missingMedia: MissingMedia.onThisPhone(design))
         }.value
         Self.a11yKept = (id, rev, found)
         a11yFindings = found

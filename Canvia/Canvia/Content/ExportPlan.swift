@@ -143,11 +143,12 @@ enum ExportPlan {
     static let captionFormats: Set<String> = ["mp4", "gif"]
 
     /// What the row counts for an export as `format`: every finding for a
-    /// type in checkedFormats, the captions ones for a film
-    /// (captionFormats), none for anything else.
+    /// type in checkedFormats, the captions ones — and a photo or clip whose
+    /// file is gone (missingMedia) — for a film (captionFormats), none for
+    /// anything else.
     static func nudgeFindings(_ findings: [AccessibilityAudit.Finding], format: String) -> [AccessibilityAudit.Finding] {
         if checkedFormats.contains(format) { return findings }
-        if captionFormats.contains(format) { return findings.filter { $0.kind == .captions } }
+        if captionFormats.contains(format) { return findings.filter { $0.kind == .captions || $0.kind == .missingMedia } }
         return []
     }
 

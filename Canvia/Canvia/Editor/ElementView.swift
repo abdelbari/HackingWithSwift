@@ -1270,6 +1270,10 @@ struct ImageElementView: View {
                 // the photo would be.
                 colour.fillView()
                     .frame(width: element.w, height: element.h)
+            } else if onScreen, MissingMedia.isMissing(element) {
+                // Its file is gone: said on the canvas, scaled to the
+                // frame — an export keeps its plain placeholder.
+                MissingPlaceholder(element: element)
             } else {
                 Color(hex: "#e3e6ea")
                     .overlay(Image(systemName: "photo").font(.largeTitle).foregroundStyle(.secondary))
@@ -1389,6 +1393,31 @@ struct ImageElementView: View {
             key = element.src.map { AnimStore.isAnim($0) ? AnimStore.shownKey($0) : $0 } ?? ""
         }
         return (base, key)
+    }
+}
+
+/// A photo's or a clip's place when its file is gone (MissingMedia): the
+/// grey placeholder with a broken picture and "Photo missing" or "Video
+/// missing", sized to the frame.
+private struct MissingPlaceholder: View {
+    let element: Element
+
+    var body: some View {
+        let side = max(1, min(element.w, element.h))
+        let kind = MissingMedia.stored(element.src).map(MissingMedia.fileKind) ?? .photo
+        Color(hex: "#e3e6ea")
+            .overlay {
+                VStack(spacing: side * 0.04) {
+                    Image(systemName: kind == .video ? "video.slash" : "photo.badge.exclamationmark")
+                        .font(.system(size: side * 0.22))
+                    Text(MissingMedia.saying(kind))
+                        .font(.system(size: max(6, side * 0.09), weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                }
+                .foregroundStyle(Color(hex: "#5f6670"))
+                .padding(side * 0.05)
+            }
     }
 }
 

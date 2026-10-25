@@ -409,6 +409,25 @@ struct ContextToolbar: View {
         .buttonStyle(ToolButtonStyle())
     }
 
+    /// "Photo missing · Replace" — or "Video missing" — which opens Replace
+    /// for that frame (MissingMedia).
+    private func missingMediaChip(_ el: Element) -> some View {
+        let kind = MissingMedia.stored(el.src).map(MissingMedia.fileKind) ?? .photo
+        return Button {
+            store.replaceTargetId = el.id
+            activeSheet = .insert
+        } label: {
+            Label(MissingMedia.chipText(kind), systemImage: "exclamationmark.triangle.fill")
+                .font(Theme.controlLabel)
+                .foregroundStyle(.red)
+                .lineLimit(1)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.red.opacity(0.12), in: Capsule())
+        }
+        .buttonStyle(ToolButtonStyle())
+    }
+
     /// Gradient letters are not their plain colour underneath: the chip
     /// shows and says the gradient, as the Fill chip does a shape's. Texts
     /// in different colours get the chip in every colour.
@@ -1368,6 +1387,9 @@ struct ContextToolbar: View {
     @ViewBuilder
     private func imageControls(_ el: Element) -> some View {
         Group {
+            // A picture or clip whose file is gone says so first, with
+            // Replace, which keeps its crop, frame, filters and alt text.
+            if MissingMedia.isMissing(el) { missingMediaChip(el) }
             // An empty frame or grid cell takes a colour in place of a photo
             // (PhotoFrames.colourOf); Replace, further along, puts a photo
             // back.

@@ -1151,6 +1151,15 @@
     "ja": "%@ · ページ %d / %d",
     "pt-BR": "%@ · Página %d de %d"
   },
+  "%@ · Replace": {
+    "ar": "%@ · استبدال",
+    "de": "%@ · Ersetzen",
+    "es": "%@ · Reemplazar",
+    "fr": "%@ · Remplacer",
+    "it": "%@ · Sostituisci",
+    "ja": "%@ · 置き換え",
+    "pt-BR": "%@ · Substituir"
+  },
   "%@ · holds %@ s": {
     "ar": "%@ · يثبت %@ ث",
     "de": "%@ · hält %@ s",
@@ -1666,6 +1675,15 @@
     "it": "%@, bloccato",
     "ja": "%@、ロック中",
     "pt-BR": "%@, bloqueado"
+  },
+  "%@, missing": {
+    "ar": "%@، مفقود",
+    "de": "%@, fehlt",
+    "es": "%@, falta",
+    "fr": "%@, manquant",
+    "it": "%@, mancante",
+    "ja": "%@、見つかりません",
+    "pt-BR": "%@, ausente"
   },
   "%@, music %d of %d": {
     "ar": "%@، الموسيقى %d من %d",
@@ -2913,6 +2931,39 @@
     "pt-BR": {
       "one": "%d item não pôde ser trazido (%@).",
       "other": "%d itens não puderam ser trazidos (%@)."
+    }
+  },
+  "%d item is missing from this design|%d items are missing from this design": {
+    "ar": {
+      "few": "%d عناصر مفقودة من هذا التصميم",
+      "many": "%d عنصرًا مفقودًا من هذا التصميم",
+      "one": "عنصر واحد مفقود من هذا التصميم (%d)",
+      "other": "%d عنصر مفقود من هذا التصميم",
+      "two": "عنصران مفقودان من هذا التصميم (%d)",
+      "zero": "لا توجد عناصر مفقودة من هذا التصميم (%d)"
+    },
+    "de": {
+      "one": "%d Element fehlt in diesem Design",
+      "other": "%d Elemente fehlen in diesem Design"
+    },
+    "es": {
+      "one": "Falta %d elemento en este diseño",
+      "other": "Faltan %d elementos en este diseño"
+    },
+    "fr": {
+      "one": "%d élément manque dans ce design",
+      "other": "%d éléments manquent dans ce design"
+    },
+    "it": {
+      "one": "Manca %d elemento in questo design",
+      "other": "Mancano %d elementi in questo design"
+    },
+    "ja": {
+      "other": "このデザインには見つからない項目が %d 件あります"
+    },
+    "pt-BR": {
+      "one": "%d item está faltando neste design",
+      "other": "%d itens estão faltando neste design"
     }
   },
   "%d item, each on a page of its own after the last.|%d items, each on a page of its own after the last.": {
@@ -23264,6 +23315,15 @@
     "ja": "文字 %@ のフレーム内の写真",
     "pt-BR": "Foto na moldura da letra %@"
   },
+  "Photo missing": {
+    "ar": "الصورة مفقودة",
+    "de": "Foto fehlt",
+    "es": "Falta la foto",
+    "fr": "Photo manquante",
+    "it": "Foto mancante",
+    "ja": "写真がありません",
+    "pt-BR": "Foto ausente"
+  },
   "Photo or video…": {
     "ar": "صورة أو فيديو…",
     "de": "Foto oder Video …",
@@ -28817,6 +28877,15 @@
     "ja": "効果音",
     "pt-BR": "Efeitos sonoros"
   },
+  "Sound missing": {
+    "ar": "الصوت مفقود",
+    "de": "Ton fehlt",
+    "es": "Falta el sonido",
+    "fr": "Son manquant",
+    "it": "Audio mancante",
+    "ja": "サウンドがありません",
+    "pt-BR": "Som ausente"
+  },
   "Sound off": {
     "ar": "الصوت متوقف",
     "de": "Ton aus",
@@ -33631,6 +33700,15 @@
     "it": "Il video ha l'audio ma non i sottotitoli",
     "ja": "動画に音声がありますが字幕がありません",
     "pt-BR": "O vídeo tem som, mas não tem legendas"
+  },
+  "Video missing": {
+    "ar": "الفيديو مفقود",
+    "de": "Video fehlt",
+    "es": "Falta el vídeo",
+    "fr": "Vidéo manquante",
+    "it": "Video mancante",
+    "ja": "動画がありません",
+    "pt-BR": "Vídeo ausente"
   },
   "Video position": {
     "ar": "موضع الفيديو",
