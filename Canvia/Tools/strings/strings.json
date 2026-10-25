@@ -5183,6 +5183,39 @@
     "ja": "%@を追加",
     "pt-BR": "Adicionar %@"
   },
+  "Add %d|Add %d": {
+    "ar": {
+      "few": "إضافة %d",
+      "many": "إضافة %d",
+      "one": "إضافة %d",
+      "other": "إضافة %d",
+      "two": "إضافة %d",
+      "zero": "إضافة %d"
+    },
+    "de": {
+      "one": "%d hinzufügen",
+      "other": "%d hinzufügen"
+    },
+    "es": {
+      "one": "Añadir %d",
+      "other": "Añadir %d"
+    },
+    "fr": {
+      "one": "Ajouter %d",
+      "other": "Ajouter %d"
+    },
+    "it": {
+      "one": "Aggiungi %d",
+      "other": "Aggiungi %d"
+    },
+    "ja": {
+      "other": "%d 件を追加"
+    },
+    "pt-BR": {
+      "one": "Adicionar %d",
+      "other": "Adicionar %d"
+    }
+  },
   "Add New %@ to Home screen": {
     "ar": "إضافة «%@ جديد» إلى الشاشة الرئيسية",
     "de": "„Neu: %@“ zum Startbildschirm hinzufügen",
@@ -6214,6 +6247,24 @@
     "it": "Tutte le tracce",
     "ja": "すべてのトラック",
     "pt-BR": "Todas as faixas"
+  },
+  "Allow access": {
+    "ar": "السماح بالوصول",
+    "de": "Zugriff erlauben",
+    "es": "Permitir acceso",
+    "fr": "Autoriser l'accès",
+    "it": "Consenti l'accesso",
+    "ja": "アクセスを許可",
+    "pt-BR": "Permitir acesso"
+  },
+  "Allow access to see your photos and videos here.": {
+    "ar": "اسمح بالوصول لترى صورك وفيديوهاتك هنا.",
+    "de": "Erlaube den Zugriff, um deine Fotos und Videos hier zu sehen.",
+    "es": "Permite el acceso para ver aquí tus fotos y videos.",
+    "fr": "Autorisez l'accès pour voir vos photos et vidéos ici.",
+    "it": "Consenti l'accesso per vedere qui foto e video.",
+    "ja": "アクセスを許可すると、ここに写真と動画が表示されます。",
+    "pt-BR": "Permita o acesso para ver suas fotos e vídeos aqui."
   },
   "Already at the back": {
     "ar": "في الخلف بالفعل",
@@ -8902,6 +8953,15 @@
     "it": "Scegli cartella",
     "ja": "フォルダを選択",
     "pt-BR": "Escolher pasta"
+  },
+  "Choose from device": {
+    "ar": "الاختيار من الجهاز",
+    "de": "Vom Gerät auswählen",
+    "es": "Elegir del dispositivo",
+    "fr": "Choisir sur l'appareil",
+    "it": "Scegli dal dispositivo",
+    "ja": "端末から選ぶ",
+    "pt-BR": "Escolher do dispositivo"
   },
   "Choose pages… (%@)": {
     "ar": "اختيار صفحات… (%@)",
@@ -14975,6 +15035,15 @@
     "ja": "ファネル",
     "pt-BR": "Funil"
   },
+  "Gallery": {
+    "ar": "المعرض",
+    "de": "Galerie",
+    "es": "Galería",
+    "fr": "Galerie",
+    "it": "Galleria",
+    "ja": "ギャラリー",
+    "pt-BR": "Galeria"
+  },
   "Gap %@": {
     "ar": "المسافة %@",
     "de": "Abstand %@",
@@ -20153,6 +20222,15 @@
     "ja": "パスワードなし",
     "pt-BR": "Sem senha"
   },
+  "No photos or videos here yet.": {
+    "ar": "لا توجد صور أو فيديوهات هنا بعد.",
+    "de": "Hier sind noch keine Fotos oder Videos.",
+    "es": "Todavía no hay fotos ni videos aquí.",
+    "fr": "Aucune photo ni vidéo ici pour l'instant.",
+    "it": "Qui non ci sono ancora foto né video.",
+    "ja": "ここにはまだ写真や動画がありません。",
+    "pt-BR": "Ainda não há fotos nem vídeos aqui."
+  },
   "No recordings yet.": {
     "ar": "لا توجد تسجيلات بعد.",
     "de": "Noch keine Aufnahmen.",
@@ -22553,6 +22631,15 @@
     "ja": "写真 %d / %d",
     "pt-BR": "Foto %d de %d"
   },
+  "Photo %d of the gallery": {
+    "ar": "الصورة %d في المعرض",
+    "de": "Foto %d der Galerie",
+    "es": "Foto %d de la galería",
+    "fr": "Photo %d de la galerie",
+    "it": "Foto %d della galleria",
+    "ja": "ギャラリーの写真 %d",
+    "pt-BR": "Foto %d da galeria"
+  },
   "Photo 4×6": {
     "ar": "صورة 4×6",
     "de": "Foto 10×15",
@@ -22822,6 +22909,15 @@
     "it": "Scegli cosa stai creando: un post, un poster, un biglietto. Quasi tutte le dimensioni hanno design pronti.",
     "ja": "作るものを選びましょう — 投稿、ポスター、カードなど。ほとんどのサイズにテンプレートが用意されています。",
     "pt-BR": "Escolha o que você vai criar — um post, um pôster, um cartão. A maioria dos tamanhos vem com designs prontos."
+  },
+  "Picked, %d": {
+    "ar": "مُختار، %d",
+    "de": "Ausgewählt, %d",
+    "es": "Elegida, %d",
+    "fr": "Choisie, %d",
+    "it": "Scelta, %d",
+    "ja": "選択済み、%d",
+    "pt-BR": "Escolhida, %d"
   },
   "Pictogram": {
     "ar": "رسم بالأيقونات",
@@ -26249,6 +26345,15 @@
     "ja": "すべてを選択",
     "pt-BR": "Selecionar tudo"
   },
+  "Select more photos": {
+    "ar": "تحديد المزيد من الصور",
+    "de": "Weitere Fotos auswählen",
+    "es": "Seleccionar más fotos",
+    "fr": "Sélectionner plus de photos",
+    "it": "Seleziona altre foto",
+    "ja": "写真をさらに選択",
+    "pt-BR": "Selecionar mais fotos"
+  },
   "Select multiple": {
     "ar": "تحديد متعدد",
     "de": "Mehrere auswählen",
@@ -29606,6 +29711,15 @@
     "ja": "バーコードには長すぎます",
     "pt-BR": "Isso é longo demais para um código de barras"
   },
+  "That photo or video couldn't be read.": {
+    "ar": "تعذّرت قراءة تلك الصورة أو ذلك الفيديو.",
+    "de": "Dieses Foto oder Video konnte nicht gelesen werden.",
+    "es": "No se pudo leer esa foto o ese video.",
+    "fr": "Cette photo ou vidéo n'a pas pu être lue.",
+    "it": "Non è stato possibile leggere questa foto o questo video.",
+    "ja": "その写真または動画を読み込めませんでした。",
+    "pt-BR": "Não foi possível ler essa foto ou vídeo."
+  },
   "That spreadsheet is too big to open.": {
     "ar": "جدول البيانات هذا أكبر من أن يُفتح.",
     "de": "Diese Tabelle ist zu groß zum Öffnen.",
@@ -32473,6 +32587,15 @@
     "it": "Video %d di %d",
     "ja": "動画 %d / %d",
     "pt-BR": "Vídeo %d de %d"
+  },
+  "Video %d of the gallery": {
+    "ar": "الفيديو %d في المعرض",
+    "de": "Video %d der Galerie",
+    "es": "Video %d de la galería",
+    "fr": "Vidéo %d de la galerie",
+    "it": "Video %d della galleria",
+    "ja": "ギャラリーの動画 %d",
+    "pt-BR": "Vídeo %d da galeria"
   },
   "Video has no alt text": {
     "ar": "الفيديو بلا نص بديل",

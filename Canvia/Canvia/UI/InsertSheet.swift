@@ -1561,6 +1561,9 @@ struct InsertSheet: View {
 
     private var photosGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // The phone's own photos and videos, inline (DeviceGallery):
+            // brought in as the button below brings them in.
+            DeviceGallerySection { bringIn($0) }
             // One when replacing — a replace has one slot to fill — and a
             // clip may fill it, so a frame or a grid's cell can hold one.
             Group {
@@ -1945,6 +1948,7 @@ struct InsertSheet: View {
     private var videosGrid: some View {
         let loops = MotionLibrary.search(search)
         return VStack(alignment: .leading, spacing: 10) {
+            DeviceGallerySection(videosTab: true) { bringIn($0) }
             Text("Motion backgrounds").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
             if loops.isEmpty {
                 Text(tr("No videos match “%@”", search.trimmingCharacters(in: .whitespaces)))
