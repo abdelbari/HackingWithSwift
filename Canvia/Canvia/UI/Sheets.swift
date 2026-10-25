@@ -2188,11 +2188,11 @@ struct LayersSheet: View {
         if spokenQuery != query {
             spokenQuery = query
             UIAccessibility.post(notification: .announcement,
-                                 argument: LayerSearch.spokenCount(hits, allPages: query.allPages))
+                                 argument: LayerSearch.spokenCount(hits))
         }
     }
 
-    /// A section a page with hits, "Page 3 · Intro", its rows top-most
+    /// A section a page with hits, "Page 3 - Intro", its rows top-most
     /// first; nothing found, the search's own empty state.
     @ViewBuilder
     private var foundSections: some View {
@@ -2206,7 +2206,7 @@ struct LayersSheet: View {
             let byId = Dictionary(page.elements.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             let elements = hits.ids.reversed().compactMap { byId[$0] }
             if !elements.isEmpty {
-                Section(PageTitles.named(hits.page + 1, title: page.title)) {
+                Section(LayerSearch.heading(page, number: hits.page + 1)) {
                     ForEach(elements) { el in foundRow(el, page: hits.page) }
                 }
             }
@@ -2236,8 +2236,12 @@ struct LayersSheet: View {
     }
 
     /// `el` on page `page` selected there, the editor going to that page.
+    /// With Select on, a tick that would join it to things ticked on this
+    /// page is refused and said — a selection stays on one page — but with
+    /// nothing ticked yet it goes there and ticks it, as on the Android
+    /// twin.
     private func pickOnPage(_ el: Element, page: Int) {
-        guard !selecting else {
+        guard !selecting || store.selection.isEmpty else {
             store.announce(LayerSearch.onePageNote, undoable: false)
             return
         }

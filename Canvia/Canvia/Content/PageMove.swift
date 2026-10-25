@@ -123,16 +123,16 @@ enum PageOrder {
         case later = "Move page later"
         case start = "Move to start"
         case end = "Move to end"
-    }
 
-    /// The page menus' name for the move — the page header's More and
-    /// ⌥⇧↑ and ⌥⇧↓ — as the Android twin's menus name it.
-    var menuTitle: String {
-        switch self {
-        case .earlier: return tr("Move page up")
-        case .later: return tr("Move page down")
-        case .start: return tr("Move to start")
-        case .end: return tr("Move to end")
+        /// The page menus' name for the move — the page header's More and
+        /// ⌥⇧↑ and ⌥⇧↓ — as the Android twin's menus name it.
+        var menuTitle: String {
+            switch self {
+            case .earlier: return tr("Move page up")
+            case .later: return tr("Move page down")
+            case .start: return tr("Move to start")
+            case .end: return tr("Move to end")
+            }
         }
     }
 

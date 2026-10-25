@@ -23,9 +23,9 @@ final class SafeZonesTests: XCTestCase {
         return d
     }
 
-    func testTheFileHasTheFiveZonesInOrder() {
+    func testTheFileHasTheSixZonesInOrder() {
         XCTAssertEqual(SafeZones.all.map(\.id),
-                       ["instagram-story", "instagram-reel", "tiktok", "youtube-short", "facebook-story"])
+                       ["instagram-story", "instagram-reel", "tiktok", "youtube-short", "facebook-story", "whatsapp-status"])
         let tiktok = SafeZones.zone(id: "tiktok")
         XCTAssertEqual(tiktok?.label, "TikTok")
         XCTAssertEqual(tiktok?.insets, SafeZones.ZoneInsets(top: 0.1, bottom: 0.2, left: 0, right: 0.12))
@@ -35,31 +35,32 @@ final class SafeZonesTests: XCTestCase {
     func testTheSharedSafeZoneRows() throws {
         let root = try SharedFixture.object("safe-zones")
         let size = CGSize(width: 1080, height: 1920)
+        XCTAssertEqual(SafeZones.matching(size).map(\.id), root["matching"] as? [String])
         for row in try XCTUnwrap(root["shown"] as? [[String: Any]]) {
             let sides = try XCTUnwrap(row["size"] as? [Double])
             var d = Design(title: "Zone", width: sides[0], height: sides[1])
             d.safeZone = row["safeZone"] as? String
             XCTAssertEqual(SafeZones.shown(d, page: d.pages[0])?.id, row["shown"] as? String, "\(row)")
         }
-        let edges = try XCTUnwrap(root["edges"] as? [String: [String: [Double]]])
-        for (id, expected) in edges {
+        for row in try XCTUnwrap(root["edges"] as? [[String: Any]]) {
+            let id = try XCTUnwrap(row["zone"] as? String)
             let zone = try XCTUnwrap(SafeZones.zone(id: id))
             let made = SafeZones.edges(zone, size: size)
-            XCTAssertEqual(made.x.count, expected["x"]?.count, id)
-            XCTAssertEqual(made.y.count, expected["y"]?.count, id)
-            for (a, b) in zip(made.x, expected["x"] ?? []) { XCTAssertEqual(a, b, accuracy: 1e-6, id) }
-            for (a, b) in zip(made.y, expected["y"] ?? []) { XCTAssertEqual(a, b, accuracy: 1e-6, id) }
+            let xs = (row["x"] as? [Double]) ?? [], ys = (row["y"] as? [Double]) ?? []
+            XCTAssertEqual(made.x.count, xs.count, id)
+            XCTAssertEqual(made.y.count, ys.count, id)
+            for (a, b) in zip(made.x, xs) { XCTAssertEqual(a, b, accuracy: 1e-6, id) }
+            for (a, b) in zip(made.y, ys) { XCTAssertEqual(a, b, accuracy: 1e-6, id) }
         }
         for row in try XCTUnwrap(root["rows"] as? [[String: Any]]) {
             let zone = try XCTUnwrap(SafeZones.zone(id: row["zone"] as? String))
-            XCTAssertEqual(SafeZones.isUnder(box(row["box"]), zone: zone, size: size), row["under"] as? Bool, "\(row)")
-        }
-        for row in try XCTUnwrap(root["moveInside"] as? [[String: Any]]) {
-            let zone = try XCTUnwrap(SafeZones.zone(id: row["zone"] as? String))
-            let moved = SafeZones.movedInside(box(row["box"]), zone: zone, size: size)
-            let expected = box(row["moved"])
-            XCTAssertEqual(moved.minX, expected.minX, accuracy: 1e-6, "\(row)")
-            XCTAssertEqual(moved.minY, expected.minY, accuracy: 1e-6, "\(row)")
+            let start = box(row["box"])
+            XCTAssertEqual(SafeZones.isUnder(start, zone: zone, size: size), row["under"] as? Bool, "\(row)")
+            let moved = SafeZones.movedInside(start, zone: zone, size: size)
+            let expected = try XCTUnwrap(row["moved"] as? [Double])
+            XCTAssertEqual(Double(moved.minX), expected[0], accuracy: 1e-6, "\(row)")
+            XCTAssertEqual(Double(moved.minY), expected[1], accuracy: 1e-6, "\(row)")
+            XCTAssertFalse(SafeZones.isUnder(moved, zone: zone, size: size), "moved, it is clear: \(row)")
         }
     }
 
@@ -99,6 +100,21 @@ final class SafeZonesTests: XCTestCase {
         let fixed = AccessibilityAudit.fixed(d, found[0])
         XCTAssertEqual(fixed.pages[0].elements[0].y, 1436, accuracy: 1e-6)
         XCTAssertTrue(AccessibilityAudit.findings(fixed).filter { $0.kind == .safeZone }.isEmpty)
+        // A shape's words count, as on the Android twin; words all but
+        // invisible (opacity 0.05 or less) and a shape with none do not.
+        var tag = Element.shape("rect")
+        tag.text = "Tap"
+        tag.x = 100
+        tag.y = 1700
+        var bare = Element.shape("rect")
+        bare.x = 400
+        bare.y = 1700
+        var faint = caption
+        faint.id = "faint"
+        faint.opacity = 0.05
+        let more = story([caption, tag, bare, faint], safeZone: "tiktok")
+        XCTAssertEqual(AccessibilityAudit.findings(more).filter { $0.kind == .safeZone }.map(\.elementId),
+                       [caption.id, tag.id])
         // Off, or a square page, has nothing to say.
         XCTAssertTrue(AccessibilityAudit.findings(story([caption], safeZone: "none")).filter { $0.kind == .safeZone }.isEmpty)
     }

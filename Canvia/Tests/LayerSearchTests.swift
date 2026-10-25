@@ -31,9 +31,13 @@ final class LayerSearchTests: XCTestCase {
         query.allPages = true
         let all = LayerSearch.hits(d.pages, current: 1, query: query, only: nil)
         XCTAssertEqual(all.map(\.page), [0, 2])
-        XCTAssertEqual(LayerSearch.spokenCount(all, allPages: true), "2 layers found on 2 pages")
-        XCTAssertEqual(LayerSearch.spokenCount([LayerSearch.PageHits(page: 0, ids: ["a"])], allPages: false),
-                       "1 layer found")
+        XCTAssertEqual(LayerSearch.spokenCount(all), "2 layers found on 2 pages")
+        XCTAssertEqual(LayerSearch.spokenCount([LayerSearch.PageHits(page: 0, ids: ["a"])]), "1 layer found on 1 page")
+        XCTAssertEqual(LayerSearch.spokenCount(here), "No layers found")
+        var titled = Page()
+        titled.title = "Intro"
+        XCTAssertEqual(LayerSearch.heading(titled, number: 3), "Page 3 - Intro")
+        XCTAssertEqual(LayerSearch.heading(Page(), number: 1), "Page 1")
         XCTAssertEqual(LayerSearch.KindChip.allCases.map(\.rawValue),
                        ["Text", "Photos and videos", "Shapes and lines", "Graphics", "Groups", "Hidden", "Locked"])
     }

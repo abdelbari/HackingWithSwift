@@ -1,275 +1,42 @@
 {
-  "about": "SafeZones on both phones, read with SafeZones.json. shown: the zone a page of size shows for a design whose safeZone is given (null, no key): none for \"none\" or a size no zone is for; the first zone the size matches with no key or an id that does not match. edges: each zone's inner edges on a 1080 x 1920 page, the snap lines, in the order inset top, bottom, left, right, then each rail's left, right, top, bottom, those on the page's own edges left out, each once. rows: whether a text box [x, y, w, h] on that page is under the app's buttons: more than 0.2 of its area covered by the bands and rails together, where they overlap counted once. moveInside: the box moved the least way into the part inside the insets.",
-  "size": [
-    1080,
-    1920
-  ],
+  "about": "Safe zones on both phones, read with SafeZones.json. matching: the zones a 1080 x 1920 page can show, in the Snapping and guides sheet's order. shown: the zone a page of size shows for a design whose safeZone is given (null, no key): none for \"none\" or a size no zone is for; the zone named when it is for that size; else - no key, or an id this build does not know or that is not for that size - the first zone the size matches. edges: each zone's inner edges on a 1080 x 1920 page, the snap lines, across (x) and down (y), in the order inset left, right (x) or top, bottom (y), then each rail's left, right (x) or top, bottom (y), those on the page's own edges left out, each once. rows: whether a text box [x, y, w, h] on that page is under the app's buttons - more than 0.2 of its area covered by the bands and rails together, counted once where they overlap - and where Move inside puts its top left [x, y]: the least shift into the part inside the insets, each axis on its own (flush with the top or left edge when it is bigger), then, still more than 0.2 under a rail, left of the rail when it fits there.",
+  "size": [1080, 1920],
+  "matching": ["instagram-story", "instagram-reel", "tiktok", "youtube-short", "facebook-story", "whatsapp-status"],
   "shown": [
-    {
-      "safeZone": null,
-      "size": [
-        1080,
-        1920
-      ],
-      "shown": "instagram-story"
-    },
-    {
-      "safeZone": "tiktok",
-      "size": [
-        1080,
-        1920
-      ],
-      "shown": "tiktok"
-    },
-    {
-      "safeZone": "none",
-      "size": [
-        1080,
-        1920
-      ],
-      "shown": null
-    },
-    {
-      "safeZone": "not-a-zone",
-      "size": [
-        1080,
-        1920
-      ],
-      "shown": "instagram-story"
-    },
-    {
-      "safeZone": null,
-      "size": [
-        1080,
-        1080
-      ],
-      "shown": null
-    },
-    {
-      "safeZone": "tiktok",
-      "size": [
-        1080,
-        1350
-      ],
-      "shown": null
-    }
+    {"size": [1080, 1920], "safeZone": null, "shown": "instagram-story"},
+    {"size": [1080, 1920], "safeZone": "tiktok", "shown": "tiktok"},
+    {"size": [1080, 1920], "safeZone": "whatsapp-status", "shown": "whatsapp-status"},
+    {"size": [1080, 1920], "safeZone": "none", "shown": null},
+    {"size": [1080, 1920], "safeZone": "not-a-zone", "shown": "instagram-story"},
+    {"size": [1080, 1080], "safeZone": null, "shown": null},
+    {"size": [1080, 1350], "safeZone": "tiktok", "shown": null}
   ],
-  "edges": {
-    "instagram-story": {
-      "x": [],
-      "y": [
-        268.8,
-        1574.4
-      ]
-    },
-    "instagram-reel": {
-      "x": [
-        928.8
-      ],
-      "y": [
-        268.8,
-        1574.4,
-        806.4
-      ]
-    },
-    "tiktok": {
-      "x": [
-        950.4
-      ],
-      "y": [
-        192.0,
-        1536.0
-      ]
-    },
-    "youtube-short": {
-      "x": [
-        972.0
-      ],
-      "y": [
-        230.39999999999998,
-        1497.6
-      ]
-    },
-    "facebook-story": {
-      "x": [],
-      "y": [
-        268.8,
-        1536.0
-      ]
-    }
-  },
+  "edges": [
+    {"zone": "instagram-story", "x": [], "y": [268.8, 1574.4]},
+    {"zone": "instagram-reel", "x": [928.8], "y": [268.8, 1574.4, 806.4]},
+    {"zone": "tiktok", "x": [950.4], "y": [192, 1536]},
+    {"zone": "youtube-short", "x": [972], "y": [230.4, 1497.6]},
+    {"zone": "facebook-story", "x": [], "y": [268.8, 1536]},
+    {"zone": "whatsapp-status", "x": [], "y": [230.4, 1612.8]}
+  ],
   "rows": [
-    {
-      "zone": "tiktok",
-      "box": [
-        100,
-        50,
-        400,
-        100
-      ],
-      "under": true
-    },
-    {
-      "zone": "tiktok",
-      "box": [
-        100,
-        800,
-        400,
-        100
-      ],
-      "under": false
-    },
-    {
-      "zone": "tiktok",
-      "box": [
-        100,
-        160,
-        400,
-        200
-      ],
-      "under": false
-    },
-    {
-      "zone": "tiktok",
-      "box": [
-        100,
-        100,
-        400,
-        200
-      ],
-      "under": true
-    },
-    {
-      "zone": "tiktok",
-      "box": [
-        900,
-        800,
-        100,
-        100
-      ],
-      "under": true
-    },
-    {
-      "zone": "tiktok",
-      "box": [
-        850,
-        800,
-        120,
-        100
-      ],
-      "under": false
-    },
-    {
-      "zone": "tiktok",
-      "box": [
-        1000,
-        1800,
-        80,
-        120
-      ],
-      "under": true
-    },
-    {
-      "zone": "instagram-reel",
-      "box": [
-        900,
-        900,
-        100,
-        100
-      ],
-      "under": true
-    },
-    {
-      "zone": "instagram-story",
-      "box": [
-        900,
-        900,
-        100,
-        100
-      ],
-      "under": false
-    },
-    {
-      "zone": "youtube-short",
-      "box": [
-        100,
-        1450,
-        500,
-        100
-      ],
-      "under": true
-    },
-    {
-      "zone": "facebook-story",
-      "box": [
-        100,
-        1450,
-        500,
-        100
-      ],
-      "under": false
-    }
-  ],
-  "moveInside": [
-    {
-      "zone": "tiktok",
-      "box": [
-        100,
-        50,
-        400,
-        100
-      ],
-      "moved": [
-        100,
-        192.0,
-        400,
-        100
-      ]
-    },
-    {
-      "zone": "tiktok",
-      "box": [
-        900,
-        800,
-        100,
-        100
-      ],
-      "moved": [
-        850.4,
-        800,
-        100,
-        100
-      ]
-    },
-    {
-      "zone": "youtube-short",
-      "box": [
-        100,
-        1700,
-        500,
-        200
-      ],
-      "moved": [
-        100,
-        1297.6,
-        500,
-        200
-      ]
-    },
-    {
-      "zone": "tiktok",
-      "box": [
-        300,
-        800,
-        100,
-        100
-      ],
-      "moved": [
-        300,
-        800,
-        100,
-        100
-      ]
-    }
+    {"zone": "tiktok", "box": [100, 50, 400, 100], "under": true, "moved": [100, 192]},
+    {"zone": "tiktok", "box": [100, 100, 400, 200], "under": true, "moved": [100, 192]},
+    {"zone": "tiktok", "box": [100, 160, 400, 200], "under": false, "moved": [100, 192]},
+    {"zone": "tiktok", "box": [100, 170, 400, 200], "under": false, "moved": [100, 192]},
+    {"zone": "tiktok", "box": [800, 800, 200, 100], "under": true, "moved": [750.4, 800]},
+    {"zone": "tiktok", "box": [900, 800, 100, 100], "under": true, "moved": [850.4, 800]},
+    {"zone": "tiktok", "box": [850, 800, 120, 100], "under": false, "moved": [830.4, 800]},
+    {"zone": "tiktok", "box": [100, 1500, 600, 100], "under": true, "moved": [100, 1436]},
+    {"zone": "tiktok", "box": [1000, 1800, 80, 120], "under": true, "moved": [870.4, 1416]},
+    {"zone": "tiktok", "box": [300, 900, 300, 100], "under": false, "moved": [300, 900]},
+    {"zone": "tiktok", "box": [865.4, 177, 100, 100], "under": true, "moved": [850.4, 192]},
+    {"zone": "instagram-reel", "box": [850, 1000, 200, 100], "under": true, "moved": [728.8, 1000]},
+    {"zone": "instagram-reel", "box": [900, 900, 100, 100], "under": true, "moved": [828.8, 900]},
+    {"zone": "instagram-story", "box": [900, 900, 100, 100], "under": false, "moved": [900, 900]},
+    {"zone": "youtube-short", "box": [100, 1450, 500, 100], "under": true, "moved": [100, 1397.6]},
+    {"zone": "youtube-short", "box": [100, 1700, 500, 200], "under": true, "moved": [100, 1297.6]},
+    {"zone": "facebook-story", "box": [100, 1450, 500, 100], "under": false, "moved": [100, 1436]},
+    {"zone": "whatsapp-status", "box": [100, 1650, 400, 100], "under": true, "moved": [100, 1512.8]}
   ]
 }

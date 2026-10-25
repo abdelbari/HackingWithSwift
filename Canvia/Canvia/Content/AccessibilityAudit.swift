@@ -40,14 +40,15 @@
 //    on the shown page its start falls on in the film ("Narration has no
 //    captions"), said as the page's, before the page's clips. Add captions opens the captions rows
 //    for it. A Present and record talk is a film of its own, not checked.
+//  - safeZone: a shown text or shape's words more than a fifth of whose box
+//    lies under the platform safe zone shown on its page (SafeZones) — its
+//    profile row, caption, buttons or progress bar: "Text sits under the
+//    app's buttons", with Move inside, which moves it the least way into
+//    the safe part of the page, one step.
 //  - missingLetters: words — a text's or a shape's — with letters their font
 //    does not have (FontLibrary.covers), which the phone draws in a
-//    stand-in font: Cyrillic in a Latin-only face.
-//  - safeZone: a shown text more than a fifth of whose box lies under the
-//    platform safe zone shown on its page (SafeZones) — its profile row,
-//    caption, buttons or progress bar: "Text sits under the app's buttons",
-//    with Move inside, which moves it the least way into the safe part of
-//    the page, one step.
+//    stand-in font: Cyrillic in a Latin-only face — last of the kinds on
+//    both phones.
 //
 // Findings come page by page; within a page in that order of kinds, and
 // within a kind in layer order, back to front. Hidden elements and hidden
@@ -61,7 +62,7 @@ enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
         case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, headings, colourVision, captions
-        case missingLetters, safeZone
+        case safeZone, missingLetters
     }
 
     /// What a finding's button does.
@@ -161,13 +162,13 @@ enum AccessibilityAudit {
                                    message: tr("Video has sound but no captions"), fix: .addCaptions,
                                    source: clipSource(el)))
             }
-            for el in shown where lacksLetters(el) {
-                out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
-                                   message: missingLettersNote))
-            }
             for el in underSafeZone(design, page: page) {
                 out.append(Finding(kind: .safeZone, pageIndex: p, elementId: el.id, message: safeZoneNote,
                                    fix: el.holdsPlace ? nil : .moveInside))
+            }
+            for el in shown where lacksLetters(el) {
+                out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
+                                   message: missingLettersNote))
             }
         }
         return out
@@ -176,13 +177,16 @@ enum AccessibilityAudit {
     /// What a text under the safe zone's covered parts is said to be.
     static let safeZoneNote = tr("Text sits under the app's buttons")
 
-    /// The shown texts of `page` under the safe zone shown on it
-    /// (SafeZones.isUnder), back to front; none with no zone shown.
+    /// The shown texts and shapes' words of `page` under the safe zone
+    /// shown on it (SafeZones.isUnder), back to front — all but invisible
+    /// ones (opacity 0.05 or less) left out, as the Android twin's
+    /// SafeZones.textsUnder; none with no zone shown.
     static func underSafeZone(_ design: Design, page: Page) -> [Element] {
         guard let zone = SafeZones.shown(design, page: page) else { return [] }
         let size = design.size(for: page)
         return page.elements.filter { el in
-            el.type == .text && !el.isHidden && SafeZones.isUnder(Geometry.aabb(el), zone: zone, size: size)
+            !el.isHidden && el.opacity > 0.05 && (el.type == .text || ShapeText.words(of: el) != nil)
+                && SafeZones.isUnder(Geometry.aabb(el), zone: zone, size: size)
         }
     }
 

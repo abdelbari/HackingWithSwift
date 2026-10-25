@@ -2863,112 +2863,6 @@
         }
       }
     },
-    "%@ found" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تم العثور على %@"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ gefunden"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ found"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ encontradas"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ trouvés"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ trovati"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ が見つかりました"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ encontradas"
-          }
-        }
-      }
-    },
-    "%@ found on %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تم العثور على %@ في %@"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ gefunden auf %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ found on %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ encontradas en %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ trouvés sur %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ trovati in %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ が見つかりました（%@）"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ encontradas em %@"
-          }
-        }
-      }
-    },
     "%@ four-point sparkle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16080,7 +15974,7 @@
         }
       }
     },
-    "%lld layers" : {
+    "%lld layers found on %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
@@ -16089,37 +15983,37 @@
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld طبقات"
+                  "value" : "%lld طبقات في %@"
                 }
               },
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld طبقة"
+                  "value" : "%lld طبقة في %@"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld طبقة"
+                  "value" : "طبقة واحدة (%lld) في %@"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld طبقة"
+                  "value" : "%lld طبقة في %@"
                 }
               },
               "two" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld طبقتان"
+                  "value" : "طبقتان (%lld) في %@"
                 }
               },
               "zero" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld طبقة"
+                  "value" : "%lld طبقة في %@"
                 }
               }
             }
@@ -16131,13 +16025,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Ebene"
+                  "value" : "%lld Ebene gefunden auf %@"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld Ebenen"
+                  "value" : "%lld Ebenen gefunden auf %@"
                 }
               }
             }
@@ -16149,13 +16043,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld layer"
+                  "value" : "%lld layer found on %@"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld layers"
+                  "value" : "%lld layers found on %@"
                 }
               }
             }
@@ -16167,13 +16061,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld capa"
+                  "value" : "%lld capa encontrada en %@"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld capas"
+                  "value" : "%lld capas encontradas en %@"
                 }
               }
             }
@@ -16185,13 +16079,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld calque"
+                  "value" : "%lld calque trouvé sur %@"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld calques"
+                  "value" : "%lld calques trouvés sur %@"
                 }
               }
             }
@@ -16203,13 +16097,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld livello"
+                  "value" : "%lld livello trovato in %@"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld livelli"
+                  "value" : "%lld livelli trovati in %@"
                 }
               }
             }
@@ -16221,7 +16115,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld 件のレイヤー"
+                  "value" : "%lld 個のレイヤーが %@ で見つかりました"
                 }
               }
             }
@@ -16233,13 +16127,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld camada"
+                  "value" : "%lld camada encontrada em %@"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld camadas"
+                  "value" : "%lld camadas encontradas em %@"
                 }
               }
             }
@@ -34615,6 +34509,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Texto alternativo"
+          }
+        }
+      }
+    },
+    "Alt+Shift+Up and Alt+Shift+Down move this page up or down. While dragging, hold Shift to keep a move straight across or down, to turn in 15 degree steps and to stretch a text box or shape from a corner; hold Ctrl to move without snapping; hold Alt as you start to drag a copy and leave the original in place." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحرّك Alt+Shift+أعلى وAlt+Shift+أسفل هذه الصفحة لأعلى أو لأسفل. أثناء السحب، اضغط باستمرار على Shift لإبقاء النقل أفقيًا أو رأسيًا مستقيمًا، وللتدوير بخطوات من 15 درجة، ولتمديد مربع نص أو شكل من زاوية؛ واضغط باستمرار على Ctrl للنقل دون محاذاة؛ واضغط باستمرار على Alt عند بدء السحب لسحب نسخة وترك الأصل في مكانه."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt+Umschalt+Pfeil nach oben und Alt+Umschalt+Pfeil nach unten verschieben diese Seite nach oben oder unten. Beim Ziehen hältst du Umschalt, um gerade waagerecht oder senkrecht zu verschieben, in 15-Grad-Schritten zu drehen und ein Textfeld oder eine Form an einer Ecke zu dehnen; halte Strg, um ohne Einrasten zu verschieben; halte Alt beim Ziehbeginn, um eine Kopie zu ziehen und das Original an seinem Platz zu lassen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt+Shift+Up and Alt+Shift+Down move this page up or down. While dragging, hold Shift to keep a move straight across or down, to turn in 15 degree steps and to stretch a text box or shape from a corner; hold Ctrl to move without snapping; hold Alt as you start to drag a copy and leave the original in place."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt+Mayús+Arriba y Alt+Mayús+Abajo suben o bajan esta página. Al arrastrar, mantén Mayús para mover en línea recta en horizontal o vertical, girar en pasos de 15 grados y estirar un cuadro de texto o una forma desde una esquina; mantén Ctrl para mover sin ajuste; mantén Alt al empezar para arrastrar una copia y dejar el original en su sitio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt+Maj+Haut et Alt+Maj+Bas montent ou descendent cette page. En faisant glisser, maintenez Maj pour déplacer bien à l’horizontale ou à la verticale, tourner par pas de 15 degrés et étirer une zone de texte ou une forme depuis un coin ; maintenez Ctrl pour déplacer sans magnétisme ; maintenez Alt en commençant pour faire glisser une copie et laisser l’original en place."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt+Maiusc+Su e Alt+Maiusc+Giù spostano questa pagina su o giù. Durante il trascinamento, tieni premuto Maiusc per spostare in linea retta in orizzontale o in verticale, ruotare a scatti di 15 gradi e allungare una casella di testo o una forma da un angolo; tieni premuto Ctrl per spostare senza aggancio; tieni premuto Alt all’inizio per trascinare una copia e lasciare l’originale al suo posto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt+Shift+上 と Alt+Shift+下 でこのページを上下に移動します。ドラッグ中に Shift を押すと、まっすぐ横または縦に移動し、15 度ずつ回転し、テキストボックスや図形を角から伸縮できます。Ctrl を押すとスナップせずに移動します。ドラッグ開始時に Alt を押すと、元を残したままコピーをドラッグします。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt+Shift+Para cima e Alt+Shift+Para baixo movem esta página para cima ou para baixo. Ao arrastar, segure Shift para mover em linha reta na horizontal ou na vertical, girar em passos de 15 graus e esticar uma caixa de texto ou forma por um canto; segure Ctrl para mover sem encaixe; segure Alt ao começar para arrastar uma cópia e deixar o original no lugar."
           }
         }
       }
@@ -108347,7 +108294,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "النقل إلى الداخل"
+            "value" : "نقل إلى الداخل"
           }
         },
         "de" : {
@@ -108665,7 +108612,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "نقل الصفحة للأسفل"
+            "value" : "نقل الصفحة لأسفل"
           }
         },
         "de" : {
@@ -108930,7 +108877,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "نقل الصفحة للأعلى"
+            "value" : "نقل الصفحة لأعلى"
           }
         },
         "de" : {
@@ -114705,6 +114652,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nenhum ícone corresponde a “%@”."
+          }
+        }
+      }
+    },
+    "No layers found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يتم العثور على طبقات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Ebenen gefunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No layers found"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontraron capas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun calque trouvé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun livello trovato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイヤーが見つかりません"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma camada encontrada"
           }
         }
       }
@@ -122548,7 +122548,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir os designs de onde parei"
+            "value" : "Abrir designs de onde parei"
           }
         }
       }
@@ -124620,6 +124620,59 @@
         }
       }
     },
+    "Page %lld - %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الصفحة %lld - %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite %lld - %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %lld - %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Página %lld - %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %lld - %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagina %lld - %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ページ - %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Página %lld - %@"
+          }
+        }
+      }
+    },
     "Page %lld is locked, so this went on page %lld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -124679,7 +124732,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم نقل الصفحة %lld إلى %lld"
+            "value" : "نُقلت الصفحة %lld إلى %lld"
           }
         },
         "de" : {
@@ -134145,7 +134198,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Présenter là où je me suis arrêté"
+            "value" : "Présenter là où je m’étais arrêté"
           }
         },
         "it" : {
@@ -151286,59 +151339,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Selecionar vários"
-          }
-        }
-      }
-    },
-    "Select several on one page at a time" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "حدد عدة عناصر في صفحة واحدة في كل مرة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mehrere nur auf einer Seite gleichzeitig auswählen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select several on one page at a time"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selecciona varios en una página a la vez"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez-en plusieurs sur une seule page à la fois"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seleziona più elementi su una pagina alla volta"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "複数選択は一度に 1 ページ内でのみできます"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selecione vários em uma página de cada vez"
           }
         }
       }
@@ -174034,6 +174034,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fina"
+          }
+        }
+      }
+    },
+    "Things on different pages can't be selected together" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يمكن تحديد عناصر من صفحات مختلفة معًا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elemente auf verschiedenen Seiten können nicht zusammen ausgewählt werden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Things on different pages can't be selected together"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pueden seleccionar juntos elementos de páginas distintas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de sélectionner ensemble des éléments de pages différentes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non puoi selezionare insieme elementi di pagine diverse"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別々のページのものは一緒に選択できません"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Itens em páginas diferentes não podem ser selecionados juntos"
           }
         }
       }

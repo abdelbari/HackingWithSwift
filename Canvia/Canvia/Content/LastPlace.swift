@@ -78,12 +78,21 @@ enum LastPlace {
     // MARK: where a design opens
 
     /// The page `design` opens on from `place`: that page if it is still
-    /// there and shown, else the nearest shown page before it, else the
-    /// page itself; the first page when it is gone or there is no place.
+    /// there and shown; when it is hidden, the nearest shown page before
+    /// it, else the nearest after it, else (every page hidden) the page
+    /// itself; when it is gone, the first shown page, else the first; the
+    /// first with no place. The Android twin's rule, with the same rows
+    /// (last-place.json).
     static func pageIndex(_ design: Design, place: Place?) -> Int {
-        guard let place, let at = design.pages.firstIndex(where: { $0.id == place.page }) else { return 0 }
-        guard design.pages[at].hidden == true else { return at }
-        return (0..<at).reversed().first { design.pages[$0].hidden != true } ?? at
+        let pages = design.pages
+        guard let place else { return 0 }
+        guard let at = pages.firstIndex(where: { $0.id == place.page }) else {
+            return pages.firstIndex { $0.hidden != true } ?? 0
+        }
+        guard pages[at].hidden == true else { return at }
+        return (0..<at).reversed().first { pages[$0].hidden != true }
+            ?? ((at + 1)..<pages.count).first { pages[$0].hidden != true }
+            ?? at
     }
 
     /// The zoom to keep for a view at `zoom` where `fit` shows the whole

@@ -3,5 +3,6 @@
 {"id":"instagram-reel","label":"Instagram Reel","sizes":[[1080,1920]],"insets":{"top":0.14,"bottom":0.18,"left":0.0,"right":0.0},"rails":[{"x":0.86,"y":0.42,"w":0.14,"h":0.4}]},
 {"id":"tiktok","label":"TikTok","sizes":[[1080,1920]],"insets":{"top":0.1,"bottom":0.2,"left":0.0,"right":0.12},"rails":[]},
 {"id":"youtube-short","label":"YouTube Shorts","sizes":[[1080,1920]],"insets":{"top":0.12,"bottom":0.22,"left":0.0,"right":0.1},"rails":[]},
-{"id":"facebook-story","label":"Facebook Story","sizes":[[1080,1920]],"insets":{"top":0.14,"bottom":0.2,"left":0.0,"right":0.0},"rails":[]}
+{"id":"facebook-story","label":"Facebook Story","sizes":[[1080,1920]],"insets":{"top":0.14,"bottom":0.2,"left":0.0,"right":0.0},"rails":[]},
+{"id":"whatsapp-status","label":"WhatsApp Status","sizes":[[1080,1920]],"insets":{"top":0.12,"bottom":0.16,"left":0.0,"right":0.0},"rails":[]}
 ]

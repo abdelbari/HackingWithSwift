@@ -485,24 +485,6 @@
     "ja": "このページは %@。各ページはそれぞれのサイズで",
     "pt-BR": "%@ para esta página; cada página no próprio tamanho"
   },
-  "%@ found": {
-    "ar": "تم العثور على %@",
-    "de": "%@ gefunden",
-    "es": "%@ encontradas",
-    "fr": "%@ trouvés",
-    "it": "%@ trovati",
-    "ja": "%@ が見つかりました",
-    "pt-BR": "%@ encontradas"
-  },
-  "%@ found on %@": {
-    "ar": "تم العثور على %@ في %@",
-    "de": "%@ gefunden auf %@",
-    "es": "%@ encontradas en %@",
-    "fr": "%@ trouvés sur %@",
-    "it": "%@ trovati in %@",
-    "ja": "%@ が見つかりました（%@）",
-    "pt-BR": "%@ encontradas em %@"
-  },
   "%@ four-point sparkle": {
     "ar": "بريق رباعي (%@)",
     "de": "Vierzackiges Funkeln (%@)",
@@ -2963,37 +2945,37 @@
       "other": "%d itens"
     }
   },
-  "%d layer|%d layers": {
+  "%d layer found on %@|%d layers found on %@": {
     "ar": {
-      "few": "%d طبقات",
-      "many": "%d طبقة",
-      "one": "%d طبقة",
-      "other": "%d طبقة",
-      "two": "%d طبقتان",
-      "zero": "%d طبقة"
+      "few": "%d طبقات في %@",
+      "many": "%d طبقة في %@",
+      "one": "طبقة واحدة (%d) في %@",
+      "other": "%d طبقة في %@",
+      "two": "طبقتان (%d) في %@",
+      "zero": "%d طبقة في %@"
     },
     "de": {
-      "one": "%d Ebene",
-      "other": "%d Ebenen"
+      "one": "%d Ebene gefunden auf %@",
+      "other": "%d Ebenen gefunden auf %@"
     },
     "es": {
-      "one": "%d capa",
-      "other": "%d capas"
+      "one": "%d capa encontrada en %@",
+      "other": "%d capas encontradas en %@"
     },
     "fr": {
-      "one": "%d calque",
-      "other": "%d calques"
+      "one": "%d calque trouvé sur %@",
+      "other": "%d calques trouvés sur %@"
     },
     "it": {
-      "one": "%d livello",
-      "other": "%d livelli"
+      "one": "%d livello trovato in %@",
+      "other": "%d livelli trovati in %@"
     },
     "ja": {
-      "other": "%d 件のレイヤー"
+      "other": "%d 個のレイヤーが %@ で見つかりました"
     },
     "pt-BR": {
-      "one": "%d camada",
-      "other": "%d camadas"
+      "one": "%d camada encontrada em %@",
+      "other": "%d camadas encontradas em %@"
     }
   },
   "%d locked page is kept. Undo brings the rest back.|%d locked pages are kept. Undo brings the rest back.": {
@@ -6319,6 +6301,15 @@
     "it": "Testo alternativo",
     "ja": "代替テキスト",
     "pt-BR": "Texto alternativo"
+  },
+  "Alt+Shift+Up and Alt+Shift+Down move this page up or down. While dragging, hold Shift to keep a move straight across or down, to turn in 15 degree steps and to stretch a text box or shape from a corner; hold Ctrl to move without snapping; hold Alt as you start to drag a copy and leave the original in place.": {
+    "ar": "يحرّك Alt+Shift+أعلى وAlt+Shift+أسفل هذه الصفحة لأعلى أو لأسفل. أثناء السحب، اضغط باستمرار على Shift لإبقاء النقل أفقيًا أو رأسيًا مستقيمًا، وللتدوير بخطوات من 15 درجة، ولتمديد مربع نص أو شكل من زاوية؛ واضغط باستمرار على Ctrl للنقل دون محاذاة؛ واضغط باستمرار على Alt عند بدء السحب لسحب نسخة وترك الأصل في مكانه.",
+    "de": "Alt+Umschalt+Pfeil nach oben und Alt+Umschalt+Pfeil nach unten verschieben diese Seite nach oben oder unten. Beim Ziehen hältst du Umschalt, um gerade waagerecht oder senkrecht zu verschieben, in 15-Grad-Schritten zu drehen und ein Textfeld oder eine Form an einer Ecke zu dehnen; halte Strg, um ohne Einrasten zu verschieben; halte Alt beim Ziehbeginn, um eine Kopie zu ziehen und das Original an seinem Platz zu lassen.",
+    "es": "Alt+Mayús+Arriba y Alt+Mayús+Abajo suben o bajan esta página. Al arrastrar, mantén Mayús para mover en línea recta en horizontal o vertical, girar en pasos de 15 grados y estirar un cuadro de texto o una forma desde una esquina; mantén Ctrl para mover sin ajuste; mantén Alt al empezar para arrastrar una copia y dejar el original en su sitio.",
+    "fr": "Alt+Maj+Haut et Alt+Maj+Bas montent ou descendent cette page. En faisant glisser, maintenez Maj pour déplacer bien à l’horizontale ou à la verticale, tourner par pas de 15 degrés et étirer une zone de texte ou une forme depuis un coin ; maintenez Ctrl pour déplacer sans magnétisme ; maintenez Alt en commençant pour faire glisser une copie et laisser l’original en place.",
+    "it": "Alt+Maiusc+Su e Alt+Maiusc+Giù spostano questa pagina su o giù. Durante il trascinamento, tieni premuto Maiusc per spostare in linea retta in orizzontale o in verticale, ruotare a scatti di 15 gradi e allungare una casella di testo o una forma da un angolo; tieni premuto Ctrl per spostare senza aggancio; tieni premuto Alt all’inizio per trascinare una copia e lasciare l’originale al suo posto.",
+    "ja": "Alt+Shift+上 と Alt+Shift+下 でこのページを上下に移動します。ドラッグ中に Shift を押すと、まっすぐ横または縦に移動し、15 度ずつ回転し、テキストボックスや図形を角から伸縮できます。Ctrl を押すとスナップせずに移動します。ドラッグ開始時に Alt を押すと、元を残したままコピーをドラッグします。",
+    "pt-BR": "Alt+Shift+Para cima e Alt+Shift+Para baixo movem esta página para cima ou para baixo. Ao arrastar, segure Shift para mover em linha reta na horizontal ou na vertical, girar em passos de 15 graus e esticar uma caixa de texto ou forma por um canto; segure Ctrl para mover sem encaixe; segure Alt ao começar para arrastar uma cópia e deixar o original no lugar."
   },
   "Alternating row colour": {
     "ar": "لون الصفوف المتناوبة",
@@ -19029,7 +19020,7 @@
     "pt-BR": "Mover para a frente"
   },
   "Move inside": {
-    "ar": "النقل إلى الداخل",
+    "ar": "نقل إلى الداخل",
     "de": "Nach innen verschieben",
     "es": "Mover dentro",
     "fr": "Déplacer à l’intérieur",
@@ -19083,7 +19074,7 @@
     "pt-BR": "Mover página"
   },
   "Move page down": {
-    "ar": "نقل الصفحة للأسفل",
+    "ar": "نقل الصفحة لأسفل",
     "de": "Seite nach unten",
     "es": "Bajar página",
     "fr": "Descendre la page",
@@ -19128,7 +19119,7 @@
     "pt-BR": "Mover página para a direita"
   },
   "Move page up": {
-    "ar": "نقل الصفحة للأعلى",
+    "ar": "نقل الصفحة لأعلى",
     "de": "Seite nach oben",
     "es": "Subir página",
     "fr": "Monter la page",
@@ -20113,6 +20104,15 @@
     "it": "Nessuna icona corrisponde a “%@”.",
     "ja": "「%@」に一致するアイコンはありません。",
     "pt-BR": "Nenhum ícone corresponde a “%@”."
+  },
+  "No layers found": {
+    "ar": "لم يتم العثور على طبقات",
+    "de": "Keine Ebenen gefunden",
+    "es": "No se encontraron capas",
+    "fr": "Aucun calque trouvé",
+    "it": "Nessun livello trovato",
+    "ja": "レイヤーが見つかりません",
+    "pt-BR": "Nenhuma camada encontrada"
   },
   "No list": {
     "ar": "بلا قائمة",
@@ -21444,7 +21444,7 @@
     "fr": "Ouvrir les designs là où je m’étais arrêté",
     "it": "Apri i design da dove avevo lasciato",
     "ja": "デザインを前回の続きから開く",
-    "pt-BR": "Abrir os designs de onde parei"
+    "pt-BR": "Abrir designs de onde parei"
   },
   "Open in another window": {
     "ar": "مفتوح في نافذة أخرى",
@@ -21797,6 +21797,15 @@
     "ja": "ページ %d",
     "pt-BR": "Página %d"
   },
+  "Page %d - %@": {
+    "ar": "الصفحة %d - %@",
+    "de": "Seite %d - %@",
+    "es": "Página %d - %@",
+    "fr": "Page %d - %@",
+    "it": "Pagina %d - %@",
+    "ja": "%d ページ - %@",
+    "pt-BR": "Página %d - %@"
+  },
   "Page %d is locked, so this went on page %d": {
     "ar": "الصفحة %d مقفلة، لذا وُضع هذا في الصفحة %d",
     "de": "Seite %d ist gesperrt, daher kam dies auf Seite %d",
@@ -21807,7 +21816,7 @@
     "pt-BR": "A página %d está bloqueada, então isto foi para a página %d"
   },
   "Page %d moved to %d": {
-    "ar": "تم نقل الصفحة %d إلى %d",
+    "ar": "نُقلت الصفحة %d إلى %d",
     "de": "Seite %d nach %d verschoben",
     "es": "Página %d movida a %d",
     "fr": "Page %d déplacée en %d",
@@ -23418,7 +23427,7 @@
     "ar": "العرض من حيث توقفت",
     "de": "Ab der zuletzt bearbeiteten Stelle präsentieren",
     "es": "Presentar desde donde lo dejé",
-    "fr": "Présenter là où je me suis arrêté",
+    "fr": "Présenter là où je m’étais arrêté",
     "it": "Presenta da dove avevo lasciato",
     "ja": "前回の続きからプレゼンテーション",
     "pt-BR": "Apresentar de onde parei"
@@ -26362,15 +26371,6 @@
     "it": "Seleziona più elementi",
     "ja": "複数を選択",
     "pt-BR": "Selecionar vários"
-  },
-  "Select several on one page at a time": {
-    "ar": "حدد عدة عناصر في صفحة واحدة في كل مرة",
-    "de": "Mehrere nur auf einer Seite gleichzeitig auswählen",
-    "es": "Selecciona varios en una página a la vez",
-    "fr": "Sélectionnez-en plusieurs sur une seule page à la fois",
-    "it": "Seleziona più elementi su una pagina alla volta",
-    "ja": "複数選択は一度に 1 ページ内でのみできます",
-    "pt-BR": "Selecione vários em uma página de cada vez"
   },
   "Select something on the page to animate it on its own.": {
     "ar": "حدّد شيئًا في الصفحة لتحريكه وحده.",
@@ -30262,6 +30262,15 @@
     "it": "Sottile",
     "ja": "細い",
     "pt-BR": "Fina"
+  },
+  "Things on different pages can't be selected together": {
+    "ar": "لا يمكن تحديد عناصر من صفحات مختلفة معًا",
+    "de": "Elemente auf verschiedenen Seiten können nicht zusammen ausgewählt werden",
+    "es": "No se pueden seleccionar juntos elementos de páginas distintas",
+    "fr": "Impossible de sélectionner ensemble des éléments de pages différentes",
+    "it": "Non puoi selezionare insieme elementi di pagine diverse",
+    "ja": "別々のページのものは一緒に選択できません",
+    "pt-BR": "Itens em páginas diferentes não podem ser selecionados juntos"
   },
   "Things snap to the page, to each other and to even spacing. Snapping and guides, under ⋮, turns each off, adds a grid or a margin, places guides you drag into place, and lays guides out in columns or a grid. Hold a guide to type where it goes.": {
     "ar": "تلتصق الأشياء بالصفحة وببعضها وبالتباعد المتساوي. يوقف «الالتصاق والخطوط الإرشادية»، ضمن ⋮، كلًّا منها، ويضيف شبكة أو هامشًا، ويضع خطوطًا إرشادية تسحبها إلى مكانها، ويرتّب الخطوط الإرشادية في أعمدة أو شبكة. اضغط مطولًا على خط إرشادي لكتابة موضعه.",

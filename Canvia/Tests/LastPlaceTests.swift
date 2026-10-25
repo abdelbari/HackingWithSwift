@@ -32,6 +32,21 @@ final class LastPlaceTests: XCTestCase {
         XCTAssertNotNil(next["new"])
     }
 
+    func testTheSharedRowsOfWhereADesignOpens() throws {
+        let root = try SharedFixture.object("last-place")
+        for row in try XCTUnwrap(root["rows"] as? [[String: Any]]) {
+            let hidden = Set((row["hidden"] as? [String]) ?? [])
+            var d = Design(title: "Deck", width: 1080, height: 1080)
+            d.pages = ((row["pages"] as? [String]) ?? []).map { id in
+                var page = Page(id: id)
+                page.hidden = hidden.contains(id) ? true : nil
+                return page
+            }
+            let left = try XCTUnwrap(row["left"] as? String)
+            XCTAssertEqual(LastPlace.pageIndex(d, place: LastPlace.Place(page: left, t: 0)), row["opens"] as? Int, "\(row)")
+        }
+    }
+
     func testADesignOpensOnItsPageOrTheNearestShownOneBefore() {
         var d = Design(title: "Deck", width: 1080, height: 1080)
         d.pages = ["a", "b", "c", "d"].map { Page(id: $0) }

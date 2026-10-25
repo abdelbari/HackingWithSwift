@@ -7,12 +7,14 @@
 // only when set: "none" turns the aid off, no key shows the first zone the
 // page's size matches — so a story opens with its zone on — and a zone that
 // does not match the page's size (or one this build does not know) shows
-// that default instead. The canvas draws what is covered as a hatched band
-// (SafeZoneLayer), never in an export, Present, a thumbnail or a video; the
-// zone's inner edges are snap lines ("Safe zone"); and Check accessibility
-// says of a shown text more than a fifth of whose box is covered "Text sits
-// under the app's buttons" (AccessibilityAudit, kind safeZone). The Android
-// twin's SafeZones, rule for rule, with the shared rows of safe-zones.json.
+// that default instead, on both phones (safe-zones.json's shown rows). The
+// canvas draws what is covered as a hatched band (SafeZoneLayer), never in
+// an export, Present, a thumbnail or a video; the zone's inner edges are
+// snap lines ("Safe zone"); and Check accessibility says of a shown text or
+// shape's words more than a fifth of whose box is covered — the bands and
+// rails together — "Text sits under the app's buttons" (AccessibilityAudit,
+// kind safeZone). The Android twin's SafeZones, rule for rule, with the
+// shared rows of safe-zones.json.
 
 import CoreGraphics
 import Foundation
@@ -166,7 +168,10 @@ enum SafeZones {
     }
 
     /// `box` moved by the least into the safe rect — flush with its left or
-    /// top edge on an axis where it is bigger than the rect: Move inside.
+    /// top edge on an axis where it is bigger than the rect — then, still
+    /// more than underShare under a rail, left of the rail when it fits
+    /// there inside the rect: Move inside, as the Android twin's
+    /// SafeZones.moveInside.
     static func movedInside(_ box: CGRect, zone: Zone, size: CGSize) -> CGRect {
         let safe = safeRect(zone, size: size)
         func shift(_ low: CGFloat, _ high: CGFloat, _ from: CGFloat, _ to: CGFloat) -> CGFloat {
@@ -174,8 +179,18 @@ enum SafeZones {
             if high > to { return to - high }
             return 0
         }
-        return box.offsetBy(dx: shift(box.minX, box.maxX, safe.minX, safe.maxX),
-                            dy: shift(box.minY, box.maxY, safe.minY, safe.maxY))
+        var moved = box.offsetBy(dx: shift(box.minX, box.maxX, safe.minX, safe.maxX),
+                                 dy: shift(box.minY, box.maxY, safe.minY, safe.maxY))
+        let w = Double(size.width), h = Double(size.height)
+        for r in zone.rails {
+            let rail = CGRect(x: r.x * w, y: r.y * h, width: r.w * w, height: r.h * h)
+            let part = moved.intersection(rail)
+            let area = moved.width * moved.height
+            guard area > 0, !part.isNull, Double(part.width * part.height / area) > underShare else { continue }
+            let left = rail.minX - moved.maxX
+            if moved.minX + left >= safe.minX { moved = moved.offsetBy(dx: left, dy: 0) }
+        }
+        return moved
     }
 
     /// The Snapping and guides sheet's name for a zone, and for none.

@@ -113,7 +113,7 @@ final class ColourVisionTests: XCTestCase {
     func testKindsInTheirOrder() {
         XCTAssertEqual(AccessibilityAudit.Kind.allCases.map(\.rawValue),
                        ["contrast", "altText", "smallText", "flashing", "linkText", "chartColours", "readingOrder",
-                        "headings", "colourVision", "captions", "missingLetters", "safeZone"])
+                        "headings", "colourVision", "captions", "safeZone", "missingLetters"])
     }
 
     // MARK: the shared fixture

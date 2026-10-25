@@ -2,16 +2,18 @@
 // its This page / All pages scope. The Android twin's core LayerSearch, rule
 // for rule, with the same rows (layer-search.json):
 //
-// - The query, trimmed, is looked for anywhere in what the element is
-//   called — its own name from Rename…, else the one ElementNames makes —
-//   in all of a text's words (not only the start the name quotes), and in
-//   the words for its kind ("text", "photo", "video", "shape", "line",
-//   "chart", "table", "icon", "graphic", "sticker", "group") — in English,
-//   as the name is in the app's language already. Case and accents aside;
-//   an empty query matches everything.
-// - The chips each pick a kind (`KindChip`). With none picked every element
-//   passes; with several, an element passes when it is any one of them —
-//   the simplest rule, the same on both phones.
+// - The query, trimmed, is looked for anywhere in one of: what the element
+//   is called — its own name from Rename…, else the one ElementNames makes
+//   — all of its words, a text's or a shape's (not only the start the name
+//   quotes), or one of the English words for its kind ("text", "photo",
+//   "video", "shape", "line", "sticker", "chart", "table", "icon",
+//   "graphic", "group"), as the name is in the app's language already.
+//   Case and accents aside; an empty query matches everything.
+// - The chips each pick a kind (`KindChip`): a chart's parts, a library
+//   icon or graphic and a sticker are Graphics, not Text or Shapes and
+//   lines; Locked is either lock. With none picked every element passes;
+//   with several, an element passes when it is any one of them — the
+//   simplest rule, the same on both phones.
 // - What is typed and picked lasts while the app runs (`session`) and is
 //   never part of a design.
 
@@ -60,19 +62,21 @@ enum LayerSearch {
     /// Whether `el` is one of `kind`.
     static func isKind(_ el: Element, _ kind: KindChip) -> Bool {
         switch kind {
-        case .text: return el.type == .text
+        case .text: return el.type == .text && !isGraphic(el)
         case .media: return el.type == .image
-        case .shapes: return (el.type == .shape && !isGraphic(el)) || el.type == .line
-        case .graphics: return el.type == .sticker || isGraphic(el)
+        case .shapes: return (el.type == .shape || el.type == .line) && !isGraphic(el)
+        case .graphics: return isGraphic(el)
         case .groups: return el.group != nil
         case .hidden: return el.isHidden
         case .locked: return ElementLock.mode(of: el) != .unlocked
         }
     }
 
-    /// An icon or an illustrated graphic from Add, which are shapes drawn.
+    /// A sticker, a part of a chart, or an icon or illustrated graphic from
+    /// Add.
     private static func isGraphic(_ el: Element) -> Bool {
-        el.type == .shape && (IconLibrary.icon(of: el) != nil || GraphicsLibrary.graphic(of: el) != nil)
+        el.type == .sticker || el.chartPart != nil
+            || IconLibrary.icon(of: el) != nil || GraphicsLibrary.graphic(of: el) != nil
     }
 
     /// Whether `el` matches `query` and passes `kinds` (see the top).
@@ -83,31 +87,31 @@ enum LayerSearch {
         return words(of: el).contains { folded($0).contains(needle) }
     }
 
-    /// Everything an element is looked for in.
+    /// Everything an element is looked for in, each on its own: its name,
+    /// all its words and its kind's words.
     static func words(of el: Element) -> [String] {
         var out = [ElementNames.name(of: el)]
         if let text = el.text { out.append(RichText.strip(text)) }
-        if let text = ShapeText.words(of: el) { out.append(RichText.strip(text)) }
         return out + kindWords(el)
     }
 
-    /// The English words for what `el` is.
-    private static func kindWords(_ el: Element) -> [String] {
+    /// The English words for what `el` is: a clip is a photo and a video,
+    /// a sticker a graphic too.
+    static func kindWords(_ el: Element) -> [String] {
         var out: [String] = []
         switch el.type {
         case .text: out.append("text")
         case .image:
             out.append("photo")
             if VideoStore.isVideo(el.src) { out.append("video") }
-        case .shape:
-            out.append("shape")
-            if IconLibrary.icon(of: el) != nil { out.append("icon") }
-            if GraphicsLibrary.graphic(of: el) != nil { out.append("graphic") }
-        case .sticker: out.append("sticker")
+        case .shape: out.append("shape")
         case .line: out.append("line")
+        case .sticker: out.append("sticker")
         }
-        if el.chart != nil { out.append("chart") }
+        if el.chartPart != nil { out.append("chart") }
         if el.table != nil { out.append("table") }
+        if IconLibrary.icon(of: el) != nil { out.append("icon") }
+        if GraphicsLibrary.graphic(of: el) != nil || el.type == .sticker { out.append("graphic") }
         if el.group != nil { out.append("group") }
         return out
     }
@@ -140,17 +144,24 @@ enum LayerSearch {
         return out
     }
 
-    /// What VoiceOver says of the hits: "12 layers found on 4 pages", or
-    /// "3 layers found" on this page alone.
-    static func spokenCount(_ hits: [PageHits], allPages: Bool) -> String {
+    /// What VoiceOver says of the hits, on this page or all of them: "12
+    /// layers found on 4 pages", or "No layers found" — the Android twin's
+    /// words.
+    static func spokenCount(_ hits: [PageHits]) -> String {
         let count = hits.reduce(0) { $0 + $1.ids.count }
-        let layers = trn("%d layer|%d layers", count)
-        guard allPages else { return tr("%@ found", layers) }
+        guard count > 0 else { return tr("No layers found") }
         let pages = hits.filter { !$0.ids.isEmpty }.count
-        return tr("%@ found on %@", layers, trn("%d page|%d pages", pages))
+        return trn("%d layer found on %@|%d layers found on %@", count, trn("%d page|%d pages", pages))
     }
 
-    /// The note Select gets when a tick would reach another page: a
+    /// A section's heading: "Page 3", or "Page 3 - Intro" for a page with a
+    /// title, as the Android twin heads it.
+    static func heading(_ page: Page, number: Int) -> String {
+        guard let title = page.title.flatMap(PageTitles.kept) else { return tr("Page %d", number) }
+        return tr("Page %d - %@", number, title)
+    }
+
+    /// The note Select gets when a tick would join things on two pages: a
     /// selection stays on one page, as in Canva.
-    static var onePageNote: String { tr("Select several on one page at a time") }
+    static var onePageNote: String { tr("Things on different pages can't be selected together") }
 }
