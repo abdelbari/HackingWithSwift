@@ -1067,6 +1067,49 @@ extension PptxReaderTests {
         XCTAssertEqual(els.map(\.link), ["https://canvia.app/box", "https://canvia.app/words"])
     }
 
+    /// Shared: a title placeholder takes no list or spacing from the
+    /// master's titleStyle; a body placeholder takes its bodyStyle's.
+    func testATitleTakesNoListOrSpacingFromTheMastersTitleStyle() throws {
+        func placeholder(_ type: String, _ words: String) -> String {
+            "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"\(type)\"/><p:cNvSpPr/><p:nvPr><p:ph type=\"\(type)\"/></p:nvPr></p:nvSpPr>"
+                + "<p:spPr>\(box)</p:spPr><p:txBody><a:bodyPr/><a:lstStyle/>"
+                + "<a:p><a:r><a:rPr sz=\"2400\"/><a:t>\(words)</a:t></a:r></a:p></p:txBody></p:sp>"
+        }
+        func level(_ pct: Int) -> String {
+            "<a:lvl1pPr><a:lnSpc><a:spcPct val=\"\(pct)\"/></a:lnSpc><a:buChar char=\"•\"/></a:lvl1pPr>"
+        }
+        let styles = "<p:txStyles><p:titleStyle>\(level(90000))</p:titleStyle>"
+            + "<p:bodyStyle>\(level(80000))</p:bodyStyle></p:txStyles>"
+        let data = try deck([placeholder("title", "Title") + placeholder("body", "Body")], extra: [
+            ("ppt/slideLayouts/slideLayout1.xml", "<p:sldLayout \(ns)><p:cSld><p:spTree/></p:cSld></p:sldLayout>"),
+            ("ppt/slideLayouts/_rels/slideLayout1.xml.rels", rels([("slideMaster", "../slideMasters/slideMaster1.xml")])),
+            ("ppt/slideMasters/slideMaster1.xml", "<p:sldMaster \(ns)><p:cSld><p:spTree/></p:cSld>\(styles)</p:sldMaster>"),
+        ], slideRels: [0: rels([("slideLayout", "../slideLayouts/slideLayout1.xml")])])
+        let els = try read(data).design.pages[0].elements
+        XCTAssertEqual(els.count, 2)
+        let title = try XCTUnwrap(els.first)
+        let body = try XCTUnwrap(els.last)
+        XCTAssertEqual(title.lineHeight ?? 1.25, 1.25, accuracy: 1e-9)
+        XCTAssertEqual(TextLists.lines(title), [TextParagraph()])
+        XCTAssertEqual(try XCTUnwrap(body.lineHeight), 1.0, accuracy: 1e-9)
+        XCTAssertEqual(TextLists.lines(body), [TextParagraph(list: "bullet", level: 0)])
+    }
+
+    /// Shared: a paragraph deeper than a list draws reads its list style at
+    /// its own lvl (lvl 6 is lvl7pPr), and keeps the deepest level.
+    func testADeepParagraphReadsItsListStyleAtItsOwnLevel() throws {
+        func paragraph(_ pPr: String, _ words: String) -> String {
+            "<a:p>\(pPr)<a:r><a:rPr sz=\"2400\"/><a:t>\(words)</a:t></a:r></a:p>"
+        }
+        let list = "<a:lstStyle><a:lvl5pPr><a:buChar char=\"•\"/></a:lvl5pPr>"
+            + "<a:lvl7pPr><a:buAutoNum type=\"arabicPeriod\"/></a:lvl7pPr></a:lstStyle>"
+        let body = paragraph("<a:pPr><a:buNone/></a:pPr>", "Head") + paragraph("<a:pPr lvl=\"6\"/>", "Deep")
+            + paragraph("<a:pPr lvl=\"4\"/>", "Five")
+        let t = try only(deck([textBox(box, body).replacingOccurrences(of: "<a:lstStyle/>", with: list)]))
+        XCTAssertEqual(TextLists.lines(t), [TextParagraph(), TextParagraph(list: "number", level: TextLists.maxLevel),
+                                            TextParagraph(list: "bullet", level: 4)])
+    }
+
     /// Shared: how a box's words fit is the first bodyPr that says
     /// (normAutofit, spAutoFit or noAutofit) — the shape's own, then its
     /// placeholder's layout's, then its master's; only normAutofit shrinks.

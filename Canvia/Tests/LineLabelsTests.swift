@@ -134,6 +134,13 @@ final class LineLabelsTests: XCTestCase {
         spaced.label?.text = "  Yes \n"
         XCTAssertEqual(LineLabels.spoken(spaced), "Line, labelled Yes")
         XCTAssertNil(LineLabels.spoken(Element.line(w: 100)))
+        // Shared order: alt text, then the Layers name, then the label.
+        XCTAssertEqual(CanvasAccessibility.label(for: moved), "Line, labelled Yes")
+        var named = moved
+        named.layerName = "Decision arrow"
+        XCTAssertEqual(CanvasAccessibility.label(for: named), "Decision arrow")
+        named.altText = "Says yes"
+        XCTAssertEqual(CanvasAccessibility.label(for: named), "Says yes")
         // The gap is the words' box grown by gapPad; none with gap off.
         XCTAssertEqual(LineLabels.gapRect(of: moved), after.insetBy(dx: -LineLabels.gapPad, dy: -LineLabels.gapPad))
         var plain = moved
@@ -164,6 +171,31 @@ final class LineLabelsTests: XCTestCase {
         XCTAssertEqual(after.label?.text, "No please")
         XCTAssertEqual(after.h, line.h)
         XCTAssertEqual(Proofreader.checkables(in: design).filter { $0.elementId == line.id }.count, 1)
+    }
+
+    /// As on Android: a position-locked line still takes words (typing is
+    /// allowed under a position lock), but its words do not slide; a fully
+    /// locked one takes none.
+    @MainActor
+    func testAPositionLockedLineTakesWordsButDoesNotSlideThem() {
+        var line = LineRoutes.withEnds(Element.line(w: 100), CGPoint(x: 0, y: 100), CGPoint(x: 200, y: 100))
+        line.lockPosition = true
+        var design = Design(title: "Flow", width: 400, height: 400)
+        design.pages = [Page(id: "p1", elements: [line])]
+        let store = DesignStore(design: design)
+        store.select(line.id)
+        XCTAssertEqual(store.labelledLine?.id, line.id)
+        XCTAssertNil(store.slidableLabelLine)
+        store.typeLineLabel()
+        XCTAssertEqual(store.editingTextId, line.id)
+        XCTAssertNotNil(store.element(line.id)?.label)
+        var locked = line
+        locked.lockPosition = nil
+        locked.locked = true
+        design.pages = [Page(id: "p1", elements: [locked])]
+        let held = DesignStore(design: design)
+        held.select(locked.id)
+        XCTAssertNil(held.labelledLine)
     }
 
     /// The SVG breaks the stroke with a mask and writes the words upright

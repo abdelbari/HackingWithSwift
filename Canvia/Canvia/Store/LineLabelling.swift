@@ -11,10 +11,19 @@ import Foundation
 
 extension DesignStore {
 
-    /// The one line selected, unlocked, on an unlocked page: what takes
-    /// words; nil otherwise.
+    /// The one line selected that takes words: one not fully locked — a
+    /// position lock still takes typing (ElementLock.allows), as on Android;
+    /// nil otherwise. A locked page is refused by startTyping, which says
+    /// so.
     var labelledLine: Element? {
-        guard let el = singleSelection, el.type == .line, !el.holdsPlace, !isPageLocked else { return nil }
+        guard let el = singleSelection, el.type == .line, !el.locked else { return nil }
+        return el
+    }
+
+    /// The labelled line whose words a drag slides: one not locked either
+    /// way, on an unlocked page; nil otherwise.
+    var slidableLabelLine: Element? {
+        guard let el = labelledLine, !el.holdsPlace, !isPageLocked else { return nil }
         return el
     }
 
@@ -29,7 +38,7 @@ extension DesignStore {
     /// the line to its nearest point, held on the middle (LineLabels.slid),
     /// the whole drag one step, closed by commit().
     func slideLabel(to point: CGPoint) {
-        guard let line = labelledLine, line.label != nil else { return }
+        guard let line = slidableLabelLine, line.label != nil else { return }
         let at = LineLabels.slid(line, toward: point)
         guard at != line.label?.at else { return }
         updateSelectedTransient { el in

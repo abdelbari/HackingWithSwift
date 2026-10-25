@@ -168,4 +168,23 @@ final class TextUnitAnimationTests: XCTestCase {
         XCTAssertEqual(shown.map { drawn.substring(with: $0) }, ["O", "n", "e", "T", "w", "o"])
         XCTAssertEqual(FontLibrary.displayRanges(units, for: Element.text("One\nTwo", fontSize: 40)), units)
     }
+
+    /// Shared: words round a curve, along a path or down a column are one
+    /// line, so by line they move as one unit, first line's start to last
+    /// line's end; by word, and straight or warped, as before.
+    func testBentWordsMoveByLineAsOneUnit() {
+        var text = Element.text("Happy\nBirthday", fontSize: 40)
+        text.animation = ElementAnimation(kind: "ascend", delay: 0, duration: 1, by: "line")
+        let ranges: (Element) -> [[Int]] = { el in ElementAnimation.unitFrames(el, at: 0.5).map { [$0.start, $0.end] } }
+        XCTAssertEqual(ranges(text), [[0, 5], [6, 14]])
+        var curved = text
+        curved.curve = 180
+        XCTAssertEqual(ranges(curved), [[0, 14]])
+        var byWord = curved
+        byWord.animation = ElementAnimation(kind: "ascend", delay: 0, duration: 1, by: "word")
+        XCTAssertEqual(ranges(byWord).count, 2)
+        var warped = text
+        warped.warp = TextWarpSpec(kind: "flag", amount: -30)
+        XCTAssertEqual(ranges(warped), [[0, 5], [6, 14]])
+    }
 }

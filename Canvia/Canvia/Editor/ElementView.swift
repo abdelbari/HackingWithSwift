@@ -849,12 +849,9 @@ struct TextElementView: View {
     private func drawUnits(_ clock: ElementAnimation.UnitClock, in cg: CGContext, size: CGSize) {
         var el = element
         if let pageNumber { el.fillPageTokens(number: pageNumber.number, count: pageNumber.count) }
-        let plain = RichText.strip(el.text ?? "")
         let bent = TextOutliner.followsAPath(el) && !TextWarp.isWarped(el)
         // Bent words are one line: by line, they move as one.
-        let units = bent && clock.animation.unit == "line"
-            ? [NSRange(location: 0, length: (plain as NSString).length)]
-            : ElementAnimation.units(plain, by: clock.animation.unit)
+        let units = ElementAnimation.units(of: el, by: clock.animation.unit)
         let frames = clock.animation.frames(units, at: clock.time, size: el.fontSize ?? 42)
         // Every unit in place: the words whole, as they stand.
         guard !frames.isEmpty, !frames.allSatisfy(clock.animation.atRest) else {

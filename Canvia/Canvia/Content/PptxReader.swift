@@ -997,9 +997,12 @@ enum PptxReader {
                 if k == 0 { alignment = own }
                 aligns.append(own)
                 let pPr = paragraph.child("pPr")
-                let level = min(TextLists.maxLevel, max(0, Int(PptxReader.number(pPr, "lvl") ?? 0)))
-                let chain = [pPr].compactMap { $0 } + styles.compactMap { $0.child("lvl\(level + 1)pPr") }
-                let line = TextParagraph(list: listOf(chain), level: level)
+                // The list styles are read at the paragraph's own depth (up
+                // to lvl9pPr); only the level kept is held to the deepest
+                // a list draws, as on Android.
+                let raw = max(0, Int(PptxReader.number(pPr, "lvl") ?? 0))
+                let chain = [pPr].compactMap { $0 } + styles.compactMap { $0.child("lvl\(min(raw, 8) + 1)pPr") }
+                let line = TextParagraph(list: listOf(chain), level: min(TextLists.maxLevel, raw))
                 lines.append(line)
                 if k == 0 {
                     spacing = (gap(chain, "lnSpc"), gap(chain, "spcBef"), gap(chain, "spcAft"))
