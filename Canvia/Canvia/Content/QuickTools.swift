@@ -341,6 +341,10 @@ enum QuickTools {
     /// turned into pictures: finer than the export compressor's.
     static let pdfDPI = 200.0
 
+    /// The JPEG quality Resize and Convert write at, keeping a picture's
+    /// look; Compress takes the quality chosen.
+    static let pictureQuality = 0.92
+
     /// A JPEG's bytes for `width` × `height` pixels at `quality`, 0 to 1:
     /// 0.15 + 2.6 q² bits a pixel, as the PDF estimate counts them.
     static func jpegBytes(width: Int, height: Int, quality: Double) -> Int {
