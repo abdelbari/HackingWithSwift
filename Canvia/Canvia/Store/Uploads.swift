@@ -273,23 +273,29 @@ enum Uploads {
     }
 
     /// `raw` with clip `id` marked converted as it came in, from
-    /// `originalBytes` (VideoImport): {"optimised": true, "originalBytes"};
+    /// `originalBytes` (VideoImport): {"optimised": true, "originalBytes"},
+    /// and "toneMapped": "hlg" | "pq" for an HDR clip brought to SDR;
     /// anything else it holds as it was, and anything not a clip untouched.
     static func optimised(_ raw: [[String: Any]], id: String, originalBytes: Int64) -> [[String: Any]] {
+        optimised(raw, id: id, originalBytes: originalBytes, toneMapped: nil)
+    }
+
+    static func optimised(_ raw: [[String: Any]], id: String, originalBytes: Int64, toneMapped: String?) -> [[String: Any]] {
         raw.map { item in
             guard item["id"] as? String == id, item["kind"] as? String == Kind.video.rawValue else { return item }
             var out = item
             out[VideoImport.optimisedKey] = true
             out[VideoImport.originalBytesKey] = originalBytes
+            if let toneMapped { out[VideoImport.toneMappedKey] = toneMapped }
             return out
         }
     }
 
     /// Clip `id` marked converted as it came in, from `originalBytes`.
-    static func markOptimised(_ id: String, originalBytes: Int64) {
+    static func markOptimised(_ id: String, originalBytes: Int64, toneMapped: String? = nil) {
         lock.lock()
         defer { lock.unlock() }
-        write(optimised(list(), id: id, originalBytes: originalBytes))
+        write(optimised(list(), id: id, originalBytes: originalBytes, toneMapped: toneMapped))
     }
 
     /// The uploads filed in `path` — and, `recursive`, in the folders inside

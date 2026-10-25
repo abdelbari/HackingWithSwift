@@ -148,6 +148,21 @@ final class ClipReader {
     private var failed = false
     private let lock = NSLock()
 
+    /// What a clip's frames are read as, here and by a ClipPlayer: BGRA in
+    /// BT.709's primaries, transfer and matrix — an ordinary clip as it
+    /// is, and an HDR clip kept original (Keep original, or Optimise
+    /// imported videos off before an HDR clip was always converted) tone
+    /// mapped to SDR by AVFoundation, as HdrToneMap's rule has it, so it
+    /// plays and exports in its true colours rather than washed out.
+    static let sdrSettings: [String: Any] = [
+        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+        AVVideoColorPropertiesKey: [
+            AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+            AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+            AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+        ],
+    ]
+
     /// Nil for a file with no picture to read.
     init?(url: URL) {
         let asset = AVURLAsset(url: url)
@@ -209,9 +224,7 @@ final class ClipReader {
         position = t
         guard !failed else { return }
         guard let reading = try? AVAssetReader(asset: asset) else { failed = true; return }
-        let out = AVAssetReaderTrackOutput(track: track, outputSettings: [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-        ])
+        let out = AVAssetReaderTrackOutput(track: track, outputSettings: Self.sdrSettings)
         out.alwaysCopiesSampleData = false
         guard reading.canAdd(out) else { failed = true; return }
         reading.add(out)
@@ -328,9 +341,7 @@ final class ClipPlayer {
     init(url: URL) {
         let asset = AVURLAsset(url: url)
         let item = AVPlayerItem(asset: asset)
-        output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-        ])
+        output = AVPlayerItemVideoOutput(outputSettings: ClipReader.sdrSettings)
         item.add(output)
         player = AVPlayer(playerItem: item)
         player.isMuted = true

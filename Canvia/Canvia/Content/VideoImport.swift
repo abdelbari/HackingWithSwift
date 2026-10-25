@@ -8,7 +8,11 @@
 // under the same `video:<id>` when it is ready, its times the same, so
 // trims and playback are as they were. Settings ▸ Optimise imported videos
 // turns it off, and Keep original turns it off for one clip. The upload
-// remembers it: {"optimised": true, "originalBytes": N}. The same rules on
+// remembers it: {"optimised": true, "originalBytes": N}, with
+// "toneMapped": "hlg" | "pq" for an HDR clip brought to SDR. An HDR clip —
+// HLG or PQ, more than 8 bits, or BT.2020 colours — is always converted,
+// the setting off or not, since nothing else plays it in its true colours
+// everywhere (`converts`). The same rules on
 // both phones (VideoImportTests, the Android twin's VideoImportTest); the
 // converting is ClipOptimiser's.
 
@@ -40,12 +44,41 @@ enum VideoImport {
         var videoCodec: String?
         var audioCodec: String?
         var container: String
+        /// The picture's transfer as the rule names it: "hlg", "pq", or
+        /// nil for an ordinary (SDR) one.
+        var transfer: String? = nil
+        /// Bits a colour component; 8 when the clip does not say.
+        var bitDepth: Int = 8
+        /// The picture's colour primaries: "bt2020", or nil for any other.
+        var primaries: String? = nil
+
+        /// Whether the clip is HDR: HLG or PQ, more than 8 bits, or
+        /// BT.2020 colours.
+        var hdr: Bool {
+            transfer == HdrToneMap.hlg || transfer == HdrToneMap.pq || bitDepth > 8 || primaries == VideoImport.bt2020
+        }
+
+        /// What the upload records an HDR clip as tone mapped from: its
+        /// transfer when that is HLG or PQ; nil for any other clip, a
+        /// 10-bit or BT.2020 one with an ordinary transfer included.
+        var toneMapped: String? {
+            transfer == HdrToneMap.hlg || transfer == HdrToneMap.pq ? transfer : nil
+        }
+    }
+
+    static let bt2020 = "bt2020"
+
+    /// Whether `clip` is converted as it comes in: an HDR clip always,
+    /// any other that needs it while Settings ▸ Optimise imported videos is
+    /// on (`settingOn`).
+    static func converts(_ clip: Probe, settingOn: Bool) -> Bool {
+        clip.hdr || (settingOn && needsOptimising(clip))
     }
 
     /// Whether `clip` is converted when it comes in: too big on its long
-    /// side, too many bytes, or not H.264 (and AAC) in an MP4 or a MOV.
+    /// side, too many bytes, not H.264 (and AAC) in an MP4 or a MOV, or HDR.
     static func needsOptimising(_ clip: Probe) -> Bool {
-        max(clip.width, clip.height) > maxEdge
+        clip.hdr || max(clip.width, clip.height) > maxEdge
             || clip.bytes > Int64(maxBytes)
             || clip.videoCodec?.lowercased() != h264
             || (clip.audioCodec != nil && clip.audioCodec?.lowercased() != aac)
@@ -92,6 +125,12 @@ enum VideoImport {
     /// The upload's keys for a converted clip.
     static let optimisedKey = "optimised"
     static let originalBytesKey = "originalBytes"
+    static let toneMappedKey = "toneMapped"
+
+    /// What the pill says while an HDR clip is converted.
+    static var convertingHDR: String { tr("Converting HDR video…") }
+    /// What it says when one could not be.
+    static var hdrFailed: String { tr("This HDR video couldn't be converted; it may look washed out") }
 
     /// What Uploads says of a converted clip: "Optimised from 412 MB" —
     /// megabytes of a million bytes, whole, at least one.

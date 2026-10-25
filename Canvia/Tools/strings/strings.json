@@ -9950,6 +9950,15 @@
     "ja": "デザインに変換",
     "pt-BR": "Converter em design"
   },
+  "Converting HDR video…": {
+    "ar": "جارٍ تحويل فيديو HDR…",
+    "de": "HDR-Video wird konvertiert …",
+    "es": "Convirtiendo vídeo HDR…",
+    "fr": "Conversion de la vidéo HDR…",
+    "it": "Conversione del video HDR…",
+    "ja": "HDR動画を変換中…",
+    "pt-BR": "Convertendo vídeo HDR…"
+  },
   "Cool": {
     "ar": "بارد",
     "de": "Kühl",
@@ -31219,6 +31228,15 @@
     "it": "Questa versione di Android mostra le ombre solo sul testo dritto. Le esportazioni e gli altri telefoni mostrano questa.",
     "ja": "この Android バージョンでは、影は直線のテキストにのみ表示されます。書き出しや他のスマートフォンではこの影が表示されます。",
     "pt-BR": "Esta versão do Android mostra sombras só em texto reto. As exportações e outros celulares mostram esta."
+  },
+  "This HDR video couldn't be converted; it may look washed out": {
+    "ar": "تعذّر تحويل فيديو HDR هذا؛ قد يبدو باهت الألوان",
+    "de": "Dieses HDR-Video konnte nicht konvertiert werden; es kann blass aussehen",
+    "es": "No se pudo convertir este vídeo HDR; puede verse desvaído",
+    "fr": "Impossible de convertir cette vidéo HDR ; elle risque de paraître délavée",
+    "it": "Impossibile convertire questo video HDR; potrebbe apparire sbiadito",
+    "ja": "このHDR動画を変換できませんでした。色が薄く見えることがあります",
+    "pt-BR": "Não foi possível converter este vídeo HDR; ele pode parecer desbotado"
   },
   "This backup was made by a newer Canvia. Update Canvia to restore it.": {
     "ar": "أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من Canvia. حدّث Canvia لاستعادتها.",

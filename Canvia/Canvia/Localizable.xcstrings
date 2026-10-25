@@ -55483,6 +55483,59 @@
         }
       }
     },
+    "Converting HDR video…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ تحويل فيديو HDR…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR-Video wird konvertiert …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Converting HDR video…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convirtiendo vídeo HDR…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversion de la vidéo HDR…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversione del video HDR…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR動画を変換中…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convertendo vídeo HDR…"
+          }
+        }
+      }
+    },
     "Cool" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -179615,6 +179668,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esta versão do Android mostra sombras só em texto reto. As exportações e outros celulares mostram esta."
+          }
+        }
+      }
+    },
+    "This HDR video couldn't be converted; it may look washed out" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر تحويل فيديو HDR هذا؛ قد يبدو باهت الألوان"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses HDR-Video konnte nicht konvertiert werden; es kann blass aussehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This HDR video couldn't be converted; it may look washed out"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo convertir este vídeo HDR; puede verse desvaído"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de convertir cette vidéo HDR ; elle risque de paraître délavée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile convertire questo video HDR; potrebbe apparire sbiadito"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このHDR動画を変換できませんでした。色が薄く見えることがあります"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível converter este vídeo HDR; ele pode parecer desbotado"
           }
         }
       }
