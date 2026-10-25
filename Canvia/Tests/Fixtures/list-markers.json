@@ -1,7 +1,30 @@
 {
-  "about": "List markers in the look of their item's first letter on both phones (TextLists.markerStyle): the span in force at the first character of each line's words that is not a space or a tab gives the marker its colour, scale, font, weight and italic (never link, highlight, script or caps); null keeps the box's own look. `markers` is each line's marker style in order, null for the box's own.",
-  "element": {"id": "list", "type": "text", "text": "Milk\n  Eggs\nBread", "fontSize": 40, "listStyle": "bullet",
-    "spans": [{"start": 7, "end": 11, "color": "#ff0000", "scale": 1.5}, {"start": 12, "end": 17, "link": "https://example.com", "highlight": "#FFF176"}],
-    "spansText": "Milk\n  Eggs\nBread"},
-  "markers": [null, {"color": "#ff0000", "scale": 1.5}, null]
+  "about": "List markers in the look of their item's first letter on both phones (TextLists.markerStyle): the span in force at the first character of each line's words that is not a space or a tab gives the marker its colour, scale, font, weight and italic (never link, highlight, script or caps); null keeps the box's own look, as does a span that starts after that character. `markers` is each line's marker look in order, only the keys it sets, null for the box's own. Shared row for row by both phones' tests (Android MarkerStyleTest, iOS MarkerStyleTests).",
+  "rows": [
+    {"name": "a red, larger word at the start of item 2 after spaces",
+     "element": {"id": "a", "type": "text", "text": "Milk\n  Eggs\nBread", "fontSize": 40, "listStyle": "bullet",
+       "spans": [{"start": 7, "end": 11, "color": "#ff0000", "scale": 1.5}, {"start": 12, "end": 17, "link": "https://example.com", "highlight": "#FFF176"}],
+       "spansText": "Milk\n  Eggs\nBread"},
+     "markers": [null, {"color": "#ff0000", "scale": 1.5}, null]},
+    {"name": "the link and highlight of the same word are not the marker's",
+     "element": {"id": "b", "type": "text", "text": "One\n  Two big\nThree", "listStyle": "bullet",
+       "spans": [{"start": 6, "end": 9, "color": "#ff0000", "scale": 1.5, "link": "https://canvia.app", "highlight": "#ffff00"}],
+       "spansText": "One\n  Two big\nThree"},
+     "markers": [null, {"color": "#ff0000", "scale": 1.5}, null]},
+    {"name": "a style starting after the first letter is not the marker's",
+     "element": {"id": "c", "type": "text", "text": "One\n  Two big\nThree", "listStyle": "bullet",
+       "spans": [{"start": 8, "end": 9, "color": "#00ff00"}],
+       "spansText": "One\n  Two big\nThree"},
+     "markers": [null, null, null]},
+    {"name": "a face, weight and slant, but not a script",
+     "element": {"id": "d", "type": "text", "text": "One\nTwo", "listStyle": "number",
+       "spans": [{"start": 0, "end": 3, "font": "lora", "weight": 700, "italic": true, "script": "super"}],
+       "spansText": "One\nTwo"},
+     "markers": [{"font": "lora", "weight": 700, "italic": true}, null]},
+    {"name": "a tab before the first letter",
+     "element": {"id": "e", "type": "text", "text": "A\n\tB", "listStyle": "bullet",
+       "spans": [{"start": 3, "end": 4, "color": "#0000ff"}],
+       "spansText": "A\n\tB"},
+     "markers": [null, {"color": "#0000ff"}]}
+  ]
 }

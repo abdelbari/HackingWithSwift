@@ -6043,59 +6043,6 @@
         }
       }
     },
-    "%@ to %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ إلى %@"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ zu %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ to %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ a %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ à %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ a %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@から%@"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ para %@"
-          }
-        }
-      }
-    },
     "%@ to Photos" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7099,6 +7046,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ — reduzido de %@× para a renderização caber na memória"
+          }
+        }
+      }
+    },
+    "%@ → %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ← %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
           }
         }
       }
@@ -139639,7 +139639,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Farbe umbenennen…"
+            "value" : "Farbe umbenennen …"
           }
         },
         "en" : {
@@ -151977,7 +151977,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أول حرف كبير في الجملة"
+            "value" : "أول حرف من الجملة كبير"
           }
         },
         "de" : {
@@ -177004,7 +177004,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أول حرف كبير في كل كلمة"
+            "value" : "أول حرف من كل كلمة كبير"
           }
         },
         "de" : {
@@ -181439,7 +181439,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "大文字"
+            "value" : "すべて大文字"
           }
         },
         "pt-BR" : {
@@ -196592,7 +196592,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "小文字"
+            "value" : "すべて小文字"
           }
         },
         "pt-BR" : {

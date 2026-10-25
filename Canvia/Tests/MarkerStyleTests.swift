@@ -1,31 +1,49 @@
 // List markers in the look of their item's first letter, over the shared
-// Fixtures/list-markers.json the Android twin's TextListsTest reads.
+// Fixtures/list-markers.json the Android twin's MarkerStyleTest reads.
 
 import XCTest
 @testable import Canvia
 
 final class MarkerStyleTests: XCTestCase {
 
-    private func fixture() throws -> (el: Element, markers: [Any]) {
-        let fixture = try SharedFixture.object("list-markers")
-        let el = try JSONDecoder().decode(Element.self, from: SharedFixture.encoded(XCTUnwrap(fixture["element"])))
-        return (el, try XCTUnwrap(fixture["markers"] as? [Any]))
+    private func element(_ row: [String: Any]) throws -> Element {
+        try JSONDecoder().decode(Element.self, from: SharedFixture.encoded(XCTUnwrap(row["element"])))
     }
 
-    /// Shared: a red, 1.5× word at the start of item 2 gives item 2 a red,
-    /// 1.5× marker, and the others keep the box's own.
+    private func rows() throws -> [[String: Any]] {
+        try XCTUnwrap(SharedFixture.object("list-markers")["rows"] as? [[String: Any]])
+    }
+
+    /// The first row: a red, 1.5× word at the start of item 2.
+    private func fixture() throws -> (el: Element, markers: [Any]) {
+        let row = try XCTUnwrap(rows().first)
+        return (try element(row), try XCTUnwrap(row["markers"] as? [Any]))
+    }
+
+    /// Shared: each row's markers take the look of their item's first
+    /// letter, only the keys it sets, and the others keep the box's own.
     func testAMarkerTakesTheLookOfItsItemsFirstLetter() throws {
-        let (el, markers) = try fixture()
-        for (line, expected) in markers.enumerated() {
-            let look = TextLists.markerStyle(el, line)
-            guard let expected = expected as? [String: Any] else {
-                XCTAssertNil(look, "line \(line)")
-                continue
+        let all = try rows()
+        XCTAssertFalse(all.isEmpty)
+        for row in all {
+            let name = row["name"] as? String ?? ""
+            let el = try element(row)
+            let markers = try XCTUnwrap(row["markers"] as? [Any])
+            for (line, expected) in markers.enumerated() {
+                let look = TextLists.markerStyle(el, line)
+                guard let expected = expected as? [String: Any] else {
+                    XCTAssertNil(look, "\(name), line \(line)")
+                    continue
+                }
+                XCTAssertEqual(look?.color, expected["color"] as? String, "\(name), line \(line)")
+                XCTAssertEqual(look?.scale, expected["scale"] as? Double, "\(name), line \(line)")
+                XCTAssertEqual(look?.font, expected["font"] as? String, "\(name), line \(line)")
+                XCTAssertEqual(look?.weight, expected["weight"] as? Int, "\(name), line \(line)")
+                XCTAssertEqual(look?.italic, expected["italic"] as? Bool, "\(name), line \(line)")
+                XCTAssertNil(look?.link)
+                XCTAssertNil(look?.highlight)
+                XCTAssertNil(look?.script)
             }
-            XCTAssertEqual(look?.color, expected["color"] as? String, "line \(line)")
-            XCTAssertEqual(look?.scale, expected["scale"] as? Double, "line \(line)")
-            XCTAssertNil(look?.link)
-            XCTAssertNil(look?.highlight)
         }
     }
 

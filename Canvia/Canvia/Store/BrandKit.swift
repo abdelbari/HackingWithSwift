@@ -396,20 +396,19 @@ struct BrandKit: Codable, Equatable, Identifiable {
     }
 
     /// A swap as Change all and Colours in selection say it: "Ocean →
-    /// Sand", each colour by its brand name, else its hex in capitals.
+    /// Sand", each colour by its brand name, else its hue's ("Dark blue"),
+    /// as the Android twin's BrandKit.spokenColour says them.
     func swapLabel(from: String, to: String) -> String {
-        func said(_ hex: String) -> String { colourName(hex) ?? (BrandPalette.key(hex) ?? hex) }
-        return "\(said(from)) → \(said(to))"
+        tr("%@ → %@", spokenColour(from), spokenColour(to))
     }
 
-    /// A brand gradient by the names of its stops, "Ocean to Sand", when
-    /// every stop is a named brand colour; nil otherwise. The same names a
-    /// palette gives its colours.
+    /// A gradient by its stops, each by its brand name, else its hue's —
+    /// "Ocean, Sand" — as the Android twin's brand gradient tiles say it;
+    /// nil for one with no stops.
     func gradientName(_ paint: Paint) -> String? {
         let stops = paint.stops ?? []
-        let names = stops.compactMap { colourName($0.color) }
-        guard stops.count >= 2, names.count == stops.count else { return nil }
-        return names.dropFirst().reduce(names[0]) { tr("%@ to %@", $0, $1) }
+        guard !stops.isEmpty else { return nil }
+        return stops.map { spokenColour($0.color) }.joined(separator: ", ")
     }
 
     /// Every colour of every palette, once each, in palette order.

@@ -727,6 +727,28 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(TextLists.alignments(back), ["center", "left", "right"])
     }
 
+    /// cap="all" reads back as the writer wrote it, as on the Android twin:
+    /// on every run the box's Uppercase, on some runs those words' caps.
+    func testCapitalsReadBackAsUppercaseOrAsTheWordsOwn() throws {
+        var partly = Element.text("big sale", fontSize: 32, w: 400)
+        partly.id = "t1"
+        partly.h = 60
+        partly.setSpans([TextSpan(start: 4, end: 8, caps: true)])
+        var whole = Element.text("big sale", fontSize: 32, w: 400)
+        whole.id = "t2"
+        whole.y = 200
+        whole.h = 60
+        whole.uppercase = true
+        var design = Design(title: "Deck", width: 800, height: 600)
+        design.pages = [Page(id: "p1", elements: [partly, whole])]
+        let back = try XCTUnwrap(read(exported(design)).design.pages.first?.elements)
+        XCTAssertEqual(back.count, 2)
+        XCTAssertNil(back[0].uppercase)
+        XCTAssertEqual(back[0].liveSpans.filter { $0.caps == true }.map { [$0.start, $0.end] }, [[4, 8]])
+        XCTAssertEqual(back[1].uppercase, true)
+        XCTAssertFalse(back[1].liveSpans.contains { $0.caps == true })
+    }
+
     func testADeckTheExporterMadeReadsBackWithItsWordsPlacesAndNotes() throws {
         var hello = Element.text("Hello **world**", fontSize: 32, w: 400)
         hello.id = "t1"

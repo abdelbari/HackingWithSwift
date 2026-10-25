@@ -180,7 +180,7 @@ enum TextEffect: String, CaseIterable, Identifiable {
             ]
         case .extrude:
             out.copies = extrusion(depth: v(.depth), direction: v(.direction), shading: v(.shading),
-                                   side: spec?.color ?? ink, fontSize: fs)
+                                   chosen: spec?.color, ink: ink, fontSize: fs)
         case .highlight:
             out.pad = 0.18 * fs * v(.spread) / 50
             out.roundness = v(.roundness) / 100
@@ -196,26 +196,32 @@ enum TextEffect: String, CaseIterable, Identifiable {
     /// (Fixtures/extrude.json): the block runs 0.004 × depth × the type
     /// size along `direction` (degrees, 0 pointing right, 90 down) in
     /// max(8, ⌊depth / 2⌋) steps, layer k of n at k/n of the way — none at
-    /// no depth. Each layer is the side colour (`side`: the effect's own,
-    /// or the ink for Auto) darkened toward black by shading% × k/n, so the
-    /// nearest is almost the side colour and the farthest darker by all of
-    /// shading; each channel rounded half up, as "#rrggbb". The letters are
-    /// drawn over the last of them, in their own fill.
-    static func extrusion(depth: Double, direction: Double, shading: Double, side: String,
+    /// no depth. The side is the effect's own colour (`chosen`), or on Auto
+    /// the ink darkened by shading (each channel × (1 − shading/100),
+    /// rounded half up); layer k of n is the side darkened again toward
+    /// black by shading% × k/n, so the nearest is almost the side colour
+    /// and the farthest darker by all of shading; each channel rounded half
+    /// up, as "#rrggbb". The letters are drawn over the last of them, in
+    /// their own fill.
+    static func extrusion(depth: Double, direction: Double, shading: Double, chosen: String?, ink: String,
                           fontSize fs: Double) -> [ResolvedEffect.Copy] {
         guard depth > 0, fs > 0 else { return [] }
         let total = 0.004 * depth * fs
         let steps = max(8, Int((depth / 2).rounded(.down)))
         let angle = direction * .pi / 180
-        let rgb = channels(side)
+        let shade = min(max(shading, 0), 100) / 100
+        let side = chosen.map { channels($0) } ?? darker(channels(ink), by: shade)
         return (1...steps).reversed().map { k -> ResolvedEffect.Copy in
-            let share = Double(k) / Double(steps)
-            let along = total * share
-            let dark = min(max(shading / 100 * share, 0), 1)
-            let mixed = rgb.map { min(255, max(0, Int(floor(Double($0) * (1 - dark) + 0.5)))) }
+            let along = total * Double(k) / Double(steps)
+            let mixed = darker(side, by: shade * Double(k) / Double(steps))
             let hex = String(format: "#%02x%02x%02x", mixed[0], mixed[1], mixed[2])
             return ResolvedEffect.Copy(dx: along * cos(angle), dy: along * sin(angle), color: hex, alpha: 1)
         }
+    }
+
+    /// Each channel × (1 − `by`), rounded half up and kept to 0–255.
+    private static func darker(_ rgb: [Int], by: Double) -> [Int] {
+        rgb.map { min(255, max(0, Int(floor(Double($0) * (1 - by) + 0.5)))) }
     }
 
     /// "#rgb", "#rrggbb" or "#rrggbbaa" as its red, green and blue, 0–255;

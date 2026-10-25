@@ -11,11 +11,16 @@
 // sentences start is read from all of the box's words, not just the ones
 // chosen:
 //  - Title Case: a letter starts a word when the character before it is not
-//    a letter, a digit or an apostrophe (' or ’); it is upper case, every
-//    other letter lower case ("don't stop" → "Don't Stop", "3RD" → "3rd").
-//  - Sentence case: every letter lower case but the first letter of the
-//    words, of each line, and the first after ".", "!" or "?" and then a
-//    space; a digit before any letter starts nothing.
+//    a letter or a digit, nor an apostrophe (' or ’) straight after one; it
+//    is upper case, every other letter lower case ("don't stop" → "Don't
+//    Stop", "say 'hi'" → "Say 'Hi'", "3RD" → "3rd").
+//  - Sentence case: going back from a letter over what is not a letter or a
+//    digit, the start of the words or a line break comes first, or a ".",
+//    "!" or "?" with at least one space between it and the letter: then it
+//    starts a sentence and is upper case; every other letter lower case
+//    ("...and then" stays as it is; a digit before any letter starts
+//    nothing).
+// A digit is a decimal digit only (not ² or ½), as on the Android twin.
 // Markers (**bold**), the words' own colours, sizes and other spans, and
 // each line's list and alignment move with the words.
 
@@ -48,40 +53,52 @@ enum ChangeCase {
         Locale(identifier: Proofreader.writingLanguage(language))
     }
 
+    /// A letter or a decimal digit — what joins a word, as the Android
+    /// twin's isLetterOrDigit reads it (² and ½ are neither).
+    static func joins(_ c: Character) -> Bool {
+        c.isLetter || c.unicodeScalars.first?.properties.generalCategory == .decimalNumber
+    }
+
+    private static func isApostrophe(_ c: Character) -> Bool { c == "'" || c == "’" }
+
+    /// Whether the letter at `i` starts a word, for Title Case.
+    private static func startsWord(_ chars: [Character], _ i: Int) -> Bool {
+        guard i > 0 else { return true }
+        let before = chars[i - 1]
+        if joins(before) { return false }
+        if isApostrophe(before), i >= 2, joins(chars[i - 2]) { return false }
+        return true
+    }
+
+    /// Whether the letter at `i` starts a sentence, for Sentence case.
+    private static func startsSentence(_ chars: [Character], _ i: Int) -> Bool {
+        var k = i - 1
+        var spaced = false
+        while k >= 0 {
+            let c = chars[k]
+            if c == "\n" || c == "\r\n" { return true }
+            if c == "." || c == "!" || c == "?" { return spaced }
+            if joins(c) { return false }
+            if c.isWhitespace { spaced = true }
+            k -= 1
+        }
+        return true
+    }
+
     /// Each character of `chars` cased as `kind` asks — the ones at
     /// `indices` only, the rest as they are — one string a character.
     static func cased(_ chars: [Character], _ kind: Casing, in indices: Range<Int>, locale: Locale) -> [String] {
-        func upper(_ c: Character) -> String { String(c).uppercased(with: locale) }
-        func lower(_ c: Character) -> String { String(c).lowercased(with: locale) }
-        var out: [String] = []
-        var sentenceStart = true
-        var sentenceEnded = false
-        for (i, c) in chars.enumerated() {
-            let shown: String
+        chars.enumerated().map { i, c -> String in
+            guard indices.contains(i) else { return String(c) }
+            let up: Bool
             switch kind {
-            case .upper: shown = upper(c)
-            case .lower: shown = lower(c)
-            case .title:
-                let before: Character? = i > 0 ? chars[i - 1] : nil
-                let joined = before.map { $0.isLetter || $0.isNumber || $0 == "'" || $0 == "’" } ?? false
-                shown = c.isLetter && !joined ? upper(c) : lower(c)
-            case .sentence:
-                shown = c.isLetter && sentenceStart ? upper(c) : lower(c)
+            case .upper: up = true
+            case .lower: up = false
+            case .title: up = c.isLetter && startsWord(chars, i)
+            case .sentence: up = c.isLetter && startsSentence(chars, i)
             }
-            // Where the next sentence starts.
-            if c.isLetter || c.isNumber {
-                sentenceStart = false
-                sentenceEnded = false
-            } else if c == "\n" || c == "\r\n" {
-                sentenceStart = true
-            } else if c == "." || c == "!" || c == "?" {
-                sentenceEnded = true
-            } else if c.isWhitespace, sentenceEnded {
-                sentenceStart = true
-            }
-            out.append(indices.contains(i) ? shown : String(c))
+            return up ? String(c).uppercased(with: locale) : String(c).lowercased(with: locale)
         }
-        return out
     }
 
     /// `plain` with the characters in UTF-16 range `range` (all of it for

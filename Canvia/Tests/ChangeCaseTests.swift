@@ -25,6 +25,31 @@ final class ChangeCaseTests: XCTestCase {
         }
     }
 
+    /// Shared rows: a box's stored words, markers and spans and all,
+    /// changed over the stretch selected (all of them for none).
+    func testEachTransformChangesTheStoredWordsAndMovesTheSpans() throws {
+        let fixture = try SharedFixture.object("change-case")
+        let rows = try XCTUnwrap(fixture["changed"] as? [[String: Any]])
+        XCTAssertFalse(rows.isEmpty)
+        for row in rows {
+            let name = row["name"] as? String ?? ""
+            var el = Element.text(try XCTUnwrap(row["text"] as? String))
+            if let spans = row["spans"] {
+                el.setSpans(try JSONDecoder().decode([TextSpan].self, from: SharedFixture.encoded(spans)))
+            }
+            let start = try XCTUnwrap(row["start"] as? Int)
+            let end = try XCTUnwrap(row["end"] as? Int)
+            let kind = try XCTUnwrap(ChangeCase.Casing(rawValue: try XCTUnwrap(row["case"] as? String)))
+            let locale = ChangeCase.locale(row["language"] as? String)
+            let selection = start == end ? nil : NSRange(location: start, length: end - start)
+            let out = ChangeCase.changed(el, selection: selection, kind, locale: locale) ?? el
+            XCTAssertEqual(out.text, row["out"] as? String, name)
+            if let spans = row["outSpans"] {
+                XCTAssertEqual(out.liveSpans, try JSONDecoder().decode([TextSpan].self, from: SharedFixture.encoded(spans)), name)
+            }
+        }
+    }
+
     /// Shared rows: words with capitals of their own drawn in them.
     func testWordsWithCapsAreDrawnInCapitals() throws {
         let fixture = try SharedFixture.object("change-case")

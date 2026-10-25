@@ -1025,15 +1025,6 @@
     "ja": "%@の三つ葉のブロブ",
     "pt-BR": "Mancha de três lóbulos (%@)"
   },
-  "%@ to %@": {
-    "ar": "%@ إلى %@",
-    "de": "%@ zu %@",
-    "es": "%@ a %@",
-    "fr": "%@ à %@",
-    "it": "%@ a %@",
-    "ja": "%@から%@",
-    "pt-BR": "%@ para %@"
-  },
   "%@ to Photos": {
     "ar": "%@ إلى الصور",
     "de": "%@ in Fotos",
@@ -1204,6 +1195,15 @@
     "it": "%@ — ridotto da %@× perché il rendering stia in memoria",
     "ja": "%@ — レンダリングがメモリに収まるよう %@× から縮小",
     "pt-BR": "%@ — reduzido de %@× para a renderização caber na memória"
+  },
+  "%@ → %@": {
+    "ar": "%@ ← %@",
+    "de": "%@ → %@",
+    "es": "%@ → %@",
+    "fr": "%@ → %@",
+    "it": "%@ → %@",
+    "ja": "%@ → %@",
+    "pt-BR": "%@ → %@"
   },
   "%@, %@": {
     "ar": "%@، %@",
@@ -24352,7 +24352,7 @@
   },
   "Rename colour…": {
     "ar": "إعادة تسمية اللون…",
-    "de": "Farbe umbenennen…",
+    "de": "Farbe umbenennen …",
     "es": "Cambiar nombre del color…",
     "fr": "Renommer la couleur…",
     "it": "Rinomina colore…",
@@ -26475,7 +26475,7 @@
     "pt-BR": "Enviar para o fundo"
   },
   "Sentence case": {
-    "ar": "أول حرف كبير في الجملة",
+    "ar": "أول حرف من الجملة كبير",
     "de": "Satzanfang groß",
     "es": "Tipo oración",
     "fr": "Majuscule en début de phrase",
@@ -30762,7 +30762,7 @@
     "pt-BR": "Título"
   },
   "Title Case": {
-    "ar": "أول حرف كبير في كل كلمة",
+    "ar": "أول حرف من كل كلمة كبير",
     "de": "Wortanfänge Groß",
     "es": "Tipo Título",
     "fr": "Majuscule À Chaque Mot",
@@ -31514,7 +31514,7 @@
     "es": "MAYÚSCULAS",
     "fr": "MAJUSCULES",
     "it": "MAIUSCOLO",
-    "ja": "大文字",
+    "ja": "すべて大文字",
     "pt-BR": "MAIÚSCULAS"
   },
   "US Letter": {
@@ -34115,7 +34115,7 @@
     "es": "minúsculas",
     "fr": "minuscules",
     "it": "minuscolo",
-    "ja": "小文字",
+    "ja": "すべて小文字",
     "pt-BR": "minúsculas"
   },
   "minimal": {

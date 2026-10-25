@@ -182,13 +182,13 @@ final class TextEffectSettingsTests: XCTestCase {
             let size = try XCTUnwrap(row["fontSize"] as? Double)
             let ink = try XCTUnwrap(row["ink"] as? String)
             let fx = TextEffect.resolve(spec, fontSize: size, ink: ink)
-            XCTAssertEqual(fx.copies.count, row["count"] as? Int, "\(spec)")
-            for (key, layer) in [("farthest", fx.copies.first), ("nearest", fx.copies.last)] {
-                guard let expected = row[key] as? [String: Any] else { continue }
-                let got = try XCTUnwrap(layer)
-                XCTAssertEqual(got.dx, try XCTUnwrap(expected["dx"] as? Double), accuracy: 0.001, "\(spec) \(key)")
-                XCTAssertEqual(got.dy, try XCTUnwrap(expected["dy"] as? Double), accuracy: 0.001, "\(spec) \(key)")
-                XCTAssertEqual(got.color, expected["color"] as? String, "\(spec) \(key)")
+            let name = row["name"] as? String ?? ""
+            let layers = try XCTUnwrap(row["layers"] as? [[String: Any]])
+            XCTAssertEqual(fx.copies.count, layers.count, name)
+            for (expected, got) in zip(layers, fx.copies) {
+                XCTAssertEqual(got.dx, try XCTUnwrap(expected["dx"] as? Double), accuracy: 1e-5, name)
+                XCTAssertEqual(got.dy, try XCTUnwrap(expected["dy"] as? Double), accuracy: 1e-5, name)
+                XCTAssertEqual(got.color, expected["color"] as? String, name)
                 XCTAssertEqual(got.alpha, 1)
             }
         }

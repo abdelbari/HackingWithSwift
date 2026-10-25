@@ -207,38 +207,43 @@ struct ColorPickerSheet: View {
         let colours = swapsColours
             ? ColourSwap.colours(store.selectedElements.filter(ColourSwap.takesSwap)) : []
         if colours.count >= 2 || (swapsColours && swapTarget != nil) {
+            // Read from disk once a redraw, for every swatch and label below.
+            let kit = BrandKit.load()
             VStack(alignment: .leading, spacing: 8) {
                 Text("Colours in selection").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
                 // The swap under way in the brand's words: "Ocean → Sand".
                 if let origin = swapOrigin, let now = swapTarget, origin.lowercased() != now.lowercased() {
-                    Text(verbatim: BrandKit.load().swapLabel(from: origin, to: now))
+                    Text(verbatim: kit.swapLabel(from: origin, to: now))
                         .font(.footnote)
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(colours, id: \.self) { hex in swapSwatch(hex) }
+                        ForEach(colours, id: \.self) { hex in swapSwatch(hex, kit: kit) }
                     }
                     .padding(4)
                 }
-                if let offer = changeAll {
-                    Button {
-                        store.swapColourEverywhere(from: offer.from, to: offer.to)
-                        swapFrom = swapTarget
-                        changeAll = nil
-                    } label: {
-                        Label(tr("Change all (%d)", offer.count) + " · "
-                              + BrandKit.load().swapLabel(from: offer.from, to: offer.to), systemImage: "paintbrush")
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Capsule().fill(Theme.accentSubtle))
-                    }
-                    .transition(.opacity)
-                }
+                if let offer = changeAll { changeAllButton(offer, kit: kit) }
             }
         }
     }
 
-    private func swapSwatch(_ hex: String) -> some View {
+    /// Change all, the swap said in the brand's words.
+    private func changeAllButton(_ offer: ChangeAllOffer, kit: BrandKit) -> some View {
+        let said = tr("Change all (%d)", offer.count) + " · " + kit.swapLabel(from: offer.from, to: offer.to)
+        return Button {
+            store.swapColourEverywhere(from: offer.from, to: offer.to)
+            swapFrom = swapTarget
+            changeAll = nil
+        } label: {
+            Label(said, systemImage: "paintbrush")
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Theme.accentSubtle))
+        }
+        .transition(.opacity)
+    }
+
+    private func swapSwatch(_ hex: String, kit: BrandKit) -> some View {
         let chosen = swapTarget == hex
         return Button {
             // A step left open by the wheel is kept before the target moves,
@@ -256,7 +261,7 @@ struct ColorPickerSheet: View {
                 .overlay { if chosen { Circle().stroke(Theme.accent, lineWidth: 3).padding(-4) } }
         }
         // Named in words, as every swatch is — a brand colour by its name.
-        .accessibilityLabel(BrandKit.load().spokenColour(hex))
+        .accessibilityLabel(kit.spokenColour(hex))
         .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 

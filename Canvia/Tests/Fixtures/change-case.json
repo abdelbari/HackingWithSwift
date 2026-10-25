@@ -1,5 +1,5 @@
 {
-  "about": "Change case on both phones (Android TextCase, iOS ChangeCase): each row's words as they read, the design's language, the UTF-16 range changed (start, end; null for all of the words) and what each of the four makes of it. Each letter is cased on its own in the language's locale. Title Case: a letter starts a word when the character before it is not a letter, a digit or an apostrophe (' or ’); it is upper case and every other letter lower case. Sentence case: every letter lower case but the first of the words, of each line, and the first after '.', '!' or '?' and then a space; a digit before any letter starts nothing. Where words and sentences start is read from all of the words, not only the range. `caps` gives boxes with a span's \"caps\" and the words they are drawn as.",
+  "about": "Change case on both phones (Android TextCase, iOS ChangeCase), a character at a time in the design language's rules (language, a BCP-47 tag). Title Case: a letter starts a word when the character before it is no letter or digit, nor an apostrophe (' or ’) straight after a letter or digit; it is upper case and every other letter lower case. Sentence case: going back from a letter over what is not a letter or digit, the start, a line break, or a '.', '!' or '?' with at least one space between it and the letter starts a sentence and is upper case; every other letter is lower case. A digit is a decimal digit only (not ² or ½). Where words and sentences start is read from all of the words, not only the ones changed. `rows`: words as they read, the UTF-16 range changed (start, end; null for all of them) and what each of the four makes of them. `changed`: a box's words as stored, style markers and all, the stretch selected (start until end in the stored words; start == end is the whole box), one transform, and the stored words and spans after — spans move with their words. `caps`: boxes with a span's \"caps\" and the words they are drawn as. Shared row for row by both phones' tests (Android ChangeCaseTest, iOS ChangeCaseTests).",
   "rows": [
     {"text": "hello WORLD. this is it", "language": "en", "range": null,
      "upper": "HELLO WORLD. THIS IS IT", "lower": "hello world. this is it",
@@ -17,7 +17,32 @@
      "title": "First Line\nSecond Line", "sentence": "First line\nSecond line"},
     {"text": "don't STOP the 3RD time! ok?", "language": "en", "range": null,
      "upper": "DON'T STOP THE 3RD TIME! OK?", "lower": "don't stop the 3rd time! ok?",
-     "title": "Don't Stop The 3rd Time! Ok?", "sentence": "Don't stop the 3rd time! Ok?"}
+     "title": "Don't Stop The 3rd Time! Ok?", "sentence": "Don't stop the 3rd time! Ok?"},
+    {"text": "say 'hello world'", "language": "en", "range": null,
+     "upper": "SAY 'HELLO WORLD'", "lower": "say 'hello world'",
+     "title": "Say 'Hello World'", "sentence": "Say 'hello world'"},
+    {"text": "...and then", "language": "en", "range": null,
+     "upper": "...AND THEN", "lower": "...and then",
+     "title": "...And Then", "sentence": "...and then"},
+    {"text": "x²y and ½b", "language": "en", "range": null,
+     "upper": "X²Y AND ½B", "lower": "x²y and ½b",
+     "title": "X²Y And ½B", "sentence": "X²y and ½b"},
+    {"text": "pi is 3.14 today", "language": "en", "range": null,
+     "upper": "PI IS 3.14 TODAY", "lower": "pi is 3.14 today",
+     "title": "Pi Is 3.14 Today", "sentence": "Pi is 3.14 today"},
+    {"text": "Done. NEXT ONE", "language": "en", "range": [6, 14],
+     "upper": "Done. NEXT ONE", "lower": "Done. next one",
+     "title": "Done. Next One", "sentence": "Done. Next one"},
+    {"text": "hello", "language": "en", "range": [2, 5],
+     "upper": "heLLO", "lower": "hello", "title": "hello", "sentence": "hello"}
+  ],
+  "changed": [
+    {"name": "everything in capitals", "text": "hello world", "start": 0, "end": 0, "case": "upper", "language": "en", "out": "HELLO WORLD"},
+    {"name": "only the words selected", "text": "HELLO WORLD", "start": 6, "end": 11, "case": "lower", "language": "en", "out": "HELLO world"},
+    {"name": "style markers stay round their words", "text": "**big** sale", "start": 0, "end": 0, "case": "upper", "language": "en", "out": "**BIG** SALE"},
+    {"name": "a selection in bold words", "text": "**big** sale", "start": 2, "end": 5, "case": "title", "language": "en", "out": "**Big** sale"},
+    {"name": "a letter that grows", "text": "straße", "start": 0, "end": 0, "case": "upper", "language": "de", "out": "STRASSE"},
+    {"name": "spans keep their words", "text": "red apple", "start": 0, "end": 0, "case": "upper", "language": "en", "spans": [{"start": 4, "end": 9, "color": "#ff0000"}], "out": "RED APPLE", "outSpans": [{"start": 4, "end": 9, "color": "#ff0000"}]}
   ],
   "caps": [
     {"element": {"id": "a", "type": "text", "text": "Big sale today",

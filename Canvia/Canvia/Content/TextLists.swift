@@ -199,7 +199,8 @@ enum TextLists {
     /// `el` with the lines in `lineRange` (zero-based, both ends in) aligned
     /// `align`, the rest as they are: the Align button and ⇧⌘L, C, R and J
     /// while typing. A line aligned as the box is keeps no align of its own,
-    /// and lines all aligned alike make that the box's align (setLines).
+    /// and lines all aligned alike make that the box's align (setLines) —
+    /// so a range taking in every line is the box-wide set.
     static func withAlign(_ el: Element, _ lineRange: ClosedRange<Int>, _ align: String) -> Element {
         guard aligns.contains(align) else { return el }
         var out = el
@@ -463,14 +464,24 @@ enum TextLists {
 extension Element {
 
     /// The box with its lines set as `lines` — one a line, fitted to its
-    /// words. Lines all alike are written as the box-wide keys instead and
-    /// the paragraphs dropped, when they read the same that way: no list, or
-    /// a list at the first level (deeper, a paragraph's marker follows its
-    /// level, where the box-wide list's marker never does). Otherwise
-    /// `paragraphs` and `paragraphsText`, the box-wide list and indent gone.
+    /// words. Every line aligned alike, however their lists differ, makes
+    /// that the box's `align` and no line keeps its own — the rule both
+    /// phones share. Lines all alike are written as the box-wide keys
+    /// instead and the paragraphs dropped, when they read the same that way:
+    /// no list, or a list at the first level (deeper, a paragraph's marker
+    /// follows its level, where the box-wide list's marker never does).
+    /// Otherwise `paragraphs` and `paragraphsText`, the box-wide list and
+    /// indent gone.
     mutating func setLines(_ lines: [TextParagraph]) {
         let plain = RichText.strip(text ?? "")
         let count = plain.components(separatedBy: "\n").count
+        let current = TextLists.boxAlign(self)
+        // Each line's align as it would read: its own, or the box's.
+        let reads = (0..<count).map { i -> String in
+            guard i < lines.count, let own = lines[i].align, TextLists.aligns.contains(own) else { return current }
+            return own
+        }
+        if let shared = reads.first, shared != current, reads.allSatisfy({ $0 == shared }) { align = shared }
         let box = TextLists.boxAlign(self)
         let fitted = (0..<count).map { i -> TextParagraph in
             guard i < lines.count else { return TextParagraph() }
@@ -488,9 +499,6 @@ extension Element {
         if fitted.allSatisfy({ $0 == first }) && (!first.isListed || first.level == 0) {
             if first.isListed { listStyle = first.list }
             if first.level > 0 { indent = first.level }
-            // Every line aligned alike: that is the box's align — the rule
-            // both phones share.
-            if let own = first.align { align = own }
         } else {
             paragraphs = fitted
             paragraphsText = plain
