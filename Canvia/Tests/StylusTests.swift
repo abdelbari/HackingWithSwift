@@ -1,7 +1,8 @@
 // Round 34's stylus drawing: a stroke's width at each sample from a
 // Pencil's pressure or a finger's speed, kept as its `widths` and drawn as
 // a filled outline. The outline and factor rows are the shared fixture
-// stroke-outline.json, read by the Android twin's FreehandTest too.
+// freehand-pressure.json, read by the Android twin's FreehandPressureTest
+// too.
 
 import XCTest
 @testable import Canvia
@@ -9,29 +10,63 @@ import XCTest
 final class StylusTests: XCTestCase {
 
     func testTheSharedOutlineRows() throws {
-        let rows = try XCTUnwrap(SharedFixture.object("stroke-outline")["outline"] as? [[String: Any]])
+        let rows = try XCTUnwrap(SharedFixture.object("freehand-pressure")["outline"] as? [[String: Any]])
         XCTAssertFalse(rows.isEmpty)
         for row in rows {
             let points = try XCTUnwrap(row["points"] as? [[NSNumber]]).map {
                 CGPoint(x: $0[0].doubleValue, y: $0[1].doubleValue)
             }
-            let radii = try XCTUnwrap(row["radii"] as? [NSNumber]).map(\.doubleValue)
-            XCTAssertEqual(Freehand.outlinePath(points, radii: radii), row["d"] as? String, "\(row)")
+            let half = try XCTUnwrap(row["half"] as? [NSNumber]).map(\.doubleValue)
+            XCTAssertEqual(Freehand.outlinePath(points, radii: half), row["path"] as? String, "\(row)")
         }
     }
 
     func testTheSharedFactorRows() throws {
-        let fixture = try SharedFixture.object("stroke-outline")
-        for row in try XCTUnwrap(fixture["pressure"] as? [[String: NSNumber]]) {
-            XCTAssertEqual(Freehand.pressureFactor(row["in"]!.doubleValue), row["factor"]!.doubleValue, "\(row)")
+        let rows = try XCTUnwrap(SharedFixture.object("freehand-pressure")["factors"] as? [[String: Any]])
+        XCTAssertFalse(rows.isEmpty)
+        for row in rows {
+            let speed = try XCTUnwrap((row["speed"] as? NSNumber)?.doubleValue)
+            let want = try XCTUnwrap((row["factor"] as? NSNumber)?.doubleValue)
+            // A pressure, even 0, is a Pencil's; none (null) a finger's speed.
+            let got = (row["pressure"] as? NSNumber).map { Freehand.pressureFactor($0.doubleValue) } ?? Freehand.speedFactor(speed)
+            XCTAssertEqual(got, want, accuracy: 1e-9, "\(row)")
         }
-        for row in try XCTUnwrap(fixture["speed"] as? [[String: NSNumber]]) {
-            XCTAssertEqual(Freehand.speedFactor(row["in"]!.doubleValue), row["factor"]!.doubleValue, "\(row)")
-        }
+    }
+
+    func testALongDenselyDrawnStrokeKeepsAWidthForEachSampleThroughBothThinnings() throws {
+        // 1000 page units wide, a point every 10: in its 0…100 box the points
+        // are under 2 apart, so the second thinning drops about half of them.
+        var tool = Freehand.Tool()
+        tool.pressurePens = [.pen]
+        let points = (0...100).map { CGPoint(x: Double($0) * 10, y: 300) }
+        let widths = points.indices.map { 0.35 + 0.65 * Double($0) / 100 }
+        let el = try XCTUnwrap(Freehand.element(points: points, widths: widths, tool: tool))
+        let kept = try XCTUnwrap(el.widths)
+        XCTAssertEqual(Freehand.samples(try XCTUnwrap(el.pathData)).count, kept.count)
+        XCTAssertLessThan(kept.count, points.count)
+        XCTAssertNotNil(Freehand.outline(el))
+        XCTAssertLessThan(kept.first ?? 1, kept.last ?? 0)
+    }
+
+    func testAPartialEraseKeepsEachPiecesWidths() throws {
+        var tool = Freehand.Tool()
+        tool.pressurePens = [.pen]
+        let points = (0...30).map { CGPoint(x: 100 + Double($0) * 6, y: 200 + Double($0 % 5) * 3) }
+        let widths = points.indices.map { 0.35 + 0.65 * Double($0) / 30 }
+        let el = try XCTUnwrap(Freehand.element(points: points, widths: widths, tool: tool))
+        let cuts = Freehand.erasedPartially([el], path: [points[15]], radius: 4)
+        let pieces = try XCTUnwrap(cuts.first?.pieces)
+        XCTAssertEqual(pieces.count, 2)
+        for piece in pieces { XCTAssertNotNil(Freehand.outline(piece)) }
+        // The left piece is the thinner end, as on the Android twin.
+        let sorted = pieces.sorted { $0.x < $1.x }
+        let average = { (e: Element) -> Double in (e.widths ?? []).reduce(0, +) / Double(max(e.widths?.count ?? 1, 1)) }
+        XCTAssertLessThan(average(sorted[0]), average(sorted[1]))
     }
 
     func testAPressureStrokeKeepsAWidthForEverySampleItsCurvePasses() throws {
         var tool = Freehand.Tool()
+        tool.pressurePens = []
         tool.width = 10
         let points = (0..<6).map { CGPoint(x: 100 + Double($0) * 20, y: 100 + Double($0 % 2) * 10) }
         let widths = [0.4, 0.6, 0.8, 1, 0.7, 0.5]

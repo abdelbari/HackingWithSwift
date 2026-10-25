@@ -4322,7 +4322,7 @@
   "100% stacked bar": {
     "ar": "أشرطة مكدسة 100%",
     "de": "Gestapelte Balken (100 %)",
-    "es": "Barras apiladas al 100%",
+    "es": "Barras apiladas al 100 %",
     "fr": "Barres empilées à 100 %",
     "it": "Barre in pila al 100%",
     "ja": "100% 積み上げ横棒",
@@ -4331,7 +4331,7 @@
   "100% stacked column": {
     "ar": "أعمدة مكدسة 100%",
     "de": "Gestapelte Säulen (100 %)",
-    "es": "Columnas apiladas al 100%",
+    "es": "Columnas apiladas al 100 %",
     "fr": "Colonnes empilées à 100 %",
     "it": "Colonne in pila al 100%",
     "ja": "100% 積み上げ縦棒",
@@ -12058,11 +12058,11 @@
   },
   "Draw with stylus only": {
     "ar": "الرسم بالقلم فقط",
-    "de": "Nur mit dem Stift zeichnen",
+    "de": "Nur mit Stift zeichnen",
     "es": "Dibujar solo con lápiz",
-    "fr": "Dessiner au stylet uniquement",
+    "fr": "Dessiner uniquement au stylet",
     "it": "Disegna solo con la penna",
-    "ja": "スタイラスだけで描く",
+    "ja": "スタイラスでのみ描く",
     "pt-BR": "Desenhar só com a caneta"
   },
   "Draw with your finger": {
@@ -20504,6 +20504,15 @@
     "ja": "1 本指で描画、2 本指でページを移動",
     "pt-BR": "Um dedo desenha, dois movem a página"
   },
+  "One finger moves the page": {
+    "ar": "إصبع واحد يحرّك الصفحة",
+    "de": "Ein Finger verschiebt die Seite",
+    "es": "Un dedo mueve la página",
+    "fr": "Un doigt déplace la page",
+    "it": "Un dito sposta la pagina",
+    "ja": "1本指でページを動かします",
+    "pt-BR": "Um dedo move a página"
+  },
   "One of each": {
     "ar": "واحد من كلٍّ",
     "de": "Je eines",
@@ -21706,6 +21715,15 @@
     "it": "Percentuale della dimensione, da %d a %d",
     "ja": "サイズに対する割合（%d～%d）",
     "pt-BR": "Porcentagem do tamanho, de %d a %d"
+  },
+  "Percentage": {
+    "ar": "النسبة المئوية",
+    "de": "Prozentsatz",
+    "es": "Porcentaje",
+    "fr": "Pourcentage",
+    "it": "Percentuale",
+    "ja": "パーセンテージ",
+    "pt-BR": "Porcentagem"
   },
   "Personal": {
     "ar": "شخصي",
@@ -23712,13 +23730,13 @@
     "pt-BR": "Substituir %@ por"
   },
   "Replace %@ with this": {
-    "ar": "استبدال %@ بهذه",
+    "ar": "استبدال %@ بهذا",
     "de": "%@ hierdurch ersetzen",
-    "es": "Reemplazar %@ por esta",
-    "fr": "Remplacer %@ par celle-ci",
-    "it": "Sostituisci %@ con questa",
-    "ja": "%@をこれに置き換える",
-    "pt-BR": "Substituir %@ por esta"
+    "es": "Reemplazar %@ por esto",
+    "fr": "Remplacer %@ par ceci",
+    "it": "Sostituisci %@ con questo",
+    "ja": "%@ をこれに置き換える",
+    "pt-BR": "Substituir %@ por isto"
   },
   "Replace all": {
     "ar": "استبدال الكل",
@@ -27770,15 +27788,6 @@
     "ja": "ストライプ",
     "pt-BR": "Listras"
   },
-  "Strokes thin and thicken with how hard you press, or how fast you draw": {
-    "ar": "تَرِقّ الخطوط وتَغلُظ بحسب قوة الضغط أو سرعة الرسم",
-    "de": "Striche werden je nach Druck oder Tempo dünner und dicker",
-    "es": "Los trazos se afinan y engrosan según cuánto presionas o lo rápido que dibujas",
-    "fr": "Les traits s’affinent et s’épaississent selon la pression ou la vitesse",
-    "it": "I tratti si assottigliano e ingrossano in base alla pressione o alla velocità",
-    "ja": "押す強さや描く速さで線の太さが変わります",
-    "pt-BR": "Os traços afinam e engrossam conforme a pressão ou a velocidade"
-  },
   "Student": {
     "ar": "طالب",
     "de": "Studierende",
@@ -28691,15 +28700,6 @@
     "ja": "「レイヤー」シートには、ページ上のすべてが最前面から順に表示されます。ドラッグで並べ替え、タップで選択します。目のアイコンで素材をページとすべての書き出しから非表示にし、南京錠でロックします（全体、または位置のみ。位置のみの場合は文字、色、切り抜きを変更できます）。長押しで名前を変更します。グループは 1 行で表示され、開くと中身が表示されます。「重なり」には選択範囲と重なっているものだけが表示されます。「配置」シートでは素材を 1 つ前面または背面に移動します。",
     "pt-BR": "A folha Camadas lista tudo o que há na página, de cima para baixo. Arraste para reordenar, toque para selecionar. O olho oculta um elemento da página e de todas as exportações, o cadeado o bloqueia — inteiro ou só na posição, em que as palavras, as cores e o corte ainda podem mudar — e tocar e segurar permite renomeá-lo. Um grupo é uma linha que se abre para mostrar o que contém; Sobrepostos lista só o que se sobrepõe à seleção. A folha Posição move um elemento uma etapa para a frente ou para trás."
   },
-  "The Pencil draws, one finger moves the page": {
-    "ar": "القلم يرسم، وإصبع واحد يحرّك الصفحة",
-    "de": "Der Stift zeichnet, ein Finger bewegt die Seite",
-    "es": "El lápiz dibuja; un dedo mueve la página",
-    "fr": "Le stylet dessine, un doigt déplace la page",
-    "it": "La penna disegna, un dito sposta la pagina",
-    "ja": "ペンで描き、指1本でページを動かします",
-    "pt-BR": "A caneta desenha; um dedo move a página"
-  },
   "The bar at the bottom shows every page. Add, duplicate, reorder, copy and paste pages (even into another design), keep notes on a page, and open the organizer to manage many at once.": {
     "ar": "يعرض الشريط في الأسفل كل الصفحات. أضف الصفحات وكرّرها وأعد ترتيبها وانسخها والصقها (حتى في تصميم آخر)، واحتفظ بملاحظات على صفحة، وافتح المنظِّم لإدارة صفحات كثيرة معًا.",
     "de": "Die Leiste unten zeigt alle Seiten. Füge Seiten hinzu, dupliziere, ordne, kopiere und füge sie ein (sogar in ein anderes Design), mach dir Notizen zu einer Seite und öffne die Organisation, um viele auf einmal zu verwalten.",
@@ -28852,6 +28852,15 @@
     "it": "I livelli sono in un ordine diverso da quello di lettura della pagina",
     "ja": "レイヤーの順序がページの読み順と異なります",
     "pt-BR": "As camadas estão em uma ordem diferente da ordem de leitura da página"
+  },
+  "The line swells and thins with your stylus's pressure, or your finger's speed": {
+    "ar": "يزداد الخط سُمكًا ويرقّ مع ضغط القلم أو سرعة الإصبع",
+    "de": "Die Linie wird mit dem Druck des Stifts oder der Geschwindigkeit des Fingers dicker und dünner",
+    "es": "La línea se ensancha y se afina con la presión del lápiz o la velocidad del dedo",
+    "fr": "Le trait s’épaissit et s’affine selon la pression du stylet ou la vitesse du doigt",
+    "it": "La linea si ingrossa e si assottiglia con la pressione della penna o la velocità del dito",
+    "ja": "スタイラスの筆圧や指の速さで線が太くなったり細くなったりします",
+    "pt-BR": "A linha engrossa e afina com a pressão da caneta ou a velocidade do dedo"
   },
   "The locked one stays as it is.": {
     "ar": "يبقى المقفل كما هو.",
@@ -32185,6 +32194,15 @@
     "it": "Il tuo post è pronto da condividere.",
     "ja": "投稿を共有する準備ができました。",
     "pt-BR": "Sua publicação está pronta para compartilhar."
+  },
+  "Your stylus draws, one finger moves the page": {
+    "ar": "القلم يرسم وإصبع واحد يحرّك الصفحة",
+    "de": "Der Stift zeichnet, ein Finger verschiebt die Seite",
+    "es": "El lápiz dibuja; un dedo mueve la página",
+    "fr": "Le stylet dessine, un doigt déplace la page",
+    "it": "La penna disegna, un dito sposta la pagina",
+    "ja": "スタイラスで描き、1本指でページを動かします",
+    "pt-BR": "A caneta desenha; um dedo move a página"
   },
   "Your templates": {
     "ar": "قوالبك",

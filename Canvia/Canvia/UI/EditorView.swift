@@ -1139,7 +1139,7 @@ struct EditorView: View {
             // the capsule has no room left on a phone held upright. Beside
             // it, for a pen with ink, the Shape assist switch.
             HStack(spacing: 8) {
-                Text(stylusOnly && tool.pen.hasInk ? tr("The Pencil draws, one finger moves the page") : tool.pen.hint)
+                Text(stylusOnly && tool.pen.hasInk ? tr("Your stylus draws, one finger moves the page") : tool.pen.hint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if tool.pen.hasInk {
@@ -1171,16 +1171,18 @@ struct EditorView: View {
                     } else {
                         store.drawing?.pressurePens.remove(tool.pen)
                     }
+                    // Kept on this phone, each pen its own, as on the Android twin.
+                    Freehand.savePressurePens(store.drawing?.pressurePens ?? [])
                 }))
                 .toggleStyle(.button)
                 .font(.caption)
-                .accessibilityHint("Strokes thin and thicken with how hard you press, or how fast you draw")
+                .accessibilityHint("The line swells and thins with your stylus's pressure, or your finger's speed")
             }
             if stylusSeen {
                 Toggle("Draw with stylus only", isOn: $stylusOnly)
                     .toggleStyle(.button)
                     .font(.caption)
-                    .accessibilityHint("The Pencil draws, one finger moves the page")
+                    .accessibilityHint("One finger moves the page")
             }
         }
         .padding(.horizontal, 10)

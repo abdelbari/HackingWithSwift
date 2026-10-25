@@ -23078,7 +23078,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Barras apiladas al 100%"
+            "value" : "Barras apiladas al 100 %"
           }
         },
         "fr" : {
@@ -23131,7 +23131,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Columnas apiladas al 100%"
+            "value" : "Columnas apiladas al 100 %"
           }
         },
         "fr" : {
@@ -67815,7 +67815,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur mit dem Stift zeichnen"
+            "value" : "Nur mit Stift zeichnen"
           }
         },
         "en" : {
@@ -67833,7 +67833,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dessiner au stylet uniquement"
+            "value" : "Dessiner uniquement au stylet"
           }
         },
         "it" : {
@@ -67845,7 +67845,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スタイラスだけで描く"
+            "value" : "スタイラスでのみ描く"
           }
         },
         "pt-BR" : {
@@ -117115,6 +117115,59 @@
         }
       }
     },
+    "One finger moves the page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إصبع واحد يحرّك الصفحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Finger verschiebt die Seite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One finger moves the page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un dedo mueve la página"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un doigt déplace la page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un dito sposta la pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1本指でページを動かします"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um dedo move a página"
+          }
+        }
+      }
+    },
     "One of each" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -124168,6 +124221,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Porcentagem do tamanho, de %lld a %lld"
+          }
+        }
+      }
+    },
+    "Percentage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "النسبة المئوية"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prozentsatz"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Percentage"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porcentaje"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pourcentage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Percentuale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パーセンテージ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porcentagem"
           }
         }
       }
@@ -135952,7 +136058,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "استبدال %@ بهذه"
+            "value" : "استبدال %@ بهذا"
           }
         },
         "de" : {
@@ -135970,31 +136076,31 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reemplazar %@ por esta"
+            "value" : "Reemplazar %@ por esto"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Remplacer %@ par celle-ci"
+            "value" : "Remplacer %@ par ceci"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sostituisci %@ con questa"
+            "value" : "Sostituisci %@ con questo"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@をこれに置き換える"
+            "value" : "%@ をこれに置き換える"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Substituir %@ por esta"
+            "value" : "Substituir %@ por isto"
           }
         }
       }
@@ -159521,59 +159627,6 @@
         }
       }
     },
-    "Strokes thin and thicken with how hard you press, or how fast you draw" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تَرِقّ الخطوط وتَغلُظ بحسب قوة الضغط أو سرعة الرسم"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Striche werden je nach Druck oder Tempo dünner und dicker"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Strokes thin and thicken with how hard you press, or how fast you draw"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Los trazos se afinan y engrosan según cuánto presionas o lo rápido que dibujas"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les traits s’affinent et s’épaississent selon la pression ou la vitesse"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I tratti si assottigliano e ingrossano in base alla pressione o alla velocità"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "押す強さや描く速さで線の太さが変わります"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Os traços afinam e engrossam conforme a pressão ou a velocidade"
-          }
-        }
-      }
-    },
     "Student" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -164890,59 +164943,6 @@
         }
       }
     },
-    "The Pencil draws, one finger moves the page" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "القلم يرسم، وإصبع واحد يحرّك الصفحة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Stift zeichnet, ein Finger bewegt die Seite"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The Pencil draws, one finger moves the page"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El lápiz dibuja; un dedo mueve la página"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le stylet dessine, un doigt déplace la page"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La penna disegna, un dito sposta la pagina"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ペンで描き、指1本でページを動かします"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A caneta desenha; um dedo move a página"
-          }
-        }
-      }
-    },
     "The bar at the bottom shows every page. Add, duplicate, reorder, copy and paste pages (even into another design), keep notes on a page, and open the organizer to manage many at once." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -165840,6 +165840,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "As camadas estão em uma ordem diferente da ordem de leitura da página"
+          }
+        }
+      }
+    },
+    "The line swells and thins with your stylus's pressure, or your finger's speed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يزداد الخط سُمكًا ويرقّ مع ضغط القلم أو سرعة الإصبع"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Linie wird mit dem Druck des Stifts oder der Geschwindigkeit des Fingers dicker und dünner"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The line swells and thins with your stylus's pressure, or your finger's speed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La línea se ensancha y se afina con la presión del lápiz o la velocidad del dedo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le trait s’épaissit et s’affine selon la pression du stylet ou la vitesse du doigt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La linea si ingrossa e si assottiglia con la pressione della penna o la velocità del dito"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スタイラスの筆圧や指の速さで線が太くなったり細くなったりします"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A linha engrossa e afina com a pressão da caneta ou a velocidade do dedo"
           }
         }
       }
@@ -185331,6 +185384,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sua publicação está pronta para compartilhar."
+          }
+        }
+      }
+    },
+    "Your stylus draws, one finger moves the page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "القلم يرسم وإصبع واحد يحرّك الصفحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Stift zeichnet, ein Finger verschiebt die Seite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your stylus draws, one finger moves the page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El lápiz dibuja; un dedo mueve la página"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le stylet dessine, un doigt déplace la page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La penna disegna, un dito sposta la pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スタイラスで描き、1本指でページを動かします"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A caneta desenha; um dedo move a página"
           }
         }
       }
