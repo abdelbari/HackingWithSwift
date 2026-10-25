@@ -30,6 +30,10 @@ final class ShareTargetsTests: XCTestCase {
                        ["pinterest", "instagram", "tiktok", "whatsapp", "facebook"])
         XCTAssertEqual(ShareTargets.ordered("insta-story", installed: ["whatsapp", "instagram"]).map(\.id),
                        ["instagram", "whatsapp"])
+        XCTAssertEqual(ShareTargets.ordered("instagram-ad", installed: everyApp, recent: ["pinterest"]).map(\.id),
+                       ["instagram", "pinterest", "tiktok", "whatsapp", "facebook"])
+        XCTAssertEqual(ShareTargets.ordered("facebook-ad", installed: everyApp).map(\.id),
+                       ["facebook", "instagram", "tiktok", "whatsapp", "pinterest"])
         XCTAssertEqual(ShareTargets.ordered("linkedin-post", installed: everyApp, recent: ["whatsapp", "tiktok"]).map(\.id),
                        ["linkedin", "whatsapp", "tiktok", "instagram", "facebook"])
         XCTAssertEqual(ShareTargets.ordered("insta-post", installed: []).map(\.id), [])
@@ -42,8 +46,10 @@ final class ShareTargetsTests: XCTestCase {
         var moving = still
         moving.pages = [Page(elements: [Element.image("video:v1")])]
         XCTAssertEqual(ShareTargets.format(moving), "mp4")
-        XCTAssertEqual(ShareTargets.scale(still, target: try XCTUnwrap(ShareTargets.byId("instagram"))), 2, accuracy: 1e-9)
-        XCTAssertEqual(ShareTargets.scale(still, target: try XCTUnwrap(ShareTargets.byId("whatsapp"))), 1, accuracy: 1e-9)
+        XCTAssertEqual(ShareTargets.scale(still, page: still.pages[0], target: try XCTUnwrap(ShareTargets.byId("instagram"))),
+                       2, accuracy: 1e-9)
+        XCTAssertEqual(ShareTargets.scale(still, page: still.pages[0], target: try XCTUnwrap(ShareTargets.byId("whatsapp"))),
+                       1, accuracy: 1e-9)
     }
 
     func testACarouselIsSharedAsItsSlidesEachAtTheAppsWidth() throws {
@@ -52,9 +58,32 @@ final class ShareTargetsTests: XCTestCase {
         var carousel = wide
         carousel.pages[0].split = PageSplit(columns: 3)
         let instagram = try XCTUnwrap(ShareTargets.byId("instagram"))
-        XCTAssertEqual(ShareTargets.scale(wide, target: instagram), 1080.0 / 3240.0, accuracy: 1e-9)
-        XCTAssertEqual(ShareTargets.scale(carousel, target: instagram), 1, accuracy: 1e-9)
-        XCTAssertEqual(ShareTargets.scale(carousel, target: try XCTUnwrap(ShareTargets.byId("whatsapp"))), 1, accuracy: 1e-9)
+        XCTAssertEqual(ShareTargets.scale(wide, page: wide.pages[0], target: instagram), 1080.0 / 3240.0, accuracy: 1e-9)
+        XCTAssertEqual(ShareTargets.scale(carousel, page: carousel.pages[0], target: instagram), 1, accuracy: 1e-9)
+        XCTAssertEqual(ShareTargets.scale(carousel, page: carousel.pages[0], target: try XCTUnwrap(ShareTargets.byId("whatsapp"))),
+                       1, accuracy: 1e-9)
+    }
+
+    func testEachPageIsMatchedOnItsOwnWidthAndSlides() throws {
+        var page = Page(elements: [Element.text("Hi")])
+        page.id = "p"
+        page.split = PageSplit(columns: 3)
+        var carousel = Design(title: "Carousel", width: 3240, height: 1350)
+        carousel.pages = [page]
+        let instagram = try XCTUnwrap(ShareTargets.byId("instagram"))
+        // Four slides make the page 4320 wide, two 2160: each slide still 1080.
+        let four = try XCTUnwrap(PageSplit.resized(carousel, pageId: "p", columns: 4))
+        XCTAssertEqual(four.pages[0].width, 4320)
+        XCTAssertEqual(ShareTargets.scale(four, page: four.pages[0], target: instagram), 1, accuracy: 1e-9)
+        let two = try XCTUnwrap(PageSplit.resized(carousel, pageId: "p", columns: 2))
+        XCTAssertEqual(ShareTargets.scale(two, page: two.pages[0], target: instagram), 1, accuracy: 1e-9)
+        // A carousel after a plain page keeps its own scale.
+        var plain = Page(elements: [Element.text("Hi")])
+        plain.id = "a"
+        var mixed = carousel
+        mixed.pages = [plain, page]
+        XCTAssertEqual(ShareTargets.scale(mixed, page: mixed.pages[0], target: instagram), 1080.0 / 3240.0, accuracy: 1e-9)
+        XCTAssertEqual(ShareTargets.scale(mixed, page: mixed.pages[1], target: instagram), 1, accuracy: 1e-9)
     }
 
     func testRecentTargetsAreKeptNewestFirstAsTheAndroidTwinKeepsThem() throws {

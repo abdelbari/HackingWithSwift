@@ -14,16 +14,17 @@ enum ExportJobs {
     /// PNG or JPEG, a file a page — a file a slide of a carousel page with
     /// `split` (ExportPlan.tiles) — each PNG in 256 colours with `compress`
     /// where that is enough smaller (PngWriter), and said where it was not.
+    /// A page in `pageScales` (by id) is made at its own scale there.
     static func pictures(_ snapshot: ExportSnapshot, format: DesignExporter.RasterFormat, scale: Double,
                          longEdge: Double, quality: Double, transparent: Bool, compress: Bool = false,
-                         split: Bool = false) -> Work {
+                         pageScales: [String: Double] = [:], split: Bool = false) -> Work {
         { report in
             let made = try await DesignExporter.exportPictures(
                 design: snapshot.design, range: snapshot.range, current: snapshot.current,
                 format: format, scale: scale, longEdge: longEdge, quality: quality,
                 // JPEG has no alpha channel to be transparent in.
                 transparent: transparent && format == .png, captionTime: snapshot.captionTime,
-                compress: compress && format == .png, split: split, progress: report)
+                compress: compress && format == .png, split: split, pageScales: pageScales, progress: report)
             return ExportQueue.Result(urls: made.urls, note: made.uncompressed > 0 ? compressFellBack : nil)
         }
     }

@@ -863,7 +863,7 @@ struct ExportSheet: View {
     /// The design made in the type `target` takes — a video for one that
     /// moves or sounds, else its pictures at the app's width, every page
     /// chosen, a carousel's as its slides (ShareTargets.scale makes each
-    /// the app's width) — and handed to it (ExportJobs.sharedTo).
+    /// the app's width, page by page) — and handed to it (ExportJobs.sharedTo).
     /// An app gone since the sheet opened is said, and its icon goes.
     @MainActor
     private func shareTo(_ target: ShareTargets.Target) {
@@ -880,18 +880,26 @@ struct ExportSheet: View {
             return
         }
         ShareTargets.remember(target.id)
-        let scale = ShareTargets.scale(store.design, target: target)
         let snapshot = designSnapshot
+        let scales = shareScales(snapshot.design, target: target)
         let settings = movieSettings
         let quality = jpegQuality
         let designId = store.design.id
         run(tr("Sharing to %@", target.name), format: nil) {
             let render: ExportQueue.Work = format == "mp4"
                 ? ExportJobs.movie(snapshot, settings: settings)
-                : ExportJobs.pictures(snapshot, format: format == "jpg" ? .jpeg : .png, scale: scale, longEdge: 0,
-                                      quality: quality, transparent: false, split: true)
+                : ExportJobs.pictures(snapshot, format: format == "jpg" ? .jpeg : .png, scale: 1, longEdge: 0,
+                                      quality: quality, transparent: false, pageScales: scales, split: true)
             return ExportJobs.sharedTo(target, designId: designId, render: render)
         }
+    }
+
+    /// Each page's scale for `target`, by page id: its own width and
+    /// slides matched to the app's (ShareTargets.scale).
+    private func shareScales(_ design: Design, target: ShareTargets.Target) -> [String: Double] {
+        var scales: [String: Double] = [:]
+        for page in design.pages { scales[page.id] = ShareTargets.scale(design, page: page, target: target) }
+        return scales
     }
 
     // MARK: file type

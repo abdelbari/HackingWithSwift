@@ -21,16 +21,17 @@ enum ShareTargets {
 
     /// One app: its id, its name, the Android twin's package, this phone's
     /// URL scheme, the design type (SizePreset) whose width its pictures are
-    /// made at — nil to keep the design's own — the prefix of the design
-    /// types that are its own, which put it first, and the URL that opens
-    /// it on its photo library, where it has one.
+    /// made at — nil to keep the design's own — the prefixes of the design
+    /// types that are its own, which put it first (Instagram's are insta-*
+    /// and instagram-*, the Instagram Ad), and the URL that opens it on its
+    /// photo library, where it has one.
     struct Target: Equatable, Identifiable {
         var id: String
         var name: String
         var packageName: String
         var scheme: String
         var sizeId: String?
-        var typePrefix: String?
+        var typePrefixes: [String] = []
         var library: String? = nil
 
         /// What canOpenURL asks about.
@@ -39,29 +40,29 @@ enum ShareTargets {
 
     static let all: [Target] = [
         Target(id: "instagram", name: "Instagram", packageName: "com.instagram.android", scheme: "instagram",
-               sizeId: "insta-post", typePrefix: "insta-", library: "instagram://library"),
+               sizeId: "insta-post", typePrefixes: ["insta-", "instagram-"], library: "instagram://library"),
         Target(id: "tiktok", name: "TikTok", packageName: "com.zhiliaoapp.musically", scheme: "tiktok",
-               sizeId: "tiktok-video", typePrefix: "tiktok-"),
+               sizeId: "tiktok-video", typePrefixes: ["tiktok-"]),
         Target(id: "whatsapp", name: "WhatsApp", packageName: "com.whatsapp", scheme: "whatsapp",
-               sizeId: nil, typePrefix: nil),
+               sizeId: nil),
         Target(id: "facebook", name: "Facebook", packageName: "com.facebook.katana", scheme: "fb",
-               sizeId: "facebook-post", typePrefix: "facebook-"),
+               sizeId: "facebook-post", typePrefixes: ["facebook-"]),
         Target(id: "pinterest", name: "Pinterest", packageName: "com.pinterest", scheme: "pinterest",
-               sizeId: "pinterest-pin", typePrefix: "pinterest-"),
+               sizeId: "pinterest-pin", typePrefixes: ["pinterest-"]),
         Target(id: "linkedin", name: "LinkedIn", packageName: "com.linkedin.android", scheme: "linkedin",
-               sizeId: "linkedin-post", typePrefix: "linkedin-"),
+               sizeId: "linkedin-post", typePrefixes: ["linkedin-"]),
     ]
 
     static func byId(_ id: String) -> Target? { all.first { $0.id == id } }
 
     /// The row for a design of type `typeId` (DesignLibrary.typeOf): of the
     /// targets `installed` (by id), the one whose design types it is —
-    /// insta-* puts Instagram first — then the `recent` ones, newest first,
+    /// insta-* and instagram-* put Instagram first — then the `recent` ones, newest first,
     /// then the rest in `all`'s order; at most maxShown.
     static func ordered(_ typeId: String?, installed: Set<String>, recent: [String] = []) -> [Target] {
         let own = all.filter { t in
-            guard let typeId, let prefix = t.typePrefix else { return false }
-            return typeId.hasPrefix(prefix)
+            guard let typeId else { return false }
+            return t.typePrefixes.contains { typeId.hasPrefix($0) }
         }
         var seen = Set<String>()
         let candidates = own + recent.compactMap(byId) + all
@@ -81,16 +82,18 @@ enum ShareTargets {
         }
     }
 
-    /// The scale a picture is made at for `target`: its design type's width
-    /// over the design's, so a post comes out at the width the app shows it
-    /// at; 1 for a target with no type, or a design of no width. A carousel
-    /// (its first page split, PageSplit) goes as its slides, so one slide's
-    /// width is what is matched: Instagram's 1080 for each of a 3240-wide
-    /// carousel's three, not 360. Both phones' rule.
-    static func scale(_ design: Design, target: Target, presets: [SizePreset] = SizePreset.all) -> Double {
+    /// The scale `page` is made at for `target`: its design type's width
+    /// over the page's own (Design.size(for:)), so a post comes out at the
+    /// width the app shows it at; 1 for a target with no type, or a page of
+    /// no width. A carousel page (PageSplit) goes as its slides, so one
+    /// slide's width is what is matched: Instagram's 1080 for each of a
+    /// 3240-wide carousel's three, not 360, and for each of four once the
+    /// page is 4320 wide. Worked out page by page, so a carousel after a
+    /// plain page keeps its own. Both phones' rule.
+    static func scale(_ design: Design, page: Page, target: Target, presets: [SizePreset] = SizePreset.all) -> Double {
         guard let id = target.sizeId, let preset = presets.first(where: { $0.id == id }) else { return 1 }
-        let across = max(design.pages.first?.split?.columns ?? 1, 1)
-        let slide = design.width / Double(across)
+        let across = max(page.split?.columns ?? 1, 1)
+        let slide = Double(design.size(for: page).width) / Double(across)
         return slide > 0 ? preset.w / slide : 1
     }
 
