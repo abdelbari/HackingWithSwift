@@ -199,14 +199,15 @@ final class RoundThirtyThreeTemplatesTests: XCTestCase {
     }
 
     /// Shared: the library's JSON stays within the content budget — the
-    /// templates under the 3,000,000 bytes the generator holds them to
-    /// (BUNDLE_LIMIT, as Content.json writes them, indent 1), and the whole
-    /// file, round 34's design types and their templates with them, under
-    /// 3,500,000.
+    /// templates under the 3,000,000 bytes they come to compacted (the
+    /// generator's BUNDLE_LIMIT, 3,400,000 since round 35, counts them as
+    /// Content.json writes them, indent 1), and the whole file, round 34's
+    /// design types and round 35's occasion templates with them, under
+    /// 4,000,000.
     func testTheContentBundleStaysUnderItsBudget() throws {
         let url = try XCTUnwrap(Bundle.main.url(forResource: "Content", withExtension: "json"))
         let bytes = try XCTUnwrap(try url.resourceValues(forKeys: [.fileSizeKey]).fileSize)
-        XCTAssertLessThan(bytes, 3_500_000)
+        XCTAssertLessThan(bytes, 4_000_000)
         let templates = try XCTUnwrap(try rawTemplates())
         let compact = try JSONSerialization.data(withJSONObject: templates)
         XCTAssertLessThan(compact.count, 3_000_000)

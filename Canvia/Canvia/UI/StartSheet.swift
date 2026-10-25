@@ -232,7 +232,7 @@ private struct StartGrid: View {
         let bucket = ContentLibrary.sizedTemplates(for: preset)
         // Each layout once, its colourways in its preview (Templates.grouped).
         let shown = Templates.grouped(bucket.filter {
-            (category == nil || $0.category == category) && filter.admits($0.shownFacets)
+            (category == nil || $0.category == category) && filter.admits(template: $0)
         })
         VStack(alignment: .leading, spacing: 16) {
             if brandOffered {
@@ -331,7 +331,7 @@ private struct StartGrid: View {
 
     /// Those of other sizes the filter lets through.
     private var adaptedShown: [Templates.Adapted] {
-        adapted.filter { filter.admits($0.template.shownFacets) }
+        adapted.filter { filter.admits(template: $0.template) }
     }
 
     /// The Filters button, what is set, and, when nothing is left, the way

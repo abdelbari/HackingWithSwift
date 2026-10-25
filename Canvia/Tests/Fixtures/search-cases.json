@@ -1,0 +1,19 @@
+[
+ {"query": "blue birthday", "expectedIdsInOrder": ["birthday-card-2"], "count": 1, "correctedTo": null},
+ {"query": "Invitations", "expectedIdsInOrder": ["botanical-invitation", "facebook-webinar-live-seat", "occasions-birthday-confetti-invite", "wedding-invitation-centered-1", "wedding-invitation-centered-1-v2", "wedding-invitation-centered-1-v3"], "count": 106, "correctedTo": null},
+ {"query": "bday", "expectedIdsInOrder": ["occasions-birthday-confetti-invite", "folded-birthday-balloons", "animated-invite-1", "birthday-card-1", "birthday-card-2", "birthday-card-3"], "count": 9, "correctedTo": null},
+ {"query": "resumes", "expectedIdsInOrder": ["documents-editorial-resume", "resume-two-page-slate", "resume-two-page-sage", "resume-two-page-ink", "resume-two-page-coral"], "count": 5, "correctedTo": null},
+ {"query": "cv", "expectedIdsInOrder": ["documents-editorial-resume", "resume-two-page-slate", "resume-two-page-sage", "resume-two-page-ink", "resume-two-page-coral"], "count": 5, "correctedTo": null},
+ {"query": "instagram story sale", "expectedIdsInOrder": ["animated-story-3", "animated-reel-6", "real-estate-insta-story-split-2", "real-estate-insta-story-split-2-v2", "real-estate-insta-story-split-2-v3", "real-estate-insta-story-split-2-v4"], "count": 12, "correctedTo": null},
+ {"query": "brithday", "expectedIdsInOrder": ["occasions-birthday-confetti-invite", "folded-birthday-balloons", "animated-invite-1", "birthday-card-1", "birthday-card-2", "birthday-card-3"], "count": 9, "correctedTo": "birthday"},
+ {"query": "halloween", "expectedIdsInOrder": ["halloween-insta-post", "halloween-insta-post-v2", "halloween-insta-story", "halloween-insta-story-v2", "halloween-flyer", "halloween-flyer-v2"], "count": 12, "correctedTo": null},
+ {"query": "xmas card", "expectedIdsInOrder": ["christmas-card", "christmas-card-v2"], "count": 2, "correctedTo": null},
+ {"query": "valentine's invite", "expectedIdsInOrder": ["valentines-invitation", "valentines-invitation-v2", "valentines-card", "valentines-card-v2"], "count": 4, "correctedTo": null},
+ {"query": "diwali poster", "expectedIdsInOrder": ["diwali-poster", "diwali-poster-v2"], "count": 2, "correctedTo": null},
+ {"query": "black friday", "expectedIdsInOrder": ["black-friday-insta-post", "black-friday-insta-post-v2", "black-friday-insta-story", "black-friday-insta-story-v2", "black-friday-flyer", "black-friday-flyer-v2"], "count": 20, "correctedTo": null},
+ {"query": "invitaton", "expectedIdsInOrder": ["botanical-invitation", "facebook-webinar-live-seat", "occasions-birthday-confetti-invite", "wedding-invitation-centered-1", "wedding-invitation-centered-1-v2", "wedding-invitation-centered-1-v3"], "count": 106, "correctedTo": "invitation"},
+ {"query": "the birthday template", "expectedIdsInOrder": ["occasions-birthday-confetti-invite", "folded-birthday-balloons", "animated-invite-1", "birthday-card-1", "birthday-card-2", "birthday-card-3"], "count": 9, "correctedTo": null},
+ {"query": "Café menu", "expectedIdsInOrder": ["website-cafe-landing", "restaurant-a4-listing-2", "restaurant-a4-listing-2-v2", "restaurant-a4-listing-2-v3", "restaurant-a4-listing-2-v4", "restaurant-a4-listing-2-v5"], "count": 10, "correctedTo": null},
+ {"query": "graduation-party", "expectedIdsInOrder": ["animated-invite-5", "graduation-invitation", "graduation-invitation-v2"], "count": 3, "correctedTo": null},
+ {"query": "qqqqzz", "expectedIdsInOrder": [], "count": 0, "correctedTo": null}
+]

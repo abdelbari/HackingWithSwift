@@ -88,6 +88,11 @@ struct HomeView: View {
     @State private var renaming: RecentDesign?
     @State private var renameText = ""
     @State private var query = ""
+    /// The query a corrected search was asked to search as typed instead
+    /// ("Search instead for …").
+    @State private var searchAsTyped: String?
+    /// Settings ▸ Home's "Show seasonal ideas": the Coming up row.
+    @AppStorage(Occasions.seasonalKey) private var homeSeasonal = true
     /// Whether the search field has the keyboard: empty, it offers the
     /// searches and templates of late (RecentSearchRows).
     @FocusState private var searchFocused: Bool
@@ -246,6 +251,9 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 20) {
                 Group {
                     hero
+                    // What is coming up — Halloween, Black Friday — and its
+                    // templates, under the sizes.
+                    comingUpPart
                     // An automatic backup that could not run, until the
                     // folder is chosen again in Settings (AutoBackups).
                     AutoBackupBanner { homeSheet = .settings }
@@ -298,6 +306,9 @@ struct HomeView: View {
             }
             .padding(.bottom, 40)
         }
+        // Template search's words, gathered off the main thread before the
+        // first search needs them.
+        .task { await Task.detached(priority: .utility) { TemplateSearch.warm() }.value }
         // Was a hardcoded near-white, which in dark mode left primary-coloured
         // text — white by then — on an almost white page.
         .background(Theme.workspace)
@@ -638,8 +649,22 @@ struct HomeView: View {
         .padding(.horizontal)
     }
 
+    /// What a search finds of the templates, forgiving plurals, synonyms,
+    /// colours and typos (TemplateSearch) — as typed, once "Search instead"
+    /// is asked; nil with nothing searched.
+    private var templateSearch: TemplateSearch.Result? {
+        guard !searchedFor.isEmpty else { return nil }
+        let recent = RecentSearches.decode(recentTemplatesText, limit: RecentSearches.templateLimit, searches: false)
+        return TemplateSearch.search(query, filter: templateFilter, recent: Set(recent), correct: searchAsTyped != query)
+    }
+
     private var shownTemplates: [Template] {
-        let found = ContentLibrary.filteredTemplates(in: templateCategory, matching: query, facets: templateFilter)
+        let found: [Template]
+        if let searched = templateSearch {
+            found = searched.templates.filter { templateCategory == nil || $0.category == templateCategory }
+        } else {
+            found = ContentLibrary.filteredTemplates(in: templateCategory, matching: "", facets: templateFilter)
+        }
         // What Canvia is used for leads, browsing everything.
         let browsing = templateCategory == nil && query.trimmingCharacters(in: .whitespaces).isEmpty
         let ordered = browsing ? UseProfile.templatesFirst(use, found) { $0.category } : found
@@ -1083,7 +1108,35 @@ struct HomeView: View {
     private var searchPart: some View {
         VStack(alignment: .leading, spacing: 16) {
             searchBar
+            // Ways to finish the word being typed, above the recent searches.
+            if searchFocused && !searchedFor.isEmpty {
+                let completions = TemplateSearch.completions(query)
+                if !completions.isEmpty { CompletionRows(completions: completions) { query = $0 } }
+            }
             if searchFocused && query.trimmingCharacters(in: .whitespaces).isEmpty { recentSearchPart }
+        }
+    }
+
+    /// The nearest occasion coming up and its templates, while nothing is
+    /// searched and Settings ▸ Home shows seasonal ideas; nil otherwise.
+    private var comingUp: (title: String, id: String, templates: [Template])? {
+        guard homeSeasonal, searchedFor.isEmpty, let next = Occasions.upcoming().first else { return nil }
+        let seasonal = Occasions.templates(next.occasion.id, use: use)
+        guard !seasonal.isEmpty else { return nil }
+        return (Occasions.comingUp(next), next.occasion.id, seasonal)
+    }
+
+    /// "Coming up: Halloween · 6 days" and its templates; See all shows
+    /// the templates filtered by the occasion.
+    @ViewBuilder
+    private var comingUpPart: some View {
+        if let next = comingUp {
+            ComingUpRow(title: next.title, templates: next.templates, onSeeAll: {
+                templateCategory = nil
+                yoursOnly = false
+                filterSession.filter = TemplateFilter(occasion: next.id)
+            }, onTemplate: { previewing = $0 })
+            .padding(.top, 4)
         }
     }
 
@@ -1957,6 +2010,10 @@ struct HomeView: View {
             // The templates used lately lead the templates, under All.
             if showsRecentTemplates {
                 RecentTemplatesRow(templates: recentTemplates) { previewing = $0 }
+            }
+            // A search corrected for a typo, and the way to search as typed.
+            if let corrected = templateSearch?.correctedTo {
+                CorrectedSearch(corrected: corrected, typed: query) { searchAsTyped = query }
             }
             if templateCategory == nil {
                 BrandTemplatesRow(kit: brandKit, entries: shownUserTemplates, tileWidth: 160,

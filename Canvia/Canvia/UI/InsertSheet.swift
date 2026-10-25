@@ -362,6 +362,11 @@ struct InsertSheet: View {
                     .tint(Theme.accent)
                     .font(.subheadline)
             }
+            // A search corrected for a typo says what it searched.
+            if let corrected = correctedTemplateSearch {
+                Text(TemplateSearch.showingFor(corrected))
+                    .font(.footnote)
+            }
             Text(filteredTemplates.isEmpty
                  ? tr("No template is called that, or is of that kind.")
                  : ContentLibrary.editorTemplatesNote(exactCount: exactTemplates.count, addsPage: store.templateAddsPage))
@@ -482,6 +487,11 @@ struct InsertSheet: View {
     /// Templates made for exactly this page's size.
     private var exactTemplates: [Template] {
         ContentLibrary.sizedTemplates(width: store.pageWidth, height: store.pageHeight, category: nil)
+    }
+
+    /// What a search was corrected to, when its own words found nothing.
+    private var correctedTemplateSearch: String? {
+        search.trimmingCharacters(in: .whitespaces).isEmpty ? nil : TemplateSearch.search(search).correctedTo
     }
 
     private var filteredTemplates: [Template] {

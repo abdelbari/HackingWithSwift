@@ -2399,6 +2399,39 @@
       "other": "há %d dias"
     }
   },
+  "%d day|%d days": {
+    "ar": {
+      "few": "%d أيام",
+      "many": "%d يومًا",
+      "one": "%d يوم",
+      "other": "%d يوم",
+      "two": "%d يومان",
+      "zero": "%d يوم"
+    },
+    "de": {
+      "one": "%d Tag",
+      "other": "%d Tage"
+    },
+    "es": {
+      "one": "%d día",
+      "other": "%d días"
+    },
+    "fr": {
+      "one": "%d jour",
+      "other": "%d jours"
+    },
+    "it": {
+      "one": "%d giorno",
+      "other": "%d giorni"
+    },
+    "ja": {
+      "other": "%d日"
+    },
+    "pt-BR": {
+      "one": "%d dia",
+      "other": "%d dias"
+    }
+  },
   "%d deleted design|%d deleted designs": {
     "ar": {
       "few": "%d تصاميم محذوفة",
@@ -4714,6 +4747,15 @@
     "it": "Mosaico da 9",
     "ja": "9 枚モザイク",
     "pt-BR": "Mosaico de 9"
+  },
+  "A Coming up row of templates for the next occasion, like Halloween or Diwali.": {
+    "ar": "صف «قريبًا» بقوالب للمناسبة القادمة، مثل الهالوين أو ديوالي.",
+    "de": "Eine Demnächst-Zeile mit Vorlagen für den nächsten Anlass, etwa Halloween oder Diwali.",
+    "es": "Una fila Próximamente con plantillas para la próxima ocasión, como Halloween o Diwali.",
+    "fr": "Une rangée Bientôt avec des modèles pour la prochaine occasion, comme Halloween ou Diwali.",
+    "it": "Una riga In arrivo con modelli per la prossima occasione, come Halloween o Diwali.",
+    "ja": "ハロウィンやディワリなど、次のイベントのテンプレートを「もうすぐ」の列に表示します。",
+    "pt-BR": "Uma linha Em breve com modelos para a próxima ocasião, como Halloween ou Diwali."
   },
   "A QR code is used whole, so it can't be cropped.": {
     "ar": "يُستخدم رمز QR كاملًا، لذا لا يمكن اقتصاصه.",
@@ -7319,6 +7361,15 @@
     "ja": "ブラック",
     "pt-BR": "Ultranegrito"
   },
+  "Black Friday": {
+    "ar": "الجمعة السوداء",
+    "de": "Black Friday",
+    "es": "Black Friday",
+    "fr": "Black Friday",
+    "it": "Black Friday",
+    "ja": "ブラックフライデー",
+    "pt-BR": "Black Friday"
+  },
   "Black on white, with room round it, so it scans. Change what it says, its colours and its margin later from Edit.": {
     "ar": "أسود على أبيض، مع مساحة حوله، ليمكن مسحه. غيّر محتواه وألوانه وهامشه لاحقًا من «تعديل».",
     "de": "Schwarz auf Weiß, mit Rand drumherum, damit er sich scannen lässt. Inhalt, Farben und Rand kannst du später unter „Bearbeiten“ ändern.",
@@ -8966,6 +9017,15 @@
     "ja": "選択…",
     "pt-BR": "Escolher…"
   },
+  "Christmas": {
+    "ar": "عيد الميلاد",
+    "de": "Weihnachten",
+    "es": "Navidad",
+    "fr": "Noël",
+    "it": "Natale",
+    "ja": "クリスマス",
+    "pt-BR": "Natal"
+  },
   "Circle": {
     "ar": "دائرة",
     "de": "Kreis",
@@ -9442,6 +9502,15 @@
     "it": "Le colonne si dividono la pagina entro il margine, con lo spazio tra di loro. Nessuna riga aggiunge solo colonne.",
     "ja": "列はマージンの内側でページを分け合い、間に段間を挟みます。行なしにすると列だけが追加されます。",
     "pt-BR": "As colunas dividem a página dentro da margem, com o espaçamento entre elas. Sem linhas, só adiciona colunas."
+  },
+  "Coming up: %@ · %@": {
+    "ar": "قريبًا: %@ · %@",
+    "de": "Demnächst: %@ · %@",
+    "es": "Próximamente: %@ · %@",
+    "fr": "Bientôt : %@ · %@",
+    "it": "In arrivo: %@ · %@",
+    "ja": "もうすぐ：%@ · %@",
+    "pt-BR": "Em breve: %@ · %@"
   },
   "Compact numbers": {
     "ar": "أرقام مختصرة",
@@ -11948,6 +12017,15 @@
     "ja": "区切り線",
     "pt-BR": "Divisores"
   },
+  "Diwali": {
+    "ar": "ديوالي",
+    "de": "Diwali",
+    "es": "Diwali",
+    "fr": "Diwali",
+    "it": "Diwali",
+    "ja": "ディワリ",
+    "pt-BR": "Diwali"
+  },
   "Doc": {
     "ar": "مستند",
     "de": "Doc",
@@ -12821,6 +12899,15 @@
     "ja": "以前",
     "pt-BR": "Anteriores"
   },
+  "Easter": {
+    "ar": "عيد الفصح",
+    "de": "Ostern",
+    "es": "Pascua",
+    "fr": "Pâques",
+    "it": "Pasqua",
+    "ja": "イースター",
+    "pt-BR": "Páscoa"
+  },
   "Echo": {
     "ar": "صدى",
     "de": "Echo",
@@ -13072,6 +13159,15 @@
     "it": "Effetti",
     "ja": "エフェクト",
     "pt-BR": "Efeitos"
+  },
+  "Eid al-Fitr": {
+    "ar": "عيد الفطر",
+    "de": "Eid al-Fitr",
+    "es": "Eid al-Fitr",
+    "fr": "Aïd al-Fitr",
+    "it": "Eid al-Fitr",
+    "ja": "イード・アル＝フィトル",
+    "pt-BR": "Eid al-Fitr"
   },
   "Elapsed %@": {
     "ar": "المنقضي %@",
@@ -14029,6 +14125,15 @@
     "it": "Dissolvenza in uscita",
     "ja": "フェードアウト",
     "pt-BR": "Desaparecer gradualmente"
+  },
+  "Father's Day": {
+    "ar": "عيد الأب",
+    "de": "Vatertag",
+    "es": "Día del Padre",
+    "fr": "Fête des pères",
+    "it": "Festa del papà",
+    "ja": "父の日",
+    "pt-BR": "Dia dos Pais"
   },
   "Favourite": {
     "ar": "مفضّل",
@@ -15251,6 +15356,15 @@
     "ja": "グラデーション",
     "pt-BR": "Degradês"
   },
+  "Graduation": {
+    "ar": "التخرج",
+    "de": "Abschluss",
+    "es": "Graduación",
+    "fr": "Remise des diplômes",
+    "it": "Laurea",
+    "ja": "卒業",
+    "pt-BR": "Formatura"
+  },
   "Grain": {
     "ar": "حبيبات",
     "de": "Körnung",
@@ -15466,6 +15580,15 @@
     "it": "Mezzitoni",
     "ja": "ハーフトーン",
     "pt-BR": "Meio-tom"
+  },
+  "Halloween": {
+    "ar": "الهالوين",
+    "de": "Halloween",
+    "es": "Halloween",
+    "fr": "Halloween",
+    "it": "Halloween",
+    "ja": "ハロウィン",
+    "pt-BR": "Halloween"
   },
   "Hand-drawn frames": {
     "ar": "إطارات مرسومة باليد",
@@ -17888,6 +18011,15 @@
     "ja": "輝度",
     "pt-BR": "Luminosidade"
   },
+  "Lunar New Year": {
+    "ar": "رأس السنة القمرية",
+    "de": "Mondneujahr",
+    "es": "Año Nuevo Lunar",
+    "fr": "Nouvel An lunaire",
+    "it": "Capodanno lunare",
+    "ja": "旧正月",
+    "pt-BR": "Ano-Novo Lunar"
+  },
   "Luxury": {
     "ar": "فخامة",
     "de": "Luxus",
@@ -18827,6 +18959,15 @@
     "ja": "ほとんどのページ",
     "pt-BR": "Mais páginas"
   },
+  "Mother's Day": {
+    "ar": "عيد الأم",
+    "de": "Muttertag",
+    "es": "Día de la Madre",
+    "fr": "Fête des mères",
+    "it": "Festa della mamma",
+    "ja": "母の日",
+    "pt-BR": "Dia das Mães"
+  },
   "Motion": {
     "ar": "الحركة",
     "de": "Bewegung",
@@ -19567,6 +19708,15 @@
     "it": "Nuova storia Instagram",
     "ja": "新しい Instagram ストーリー",
     "pt-BR": "Novo story do Instagram"
+  },
+  "New Year": {
+    "ar": "رأس السنة",
+    "de": "Neujahr",
+    "es": "Año Nuevo",
+    "fr": "Nouvel An",
+    "it": "Capodanno",
+    "ja": "お正月",
+    "pt-BR": "Ano-Novo"
   },
   "New brand kit": {
     "ar": "مجموعة علامة تجارية جديدة",
@@ -21025,6 +21175,15 @@
     "it": "Oggetti",
     "ja": "物",
     "pt-BR": "Objetos"
+  },
+  "Occasion": {
+    "ar": "المناسبة",
+    "de": "Anlass",
+    "es": "Ocasión",
+    "fr": "Occasion",
+    "it": "Occasione",
+    "ja": "イベント",
+    "pt-BR": "Ocasião"
   },
   "Octagon": {
     "ar": "ثماني",
@@ -26015,6 +26174,15 @@
     "ja": "ヘルプを検索",
     "pt-BR": "Pesquisar na ajuda"
   },
+  "Search instead for “%@”": {
+    "ar": "البحث عن «%@» بدلاً من ذلك",
+    "de": "Stattdessen nach „%@“ suchen",
+    "es": "Buscar «%@» en su lugar",
+    "fr": "Rechercher plutôt « %@ »",
+    "it": "Cerca invece «%@»",
+    "ja": "代わりに「%@」で検索",
+    "pt-BR": "Pesquisar “%@” em vez disso"
+  },
   "Search music": {
     "ar": "ابحث عن موسيقى",
     "de": "Musik suchen",
@@ -27221,6 +27389,15 @@
     "ja": "読み上げ順序を表示",
     "pt-BR": "Mostrar ordem de leitura"
   },
+  "Show seasonal ideas": {
+    "ar": "إظهار أفكار المواسم",
+    "de": "Saisonale Ideen anzeigen",
+    "es": "Mostrar ideas de temporada",
+    "fr": "Afficher les idées de saison",
+    "it": "Mostra idee stagionali",
+    "ja": "季節のアイデアを表示",
+    "pt-BR": "Mostrar ideias sazonais"
+  },
   "Show the editor's tips again": {
     "ar": "إظهار نصائح المحرر مرة أخرى",
     "de": "Tipps des Editors erneut anzeigen",
@@ -27265,6 +27442,15 @@
     "it": "Originale visualizzato",
     "ja": "元の写真を表示中",
     "pt-BR": "Mostrando o original"
+  },
+  "Showing results for “%@”": {
+    "ar": "عرض نتائج «%@»",
+    "de": "Ergebnisse für „%@“",
+    "es": "Mostrando resultados de «%@»",
+    "fr": "Résultats pour « %@ »",
+    "it": "Risultati per «%@»",
+    "ja": "「%@」の検索結果を表示しています",
+    "pt-BR": "Mostrando resultados para “%@”"
   },
   "Showing the design as it is": {
     "ar": "يُعرض التصميم كما هو",
@@ -28168,6 +28354,15 @@
     "it": "Squircle",
     "ja": "スクワークル",
     "pt-BR": "Squircle"
+  },
+  "St Patrick's Day": {
+    "ar": "عيد القديس باتريك",
+    "de": "St. Patrick's Day",
+    "es": "Día de San Patricio",
+    "fr": "Saint-Patrick",
+    "it": "San Patrizio",
+    "ja": "聖パトリックの日",
+    "pt-BR": "Dia de São Patrício"
   },
   "Stacked bar": {
     "ar": "شريطي مكدّس",
@@ -29389,6 +29584,15 @@
     "it": "Texture",
     "ja": "テクスチャ",
     "pt-BR": "Texturas"
+  },
+  "Thanksgiving": {
+    "ar": "عيد الشكر",
+    "de": "Thanksgiving",
+    "es": "Acción de Gracias",
+    "fr": "Thanksgiving",
+    "it": "Ringraziamento",
+    "ja": "感謝祭",
+    "pt-BR": "Dia de Ação de Graças"
   },
   "That PDF is locked with a password": {
     "ar": "ملف PDF هذا مقفل بكلمة مرور",
@@ -32284,6 +32488,15 @@
     "it": "Usato nel tuo Brand Kit.",
     "ja": "ブランドキットで使用中です。",
     "pt-BR": "Usado no seu kit de marca."
+  },
+  "Valentine's Day": {
+    "ar": "عيد الحب",
+    "de": "Valentinstag",
+    "es": "San Valentín",
+    "fr": "Saint-Valentin",
+    "it": "San Valentino",
+    "ja": "バレンタインデー",
+    "pt-BR": "Dia dos Namorados"
   },
   "Valley": {
     "ar": "وادٍ",

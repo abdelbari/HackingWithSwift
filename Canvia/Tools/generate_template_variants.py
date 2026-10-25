@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Write round 33's templates: colourway and layout variants by industry,
-and animated templates, from the app's own content only.
+and animated templates, from the app's own content only — and round 35's
+seasonal and occasion templates.
 
     python3 tools/generate_template_variants.py
     python3 tools/generate_templates.py
@@ -23,6 +24,12 @@ writes
     entrances and exits (text by letter, word or line, photo zoom and pan,
     draw and twinkle), page animations, transitions, page durations, motion
     loop backgrounds and a sound effect.
+  - templates/round35-occasions.json: fourteen occasions (OCCASIONS, the
+    ids of templates/occasions.json) each as an Instagram Post, a Story, a
+    Flyer A5, a Card, an Invitation and a Poster — 84 bases — each base
+    with one colourway, its palette dark and its layout mirrored. Each
+    carries its "occasion" and "style"; the art is the occasion's emoji as
+    a sticker and, on the Story and the Poster, one of Motion.json's stills.
 
 Everything is seeded from each template's own id (zlib.crc32), so the
 output is the same on every run and on every machine. The colourways are
@@ -43,6 +50,7 @@ SPEC_DIR = os.path.join(ROOT, "templates")
 CONTENT_DIR = os.path.join(ROOT, "core/src/main/resources/com/canvia/core/content")
 VARIANTS_OUT = os.path.join(SPEC_DIR, "round33-variants.json")
 ANIMATED_OUT = os.path.join(SPEC_DIR, "round33-animated.json")
+OCCASIONS_OUT = os.path.join(SPEC_DIR, "round35-occasions.json")
 
 # The template sizes the packs use, in pixels (templates/sizes.json).
 SIZES = {
@@ -53,6 +61,7 @@ SIZES = {
     "us-letter": (2550, 3300), "business-card": (1050, 600), "gift-certificate": (2400, 1050),
     "ticket": (1650, 600), "linkedin-post": (1200, 627), "pinterest-pin": (1000, 1500),
     "insta-portrait": (1080, 1350), "poster": (1587, 2245),
+    "flyer": (1240, 1748), "card": (1500, 2100),
 }
 
 # Themes.palettes, in its order: the colourways.
@@ -439,6 +448,7 @@ SIZE_WORDS = {
     "a4": "A4", "us-letter": "Letter", "business-card": "Card", "gift-certificate": "Voucher",
     "ticket": "Ticket", "linkedin-post": "LinkedIn Post", "pinterest-pin": "Pin",
     "insta-portrait": "Portrait Post", "poster": "Poster",
+    "flyer": "Flyer", "card": "Card",
 }
 
 # Which layouts have a picture slot, for a photo variant.
@@ -1021,6 +1031,143 @@ def animated():
     return out
 
 
+# ---------------------------------------------------------------- occasions
+
+# The six types every occasion comes as, with the layout and the copy each
+# takes: an offer or a promotion, a greeting, or an invitation.
+OCCASION_TYPES = [
+    ("insta-post", "hero", "promo"), ("insta-story", "centered", "promo"),
+    ("flyer", "split", "promo"), ("card", "centered", "greeting"),
+    ("invitation", "centered", "invite"), ("poster", "hero", "promo"),
+]
+
+# Fourteen occasions, in the calendar's order (templates/occasions.json):
+# each its id, its name in a template's name, its category, its style, its
+# palette (five colours, as Themes' are), its emoji and its copy.
+OCCASIONS = [
+    {"id": "new-year", "name": "New Year", "category": "Events", "style": "elegant",
+     "colours": ["#0b0f2b", "#1f2a5a", "#c9a227", "#e8d48b", "#f8f4e3"], "glyph": "🎆",
+     "promo": {"kicker": "Countdown", "headline": "Hello, New Year", "body": "Toast the year ahead with music, bubbles and fireworks at midnight.",
+               "cta": "Get tickets", "detail": "December 31 · 9 pm till late", "points": ["Live DJ", "Midnight toast", "Rooftop fireworks"]},
+     "greeting": {"kicker": "Cheers to", "headline": "A Happy New Year", "body": "Wishing you twelve months of good news, good friends and good coffee.", "detail": "With love, the Parkers"},
+     "invite": {"kicker": "Ring it in", "headline": "New Year's Eve Party", "body": "Dress up, bring a resolution and stay for the countdown.", "detail": "Dec 31 · 8 pm · 12 Elm Street"}},
+    {"id": "lunar-new-year", "name": "Lunar New Year", "category": "Events", "style": "bold",
+     "colours": ["#5c0a0a", "#b3121b", "#e8442e", "#f2b632", "#fff4d6"], "glyph": "🧧",
+     "promo": {"kicker": "Year of good fortune", "headline": "Lunar New Year Feast", "body": "Dumplings, noodles for long life and a lion dance at noon.",
+               "cta": "Book a table", "detail": "Golden Lotus · All week", "points": ["Banquet menu", "Lion dance", "Red envelope gifts"]},
+     "greeting": {"kicker": "Wishing you", "headline": "Happy Lunar New Year", "body": "May the new year bring health, luck and full bowls.", "detail": "From our family to yours"},
+     "invite": {"kicker": "Join us", "headline": "Reunion Dinner", "body": "Come and share hot pot, dumplings and stories from the year.", "detail": "Saturday 6 pm · Grandma's house"}},
+    {"id": "valentines", "name": "Valentine's", "category": "Personal", "style": "playful",
+     "colours": ["#4a0d25", "#c2185b", "#f06292", "#f8bbd0", "#fff0f5"], "glyph": "💘",
+     "promo": {"kicker": "February 14", "headline": "Love Is in the Air", "body": "A dozen roses, handmade chocolates and a card that says it all.",
+               "cta": "Order flowers", "detail": "Same-day delivery", "points": ["Fresh roses", "Handmade chocolates", "Free gift wrap"]},
+     "greeting": {"kicker": "To my favourite person", "headline": "Be My Valentine", "body": "Every day with you is the best day of the year.", "detail": "All my love"},
+     "invite": {"kicker": "Table for two", "headline": "Valentine's Dinner", "body": "Candlelight, three courses and a little live jazz.", "detail": "Feb 14 · 7:30 pm · Bistro Luna"}},
+    {"id": "st-patricks", "name": "St Patrick's", "category": "Events", "style": "playful",
+     "colours": ["#0d3b1e", "#1b7a3a", "#4caf50", "#c5e1a5", "#f6fbef"], "glyph": "☘️",
+     "promo": {"kicker": "March 17", "headline": "St Patrick's Day Party", "body": "Green drinks, live fiddle music and a parade at noon.",
+               "cta": "Join the craic", "detail": "The Clover Pub · From noon", "points": ["Live music", "Irish stew", "Best-dressed prize"]},
+     "greeting": {"kicker": "Top of the morning", "headline": "Happy St Patrick's Day", "body": "Wishing you a pot of gold and all the luck of the Irish.", "detail": "Sláinte!"},
+     "invite": {"kicker": "Wear green", "headline": "Shamrock Shindig", "body": "Soda bread, songs and a little dancing.", "detail": "March 17 · 6 pm · Our place"}},
+    {"id": "easter", "name": "Easter", "category": "Events", "style": "playful",
+     "colours": ["#4a3b6b", "#8e7cc3", "#f6c1d1", "#c8e6c9", "#fffbe8"], "glyph": "🐣",
+     "promo": {"kicker": "Spring is here", "headline": "Easter Egg Hunt", "body": "Hundreds of eggs hidden in the park, with prizes for every basket.",
+               "cta": "Sign up free", "detail": "Sunday 10 am · Riverside Park", "points": ["Ages 3 to 10", "Face painting", "Bunny photos"]},
+     "greeting": {"kicker": "Spring wishes", "headline": "Happy Easter", "body": "Wishing you sunshine, chocolate eggs and a long lunch.", "detail": "With love"},
+     "invite": {"kicker": "Hop on over", "headline": "Easter Brunch", "body": "Hot cross buns, coffee and an egg hunt in the garden.", "detail": "Sunday 11 am · 4 Willow Road"}},
+    {"id": "eid", "name": "Eid", "category": "Events", "style": "elegant",
+     "colours": ["#0b2e3a", "#135e6b", "#2a9d8f", "#e9c46a", "#fdf8ec"], "glyph": "🌙",
+     "promo": {"kicker": "Eid al-Fitr", "headline": "Eid Mubarak Market", "body": "Sweets, gifts and henna stalls to celebrate the end of Ramadan.",
+               "cta": "Plan your visit", "detail": "Community Hall · All weekend", "points": ["Sweets and dates", "Henna artists", "Kids' crafts"]},
+     "greeting": {"kicker": "Peace and blessings", "headline": "Eid Mubarak", "body": "May this Eid bring joy to your home and light to your heart.", "detail": "From the Rahman family"},
+     "invite": {"kicker": "Celebrate with us", "headline": "Eid Dinner", "body": "Join us for biryani, sweets and good company.", "detail": "Eid evening · 7 pm · Our home"}},
+    {"id": "mothers-day", "name": "Mother's Day", "category": "Personal", "style": "elegant",
+     "colours": ["#5a2a3c", "#a8577e", "#e7a0b8", "#f6d7e0", "#fff8f6"], "glyph": "💐",
+     "promo": {"kicker": "For the best mum", "headline": "Mother's Day Brunch", "body": "Pancakes, mimosas and a fresh bouquet for every mum.",
+               "cta": "Reserve a table", "detail": "Sunday · 9 am to 2 pm", "points": ["Bottomless coffee", "Flowers to take home", "Kids eat free"]},
+     "greeting": {"kicker": "To my mum", "headline": "Happy Mother's Day", "body": "Thank you for every packed lunch, every hug and every yes.", "detail": "Love you always"},
+     "invite": {"kicker": "Spoil her", "headline": "Mother's Day Tea", "body": "Scones, cake and a pot of her favourite tea.", "detail": "Sunday 3 pm · The Garden Room"}},
+    {"id": "graduation", "name": "Graduation", "category": "Education", "style": "bold",
+     "colours": ["#0a1f44", "#1d3e7a", "#3a6fd8", "#f2c14e", "#f7f9fc"], "glyph": "🎓",
+     "promo": {"kicker": "Class of 2026", "headline": "Congrats, Graduates", "body": "Caps off to everyone crossing the stage this June.",
+               "cta": "See the ceremony", "detail": "Main Hall · June 20", "points": ["Live stream", "Photo booth", "Family reception"]},
+     "greeting": {"kicker": "You did it", "headline": "Happy Graduation", "body": "All those late nights paid off. We are so proud of you.", "detail": "Here's to what's next"},
+     "invite": {"kicker": "Celebrate with us", "headline": "Graduation Party", "body": "Food, music and a toast to Sam's big day.", "detail": "June 21 · 5 pm · The backyard"}},
+    {"id": "fathers-day", "name": "Father's Day", "category": "Personal", "style": "minimal",
+     "colours": ["#1c2a33", "#2f4858", "#33658a", "#86bbd8", "#f2f5f7"], "glyph": "👔",
+     "promo": {"kicker": "For dad", "headline": "Father's Day Gifts", "body": "Tools, grills and gadgets he'll actually use, wrapped for free.",
+               "cta": "Shop gifts", "detail": "Order by Thursday", "points": ["Free gift wrap", "Engraving", "Next-day delivery"]},
+     "greeting": {"kicker": "To the best dad", "headline": "Happy Father's Day", "body": "Thanks for the advice, the lifts and the terrible jokes.", "detail": "Love, your favourite kid"},
+     "invite": {"kicker": "Fire up the grill", "headline": "Father's Day Barbecue", "body": "Burgers, lawn games and a cold drink in the sun.", "detail": "Sunday 1 pm · Dad's garden"}},
+    {"id": "halloween", "name": "Halloween", "category": "Events", "style": "bold",
+     "colours": ["#120a1f", "#3b1f4a", "#e8590c", "#ffa94d", "#fff4e6"], "glyph": "🎃",
+     "promo": {"kicker": "October 31", "headline": "Halloween Spooktacular", "body": "Costumes, candy and a haunted maze for the brave.",
+               "cta": "Get your tickets", "detail": "Hollow Farm · 6 pm till midnight", "points": ["Haunted maze", "Costume contest", "Pumpkin carving"]},
+     "greeting": {"kicker": "Trick or treat", "headline": "Happy Halloween", "body": "Wishing you more treats than tricks this spooky season.", "detail": "Boo!"},
+     "invite": {"kicker": "Costumes required", "headline": "Halloween Party", "body": "Spooky snacks, scary films and a prize for the best costume.", "detail": "Oct 31 · 7 pm · 13 Raven Lane"}},
+    {"id": "diwali", "name": "Diwali", "category": "Events", "style": "elegant",
+     "colours": ["#3d0c3f", "#7b1e7a", "#e85d04", "#ffba08", "#fff7e0"], "glyph": "🪔",
+     "promo": {"kicker": "Festival of lights", "headline": "Diwali Mela", "body": "Lanterns, sweets and rangoli under the evening sky.",
+               "cta": "Plan your evening", "detail": "Town Square · From 5 pm", "points": ["Fireworks", "Mithai stalls", "Rangoli contest"]},
+     "greeting": {"kicker": "Festival of lights", "headline": "Happy Diwali", "body": "May the lamps of Diwali light your home with joy and plenty.", "detail": "Shubh Deepavali"},
+     "invite": {"kicker": "Join us", "headline": "Diwali Celebration", "body": "Diyas, sweets and fireworks with family and friends.", "detail": "Saturday 6 pm · The Sharma home"}},
+    {"id": "thanksgiving", "name": "Thanksgiving", "category": "Food", "style": "minimal",
+     "colours": ["#3e2412", "#7f4f24", "#bc6c25", "#dda15e", "#fefae0"], "glyph": "🦃",
+     "promo": {"kicker": "Give thanks", "headline": "Thanksgiving Feast", "body": "Roast turkey, all the sides and three kinds of pie.",
+               "cta": "Order your feast", "detail": "Pre-order by Monday", "points": ["Serves 8 to 10", "Ready to heat", "Free pie"]},
+     "greeting": {"kicker": "Grateful for you", "headline": "Happy Thanksgiving", "body": "Thankful for full tables, warm kitchens and you.", "detail": "With gratitude"},
+     "invite": {"kicker": "Come hungry", "headline": "Friendsgiving", "body": "Bring a dish and an appetite; we've got the turkey.", "detail": "Thursday 4 pm · Our place"}},
+    {"id": "black-friday", "name": "Black Friday", "category": "Marketing", "style": "bold",
+     "colours": ["#000000", "#1a1a1a", "#ffd60a", "#ff4d6d", "#f5f5f5"], "glyph": "🛍️",
+     "promo": {"kicker": "Biggest sale of the year", "headline": "Black Friday 50% Off", "body": "Doors open at 6 am, and online deals start at midnight.",
+               "cta": "Shop the sale", "detail": "This Friday only", "points": ["Up to 50% off", "Free shipping", "Extra 10% online"]},
+     "greeting": {"kicker": "Thank you for shopping", "headline": "A Black Friday Gift", "body": "Here's 20% off your next order, just for you.", "detail": "Code THANKS20"},
+     "invite": {"kicker": "VIP early access", "headline": "Black Friday Preview", "body": "Shop the sale a day early with drinks and gift wrapping.", "detail": "Thursday 7 pm · Flagship store"}},
+    {"id": "christmas", "name": "Christmas", "category": "Events", "style": "elegant",
+     "colours": ["#0f2a1d", "#1e5631", "#a4161a", "#e5c07b", "#fbf7ef"], "glyph": "🎄",
+     "promo": {"kicker": "Season's greetings", "headline": "Christmas Market", "body": "Mulled wine, handmade gifts and a choir under the lights.",
+               "cta": "Plan your visit", "detail": "Old Town Square · Weekends in December", "points": ["Gifts and crafts", "Hot drinks", "Santa's grotto"]},
+     "greeting": {"kicker": "Season's greetings", "headline": "Merry Christmas", "body": "Wishing you a warm and wonderful Christmas and a happy new year.", "detail": "Love from all of us"},
+     "invite": {"kicker": "You're invited", "headline": "Christmas Party", "body": "Festive food, carols and a secret Santa swap.", "detail": "Dec 20 · 7 pm · The Lodge"}},
+]
+
+
+def occasions():
+    """Every occasion in each of OCCASION_TYPES, a base and its colourway:
+    the base light and as laid out, the colourway dark and mirrored."""
+    out = []
+    for occ in OCCASIONS:
+        for size_id, layout, copy in OCCASION_TYPES:
+            base_id = f"{occ['id']}-{size_id}"
+            rng = seeded(base_id)
+            pool = PAIRS[occ["style"]]
+            pair = pool[rng.randrange(len(pool))]
+            still = STILLS[rng.randrange(len(STILLS))]
+            c = dict(occ[copy])
+            c.setdefault("cta", c.get("detail", ""))
+            c.setdefault("points", [])
+            for v in range(2):
+                photo = "asset:" + still if size_id in ("insta-story", "poster") and v == 1 else None
+                p = laid_out(size_id, roles(occ["colours"], dark=v == 1), pair, v == 1, layout, c, photo)
+                s = p.u * 0.1
+                p.sticker("decor", occ["glyph"], p.w - p.m * 0.5 - s, p.m * 0.5, s)
+                name = f"{occ['name']} {SIZE_WORDS[size_id]}" + (" Night" if v else "")
+                t = {
+                    "id": base_id if v == 0 else f"{base_id}-v2",
+                    "name": name,
+                    "category": occ["category"],
+                    "sizeId": size_id,
+                    "occasion": occ["id"],
+                    "style": occ["style"],
+                    "background": {"kind": "color", "color": p.pal["bg"]},
+                    "elements": strip(p.els),
+                }
+                if v:
+                    t["variantOf"] = base_id
+                out.append(t)
+    return out
+
+
 def write(path, templates):
     with open(path, "w") as fh:
         json.dump(templates, fh, indent=1, ensure_ascii=False)
@@ -1031,6 +1178,7 @@ def write(path, templates):
 def main():
     write(VARIANTS_OUT, variants())
     write(ANIMATED_OUT, animated())
+    write(OCCASIONS_OUT, occasions())
 
 
 if __name__ == "__main__":

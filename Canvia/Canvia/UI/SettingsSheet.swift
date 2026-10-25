@@ -102,6 +102,8 @@ struct SettingsSheet: View {
     @Environment(\.openURL) private var openURL
     @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
     @AppStorage(Haptics.key) private var haptics = true
+    /// Home's Coming up row (Occasions).
+    @AppStorage(Occasions.seasonalKey) private var homeSeasonal = true
     @AppStorage(SelectionBubble.key) private var quickActions = true
     /// Typing into small words zooms them up to be read (Viewport.typingZoom).
     @AppStorage(Viewport.typingZoomKey) private var typingZoom = true
@@ -156,7 +158,10 @@ struct SettingsSheet: View {
     private var form: some View {
         NavigationStack {
             Form {
-                appearanceSection
+                Group {
+                    appearanceSection
+                    homeSection
+                }
                 languageSection
                 brandSection
                 Group {
@@ -195,6 +200,16 @@ struct SettingsSheet: View {
             Text("Appearance")
         } footer: {
             Text("System follows your phone's light and dark setting.")
+        }
+    }
+
+    private var homeSection: some View {
+        Section {
+            Toggle("Show seasonal ideas", isOn: $homeSeasonal)
+        } header: {
+            Text("Home")
+        } footer: {
+            Text("A Coming up row of templates for the next occasion, like Halloween or Diwali.")
         }
     }
 
