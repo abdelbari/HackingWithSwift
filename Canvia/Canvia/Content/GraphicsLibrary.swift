@@ -84,7 +84,7 @@ enum GraphicsLibrary {
         var graphics: [GraphicDef]
         /// The curated stickers' dominant colours by glyph (the emoji
         /// palette), most of each first.
-        var stickers: [String: [String]]?
+        var stickerHues: [String: [String]]?
     }
 
     /// Read once, on first use.
@@ -107,7 +107,7 @@ enum GraphicsLibrary {
     /// A curated sticker's dominant colours, most of it first; none for a
     /// glyph the pack does not colour.
     static func stickerHues(_ glyph: String) -> [String] {
-        file.stickers?[glyph] ?? []
+        file.stickerHues?[glyph] ?? []
     }
 
     /// The category of the graphics that move, and only they: its chip is

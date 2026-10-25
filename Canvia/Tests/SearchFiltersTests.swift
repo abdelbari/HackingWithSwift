@@ -71,6 +71,9 @@ final class SearchFiltersTests: XCTestCase {
         XCTAssertTrue(PhotoLibrary.photos.allSatisfy { !PhotoLibrary.hues($0.id).isEmpty })
         // A shape takes the page's colours, so it has none of its own.
         XCTAssertEqual(ElementSearch.hues(of: ElementSearch.Hit(kind: .shape, id: "heart", name: "Heart")), [])
+        // An icon comes in its ink, as on the Android twin.
+        XCTAssertEqual(ElementSearch.hues(of: ElementSearch.Hit(kind: .icon, id: "arrow_forward", name: "Arrow forward")),
+                       [ElementSearch.iconHue])
         XCTAssertEqual(ElementSearch.swatches.count, 12)
     }
 

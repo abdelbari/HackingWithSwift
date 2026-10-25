@@ -19,22 +19,22 @@ The file is one object:
                 graphic does (SvgImport.graphic): a group of shapes, each in
                 its own colour. "colours" are its fills (a drawn line's
                 stroke) in the order they are first used, at most four,
-                lower-case "#rrggbb", as Colour swap lists them.
-  "hues"        its dominant colours, at most three, the fill (or stroke)
-                that covers the most first — each path's area by its
-                outline, a stroked line's as its length times its width;
-                a tie in first-use order — for Add's colour filter
-                (ElementSearch.filtered), which keeps a graphic with a hue
-                within ΔE 20 of the swatch picked.
-  "stickers"    the curated stickers' dominant colours the same way, at most
-                three each, keyed by glyph: the emoji palette, picked by
-                hand below, since no emoji font is drawn here.
+                lower-case "#rrggbb", as Colour swap lists them. "hues"
+                are its dominant colours for the search's colour filter
+                (ElementSearch.filtered), at most three: the fill (or
+                stroke) that covers the most first — each path's area by
+                its outline, a drawn line's as its length times its width —
+                and a tie in the order first used.
   "motion"      on the Animated category's graphics only: "draw" — its
                 lines, stroked <path>s with no fill, draw themselves on in
                 turn; "twinkle" — its sparkles and stars grow and glow one
                 after another, looping; or "float" — it bobs gently, looping.
                 Putting one on a page gives each of its shapes that
                 animation (ElementAnimation.motioned).
+  "stickerHues" each curated sticker's dominant colours, glyph to up to
+                three "#rrggbb", most of the picture first, from the emoji
+                palette below ([EMOJI]) — what the search's colour filter
+                matches a sticker by.
 
 Paths are absolute M, L, C and Z, numbers to a tenth. A hand-drawn line is a
 filled ribbon round its centre line, tapering at its ends, so it scales with
@@ -744,53 +744,6 @@ LOOKS = {
 }
 
 
-# Each curated sticker's dominant colours, most of it first, as the common
-# emoji designs draw it.
-STICKER_HUES = [
-    ('\U0001F389', ['#f4b400', '#e53935', '#1e88e5']), ('\U0001F38A', ['#f4b400', '#e53935', '#43a047']),
-    ('\U0001F388', ['#e53935']), ('\U0001F382', ['#f5deb3', '#ec407a', '#ffffff']),
-    ('\U0001F381', ['#e53935', '#f4b400']), ('\U0001F973', ['#fdd835', '#8e24aa', '#1e88e5']),
-    ('\U0001F37E', ['#2e7d32', '#f4b400']), ('\u2728', ['#fdd835']), ('\U0001F386', ['#1a237e', '#fdd835', '#ec407a']),
-    ('\U0001F3C6', ['#f4b400']), ('\U0001F396\uFE0F', ['#f4b400', '#1e88e5', '#e53935']),
-    ('\U0001F49D', ['#ec407a', '#fdd835']), ('\u2B50', ['#fdd835']), ('\U0001F31F', ['#fdd835', '#fb8c00']),
-    ('\U0001F4AB', ['#fdd835']), ('\u2764\uFE0F', ['#e53935']), ('\U0001F9E1', ['#fb8c00']),
-    ('\U0001F49B', ['#fdd835']), ('\U0001F49A', ['#43a047']), ('\U0001F499', ['#1e88e5']),
-    ('\U0001F49C', ['#8e24aa']), ('\U0001F5A4', ['#212121']), ('\U0001F4A5', ['#fb8c00', '#e53935', '#fdd835']),
-    ('\U0001F525', ['#fb8c00', '#e53935', '#fdd835']), ('\U0001F600', ['#fdd835', '#5d4037']),
-    ('\U0001F604', ['#fdd835', '#5d4037']), ('\U0001F601', ['#fdd835', '#ffffff', '#5d4037']),
-    ('\U0001F60A', ['#fdd835', '#ec407a']), ('\U0001F60D', ['#fdd835', '#e53935']),
-    ('\U0001F60E', ['#fdd835', '#212121']), ('\U0001F929', ['#fdd835', '#f4b400']),
-    ('\U0001F602', ['#fdd835', '#4fc3f7']), ('\U0001F61C', ['#fdd835', '#e57373']),
-    ('\U0001F607', ['#fdd835', '#4fc3f7']), ('\U0001F914', ['#fdd835', '#fb8c00']),
-    ('\U0001F634', ['#fdd835', '#5c6bc0']), ('\U0001F643', ['#fdd835', '#5d4037']),
-    ('\U0001F338', ['#f8bbd0', '#ec407a']), ('\U0001F33B', ['#fdd835', '#5d4037', '#43a047']),
-    ('\U0001F33F', ['#43a047']), ('\U0001F340', ['#43a047']), ('\U0001F335', ['#43a047', '#fb8c00']),
-    ('\U0001F334', ['#43a047', '#795548']), ('\U0001F308', ['#e53935', '#fdd835', '#1e88e5']),
-    ('\u2600\uFE0F', ['#fdd835', '#fb8c00']), ('\U0001F319', ['#fdd835']), ('\U0001F30A', ['#1e88e5', '#ffffff']),
-    ('\U0001F341', ['#e53935', '#fb8c00']), ('\U0001F98B', ['#1e88e5', '#212121']),
-    ('\U0001F41D', ['#fdd835', '#212121']), ('\U0001F355', ['#fdd835', '#e53935', '#f5deb3']),
-    ('\U0001F354', ['#a1662f', '#43a047', '#f4b400']), ('\U0001F32E', ['#f4b400', '#43a047', '#e53935']),
-    ('\U0001F363', ['#ffffff', '#ff7043', '#212121']), ('\U0001F369', ['#ec407a', '#a1662f']),
-    ('\U0001F36A', ['#c68642', '#5d4037']), ('\U0001F353', ['#e53935', '#43a047']),
-    ('\U0001F349', ['#e53935', '#43a047']), ('\U0001F951', ['#43a047', '#cddc39', '#795548']),
-    ('\U0001F366', ['#fff8e1', '#c68642']), ('\u2615', ['#ffffff', '#795548']),
-    ('\U0001F9C1', ['#ec407a', '#c68642']), ('\U0001F370', ['#fff8e1', '#e53935', '#f5deb3']),
-    ('\U0001F347', ['#8e24aa', '#43a047']), ('\U0001F4F7', ['#424242', '#9e9e9e']),
-    ('\U0001F3A7', ['#424242', '#e53935']), ('\U0001F3A8', ['#f5deb3', '#e53935', '#1e88e5']),
-    ('\u270F\uFE0F', ['#fdd835', '#f8bbd0', '#424242']), ('\U0001F4DA', ['#e53935', '#1e88e5', '#43a047']),
-    ('\U0001F4BB', ['#9e9e9e', '#424242']), ('\U0001F4F1', ['#424242', '#1e88e5']),
-    ('\U0001F3B8', ['#e53935', '#795548']), ('\u23F0', ['#e53935', '#ffffff']),
-    ('\U0001F4A1', ['#fdd835', '#9e9e9e']), ('\U0001F511', ['#f4b400']), ('\u2702\uFE0F', ['#9e9e9e', '#e53935']),
-    ('\U0001F9ED', ['#9e9e9e', '#e53935', '#1e88e5']), ('\U0001F3AC', ['#212121', '#ffffff']),
-    ('\U0001F4CC', ['#e53935']), ('\U0001F4CD', ['#e53935']), ('\u2705', ['#43a047', '#ffffff']),
-    ('\u274C', ['#e53935']), ('\u2757', ['#e53935']), ('\u2753', ['#e53935']),
-    ('\U0001F680', ['#9e9e9e', '#e53935', '#1e88e5']), ('\u26A1', ['#fdd835']),
-    ('\U0001F3AF', ['#e53935', '#ffffff']), ('\U0001F48E', ['#4fc3f7', '#1e88e5']),
-    ('\U0001F3B5', ['#424242']), ('\U0001F514', ['#f4b400']), ('\U0001F4AC', ['#ffffff', '#9e9e9e']),
-    ('\U0001F449', ['#fdd835']),
-]
-
-
 def area_of(part):
     """How much of its graphic a part covers: a filled path's area by the
     shoelace sum over each subpath's points (curves by their control
@@ -815,6 +768,41 @@ def hues_of(parts):
     for part in parts:
         areas[part[0]] += area_of(part)
     return sorted(order, key=lambda c: (-round(areas[c], 1), order.index(c)))[:3]
+
+
+# The emoji palette: the colours the phones' emoji are drawn in, by name.
+EMOJI = {
+    'red': '#e53935', 'orange': '#fb8c00', 'yellow': '#fdd835', 'face': '#fbc02d', 'gold': '#ffb300',
+    'green': '#43a047', 'teal': '#26a69a', 'blue': '#1e88e5', 'sky': '#4fc3f7', 'purple': '#8e24aa',
+    'pink': '#f06292', 'brown': '#8d6e63', 'black': '#212121', 'grey': '#9e9e9e', 'white': '#fafafa',
+}
+
+# Each curated sticker (Stickers.names) by the palette's names, most of the
+# picture first.
+STICKER_HUES = {
+    '🎉': 'yellow red blue', '🎊': 'yellow red pink', '🎈': 'red', '🎂': 'pink brown white', '🎁': 'red yellow',
+    '🥳': 'face pink blue', '🍾': 'green gold', '✨': 'yellow', '🎆': 'purple yellow blue', '🏆': 'gold',
+    '🎖️': 'gold red blue', '💝': 'red pink yellow', '⭐': 'yellow', '🌟': 'yellow', '💫': 'yellow',
+    '❤️': 'red', '🧡': 'orange', '💛': 'yellow', '💚': 'green', '💙': 'blue', '💜': 'purple', '🖤': 'black',
+    '💥': 'red orange yellow', '🔥': 'orange red yellow', '😀': 'face', '😄': 'face', '😁': 'face white',
+    '😊': 'face pink', '😍': 'face red', '😎': 'face black', '🤩': 'face gold', '😂': 'face sky',
+    '😜': 'face red', '😇': 'face sky', '🤔': 'face', '😴': 'face sky', '🙃': 'face', '🌸': 'pink',
+    '🌻': 'yellow brown green', '🌿': 'green', '🍀': 'green', '🌵': 'green', '🌴': 'green brown',
+    '🌈': 'red yellow blue', '☀️': 'yellow orange', '🌙': 'yellow', '🌊': 'blue sky white', '🍁': 'red orange',
+    '🦋': 'blue sky black', '🐝': 'yellow black', '🍕': 'yellow red brown', '🍔': 'brown yellow green',
+    '🌮': 'yellow green red', '🍣': 'orange white', '🍩': 'pink brown', '🍪': 'brown', '🍓': 'red green',
+    '🍉': 'red green', '🥑': 'green brown', '🍦': 'white brown', '☕': 'white brown', '🧁': 'pink brown',
+    '🍰': 'white pink red', '🍇': 'purple green', '📷': 'grey black', '🎧': 'grey black', '🎨': 'brown red blue',
+    '✏️': 'yellow pink', '📚': 'red blue green', '💻': 'grey', '📱': 'black grey', '🎸': 'brown orange',
+    '⏰': 'red white', '💡': 'yellow', '🔑': 'gold', '✂️': 'red grey', '🧭': 'red grey', '🎬': 'black white',
+    '📌': 'red', '📍': 'red', '✅': 'green', '❌': 'red', '❗': 'red', '❓': 'red', '🚀': 'grey red orange',
+    '⚡': 'yellow', '🎯': 'red white', '💎': 'sky blue', '🎵': 'black', '🔔': 'gold', '💬': 'white grey',
+    '👉': 'face',
+}
+
+
+def sticker_hues():
+    return {glyph: [EMOJI[name] for name in names.split()] for glyph, names in STICKER_HUES.items()}
 
 
 def colours_of(parts):
@@ -871,11 +859,9 @@ def main():
         sys.exit(__doc__)
     graphics = build()
     lines = [json.dumps(g, ensure_ascii=False, sort_keys=True, separators=(',', ':')) for g in graphics]
-    stickers = ',\n'.join(json.dumps(glyph, ensure_ascii=False) + ':' + json.dumps(hues, separators=(',', ':'))
-                           for glyph, hues in STICKER_HUES)
     text = ('{\n"categories":' + json.dumps(CATEGORIES, ensure_ascii=False, separators=(',', ':')) + ',\n'
             + '"graphics":[\n' + ',\n'.join(lines) + '\n],\n'
-            + '"stickers":{\n' + stickers + '\n}\n}\n')
+            + '"stickerHues":' + json.dumps(sticker_hues(), ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n}\n')
     RESOURCE.write_text(text, encoding='utf-8')
     print('%d graphics in %d categories, %d bytes' % (len(graphics), len(CATEGORIES), len(text.encode('utf-8'))))
     if len(sys.argv) == 2:

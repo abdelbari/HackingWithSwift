@@ -323,11 +323,16 @@ enum ElementSearch {
     /// hit to be kept.
     static let colourTolerance = 20.0
 
-    /// The colour row's twelve swatches, before the brand kit's colours.
+    /// The colour row's twelve swatches, before the brand kit's colours —
+    /// the emoji palette's (generate_graphics.py), so a sticker's hues
+    /// match one exactly, as on the Android twin.
     static let swatches = [
-        "#e53935", "#fb8c00", "#fdd835", "#43a047", "#00acc1", "#1e88e5",
-        "#8e24aa", "#ec407a", "#795548", "#000000", "#9e9e9e", "#ffffff",
+        "#e53935", "#fb8c00", "#fdd835", "#43a047", "#26a69a", "#1e88e5",
+        "#8e24aa", "#f06292", "#8d6e63", "#212121", "#9e9e9e", "#fafafa",
     ]
+
+    /// The ink an icon comes onto a light page in, its one hue.
+    static let iconHue = "#1f2430"
 
     /// The filters last chosen, kept while the app runs and forgotten when
     /// it ends.
@@ -355,12 +360,13 @@ enum ElementSearch {
     }
 
     /// `hit`'s dominant colours, most of it first: a graphic's and a
-    /// curated sticker's from Graphics.json, a stock picture's from its
-    /// seed palette. A shape, an icon, a frame and the rest have none: they
-    /// take the page's colours.
+    /// curated sticker's from Graphics.json, an icon's ink (iconHue), a
+    /// stock picture's from its seed palette. A shape, a frame and the rest
+    /// have none: they take the page's colours.
     static func hues(of hit: Hit) -> [String] {
         switch hit.kind {
         case .graphic: return GraphicsLibrary.graphic(hit.id)?.hues ?? []
+        case .icon: return [iconHue]
         case .sticker: return GraphicsLibrary.stickerHues(hit.id)
         case .stockArt: return PhotoLibrary.hues(hit.id)
         default: return []

@@ -1,5 +1,5 @@
 {
-"about":"Round 34: Add's search filters (ElementSearch.filtered), the rows both phones read. distance: CIE76 ΔE between two colours in CIELAB under D65 (sRGB, as ColourVision.deltaE), to the hundredth, and whether they match, within 20 inclusive. filter: hits by kind:id, then a filter — kinds (null or empty: every kind), motion (any, animated: a graphic that moves, static: anything else) and colour (null: any; else a hit with one of its hues within ΔE 20 — graphics and curated stickers have hues in Graphics.json, shapes, charts and tables none) — and the hits kept, in their order.",
+"about":"Round 34: Add's search filters (ElementSearch.filtered), the rows both phones read. distance: CIE76 ΔE between two colours in CIELAB under D65 (sRGB, as ColourVision.deltaE), to the hundredth, and whether they match, within 20 inclusive. filter: hits by kind:id, then a filter — kinds (null or empty: every kind), motion (any, animated: a graphic that moves, static: anything else) and colour (null: any; else a hit with one of its hues within ΔE 20 — graphics and curated stickers have hues in Graphics.json, an icon its ink #1f2430, shapes, charts and tables none) — and the hits kept, in their order.",
 "distance":[
 {"a": "#ff0000", "b": "#ff0000", "deltaE": 0.0, "match": true},
 {"a": "#e53935", "b": "#ff0000", "deltaE": 28.51, "match": false},
@@ -12,17 +12,19 @@
 {"a": "#ffffff", "b": "#9e9e9e", "deltaE": 34.89, "match": false},
 {"a": "#ec407a", "b": "#f72585", "deltaE": 12.42, "match": true}
 ],
-"hits":["graphic:arrow-01", "graphic:drawn-arrow-01", "graphic:twinkle-star-01", "graphic:blob-03", "sticker:❤️", "sticker:💙", "sticker:🌿", "shape:heart", "chart:pie", "table:table"],
+"hits":["graphic:arrow-01", "graphic:drawn-arrow-01", "graphic:twinkle-star-01", "graphic:blob-03", "sticker:❤️", "sticker:💙", "sticker:🌿", "icon:arrow_forward", "shape:heart", "chart:pie", "table:table"],
 "filter":[
-{"kinds": null, "motion": "any", "colour": null, "out": ["graphic:arrow-01", "graphic:drawn-arrow-01", "graphic:twinkle-star-01", "graphic:blob-03", "sticker:❤️", "sticker:💙", "sticker:🌿", "shape:heart", "chart:pie", "table:table"]},
+{"kinds": null, "motion": "any", "colour": null, "out": ["graphic:arrow-01", "graphic:drawn-arrow-01", "graphic:twinkle-star-01", "graphic:blob-03", "sticker:❤️", "sticker:💙", "sticker:🌿", "icon:arrow_forward", "shape:heart", "chart:pie", "table:table"]},
 {"kinds": ["graphic"], "motion": "any", "colour": null, "out": ["graphic:arrow-01", "graphic:drawn-arrow-01", "graphic:twinkle-star-01", "graphic:blob-03"]},
 {"kinds": ["sticker", "shape"], "motion": "any", "colour": null, "out": ["sticker:❤️", "sticker:💙", "sticker:🌿", "shape:heart"]},
-{"kinds": [], "motion": "any", "colour": null, "out": ["graphic:arrow-01", "graphic:drawn-arrow-01", "graphic:twinkle-star-01", "graphic:blob-03", "sticker:❤️", "sticker:💙", "sticker:🌿", "shape:heart", "chart:pie", "table:table"]},
+{"kinds": [], "motion": "any", "colour": null, "out": ["graphic:arrow-01", "graphic:drawn-arrow-01", "graphic:twinkle-star-01", "graphic:blob-03", "sticker:❤️", "sticker:💙", "sticker:🌿", "icon:arrow_forward", "shape:heart", "chart:pie", "table:table"]},
 {"kinds": null, "motion": "animated", "colour": null, "out": ["graphic:drawn-arrow-01", "graphic:twinkle-star-01"]},
-{"kinds": null, "motion": "static", "colour": null, "out": ["graphic:arrow-01", "graphic:blob-03", "sticker:❤️", "sticker:💙", "sticker:🌿", "shape:heart", "chart:pie", "table:table"]},
+{"kinds": null, "motion": "static", "colour": null, "out": ["graphic:arrow-01", "graphic:blob-03", "sticker:❤️", "sticker:💙", "sticker:🌿", "icon:arrow_forward", "shape:heart", "chart:pie", "table:table"]},
 {"kinds": null, "motion": "any", "colour": "#1e88e5", "out": ["graphic:arrow-01", "sticker:💙"]},
 {"kinds": null, "motion": "any", "colour": "#e53935", "out": ["graphic:blob-03", "sticker:❤️"]},
 {"kinds": null, "motion": "any", "colour": "#43a047", "out": ["sticker:🌿"]},
+{"kinds": null, "motion": "any", "colour": "#212121", "out": ["graphic:drawn-arrow-01", "icon:arrow_forward"]},
+{"kinds": ["icon"], "motion": "static", "colour": "#1e88e5", "out": []},
 {"kinds": ["graphic"], "motion": "animated", "colour": "#ec407a", "out": ["graphic:twinkle-star-01"]},
 {"kinds": ["sticker"], "motion": "static", "colour": "#fdd835", "out": []}
 ]
