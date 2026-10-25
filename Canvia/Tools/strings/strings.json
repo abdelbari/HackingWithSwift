@@ -10958,6 +10958,15 @@
     "ja": "日付",
     "pt-BR": "Data"
   },
+  "Date created": {
+    "ar": "تاريخ الإنشاء",
+    "de": "Erstellungsdatum",
+    "es": "Fecha de creación",
+    "fr": "Date de création",
+    "it": "Data di creazione",
+    "ja": "作成日",
+    "pt-BR": "Data de criação"
+  },
   "Decimals": {
     "ar": "المنازل العشرية",
     "de": "Dezimalstellen",
@@ -12982,6 +12991,15 @@
     "it": "Modificato",
     "ja": "編集日",
     "pt-BR": "Editado"
+  },
+  "Edited %@": {
+    "ar": "عُدّل %@",
+    "de": "Bearbeitet %@",
+    "es": "Editado %@",
+    "fr": "Modifié %@",
+    "it": "Modificato %@",
+    "ja": "編集：%@",
+    "pt-BR": "Editado %@"
   },
   "Edited: %@": {
     "ar": "آخر تعديل: %@",
@@ -27005,6 +27023,24 @@
     "ja": "%d 件すべてを表示",
     "pt-BR": "Mostrar todos os %d"
   },
+  "Show as grid": {
+    "ar": "عرض كشبكة",
+    "de": "Als Raster anzeigen",
+    "es": "Ver como cuadrícula",
+    "fr": "Afficher en grille",
+    "it": "Mostra come griglia",
+    "ja": "グリッドで表示",
+    "pt-BR": "Ver em grade"
+  },
+  "Show as list": {
+    "ar": "عرض كقائمة",
+    "de": "Als Liste anzeigen",
+    "es": "Ver como lista",
+    "fr": "Afficher en liste",
+    "it": "Mostra come elenco",
+    "ja": "リストで表示",
+    "pt-BR": "Ver em lista"
+  },
   "Show distances": {
     "ar": "إظهار المسافات",
     "de": "Abstände anzeigen",
@@ -33721,6 +33757,15 @@
     "it": "slide modificabili",
     "ja": "編集可能なスライド",
     "pt-BR": "slides editáveis"
+  },
+  "edited %@": {
+    "ar": "عُدّل %@",
+    "de": "bearbeitet %@",
+    "es": "editado %@",
+    "fr": "modifié %@",
+    "it": "modificato %@",
+    "ja": "編集：%@",
+    "pt-BR": "editado %@"
   },
   "elegant": {
     "ar": "أنيق",

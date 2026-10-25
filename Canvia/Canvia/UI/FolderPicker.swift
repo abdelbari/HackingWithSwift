@@ -140,6 +140,8 @@ struct FolderTile: View {
     let path: String
     let count: Int
     let starred: Bool
+    /// A row of Home's list view: a chevron at its end.
+    var chevron = false
     var onOpen: () -> Void
     var onStar: () -> Void
     var onRename: () -> Void
@@ -159,6 +161,11 @@ struct FolderTile: View {
                     Text(inside).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
+                if chevron {
+                    Image(systemName: "chevron.forward")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
             }
             .padding(12)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)

@@ -94,6 +94,9 @@ struct HomeView: View {
     @AppStorage(RecentSearches.searchesKey) private var recentSearchesText = ""
     @AppStorage(RecentSearches.templatesKey) private var recentTemplatesText = ""
     @State private var sort = DesignLibrary.Sort.recent
+    /// The designs as cards or as rows (HomeLayout), kept on this phone.
+    @AppStorage(HomeLayout.key) private var homeLayout = HomeLayout.grid
+    private var asList: Bool { HomeLayout.isList(homeLayout) }
     /// The Type and Edited chips under the search.
     @State private var typeFilter = DesignLibrary.TypeFilter.all
     @State private var editedFilter = DesignLibrary.Edited.any
@@ -262,6 +265,7 @@ struct HomeView: View {
                             .font(.title3.weight(.bold))
                         Spacer()
                         sortMenu
+                        layoutToggle
                     }
                     .padding(.horizontal)
                     // All, Starred, Uploads, then the folders.
@@ -865,7 +869,9 @@ struct HomeView: View {
         let here = uploadFolders.filter { $0 == path }.count
         return VStack(alignment: .leading, spacing: 10) {
             FolderBreadcrumb(path: path) { folder = $0 }
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+            // Rows with a chevron in the list view.
+            LazyVGrid(columns: asList ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 150), spacing: 10)],
+                      spacing: 10) {
                 ForEach(DesignLibrary.children(folders, of: path), id: \.self) { child in folderTile(child) }
             }
             if here > 0 {
@@ -883,8 +889,11 @@ struct HomeView: View {
         let count = DesignLibrary.designs(recents, in: path, recursive: true).count
             + uploadFolders.filter { DesignLibrary.isInside($0, path) }.count
         let starred = starredFolders.contains(path)
-        return FolderTile(path: path, count: count, starred: starred,
-                          onOpen: { folder = path },
+        return FolderTile(path: path, count: count, starred: starred, chevron: asList,
+                          onOpen: {
+                              starredOnly = false
+                              folder = path
+                          },
                           onStar: {
                               DesignLibrary.setFolderStarred(path, !starred)
                               starredFolders = DesignLibrary.starredFolders()
@@ -919,11 +928,19 @@ struct HomeView: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
         } else {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
-                ForEach(starred.folders, id: \.self) { name in folderCard(name) }
-                ForEach(starred.designs) { recent in designCard(recent) }
+            if asList {
+                LazyVStack(spacing: 8) {
+                    ForEach(starred.folders, id: \.self) { name in folderTile(name) }
+                    ForEach(starred.designs) { recent in designRow(recent) }
+                }
+                .padding(.horizontal)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+                    ForEach(starred.folders, id: \.self) { name in folderCard(name) }
+                    ForEach(starred.designs) { recent in designCard(recent) }
+                }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
         }
     }
 
@@ -1099,6 +1116,19 @@ struct HomeView: View {
             Label(sort.label, systemImage: "arrow.up.arrow.down")
                 .font(.subheadline)
         }
+    }
+
+    /// Your designs as a grid of cards or as rows, remembered on this
+    /// phone.
+    private var layoutToggle: some View {
+        Button {
+            homeLayout = asList ? HomeLayout.grid : HomeLayout.list
+        } label: {
+            Image(systemName: asList ? "square.grid.2x2" : "list.bullet")
+                .font(.subheadline.weight(.semibold))
+                .frame(width: 44, height: 44)
+        }
+        .accessibilityLabel(HomeLayout.toggleLabel(showingList: asList))
     }
 
     // MARK: trash
@@ -1447,10 +1477,14 @@ struct HomeView: View {
     // MARK: recents
 
     private var recentsGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+        // A list view's rows span the width; a damaged design stays a card.
+        LazyVGrid(columns: asList ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 150), spacing: 14)],
+                  spacing: asList ? 8 : 14) {
             ForEach(shownRecents) { recent in
                 if recent.damaged {
                     if selecting { pickableDamagedCard(recent) } else { damagedCard(recent) }
+                } else if asList {
+                    designRow(recent)
                 } else {
                     designCard(recent)
                 }
@@ -1477,13 +1511,29 @@ struct HomeView: View {
         }
     }
 
+    /// A design tapped: picked in Select, else opened.
+    private func tapped(_ recent: RecentDesign) {
+        if selecting {
+            toggle(recent)
+        } else if let design = DesignLibrary.load(id: recent.id) {
+            onOpen(design)
+        }
+    }
+
+    /// A design as a row of the list view, with the card's own menu; swiped
+    /// left to Recently deleted, right to its star.
+    private func designRow(_ recent: RecentDesign) -> some View {
+        DesignRow(recent: recent, snippet: snippet(for: recent), selecting: selecting,
+                  picked: picked.contains(recent.id), highlighted: highlighted.contains(recent.id),
+                  onTap: { tapped(recent) },
+                  onDelete: { trash([recent]) },
+                  onStar: { star([recent], !recent.starred) })
+            .contextMenu { designMenu(recent) }
+    }
+
     private func designCard(_ recent: RecentDesign) -> some View {
         Button {
-            if selecting {
-                toggle(recent)
-            } else if let design = DesignLibrary.load(id: recent.id) {
-                onOpen(design)
-            }
+            tapped(recent)
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 ShelfThumbnail(id: recent.id, stamp: recent.thumbnailStamp)
@@ -1522,43 +1572,47 @@ struct HomeView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(cardLabel(recent))
         .accessibilityValue(pickedValue(recent))
-        .contextMenu {
-            if !selecting {
-                Button {
-                    renameText = recent.title
-                    renaming = recent
-                } label: { Label("Rename", systemImage: "pencil") }
-                Button {
-                    duplicate([recent])
-                } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
-                Button {
-                    star([recent], !recent.starred)
-                } label: {
-                    Label(recent.starred ? tr("Remove from starred") : tr("Add to starred"),
-                          systemImage: recent.starred ? "star.slash" : "star")
-                }
-                Button {
-                    copyResizing = DesignLibrary.load(id: recent.id)
-                } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
-                // A new Doc of its words; none for a Doc.
-                if recent.type != Docs.presetId {
-                    Button {
-                        turningIntoDoc = recent
-                    } label: { Label("Turn into a Doc", systemImage: "doc.text") }
-                }
-                Section { shareItems(recent) }
-                Button {
-                    filing = FilingRequest(designs: [recent])
-                } label: { Label("Move to folder…", systemImage: "folder") }
-                if supportsMultipleWindows {
-                    Button {
-                        openWindow(value: recent.id)
-                    } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
-                }
-                Button(role: .destructive) {
-                    trash([recent])
-                } label: { Label("Delete", systemImage: "trash") }
+        .contextMenu { designMenu(recent) }
+    }
+
+    /// A design's hold menu, on its card or its row; none in Select.
+    @ViewBuilder
+    private func designMenu(_ recent: RecentDesign) -> some View {
+        if !selecting {
+            Button {
+                renameText = recent.title
+                renaming = recent
+            } label: { Label("Rename", systemImage: "pencil") }
+            Button {
+                duplicate([recent])
+            } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+            Button {
+                star([recent], !recent.starred)
+            } label: {
+                Label(recent.starred ? tr("Remove from starred") : tr("Add to starred"),
+                      systemImage: recent.starred ? "star.slash" : "star")
             }
+            Button {
+                copyResizing = DesignLibrary.load(id: recent.id)
+            } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
+            // A new Doc of its words; none for a Doc.
+            if recent.type != Docs.presetId {
+                Button {
+                    turningIntoDoc = recent
+                } label: { Label("Turn into a Doc", systemImage: "doc.text") }
+            }
+            Section { shareItems(recent) }
+            Button {
+                filing = FilingRequest(designs: [recent])
+            } label: { Label("Move to folder…", systemImage: "folder") }
+            if supportsMultipleWindows {
+                Button {
+                    openWindow(value: recent.id)
+                } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
+            }
+            Button(role: .destructive) {
+                trash([recent])
+            } label: { Label("Delete", systemImage: "trash") }
         }
     }
 
