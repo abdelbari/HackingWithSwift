@@ -10,14 +10,21 @@ import SwiftUI
 /// moves the red dot with the finger — at once with Laser lock; letting go
 /// takes it away. With the pen on, a finger draws.
 enum PresenterPointing {
+    /// The stage's own space, under a whiteboard's pinch: where the page,
+    /// its ink and the dot are drawn, so a finger on a pinched-in board
+    /// lands where it points on the page.
+    static let space = "presentStage"
+
+    /// The gesture, its finger read in `space`.
     @MainActor
-    static func gesture(session: PresentSession, in size: CGSize) -> some Gesture {
+    static func gesture(session: PresentSession, in size: CGSize,
+                        space: CoordinateSpace = .local) -> some Gesture {
         // The drag alongside knows where the finger is from the moment it
         // lands, so a hold that has not moved yet shows the dot at once, as
         // on the Android twin; the sequence only says the hold is long enough.
         LongPressGesture(minimumDuration: 0.3)
-            .sequenced(before: DragGesture(minimumDistance: 0))
-            .simultaneously(with: DragGesture(minimumDistance: 0))
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: space))
+            .simultaneously(with: DragGesture(minimumDistance: 0, coordinateSpace: space))
             .onChanged { value in
                 guard let drag = value.second else { return }
                 session.touched(at: drag.location, moved: drag.translation, held: held(value.first), in: size)

@@ -238,12 +238,16 @@ struct PresentationView: View {
     /// drew is neither a tap nor a swipe.
     private func stage(in size: CGSize) -> some View {
         PresentStage(session: session, size: size)
+            // The pen and the dot read the finger in the stage's own space,
+            // under a whiteboard's pinch, as the ink and the dot are drawn.
+            .coordinateSpace(name: PresenterPointing.space)
             .scaleEffect(onBoard ? boardZoom * pinching : 1)
             .offset(onBoard ? boardOffset : .zero)
             .gesture(swipe)
             .simultaneousGesture(boardPinch)
             .simultaneousGesture(touch)
-            .simultaneousGesture(PresenterPointing.gesture(session: session, in: size))
+            .simultaneousGesture(PresenterPointing.gesture(session: session, in: size,
+                                                           space: .named(PresenterPointing.space)))
             .onTapGesture { location in tapped(at: location, in: size) }
     }
 
@@ -756,10 +760,11 @@ struct PresentationView: View {
         }
     }
 
-    /// The speaker, only when the design has something to hear.
+    /// The speaker, when the design or a shortcut has something to hear
+    /// (Presenter.offersSound).
     @ViewBuilder
     private var soundButton: some View {
-        if heard {
+        if Presenter.offersSound(heard: heard) {
             Button {
                 soundOn.toggle()
                 startSound()

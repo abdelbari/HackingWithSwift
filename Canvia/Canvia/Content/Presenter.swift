@@ -153,6 +153,15 @@ enum Presenter {
     static func sounds(_ id: String) -> Bool {
         id == "drumroll" || id == "micdrop"
     }
+
+    /// Whether Present offers its Sound toggle: when the design has
+    /// something to hear (`heard`), or a shortcut does (`sounds`) — so a
+    /// drumroll or a mic drop can always be silenced. The Android twin's
+    /// `offersSound`.
+    static func offersSound(heard: Bool) -> Bool {
+        heard || effects.contains { sounds($0.id) }
+    }
+
     /// How long the curtain takes to close.
     static let curtainSeconds = 1.0
 
