@@ -38,9 +38,10 @@
 //     the room round it, are its pPr's, else its level's in the box's
 //     lstStyle, its placeholder's layout's and master's, else the master's
 //     body or other style (words(of:), list(bullet:autoNum:)); a run's
-//     spc, strike and hlinkClick its letter spacing, ~~ and link (spaced,
-//     jumped); normAutofit's fontScale and lnSpcReduction are applied, so
-//     shrunk type comes in at the size it showed
+//     spc and strike (its own or its list styles' defRPr) and hlinkClick its
+//     letter spacing, ~~ and link (spaced, jumped); normAutofit's fontScale
+//     and lnSpcReduction are applied, so shrunk type comes in at the size
+//     it showed
 //   • every *, _, ~ and backslash of the deck's own words is escaped
 //     (RichText.escapeLiteral), so the words read exactly as the deck has
 //     them and only the runs' own styles are markers
@@ -431,13 +432,18 @@ enum PptxReader {
         var colour: String?
         var typeface: String?
         var align: String?
+        /// Struck through (strike sngStrike or dblStrike; noStrike false).
+        var strike: Bool?
+        /// Its spc, hundredths of a point between letters.
+        var spacing: Double?
 
         /// This, its gaps filled from `under`.
         func over(_ under: Look?) -> Look {
             guard let under else { return self }
             return Look(size: size ?? under.size, bold: bold ?? under.bold, italic: italic ?? under.italic,
                         underline: underline ?? under.underline, colour: colour ?? under.colour,
-                        typeface: typeface ?? under.typeface, align: align ?? under.align)
+                        typeface: typeface ?? under.typeface, align: align ?? under.align,
+                        strike: strike ?? under.strike, spacing: spacing ?? under.spacing)
         }
     }
 
@@ -490,7 +496,7 @@ enum PptxReader {
     /// The line height a deck's single spacing (lnSpc spcPct 100%) is: a
     /// new text's own, 1.25 — so a deck at single spacing comes in at the
     /// default, and the writer's lnSpc is lineHeight ÷ 1.25. Both phones'
-    /// rule.
+    /// rule (the Android twin's PptxWriter.LINE_SPACING_EM).
     static let singleSpacing = 1.25
 
     /// The list an a:pPr's bullet makes, the rule both phones share:
@@ -1019,8 +1025,8 @@ enum PptxReader {
                                         highlight: part.child("rPr")?.child("highlight").flatMap(colour(in:)),
                                         script: PptxReader.script(baseline: part.child("rPr")?.attributes["baseline"]),
                                         caps: part.child("rPr")?.attributes["cap"] == "all",
-                                        strike: ["sngStrike", "dblStrike"].contains(part.child("rPr")?.attributes["strike"] ?? ""),
-                                        spacing: PptxReader.number(part.child("rPr"), "spc"),
+                                        strike: look.strike == true,
+                                        spacing: look.spacing,
                                         link: link(part.child("rPr")?.child("hlinkClick"))))
                     case "br":
                         plain += "\n"
@@ -1160,11 +1166,14 @@ enum PptxReader {
         func look(_ props: SvgImport.Node?) -> Look {
             guard let props else { return Look() }
             let u = props.attributes["u"]
+            let strike = props.attributes["strike"]
             return Look(size: PptxReader.number(props, "sz").flatMap { $0 > 0 ? $0 : nil },
                         bold: PptxReader.flag(props, "b"), italic: PptxReader.flag(props, "i"),
                         underline: u.map { $0 != "none" },
                         colour: props.child("solidFill").flatMap(colour(in:)),
-                        typeface: props.child("latin")?.attributes["typeface"].flatMap { $0.isEmpty ? nil : $0 })
+                        typeface: props.child("latin")?.attributes["typeface"].flatMap { $0.isEmpty ? nil : $0 },
+                        strike: strike.map { $0 == "sngStrike" || $0 == "dblStrike" },
+                        spacing: PptxReader.number(props, "spc"))
         }
 
         func align(_ algn: String?) -> String? {
@@ -1750,12 +1759,15 @@ enum PptxReader {
         }
 
         /// The box's spacing from its words, the rule both phones share:
-        /// its letters' the spc of its dominant run (the one with the most
-        /// words, the first of those alike) ÷ 75, as the writer writes
+        /// its letters' the spc of its dominant run (the longest of all its
+        /// runs, spaces too, the first of those alike; a run's spc its own
+        /// or its list styles' defRPr) ÷ 75, as the writer writes
         /// letterSpacing × 75; its lines' the first paragraph's lnSpc — a
         /// spcPct × singleSpacing, a spcPts over the type — `lineReduction`
-        /// closer; and the room between paragraphs its spcBef and spcAft
-        /// together, in ems of the type `size` (pixels) high.
+        /// closer (the normAutofit of the first bodyPr that says how its
+        /// words fit: the shape's, its layout's, its master's); and the room
+        /// between paragraphs its spcBef and spcAft together, in ems of the
+        /// type `size` (pixels) high. No number is rounded.
         func spaced(_ el: inout Element, _ words: Words, size: Double, lineReduction: Double) {
             var dominant: Run?
             for r in words.runs where r.end - r.start > (dominant.map { $0.end - $0.start } ?? 0) { dominant = r }

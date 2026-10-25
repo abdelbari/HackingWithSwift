@@ -880,7 +880,7 @@ final class PptxReaderTests: XCTestCase {
         let found = differences(actual, expected)
         XCTAssertTrue(found.isEmpty, found.joined(separator: "\n"))
         XCTAssertEqual(imported.summary,
-                       "Imported 4 slides. 8 items couldn't be brought in (1 chart, 1 SmartArt, 1 video, 1 picture, 1 shape, 3 fonts).")
+                       "Imported 5 slides. 8 items couldn't be brought in (1 chart, 1 SmartArt, 1 video, 1 picture, 1 shape, 3 fonts).")
         XCTAssertEqual(imported.media, ["image1.png": "ppt/media/image1.png", "image2.png": "ppt/media/image2.png"])
     }
 }
@@ -1014,5 +1014,78 @@ extension PptxReaderTests {
         XCTAssertEqual(links.map { [$0.start, $0.end] }, [[0, 4], [5, 10]])
         XCTAssertEqual(links.map(\.link), ["https://example.com/", Links.pageLink(imported.design.pages[1].id)])
         XCTAssertEqual(back.text, "Plan\nSteps\nDetail **now**")
+        // The box's own link goes out on its shape (p:cNvPr) and comes back.
+        var whole = Element.text("All of it", fontSize: 24, w: 400)
+        whole.id = "t2"
+        whole.y = 400
+        whole.h = 60
+        whole.align = "left"
+        whole.link = "https://example.com/whole"
+        design.pages[0].elements.append(whole)
+        let again = try read(exported(design)).design.pages[0].elements
+        XCTAssertEqual(again.count, 2)
+        XCTAssertEqual(again.last?.link, "https://example.com/whole")
+    }
+
+    /// Shared (the twin's spacing row): lnSpc spcPts over the type is not
+    /// rounded; the dominant run is the longest of all, spaces too; a run's
+    /// strike and spc are its own, else its list style's defRPr.
+    func testSpacingIsNotRoundedAndRunsInheritStrikeAndSpacing() throws {
+        let points = try only(deck([textBox(box, "<a:p><a:pPr><a:lnSpc><a:spcPts val=\"2000\"/></a:lnSpc></a:pPr>"
+            + "<a:r><a:rPr sz=\"2400\"/><a:t>Close</a:t></a:r></a:p>")]))
+        XCTAssertEqual(try XCTUnwrap(points.lineHeight), 20.0 / 24.0, accuracy: 1e-12)
+        let pct = try only(deck([textBox(box, "<a:p><a:pPr><a:lnSpc><a:spcPct val=\"90000\"/></a:lnSpc></a:pPr>"
+            + "<a:r><a:rPr sz=\"2400\"/><a:t>Tight</a:t></a:r></a:p>")]))
+        XCTAssertEqual(try XCTUnwrap(pct.lineHeight), 1.125, accuracy: 1e-9)
+        let blank = try only(deck([textBox(box, "<a:p><a:r><a:rPr sz=\"2400\" spc=\"150\"/><a:t>ab</a:t></a:r>"
+            + "<a:r><a:rPr sz=\"2400\" spc=\"300\"/><a:t>      </a:t></a:r></a:p>")]))
+        XCTAssertEqual(try XCTUnwrap(blank.letterSpacing), 4, accuracy: 1e-9)
+        let styled = textBox(box, "<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Old</a:t></a:r>"
+            + "<a:r><a:rPr sz=\"2400\" strike=\"noStrike\"/><a:t> new</a:t></a:r></a:p>")
+            .replacingOccurrences(of: "<a:lstStyle/>",
+                                  with: "<a:lstStyle><a:lvl1pPr><a:defRPr strike=\"sngStrike\" spc=\"150\"/></a:lvl1pPr></a:lstStyle>")
+        let inherited = try only(deck([styled]))
+        XCTAssertEqual(inherited.text, "~~Old~~ new")
+        XCTAssertEqual(try XCTUnwrap(inherited.letterSpacing), 2, accuracy: 1e-9)
+    }
+
+    /// Shared: a shape's own click (p:cNvPr a:hlinkClick) is its element's
+    /// link, unless its words already go somewhere as a whole.
+    func testAShapesOwnClickIsItsElementsLink() throws {
+        let base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+        let rels = "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+            + "<Relationship Id=\"rId1\" Type=\"\(base)hyperlink\" Target=\"https://canvia.app/box\" TargetMode=\"External\"/>"
+            + "<Relationship Id=\"rId2\" Type=\"\(base)hyperlink\" Target=\"https://canvia.app/words\" TargetMode=\"External\"/>"
+            + "</Relationships>"
+        func clicked(_ body: String) -> String {
+            textBox(box, body).replacingOccurrences(of: "<p:cNvPr id=\"2\" name=\"t\"/>",
+                                                    with: "<p:cNvPr id=\"2\" name=\"t\"><a:hlinkClick r:id=\"rId1\"/></p:cNvPr>")
+        }
+        let plain = clicked("<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Box</a:t></a:r></a:p>")
+        let worded = clicked("<a:p><a:r><a:rPr sz=\"2400\"><a:hlinkClick r:id=\"rId2\"/></a:rPr><a:t>Words</a:t></a:r></a:p>")
+        let els = try read(deck([plain + worded], slideRels: [0: rels])).design.pages[0].elements
+        XCTAssertEqual(els.map(\.link), ["https://canvia.app/box", "https://canvia.app/words"])
+    }
+
+    /// Shared: how a box's words fit is the first bodyPr that says
+    /// (normAutofit, spAutoFit or noAutofit) — the shape's own, then its
+    /// placeholder's layout's, then its master's; only normAutofit shrinks.
+    func testAPlaceholderShrinksToFitAsItsLayoutSaysUnlessItSaysOtherwise() throws {
+        func placeholder(_ bodyPr: String, _ body: String) -> String {
+            "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"b\"/><p:cNvSpPr/><p:nvPr><p:ph type=\"body\" idx=\"1\"/></p:nvPr></p:nvSpPr>"
+                + "<p:spPr>\(box)</p:spPr><p:txBody>\(bodyPr)<a:lstStyle/>\(body)</p:txBody></p:sp>"
+        }
+        func size(_ own: String) throws -> Double? {
+            let layout = "<p:sldLayout \(ns)><p:cSld><p:spTree>"
+                + placeholder("<a:bodyPr><a:normAutofit fontScale=\"50000\"/></a:bodyPr>", "<a:p/>")
+                + "</p:spTree></p:cSld></p:sldLayout>"
+            let data = try deck([placeholder(own, "<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Fit</a:t></a:r></a:p>")],
+                                extra: [("ppt/slideLayouts/slideLayout1.xml", layout)],
+                                slideRels: [0: rels([("slideLayout", "../slideLayouts/slideLayout1.xml")])])
+            return try only(data).fontSize
+        }
+        XCTAssertEqual(try XCTUnwrap(size("<a:bodyPr/>")), 16, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(size("<a:bodyPr><a:noAutofit/></a:bodyPr>")), 32, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(size("<a:bodyPr><a:spAutoFit/></a:bodyPr>")), 32, accuracy: 1e-9)
     }
 }

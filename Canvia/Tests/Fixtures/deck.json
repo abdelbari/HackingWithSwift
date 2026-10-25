@@ -775,6 +775,113 @@
       ],
       "id": "page-35",
       "title": "Launch day"
+    },
+    {
+      "background": {
+        "type": "color",
+        "value": "#ffffff"
+      },
+      "elements": [
+        {
+          "align": "left",
+          "color": "#000000",
+          "flipH": false,
+          "flipV": false,
+          "fontFamily": "lora",
+          "fontSize": 32.0,
+          "fontWeight": 400,
+          "h": 300.0,
+          "id": "el-40",
+          "letterSpacing": 0.0,
+          "lineHeight": 1.25,
+          "locked": false,
+          "opacity": 1.0,
+          "paragraphs": [
+            {
+              "list": "bullet"
+            },
+            {
+              "level": 1,
+              "list": "bullet"
+            },
+            {
+              "level": 2,
+              "list": "bullet"
+            },
+            {
+              "list": "number"
+            },
+            {
+              "list": "number"
+            },
+            {}
+          ],
+          "paragraphsText": "Plan\nDraft\nReview\nFourth\nFifth\nDone",
+          "rotation": 0.0,
+          "text": "Plan\nDraft\nReview\nFourth\nFifth\nDone",
+          "type": "text",
+          "w": 500.0,
+          "x": 100.0,
+          "y": 100.0
+        },
+        {
+          "align": "left",
+          "color": "#000000",
+          "flipH": false,
+          "flipV": false,
+          "fontFamily": "lora",
+          "fontSize": 32.0,
+          "fontWeight": 400,
+          "h": 200.0,
+          "id": "el-41",
+          "letterSpacing": 4.0,
+          "lineHeight": 1.875,
+          "locked": false,
+          "opacity": 1.0,
+          "paragraphSpacing": 0.5,
+          "rotation": 0.0,
+          "spans": [
+            {
+              "end": 38,
+              "link": "https://example.com/news",
+              "start": 30
+            },
+            {
+              "end": 51,
+              "link": "page:page-2",
+              "start": 42
+            }
+          ],
+          "spansText": "Read the old news first\nVisit our site or slide one",
+          "text": "Read the ~~old~~ news first\nVisit our site or slide one",
+          "type": "text",
+          "w": 500.0,
+          "x": 640.0,
+          "y": 100.0
+        },
+        {
+          "align": "left",
+          "color": "#000000",
+          "flipH": false,
+          "flipV": false,
+          "fontFamily": "lora",
+          "fontSize": 40.0,
+          "fontWeight": 400,
+          "h": 100.0,
+          "id": "el-42",
+          "letterSpacing": 0.0,
+          "lineHeight": 1.0,
+          "locked": false,
+          "opacity": 1.0,
+          "rotation": 0.0,
+          "text": "Shrunk to fit",
+          "type": "text",
+          "w": 500.0,
+          "x": 640.0,
+          "y": 400.0
+        }
+      ],
+      "id": "page-39"
     }
   ],
   "title": "Deck",
