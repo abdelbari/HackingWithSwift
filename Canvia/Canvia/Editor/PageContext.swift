@@ -46,6 +46,13 @@ struct PausedClipsKey: EnvironmentKey {
     static let defaultValue: Set<String> = []
 }
 
+/// What the presenter did to the page's clips (Videos.Override), by
+/// element id, in Present; nil anywhere else, where every clip plays on
+/// the page's clock — an export's included, Autoplay off or not.
+struct ClipOverridesKey: EnvironmentKey {
+    static let defaultValue: [String: Videos.Override]? = nil
+}
+
 /// Whether clips are asked for frame after frame, in order — a video
 /// export — so each is read on from its last frame by a reader of its own
 /// (ClipReader) rather than sought for every one.
@@ -124,6 +131,11 @@ extension EnvironmentValues {
     var pausedClips: Set<String> {
         get { self[PausedClipsKey.self] }
         set { self[PausedClipsKey.self] = newValue }
+    }
+
+    var clipOverrides: [String: Videos.Override]? {
+        get { self[ClipOverridesKey.self] }
+        set { self[ClipOverridesKey.self] = newValue }
     }
 
     /// The readers a video export reads the page's clips with, in order;

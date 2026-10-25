@@ -938,10 +938,18 @@ struct ExportSheet: View {
             }
             .pickerStyle(.navigationLink)
         } footer: {
-            Text(Self.typeNote(fileType))
+            Text(fileTypeFooter)
         }
         .task(id: revision) { await readA11y() }
         .task(id: AudibleKey(revision: revision, pages: moviePages)) { await readAudible() }
+    }
+
+    /// What the chosen type is for — and for the video and the GIF, when a
+    /// clip's Autoplay is off, that they play it anyway.
+    private var fileTypeFooter: String {
+        let note = Self.typeNote(fileType)
+        guard fileType == "mp4" || fileType == "gif", Videos.anyWaiting(store.design) else { return note }
+        return note + " " + Videos.exportNote
     }
 
     /// The file types offered: a Word document is a Doc's alone, and the

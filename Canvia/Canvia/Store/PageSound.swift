@@ -192,15 +192,20 @@ final class PageSound {
     /// AudioMix lays it in the video. A page `length` seconds long fades a
     /// looping clip out at its end; one with no end known — a talk in
     /// Present — does not.
-    func page(_ sounding: [AudioMix.Clip], since: Date, length pageLength: Double? = nil) {
+    /// Each clip's clock reads nought `shifts[i]` seconds after `since` —
+    /// a clip played by hand in Present (Videos.heard) — and at `since`
+    /// with no shift.
+    func page(_ sounding: [AudioMix.Clip], since: Date, length pageLength: Double? = nil, shifts: [Double] = []) {
         clips.forEach { $0.stop() }
         clips = []
         clipTurn += 1
         let turn = clipTurn
-        let wanted = sounding.compactMap { clip in VideoStore.url(for: clip.source).map { (clip, $0) } }
+        let wanted = sounding.enumerated().compactMap { i, clip in
+            VideoStore.url(for: clip.source).map { (clip, $0, since.addingTimeInterval(i < shifts.count ? shifts[i] : 0)) }
+        }
         guard !wanted.isEmpty else { return }
         Task { @MainActor in
-            for (clip, own) in wanted {
+            for (clip, own, clock) in wanted {
                 var url = own
                 if clip.playback.enhance {
                     url = await AudioStore.enhancedURL(for: VideoStore.prefix + clip.source) ?? own
@@ -222,7 +227,7 @@ final class PageSound {
                 let voice: Voice
                 if rate == 1 {
                     voice = Voice(item: AVPlayerItem(url: url), start: start, end: end, loop: p.loop,
-                                  level: Float(min(max(p.volume, 0), 1)), since: since,
+                                  level: Float(min(max(p.volume, 0), 1)), since: clock,
                                   fadeIn: fades.fadeIn, fadeOut: fades.fadeOut, timing: clip.timing)
                 } else {
                     // The window alone, at its speed: played from its own
@@ -231,7 +236,7 @@ final class PageSound {
                     guard turn == self.clipTurn else { return }
                     guard let item else { continue }
                     voice = Voice(item: item, start: 0, end: (end - start) / rate, loop: p.loop,
-                                  level: Float(min(max(p.volume, 0), 1)), since: since,
+                                  level: Float(min(max(p.volume, 0), 1)), since: clock,
                                   fadeIn: fades.fadeIn, fadeOut: fades.fadeOut, timing: clip.timing)
                 }
                 self.clips.append(voice)

@@ -42,6 +42,7 @@ struct ElementView: View {
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.clipsPlay) private var clipsPlay
     @Environment(\.pausedClips) private var pausedClips
+    @Environment(\.clipOverrides) private var clipOverrides
     @Environment(\.playsPictures) private var playsPictures
     @Environment(\.captionTime) private var captionTime
     @Environment(\.captionsPlay) private var captionsPlay
@@ -121,7 +122,12 @@ struct ElementView: View {
             let clip = el.clip ?? ClipPlayback()
             if let clock = animationTime, !pausedClips.contains(el.id) {
                 let length = liveVideo ? VideoStore.knownLength(parts.id) : VideoStore.duration(of: parts.id)
-                el.src = VideoStore.src(parts.id, at: VideoStore.clipTime(clock.time, clip: clip, duration: length))
+                // In Present, where the presenter played, paused or
+                // scrubbed it, or waiting with its Autoplay off.
+                let at = clipOverrides.map {
+                    Videos.presentTime(el, pageMoment: clock.time, override: $0[el.id], duration: length)
+                } ?? VideoStore.clipTime(clock.time, clip: clip, duration: length)
+                el.src = VideoStore.src(parts.id, at: at)
             } else {
                 el.src = VideoStore.atRest(el)
             }
@@ -136,6 +142,13 @@ struct ElementView: View {
             el.src = MotionLibrary.playing(el.src, at: clock.time)
         }
         return el
+    }
+
+    /// Whether clip `el` moves now: in Present, as the presenter left it
+    /// (Videos.moves); anywhere else, always.
+    private func clipMoves(_ el: Element) -> Bool {
+        guard let clipOverrides else { return true }
+        return Videos.moves(el, override: clipOverrides[el.id])
     }
 
     /// `el` as it shows at `date` on a picture's own clock, which goes
@@ -281,7 +294,8 @@ struct ElementView: View {
                 // Whether the page's clock runs, read here once so a photo
                 // is not drawn again on every tick of it — not for a scrub,
                 // whose time stands still between drags.
-                ImageElementView(element: el, clipPlays: clipsPlay && animationTime != nil && !pausedClips.contains(el.id))
+                ImageElementView(element: el, clipPlays: clipsPlay && animationTime != nil && !pausedClips.contains(el.id)
+                                 && clipMoves(el))
             }
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)

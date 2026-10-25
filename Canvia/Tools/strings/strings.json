@@ -23039,6 +23039,15 @@
     "ja": "タイマーを一時停止",
     "pt-BR": "Pausar cronômetro"
   },
+  "Pause video": {
+    "ar": "إيقاف الفيديو مؤقتًا",
+    "de": "Video anhalten",
+    "es": "Pausar vídeo",
+    "fr": "Mettre la vidéo en pause",
+    "it": "Metti in pausa il video",
+    "ja": "動画を一時停止",
+    "pt-BR": "Pausar vídeo"
+  },
   "Paused": {
     "ar": "متوقف مؤقتًا",
     "de": "Pausiert",
@@ -23750,6 +23759,15 @@
     "ja": "エディタで再生",
     "pt-BR": "Reproduzir no editor"
   },
+  "Play or pause video": {
+    "ar": "تشغيل الفيديو أو إيقافه مؤقتًا",
+    "de": "Video abspielen oder anhalten",
+    "es": "Reproducir o pausar vídeo",
+    "fr": "Lire ou mettre en pause la vidéo",
+    "it": "Riproduci o metti in pausa il video",
+    "ja": "動画を再生または一時停止",
+    "pt-BR": "Reproduzir ou pausar vídeo"
+  },
   "Play original": {
     "ar": "تشغيل الأصلي",
     "de": "Original abspielen",
@@ -23785,6 +23803,15 @@
     "it": "Riproduci la parte tagliata",
     "ja": "トリミングした部分を再生",
     "pt-BR": "Reproduzir trecho cortado"
+  },
+  "Play video": {
+    "ar": "تشغيل الفيديو",
+    "de": "Video abspielen",
+    "es": "Reproducir vídeo",
+    "fr": "Lire la vidéo",
+    "it": "Riproduci video",
+    "ja": "動画を再生",
+    "pt-BR": "Reproduzir vídeo"
   },
   "Playful": {
     "ar": "مرح",
@@ -33518,6 +33545,15 @@
     "ja": "動画",
     "pt-BR": "Vídeo"
   },
+  "Video %d": {
+    "ar": "الفيديو %d",
+    "de": "Video %d",
+    "es": "Vídeo %d",
+    "fr": "Vidéo %d",
+    "it": "Video %d",
+    "ja": "動画 %d",
+    "pt-BR": "Vídeo %d"
+  },
   "Video %d of %d": {
     "ar": "الفيديو %d من %d",
     "de": "Video %d von %d",
@@ -33596,6 +33632,15 @@
     "ja": "動画に音声がありますが字幕がありません",
     "pt-BR": "O vídeo tem som, mas não tem legendas"
   },
+  "Video position": {
+    "ar": "موضع الفيديو",
+    "de": "Videoposition",
+    "es": "Posición del vídeo",
+    "fr": "Position dans la vidéo",
+    "it": "Posizione del video",
+    "ja": "動画の再生位置",
+    "pt-BR": "Posição do vídeo"
+  },
   "Video size": {
     "ar": "حجم الفيديو",
     "de": "Videogröße",
@@ -33622,6 +33667,15 @@
     "it": "Video",
     "ja": "動画",
     "pt-BR": "Vídeos"
+  },
+  "Videos set not to autoplay play as their page plays in the video and GIF.": {
+    "ar": "تُشغَّل مقاطع الفيديو غير المضبوطة على التشغيل التلقائي مع صفحتها في الفيديو وملف GIF.",
+    "de": "Videos ohne automatische Wiedergabe laufen im Video und im GIF mit ihrer Seite ab.",
+    "es": "Los vídeos sin reproducción automática se reproducen con su página en el vídeo y el GIF.",
+    "fr": "Les vidéos sans lecture automatique sont lues avec leur page dans la vidéo et le GIF.",
+    "it": "I video senza riproduzione automatica vengono riprodotti con la loro pagina nel video e nella GIF.",
+    "ja": "自動再生をオフにした動画も、ビデオとGIFではページと一緒に再生されます。",
+    "pt-BR": "Vídeos sem reprodução automática são reproduzidos com a página no vídeo e no GIF."
   },
   "Videos you add show here.": {
     "ar": "تظهر هنا مقاطع الفيديو التي تضيفها.",
@@ -33955,6 +34009,15 @@
     "it": "Quando",
     "ja": "タイミング",
     "pt-BR": "Quando"
+  },
+  "When presenting, it waits for a tap on Play.": {
+    "ar": "عند العرض التقديمي، ينتظر النقر على تشغيل.",
+    "de": "Beim Präsentieren wartet es, bis Abspielen getippt wird.",
+    "es": "Al presentar, espera a que toques Reproducir.",
+    "fr": "En présentation, elle attend un appui sur Lire.",
+    "it": "Durante la presentazione, attende un tocco su Riproduci.",
+    "ja": "プレゼンテーション中は、再生をタップするまで待機します。",
+    "pt-BR": "Ao apresentar, ele espera um toque em Reproduzir."
   },
   "While dragging, hold ⇧ to keep a move to one direction or to turn in 15° steps, hold ⌘ to stop snapping for a moment, and hold ⌥ as you start to drag a copy. ⇧ on a corner of a text box or shape changes whether it keeps its proportions.": {
     "ar": "أثناء السحب، اضغط باستمرار على ⇧ لإبقاء الحركة في اتجاه واحد أو للتدوير بخطوات 15°، وعلى ⌘ لإيقاف الالتصاق مؤقتًا، وعلى ⌥ عند البدء لسحب نسخة. يغيّر ⇧ على زاوية مربع نص أو شكل ما إذا كان يحافظ على تناسبه.",
