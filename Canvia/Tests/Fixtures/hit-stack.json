@@ -1,5 +1,5 @@
 {
-  "about": "Layers.hitStack on both phones: the page's elements back to front, and what a fingertip touchRadius round at each probe lands on, top-most first. A hidden element is never listed; a group is one row, \"group:<id>\", listed where its top-most touched member is, with its shown members (a group left with one shown member is that member's row); a member of a cropped group is touched only where the crop shows it; anything thinner than twice the radius is touched as if grown to that about its centre, a turned one in its turned frame. Probes stay clear of edges, so the iPhone's 4-unit slack does not matter. A probe's own touchRadius overrides the top-level one. behind gives Alt+Tab's next row for a selection: the row under the one holding it, round to the top past the bottom, the top when none holds it, null when there is no other row. oneRow says whether a selection is one whole row of the page's Layers list (one loose element, or every member of one outermost group, hidden ones too): Alt+Tab and Select what is behind step only from such a selection, and are refused otherwise. lid is a locked element (a backdrop to a hold) lying over the shape under: a hold on it lists both under Select behind.",
+  "about": "Layers.hitStack on both phones: the page's elements back to front, and what a fingertip touchRadius round at each probe lands on, top-most first. A hidden element is never listed; a group is one row, \"group:<id>\", listed where its top-most touched member is, with its shown members (a group left with one shown member is that member's row); a member of a cropped group is touched only where the crop shows it; anything thinner than twice the radius is touched as if grown to that about its centre, a turned one in its turned frame. Probes stay clear of edges, so the iPhone's 4-unit slack does not matter. A probe's own touchRadius overrides the top-level one. behind gives Alt+Tab's next row for a selection: the row under the one holding it, round to the top past the bottom, the top when none holds it, null when there is no other row. oneRow says whether a selection is one whole row of the page's Layers list (one loose element, or every member of one outermost group, hidden ones too): Alt+Tab and Select what is behind step only from such a selection, and are refused otherwise. lid is a locked element (a backdrop to a hold) lying over the shape under: a hold on it lists both under Select behind. behindPoint gives where Alt+Tab and Select what is behind look (at): the last tap, when anything selected lies under it there, else the middle of the selection's box (null with nothing selected); steps says whether they step from there (the selection is one row and two or more rows lie at that point). g-far is a group at opposite sides of the page, its box middle over the backdrop alone, a photo under far-a only: with no tap on it, Alt+Tab is refused.",
   "touchRadius": 22,
   "elements": [
     {"id": "backdrop", "type": "shape", "shapeId": "rect", "x": 0, "y": 0, "w": 1080, "h": 1080, "locked": true},
@@ -16,7 +16,10 @@
     {"id": "pair-a", "type": "shape", "shapeId": "rect", "x": 800, "y": 100, "w": 100, "h": 100, "group": "g-pair"},
     {"id": "pair-b", "type": "shape", "shapeId": "rect", "x": 900, "y": 100, "w": 100, "h": 100, "group": "g-pair", "hidden": true},
     {"id": "under", "type": "shape", "shapeId": "rect", "x": 600, "y": 300, "w": 100, "h": 100},
-    {"id": "lid", "type": "shape", "shapeId": "rect", "x": 580, "y": 280, "w": 140, "h": 140, "locked": true}
+    {"id": "lid", "type": "shape", "shapeId": "rect", "x": 580, "y": 280, "w": 140, "h": 140, "locked": true},
+    {"id": "photo", "type": "shape", "shapeId": "rect", "x": 20, "y": 680, "w": 80, "h": 80},
+    {"id": "far-a", "type": "shape", "shapeId": "rect", "x": 40, "y": 700, "w": 40, "h": 40, "group": "g-far"},
+    {"id": "far-b", "type": "shape", "shapeId": "rect", "x": 1000, "y": 700, "w": 40, "h": 40, "group": "g-far"}
   ],
   "probes": [
     {"x": 250, "y": 250, "stack": ["cover", "group:g-logo", "card", "backdrop"]},
@@ -54,5 +57,15 @@
     {"selection": ["pair-a"], "oneRow": false},
     {"selection": ["pair-a", "pair-b"], "oneRow": true},
     {"selection": [], "oneRow": false}
+  ],
+  "behindPoint": [
+    {"selection": ["far-a", "far-b"], "at": [540, 720], "steps": false},
+    {"selection": ["far-a", "far-b"], "tap": [60, 720], "at": [60, 720], "steps": true},
+    {"selection": ["far-a", "far-b"], "tap": [650, 350], "at": [540, 720], "steps": false},
+    {"selection": ["tiny"], "at": [305, 305], "steps": true},
+    {"selection": ["tiny"], "tap": [320, 320], "at": [320, 320], "steps": true},
+    {"selection": ["tiny", "cover"], "tap": [320, 320], "at": [320, 320], "steps": false},
+    {"selection": ["far-b"], "at": [1020, 720], "steps": false},
+    {"selection": [], "tap": [320, 320], "at": null, "steps": false}
   ]
 }

@@ -14,8 +14,7 @@ extension DesignStore {
     /// first, a group as one row (Layers.hitStack), at the touch target's
     /// size at the zoom shown.
     func hitStack(at point: CGPoint) -> [LayerRows.Row] {
-        let target = Touch.pageUnits(Touch.minTarget, zoom: zoom)
-        return Layers.hitStack(page.elements, point, touchRadius: target / 2)
+        Layers.hitStack(page.elements, point, touchRadius: hitRadius)
     }
 
     /// One of Select behind's rows chosen: what a tap on it selects — a
@@ -52,19 +51,20 @@ extension DesignStore {
     }
 
     /// Where Select behind looks: the last tap, when the selection lies
-    /// under it, else the selection's middle; nil with nothing selected.
+    /// under it, else the selection's middle (Layers.behindPoint); nil
+    /// with nothing selected.
     private var behindPoint: CGPoint? {
-        let held = selection
-        if let tap = lastTapAt,
-           hitStack(at: tap).contains(where: { row in row.elements.contains { held.contains($0.id) } }) {
-            return tap
-        }
-        guard let box = selectionBox else { return nil }
-        return CGPoint(x: box.midX, y: box.midY)
+        Layers.behindPoint(page.elements, selection: selection, lastTap: lastTapAt, touchRadius: hitRadius)
     }
 
     private func canStepBehind(at point: CGPoint) -> Bool {
-        guard !isPageLocked, Layers.isOneRow(page.elements, selection: selection) else { return false }
-        return hitStack(at: point).count >= 2
+        guard !isPageLocked else { return false }
+        return Layers.canStepBehind(page.elements, selection: selection, at: point, touchRadius: hitRadius)
+    }
+
+    /// Half the touch target, in page units at the zoom shown: how far
+    /// round a fingertip hitStack reaches.
+    private var hitRadius: Double {
+        Touch.pageUnits(Touch.minTarget, zoom: zoom) / 2
     }
 }

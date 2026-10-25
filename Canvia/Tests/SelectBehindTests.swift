@@ -107,6 +107,27 @@ final class SelectBehindTests: XCTestCase {
         }
     }
 
+    /// A fixture point, [x, y], or nil where the row has none (or null).
+    private func pair(_ value: Any?) -> CGPoint? {
+        guard let xy = value as? [Double], xy.count == 2 else { return nil }
+        return CGPoint(x: xy[0], y: xy[1])
+    }
+
+    func testSelectBehindLooksAtTheLastTapOnTheSelectionElseItsMiddle() throws {
+        let f = try fixture()
+        let root = try SharedFixture.object("hit-stack")
+        let rows = try XCTUnwrap(root["behindPoint"] as? [[String: Any]])
+        for row in rows {
+            let selection = Set(try XCTUnwrap(row["selection"] as? [String]))
+            let tap = pair(row["tap"])
+            let at = Layers.behindPoint(f.elements, selection: selection, lastTap: tap, touchRadius: f.radius)
+            XCTAssertEqual(at, pair(row["at"]), "\(selection) tap \(String(describing: tap))")
+            let steps = at.map { Layers.canStepBehind(f.elements, selection: selection, at: $0, touchRadius: f.radius) } ?? false
+            let want = try XCTUnwrap(row["steps"] as? Bool)
+            XCTAssertEqual(steps, want, "\(selection)")
+        }
+    }
+
     func testAHoldOnALockedBackdropOverAShapeListsBothUnderSelectBehind() throws {
         let f = try fixture()
         let lid = try XCTUnwrap(f.elements.first { $0.id == "lid" })
