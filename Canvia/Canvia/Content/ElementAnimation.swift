@@ -788,7 +788,18 @@ struct ElementAnimation: Codable, Equatable {
     /// with no unit move.
     static func unitFrames(_ el: Element, at t: Double) -> [UnitFrame] {
         guard let animation = el.animation, unitKinds.contains(animation.kind) else { return [] }
-        return animation.frames(units(RichText.strip(el.text ?? ""), by: animation.unit), at: t, size: el.fontSize ?? 42)
+        return animation.frames(units(of: el, by: animation.unit), at: t, size: el.fontSize ?? 42)
+    }
+
+    /// `el`'s units by `by`, over RichText.strip(text) — the rule both
+    /// phones share: `units(_:by:)`, except that words round a curve, along
+    /// a path or down a column (bent, not warped) are one line, so by line
+    /// they move as one unit, from the first line's start to the last's end.
+    static func units(of el: Element, by: String) -> [NSRange] {
+        let lines = units(RichText.strip(el.text ?? ""), by: by)
+        let bent = TextOutliner.followsAPath(el) && !TextWarp.isWarped(el)
+        guard by == "line", bent, lines.count > 1, let first = lines.first, let last = lines.last else { return lines }
+        return [NSRange(location: first.location, length: NSMaxRange(last) - first.location)]
     }
 
     /// Whether a unit is drawn as it stands: unmoved, whole and opaque.
