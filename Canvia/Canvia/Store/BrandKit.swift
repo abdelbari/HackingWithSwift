@@ -47,6 +47,9 @@ struct BrandPalette: Codable, Equatable {
     var colors: [String]
     var names: [String: String] = [:]
 
+    // Declared, as both coding directions are written by hand below.
+    enum CodingKeys: String, CodingKey { case name, colors, names }
+
     /// The longest a colour's name may be.
     static let nameLimit = 40
 

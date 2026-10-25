@@ -1503,10 +1503,7 @@ enum PptxReader {
             // Every shown run in capitals is the box set in Uppercase; some
             // of them, those words' own (TextSpan.caps), as on the Android
             // twin.
-            let shown = words.runs.filter { r in
-                let ns = words.plain as NSString
-                return r.end <= ns.length && !PptxReader.isBlank(ns.substring(with: NSRange(location: r.start, length: r.end - r.start)))
-            }
+            // `shown` (the runs with words, above) is the same set.
             let allCaps = !shown.isEmpty && shown.allSatisfy(\.caps)
             // The spans are made for the plain words, which the escapes keep.
             if RichText.strip(text) == words.plain {
