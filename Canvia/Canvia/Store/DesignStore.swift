@@ -155,6 +155,15 @@ final class DesignStore {
         canvasRequest = CanvasRequest(kind: kind, serial: (canvasRequest?.serial ?? 0) + 1)
     }
 
+    /// Every page asked for from the canvas — a pinch out past the page,
+    /// VoiceOver's All pages — which the editor answers with the page
+    /// organiser. Counts, so each ask is a change.
+    var allPagesAsked = 0
+
+    func showAllPages() {
+        allPagesAsked += 1
+    }
+
     /// When set, the next picked image replaces this element's source
     /// instead of inserting a new image.
     var replaceTargetId: String?

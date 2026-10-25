@@ -1,5 +1,6 @@
 // Quick actions at the selection: a small pill floating just above what is
-// selected — below it when there is no room above — with Copy, Paste,
+// selected — below it when there is no room above, or when the turn and move
+// handles have moved above — with Copy, Paste,
 // Duplicate, a magnifier on something small on screen (Zoom to selection),
 // Detach image on a filled frame or grid cell, More like this on
 // an icon, sticker, graphic or shape (SimilarSheet), Delete, and on a photo
@@ -60,10 +61,12 @@ struct SelectionBubble: View {
         guard screen.intersects(canvas) else { return nil }
         // A single thing free to turn has its rotate handle below it, the
         // furthest of its handles, and several have "N selected" over their
-        // box: the pill keeps clear of either.
+        // box: the pill keeps clear of either. With the handles moved above,
+        // out of reach below, the pill goes below (Geometry.bubbleAnchor).
         let turns = store.singleSelection.map { !$0.holdsPlace } ?? false
         let clears = turns || store.selection.count > 1
-        let place = Geometry.bubbleAnchor(screen, viewport: canvas, handleOutset: clears ? 40 : 8)
+        let place = Geometry.bubbleAnchor(screen, viewport: canvas, handleOutset: clears ? 40 : 8,
+                                          handles: SelectionOverlay.handlesSide(store))
         let half = CGFloat(width / 2 + 8)
         let x = size.width > half * 2 ? min(max(place.point.x, half), size.width - half) : size.width / 2
         let rise = CGFloat(Self.height / 2)

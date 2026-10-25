@@ -549,6 +549,7 @@ struct EditorView: View {
             if plainKeysLive {
                 viewCommands
                 plainCommands
+                canvaKeys
             }
         }
     }
@@ -601,6 +602,48 @@ struct EditorView: View {
             // typing, onto the next unlocked page from a locked one — the
             // Android twin's rule (EditorKeys).
             shortcut("t", [], tr("Add a text box")) { store.addTextBox() }
+        }
+    }
+
+    /// Canva's own keys, under the same rule as the plain ones: R, C and L
+    /// a square, a circle and a line as T adds text, ⇧R the rulers, 1 to 9
+    /// and 0 the selection's transparency (DesignStore.setTransparencyKey),
+    /// ⌘Return a page after this one, Home and End the first and last
+    /// page, and ⌘⌥ with an arrow a connected shape that way (QuickFlow).
+    private var canvaKeys: some View {
+        Group {
+            Group {
+                shortcut("r", [], tr("Add a square")) { store.addKeyShape(.square) }
+                shortcut("c", [], tr("Add a circle")) { store.addKeyShape(.circle) }
+                shortcut("l", [], tr("Add a line")) { store.addKeyShape(.line) }
+                shortcut("r", [.shift], tr("Show or hide rulers")) { rulers.toggle() }
+                shortcut(.return, [.command], tr("Add a page after this one")) { store.addPage() }
+                shortcut(.home, [], tr("First page")) { store.setPage(0) }
+                shortcut(.end, [], tr("Last page")) { store.setPage(store.design.pages.count - 1) }
+            }
+            ForEach(0..<10) { digit in
+                shortcut(KeyEquivalent(Character(String(digit))), [], transparencyTitle(digit)) {
+                    store.setTransparencyKey(digit)
+                }
+            }
+            ForEach(QuickFlow.Side.allCases, id: \.self) { side in
+                shortcut(Self.flowKey(side), [.command, .option], side.actionName) { store.addConnected(side) }
+            }
+        }
+    }
+
+    /// "Transparency 30%", for the digit that sets it; 0 is 100%.
+    private func transparencyTitle(_ digit: Int) -> String {
+        tr("Transparency %@", "\(digit == 0 ? 100 : digit * 10)%")
+    }
+
+    /// The arrow that adds a connected shape on `side`.
+    private static func flowKey(_ side: QuickFlow.Side) -> KeyEquivalent {
+        switch side {
+        case .top: return .upArrow
+        case .right: return .rightArrow
+        case .bottom: return .downArrow
+        case .left: return .leftArrow
         }
     }
 
@@ -2318,5 +2361,8 @@ private struct PageAnimationRequest: ViewModifier {
                 guard let asked else { return }
                 activeSheet = asked.hasPrefix(AudioTrack.prefix) ? .audio : .clip
             }
+            // Every page, asked for from the canvas — a pinch out past the
+            // page, VoiceOver's All pages: the page organiser.
+            .onChange(of: store.allPagesAsked) { _, _ in activeSheet = .pages }
     }
 }

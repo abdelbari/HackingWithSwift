@@ -60,6 +60,28 @@ struct SelectionOverlay: View {
     }
     @State private var heldEnd: HeldEnd?
 
+    /// The bend handle a finger is working: where it took it relative to
+    /// the handle, and where the touch began.
+    private struct HeldBend {
+        var offset: CGPoint
+        var start: CGPoint
+    }
+    @State private var heldBend: HeldBend?
+
+    /// A quick-flow + being dragged: which, and where the finger is.
+    private struct FlowDrag {
+        var side: QuickFlow.Side
+        var at: CGPoint
+    }
+    @State private var flowDrag: FlowDrag?
+
+    /// One of quick flow's +s: its side and where it sits, in page units.
+    private struct FlowPoint: Identifiable {
+        var side: QuickFlow.Side
+        var at: CGPoint
+        var id: QuickFlow.Side { side }
+    }
+
     private var iz: Double { 1 / max(store.zoom, 0.01) }
     /// Settings ▸ Accessibility's Larger handles: the handles drawn 1.4
     /// times as big (AccessibilityPrefs), as Touch.handleReach takes them.
@@ -100,9 +122,19 @@ struct SelectionOverlay: View {
                 // A line's ends, discs to drag in place of its stretch handles.
                 if LineRoutes.hasEndHandles(el) { lineEnds(el) }
             }
-            if let el = store.singleSelection,
-               Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) {
-                moveHandle(el)
+            Group {
+                // A curved or elbowed line's middle: a diamond to bend it.
+                if let el = store.bendLine, store.editingTextId != el.id, let at = LineRoutes.bendHandlePoint(el) {
+                    bendHandle(at)
+                }
+                if let el = store.singleSelection,
+                   Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) {
+                    moveHandle(el)
+                }
+                // Quick flow's +s, one a side, on a shape or sticky note.
+                if let el = store.quickFlowSource, !store.canvasTouchActive || flowDrag != nil {
+                    quickFlow(el)
+                }
             }
 
             if selected.count > 1 { severalFrame(selected) }
@@ -277,6 +309,18 @@ struct SelectionOverlay: View {
         CGRect(x: 0, y: 0, width: store.pageWidth, height: store.pageHeight).insetBy(dx: -0.5, dy: -0.5)
     }
 
+    /// What a finger can reach for the turn handle (Geometry.turnHandleSide):
+    /// the part of the page in the canvas — which stops at the top bar, the
+    /// bottom bar and the safe area — since only the page takes a touch;
+    /// the whole page before the canvas has said what it shows.
+    private static func reachable(_ store: DesignStore) -> CGRect {
+        let page = reachablePage(store)
+        let seen = store.viewport
+        guard seen.width > 0, seen.height > 0 else { return page }
+        let shown = page.intersection(seen.insetBy(dx: -0.5, dy: -0.5))
+        return shown.isNull || shown.isEmpty ? page : shown
+    }
+
     private static func ringFits(_ el: Element, _ outsetX: Double, _ outsetY: Double, page: CGRect) -> Bool {
         Handle.allCases.allSatisfy {
             page.contains(Geometry.handlePoint(el, $0, outsetX: outsetX, outsetY: outsetY))
@@ -285,23 +329,31 @@ struct SelectionOverlay: View {
 
     /// Where the rotate handle sits: below the bottom edge — and below the
     /// ring, when it stands off a small element — turned with the element;
-    /// above the top edge instead when below is off the page, where no
-    /// finger could reach it.
+    /// above the top edge instead when below is out of reach, where no
+    /// finger could take it (turnSide).
     private func rotatePoint(_ el: Element, outsetY: Double) -> CGPoint {
-        Self.rotatePoint(el, outsetY: outsetY, iz: iz, page: Self.reachablePage(store))
+        Self.rotatePoint(el, outsetY: outsetY, iz: iz, reach: Self.reachable(store))
     }
 
-    private static func rotatePoint(_ el: Element, outsetY: Double, iz: Double, page: CGRect) -> CGPoint {
+    private static func rotatePoint(_ el: Element, outsetY: Double, iz: Double, reach: CGRect) -> CGPoint {
         Geometry.rotateHandlePosition(el, offset: outsetY + 28 * iz,
-                                      above: rotatesAbove(el, outsetY: outsetY, iz: iz, page: page))
+                                      above: turnSide(el, outsetY: outsetY, iz: iz, reach: reach) == .above)
     }
 
-    /// Whether the rotate handle sits above the element: only when below is
-    /// off the page and above is on it.
-    private static func rotatesAbove(_ el: Element, outsetY: Double, iz: Double, page: CGRect) -> Bool {
-        let offset = outsetY + 28 * iz
-        guard !page.contains(Geometry.rotateHandlePosition(el, offset: offset)) else { return false }
-        return page.contains(Geometry.rotateHandlePosition(el, offset: offset, above: true))
+    /// The side the turn and move handles take, 28 points beyond the ring
+    /// (Geometry.turnHandleSide): below unless below is out of reach and
+    /// above is not.
+    private static func turnSide(_ el: Element, outsetY: Double, iz: Double, reach: CGRect) -> Geometry.TurnSide {
+        Geometry.turnHandleSide(el, outsetY: outsetY, offset: 28 * iz, reachable: reach)
+    }
+
+    /// The side the turn and move handles are on for what is selected, for
+    /// the quick actions to keep to the other (Geometry.bubbleAnchor);
+    /// below when none is drawn.
+    static func handlesSide(_ store: DesignStore) -> Geometry.TurnSide {
+        guard let drawn = ring(store) else { return .below }
+        let out = outsets(for: drawn.el, zoom: store.zoom, page: reachablePage(store))
+        return turnSide(drawn.el, outsetY: out.y, iz: 1 / max(store.zoom, 0.01), reach: reachable(store))
     }
 
     /// What the handle ring is drawn round, and the handles it offers, as
@@ -328,9 +380,8 @@ struct SelectionOverlay: View {
         if ShapeHandles.takes(point, store: store) { return true }
         if GeometryHandles.takes(point, store: store) { return true }
         guard let drawn = ring(store) else { return false }
-        let page = reachablePage(store)
-        let out = outsets(for: drawn.el, zoom: store.zoom, page: page)
-        let rotateAt = rotatePoint(drawn.el, outsetY: out.y, iz: 1 / max(store.zoom, 0.01), page: page)
+        let out = outsets(for: drawn.el, zoom: store.zoom, page: reachablePage(store))
+        let rotateAt = rotatePoint(drawn.el, outsetY: out.y, iz: 1 / max(store.zoom, 0.01), reach: reachable(store))
         return Touch.grab(at: point, el: drawn.el, handles: drawn.handles,
                           outsetX: out.x, outsetY: out.y, rotateAt: rotateAt,
                           reach: Touch.pageUnits(Touch.handleReach, zoom: store.zoom),
@@ -355,10 +406,9 @@ struct SelectionOverlay: View {
     static func moveHandleTakes(_ point: CGPoint, store: DesignStore) -> Bool {
         guard let el = store.singleSelection,
               Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) else { return false }
-        let page = reachablePage(store)
         let iz = 1 / max(store.zoom, 0.01)
-        let outsetY = outsets(for: el, zoom: store.zoom, page: page).y
-        let above = rotatesAbove(el, outsetY: outsetY, iz: iz, page: page)
+        let outsetY = outsets(for: el, zoom: store.zoom, page: reachablePage(store)).y
+        let above = turnSide(el, outsetY: outsetY, iz: iz, reach: reachable(store)) == .above
         let at = Geometry.moveHandlePosition(el, offset: outsetY + 28 * iz, above: above)
         let reach = Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
         return hypot(Double(point.x - at.x), Double(point.y - at.y)) <= reach
@@ -602,6 +652,148 @@ struct SelectionOverlay: View {
             .allowsHitTesting(false)
     }
 
+    // MARK: a line's bend
+
+    /// The handle in the middle of a curved or elbowed line
+    /// (LineRoutes.bendHandlePoint): a hollow diamond 14 points across,
+    /// dragged to bend the curve or move the elbow's corner, live, the whole
+    /// drag one step (DesignStore.dragLineBend). Over the body and the end
+    /// discs, so it takes its touches first.
+    private func bendHandle(_ at: CGPoint) -> some View {
+        let half = 7.0 * iz * handleScale
+        let reach = Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
+        let diamond = Path { p in
+            p.move(to: CGPoint(x: at.x, y: at.y - half))
+            p.addLine(to: CGPoint(x: at.x + half, y: at.y))
+            p.addLine(to: CGPoint(x: at.x, y: at.y + half))
+            p.addLine(to: CGPoint(x: at.x - half, y: at.y))
+            p.closeSubpath()
+        }
+        return ZStack {
+            diamond.stroke(Color.white, lineWidth: 4 * iz).allowsHitTesting(false)
+            diamond.stroke(Theme.accent, lineWidth: 2 * iz).allowsHitTesting(false)
+            Color.clear
+                .contentShape(Path(ellipseIn: CGRect(x: at.x - reach, y: at.y - reach, width: reach * 2, height: reach * 2)))
+                .gesture(bendDrag(at))
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .accessibilityHidden(true)
+    }
+
+    private func bendDrag(_ at: CGPoint) -> some Gesture {
+        DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
+            .onChanged { value in
+                // A touch that starts somewhere else is a new one: the old
+                // drag's step closed first.
+                if let old = heldBend, old.start != value.startLocation {
+                    heldBend = nil
+                    store.endLineBend()
+                }
+                if heldBend == nil {
+                    // Held where the finger landed against the handle, so
+                    // the first frame does not jump the bend to the finger.
+                    let p = value.startLocation
+                    heldBend = HeldBend(offset: CGPoint(x: at.x - p.x, y: at.y - p.y), start: p)
+                    store.beginLineBend()
+                }
+                guard let heldBend else { return }
+                store.dragLineBend(to: CGPoint(x: value.location.x + heldBend.offset.x,
+                                               y: value.location.y + heldBend.offset.y))
+            }
+            .onEnded { _ in
+                guard heldBend != nil else { return }
+                heldBend = nil
+                store.endLineBend()
+            }
+    }
+
+    /// Whether a touch at `point`, in page units, is within reach of the
+    /// bend handle, so the view's own pan leaves it to the handle.
+    static func lineBendTakes(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let el = store.bendLine, store.editingTextId != el.id,
+              let at = LineRoutes.bendHandlePoint(el) else { return false }
+        return Double(hypot(at.x - point.x, at.y - point.y)) <= Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
+    }
+
+    // MARK: quick flow
+
+    /// Where each side's + sits: 20 points beyond the handle ring, which on
+    /// the turn handle's side reaches past the turn handle (28 points out,
+    /// 12 across its half), so the + never covers it.
+    private static func flowPoints(_ el: Element, store: DesignStore) -> [FlowPoint] {
+        let iz = 1 / max(store.zoom, 0.01)
+        let out = outsets(for: el, zoom: store.zoom, page: reachablePage(store))
+        let turn: QuickFlow.Side = turnSide(el, outsetY: out.y, iz: iz, reach: reachable(store)) == .above ? .top : .bottom
+        let beyond = (QuickFlow.discGap + QuickFlow.discSize / 2) * iz
+        return QuickFlow.Side.allCases.map { side in
+            let across = side == .left || side == .right
+            var distance = (across ? out.x : out.y) + beyond
+            if side == turn { distance += (28 + 12) * iz }
+            return FlowPoint(side: side, at: QuickFlow.discPoint(el, side: side, distance: distance))
+        }
+    }
+
+    /// Quick flow's four +s round a shape or sticky note: a tap adds a
+    /// connected copy that way (DesignStore.addConnected); a drag draws the
+    /// connector to the finger, let go on an element to tie to it or on
+    /// empty space to put the copy there (DesignStore.quickFlowDrop).
+    /// VoiceOver has the same as actions on the shape.
+    private func quickFlow(_ el: Element) -> some View {
+        let points = Self.flowPoints(el, store: store)
+        return ZStack {
+            if let drag = flowDrag {
+                flowLine(from: QuickFlow.discPoint(el, side: drag.side, distance: 0), to: drag.at)
+            }
+            ForEach(points) { point in flowDisc(point.side, at: point.at) }
+        }
+    }
+
+    /// A + 22 points across, in the accent, its touch target 44.
+    private func flowDisc(_ side: QuickFlow.Side, at point: CGPoint) -> some View {
+        let size = QuickFlow.discSize * iz
+        let target = Touch.minTarget * iz
+        return Image(systemName: "plus")
+            .font(.system(size: 11 * iz, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(Circle().fill(Theme.accent))
+            .overlay(Circle().stroke(Color.white, lineWidth: 1.5 * iz))
+            .frame(width: target, height: target)
+            .contentShape(Circle())
+            .onTapGesture { store.addConnected(side) }
+            .gesture(flowDragGesture(side))
+            .position(point)
+            .accessibilityHidden(true)
+    }
+
+    private func flowDragGesture(_ side: QuickFlow.Side) -> some Gesture {
+        DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom), coordinateSpace: .named("page"))
+            .onChanged { value in flowDrag = FlowDrag(side: side, at: value.location) }
+            .onEnded { value in
+                flowDrag = nil
+                store.quickFlowDrop(at: value.location)
+            }
+    }
+
+    /// The connector being drawn from a +, dashed, to the finger.
+    private func flowLine(from start: CGPoint, to end: CGPoint) -> some View {
+        Path { p in
+            p.move(to: start)
+            p.addLine(to: end)
+        }
+        .stroke(Theme.accent, style: StrokeStyle(lineWidth: 2 * iz, dash: [6 * iz, 4 * iz]))
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .allowsHitTesting(false)
+    }
+
+    /// Whether a touch at `point`, in page units, is on one of quick
+    /// flow's +s, so the view's own pan leaves it to them.
+    static func quickFlowTakes(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let el = store.quickFlowSource else { return false }
+        let half = Touch.pageUnits(Touch.minTarget, zoom: store.zoom) / 2
+        return flowPoints(el, store: store).contains { Double(hypot($0.at.x - point.x, $0.at.y - point.y)) <= half }
+    }
+
     // MARK: body and move handle
 
     /// The selection's body, over the elements' own hit areas: a drag there
@@ -635,10 +827,9 @@ struct SelectionOverlay: View {
     /// element or one being typed into: dragged, the selection moves without
     /// a finger over it, the finger kept where it took the handle.
     private func moveHandle(_ el: Element) -> some View {
-        let page = Self.reachablePage(store)
         let outsetY = outsets(for: el).y
         let offset = outsetY + 28 * iz
-        let above = Self.rotatesAbove(el, outsetY: outsetY, iz: iz, page: page)
+        let above = Self.turnSide(el, outsetY: outsetY, iz: iz, reach: Self.reachable(store)) == .above
         let size = Touch.moveHandleSize * iz
         return Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
             .font(.system(size: 12 * iz, weight: .semibold))

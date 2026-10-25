@@ -141,6 +141,8 @@ struct CanvasView: View {
     /// is; and the box last weighed for it, so it is weighed once a box.
     @State private var typingFocus: TypingFocus?
     @State private var typingWeighed: String?
+    /// How far a pinch out has gone toward every page (Viewport.gridPinch).
+    @State private var gridPinch: Viewport.GridPinch = .none
 
     /// Where the view is in the column, written as it scrolls, the zoom
     /// that fits it, and whether a finger set it moving; read when it comes
@@ -376,6 +378,8 @@ struct CanvasView: View {
             },
             pinchesSelection: { a, b in pinchesSelection(a, b) },
             onSelectionPinch: { phase, scale, turn in selectionPinch(phase, scale: scale, turn: turn) },
+            onGridPinch: { stage in gridPinchChanged(stage) },
+            onPinchToPages: { store.showAllPages() },
             board: board
         ) {
             // Left to right in any language (ReadingDirection): the page's
@@ -398,6 +402,28 @@ struct CanvasView: View {
             .designDirection()
         }
         .background { if board != nil { whiteboardGround } }
+    }
+
+    // MARK: a pinch out to every page
+
+    /// A pinch out past the page moved on: the threshold felt once, as it
+    /// is crossed, toward every page.
+    private func gridPinchChanged(_ stage: Viewport.GridPinch) {
+        if stage == .release && gridPinch != .release { store.buzz(.tick) }
+        gridPinch = stage
+    }
+
+    /// "Release for all pages", small, at the top of the canvas while a
+    /// pinch out is near or past the threshold.
+    private var gridPinchHint: some View {
+        Label("Release for all pages", systemImage: "square.grid.2x2")
+            .font(.footnote.weight(.semibold))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(.regularMaterial, in: Capsule())
+            .padding(.top, 12)
+            .allowsHitTesting(false)
+            .transition(.opacity)
     }
 
     // MARK: a pinch on the selection
@@ -527,6 +553,7 @@ struct CanvasView: View {
     private var columnAware: some View {
         zoomable
             .overlay { pageScrubber }
+            .overlay(alignment: .top) { if gridPinch != .none { gridPinchHint } }
             .background {
                 GeometryReader { proxy in
                     Color.clear
@@ -764,6 +791,8 @@ struct CanvasView: View {
                 ReplaceMark(outline: Self.outline(photo), at: CGPoint(x: photo.center.x, y: photo.y), iz: iz)
             }
         }
+        // What a click would select, under a pointer or a hovering Pencil.
+        .modifier(HoverTracking(store: store))
     }
 
     /// The handles, the move handle and the selection's body, each drag
@@ -1573,6 +1602,8 @@ struct CanvasView: View {
         Button(HoldMenu.HoldItem.addText.title) { chooseFromHoldMenu(.addText, at: centre) }
         Button(HoldMenu.HoldItem.background.title) { chooseFromHoldMenu(.background, at: centre) }
         Button(HoldMenu.HoldItem.animate.title) { chooseFromHoldMenu(.animate, at: centre) }
+        // Every page at once, as a pinch out past the page opens it.
+        Button("All pages") { store.showAllPages() }
     }
 
     /// Unlock all and Show hidden among the page's actions, as the hold
@@ -1613,6 +1644,8 @@ struct CanvasView: View {
         }
         return onElement || SelectionOverlay.handlesTake(point, store: store)
             || SelectionOverlay.lineEndsTake(point, store: store)
+            || SelectionOverlay.lineBendTakes(point, store: store)
+            || SelectionOverlay.quickFlowTakes(point, store: store)
             || SelectionOverlay.moveHandleTakes(point, store: store)
             || SelectionOverlay.bodyTakes(point, store: store)
     }
@@ -2079,7 +2112,10 @@ struct CanvasView: View {
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }
         }
-        chartActions(for: el)
+        Group {
+            chartActions(for: el)
+            flowActions(for: el)
+        }
         // A table's cell moves its row or column, as the Table panel's
         // arrows do — the cell alone selected first, not its whole table.
         if el.table != nil && !el.locked {
@@ -2111,6 +2147,25 @@ struct CanvasView: View {
         guard let at = CanvasAccessibility.steppedValue(chartValue[id], count: values.count, forward: forward) else { return }
         chartValue[id] = at
         AccessibilityNotification.Announcement(values[at]).post()
+    }
+
+    /// A curved or elbowed line's Bend more and Bend less, a tenth a time,
+    /// as its middle handle bends it; and on a shape that offers quick flow,
+    /// Add connected shape each way (QuickFlow) — the thing selected first.
+    @ViewBuilder
+    private func flowActions(for el: Element) -> some View {
+        if LineRoutes.keepsLevel(el) && !el.holdsPlace {
+            Button("Bend more") { store.select(el.id); store.bendSelectedLine(more: true) }
+            Button("Bend less") { store.select(el.id); store.bendSelectedLine(more: false) }
+        }
+        if QuickFlow.offers(el) {
+            ForEach(QuickFlow.Side.allCases, id: \.self) { side in
+                Button(side.actionName) {
+                    store.select(el.id)
+                    store.addConnected(side)
+                }
+            }
+        }
     }
 
     /// The chart's own actions: its values one by one, and Edit data, which

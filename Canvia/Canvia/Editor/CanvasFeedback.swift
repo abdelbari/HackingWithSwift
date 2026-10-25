@@ -24,8 +24,10 @@ struct SnapSignal: Equatable {
 /// so two deletes in a row both tap.
 struct HapticEvent: Equatable {
     /// `tick` is a restyle that took — a swatch, gradient, pattern or line
-    /// style that changed something — as the Android twin's Feel.Tick.
-    enum Kind: Equatable { case undo, redo, grouped, pageAdded, stroke, confirm, reject, tick }
+    /// style that changed something — as the Android twin's Feel.Tick;
+    /// `detent` a drag settling on a rest, a bend straightening, as its
+    /// Feel.Detent.
+    enum Kind: Equatable { case undo, redo, grouped, pageAdded, stroke, confirm, reject, tick, detent }
     var kind: Kind
     var serial: Int
 
@@ -38,6 +40,7 @@ struct HapticEvent: Equatable {
         case .confirm: return .success
         case .reject: return .error
         case .tick: return .impact(weight: .light)
+        case .detent: return .alignment
         }
     }
 }

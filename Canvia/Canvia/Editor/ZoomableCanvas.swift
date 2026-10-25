@@ -245,6 +245,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// That pinch: begun, moved — the fingers this many times as far apart
     /// as they landed and their line turned this many degrees — and let go.
     var onSelectionPinch: (CanvasDrag, Double, Double) -> Void = { _, _, _ in }
+    /// A pinch out past the page, as it goes (Viewport.gridPinch): near
+    /// enough to show "Release for all pages", past the threshold, or
+    /// neither — told as it changes, and as none once let go.
+    var onGridPinch: (Viewport.GridPinch) -> Void = { _ in }
+    /// That pinch let go past the threshold: the view springs back to the
+    /// fit — at once under Reduce Motion — and every page is asked for.
+    var onPinchToPages: () -> Void = {}
     /// The page worked expanded to a whiteboard; nil for a page alone or
     /// the column. Two fingers tapped twice on its empty space fit it to its
     /// content.
@@ -458,6 +465,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// True while updateUIView is running, so zoom changes it causes are
         /// published after the update rather than inside it.
         var isUpdating = false
+        /// How far the pinch under way has gone toward every page.
+        private var gridStage: Viewport.GridPinch = .none
         /// The serial of the last change of view acted on.
         var handledRequest = 0
         private var panOrigin: CGPoint = .zero
@@ -531,6 +540,47 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             // keeps the selection handles the right size while zooming.
             publishZoom(Double(scrollView.zoomScale))
             publishViewport()
+            noteGridPinch(scrollView)
+        }
+
+        /// While fingers pinch the view: how far toward every page
+        /// (Viewport.gridPinch), told outward as it changes. A zoom asked
+        /// for in code, or the bounce after the fingers lift, changes
+        /// nothing, so where the pinch was let go is kept for its end.
+        private func noteGridPinch(_ scroll: UIScrollView) {
+            guard let pinch = scroll.pinchGestureRecognizer, pinch.state == .began || pinch.state == .changed else { return }
+            let stage = Viewport.gridPinch(zoom: Double(scroll.zoomScale), fit: Double(fitZoom(in: scroll)),
+                                           whiteboard: parent.board != nil)
+            guard stage != gridStage else { return }
+            gridStage = stage
+            publishGridPinch(stage)
+        }
+
+        private func publishGridPinch(_ stage: Viewport.GridPinch) {
+            guard isUpdating else {
+                parent.onGridPinch(stage)
+                return
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.parent.onGridPinch(stage)
+            }
+        }
+
+        /// A pinch let go past the threshold: back to the fit, sprung or —
+        /// under Reduce Motion — at once, and every page asked for.
+        private func endGridPinch() {
+            let released = gridStage == .release
+            guard gridStage != .none else { return }
+            gridStage = .none
+            publishGridPinch(.none)
+            guard released else { return }
+            let still = AccessibilityPrefs.reducesMotion(
+                UserDefaults.standard.string(forKey: AccessibilityPrefs.reduceMotionKey),
+                systemReduces: UIAccessibility.isReduceMotionEnabled)
+            DispatchQueue.main.async { [weak self] in
+                self?.fitToScreen(animated: !still)
+                self?.parent.onPinchToPages()
+            }
         }
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -562,6 +612,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
 
         func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
             publishMotion(false)
+            endGridPinch()
         }
 
         /// The view moving or at rest, told outward — after an update, as

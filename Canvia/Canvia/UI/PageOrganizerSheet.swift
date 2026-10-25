@@ -1,4 +1,6 @@
-// Every page at once, as a grid of thumbnails: tap to tick, press and hold
+// Every page at once, as a grid of thumbnails — opened from the menus, or by
+// pinching out past the whole page: tap a page to open it, or its corner to
+// tick it, pinch to make the thumbnails larger or smaller, press and hold
 // to lift a page — or every ticked page — and drag it to its new place, the
 // gap it would go into marked; + between two thumbnails puts a blank page
 // there. Ticked pages are duplicated, copied, hidden, locked or deleted from
@@ -23,6 +25,9 @@ struct PageOrganizerSheet: View {
     /// True while a lift's press is held, so one the scroll view takes over
     /// is put down where it was.
     @GestureState private var holding = false
+    /// The columns a pinch in the grid left (PageOrder.columnsAfterPinch),
+    /// kept for next time; 0 until the first pinch, when the width decides.
+    @AppStorage(PageOrder.columnsKey) private var keptColumns = 0
 
     private static let space = "organizer"
     private static let spacing = 20.0
@@ -51,18 +56,23 @@ struct PageOrganizerSheet: View {
     }
 
     /// The grid, two columns on a narrow phone up to four on a wide screen
-    /// (PageOrder.columns), with the lifted pages' gap over it.
+    /// (PageOrder.columns) until a pinch sets two to six, with the lifted
+    /// pages' gap over it — opened on the page being worked, which its
+    /// accent outline marks.
     private var content: some View {
         GeometryReader { outer in
             ScrollViewReader { proxy in
+                let columns = PageOrder.shownColumns(kept: keptColumns, forWidth: Double(outer.size.width))
                 ScrollView {
-                    grid(columns: PageOrder.columns(forWidth: Double(outer.size.width)), proxy: proxy)
+                    grid(columns: columns, proxy: proxy)
                 }
                 .coordinateSpace(name: Self.space)
                 .reportsViewport(to: frames)
                 .overlay {
                     PageGapMarker(lift: lift, pages: store.design.pages, frames: frames, spacing: Self.spacing)
                 }
+                .simultaneousGesture(columnsPinch(columns))
+                .onAppear { showCurrent(proxy) }
             }
         }
         .background(Theme.workspace)
@@ -88,11 +98,11 @@ struct PageOrganizerSheet: View {
         .padding(.vertical, 16)
         .padding(.trailing, 16)
         .padding(.leading, CGFloat(Self.spacing))
-        // A tap ticks the page under it; a press and hold lifts it.
+        // A tap opens the page under it, or ticks it while some are
+        // ticked or on its corner's tick; a press and hold lifts it.
         .contentShape(Rectangle())
         .onTapGesture(coordinateSpace: .named(Self.space)) { point in
-            let pages = store.design.pages
-            if let i = frames.page(at: point, in: pages) { toggle(pages[i].id) }
+            if let i = frames.page(at: point, in: store.design.pages) { tapped(i, at: point) }
         }
         .gesture(liftGesture(columns: columns, proxy: proxy))
     }
@@ -184,6 +194,41 @@ struct PageOrganizerSheet: View {
         .buttonStyle(.plain)
         .offset(x: CGFloat(Self.spacing / 2 + 10) * (leading ? -1 : 1))
         .accessibilityLabel(label)
+    }
+
+    /// A pinch in the grid: spread, larger thumbnails and fewer across;
+    /// closed, more — two to six, kept for next time.
+    private func columnsPinch(_ columns: Int) -> some Gesture {
+        MagnifyGesture()
+            .onEnded { value in
+                let next = PageOrder.columnsAfterPinch(columns, scale: Double(value.magnification))
+                guard next != columns else { return }
+                withAnimation(.easeOut(duration: 0.2)) { keptColumns = next }
+                store.buzz(.tick)
+            }
+    }
+
+    /// The page being worked brought into view as the grid opens.
+    private func showCurrent(_ proxy: ScrollViewProxy) {
+        let pages = store.design.pages
+        guard pages.indices.contains(store.pageIndex) else { return }
+        proxy.scrollTo(pages[store.pageIndex].id, anchor: .center)
+    }
+
+    /// A tap on page `index`: with nothing ticked, that page opened and the
+    /// grid closed, as Go to page does; with some ticked, or on its tick in
+    /// the corner, ticked or unticked.
+    private func tapped(_ index: Int, at point: CGPoint) {
+        let pages = store.design.pages
+        guard pages.indices.contains(index) else { return }
+        let id = pages[index].id
+        let onTick = frames.rects[id].map { point.x >= $0.maxX - 44 && point.y <= $0.minY + 44 } ?? false
+        guard selected.isEmpty && !onTick else {
+            toggle(id)
+            return
+        }
+        store.setPage(index)
+        dismiss()
     }
 
     private func toggle(_ id: String) {

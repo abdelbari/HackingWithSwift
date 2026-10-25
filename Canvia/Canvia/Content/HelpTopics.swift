@@ -50,8 +50,9 @@ enum HelpTopics {
                   body: tr("The Layers sheet lists everything on the page, top-most first. Drag to reorder, tap to select. The eye hides an element from the page and every export, the padlock locks it — whole, or in position only, where its words, colours and crop can still change — and press and hold to rename it. A group is one row that opens to show what is in it; Overlapping lists only what overlaps the selection. The Position sheet moves an element forward or back one step."),
                   keywords: ["order", "front", "back", "arrange", "position", "hide", "lock", "rename", "group"], opens: .layers),
         HelpTopic(id: "pages", title: tr("Pages"),
-                  body: tr("The bar at the bottom shows every page. Add, duplicate, reorder, copy and paste pages (even into another design), keep notes on a page, and open the organizer to manage many at once."),
-                  keywords: ["page", "organizer", "notes", "duplicate", "reorder"], opens: .pages),
+                  body: tr("The bar at the bottom shows every page. Add, duplicate, reorder, copy and paste pages (even into another design), keep notes on a page, and open the organizer to manage many at once.")
+                    + " " + tr("Pinch out past the whole page to open the organizer; pinch in it to make the thumbnails larger or smaller, and tap a page to go to it."),
+                  keywords: ["page", "organizer", "notes", "duplicate", "reorder", "pinch", "grid"], opens: .pages),
         HelpTopic(id: "colors", title: tr("Colours and themes"),
                   body: tr("Every colour picker offers recent colours, the document's colours, colours from the selected photo and harmonies of the current colour. The sparkles button reshuffles the page's palette; Document theme applies a palette and a type pairing to every page."),
                   keywords: ["palette", "theme", "harmony", "gradient", "shuffle"], opens: .theme),
@@ -75,7 +76,7 @@ enum HelpTopics {
                     + " " + tr("Also while typing: ⌘K links the selected words, ⌥⌘↑ and ⌥⌘↓ loosen and tighten the line spacing, ⌥⌘→ and ⌥⌘← the letter spacing, and ⌥⌘C and ⌥⌘V copy and paste the box's style.")
                     + " " + HelpTopics.keyboardMore,
                   keywords: ["shortcut", "ipad", "command", "tab", "zoom", "flip", "align", "bold", "list", "link", "spacing",
-                             "present", "move page", "drag", "shift", "option"], opens: nil),
+                             "present", "move page", "drag", "shift", "option", "transparency", "rulers"], opens: nil),
         HelpTopic(id: "voiceover", title: tr("VoiceOver and accessibility"),
                   body: tr("Every element on the canvas is named and can be moved, made larger or smaller, turned, duplicated, deleted or reordered from the VoiceOver actions rotor; a photo can be cropped and words edited there too. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it."),
                   keywords: ["accessibility", "voice", "motion", "contrast"], opens: nil),
@@ -87,6 +88,7 @@ enum HelpTopics {
     static var keyboardMore: String {
         [tr("F5 presents from the beginning, and ⇧F5 from this page."),
          tr("⌥⇧↑ and ⌥⇧↓ move this page up and down."),
+         tr("R, C and L add a square, a circle and a line, ⇧R shows or hides the rulers, 1 to 9 set the transparency to 10–90% and 0 to 100%, ⌘Return adds a page after this one, Home and End go to the first and last page, and ⌘⌥ with an arrow adds a connected shape that way."),
          dragModifiers].joined(separator: " ")
     }
 
