@@ -1,5 +1,5 @@
 {
-  "about": "Layers.hitStack on both phones: the page's elements back to front, and what a fingertip touchRadius round at each probe lands on, top-most first. A hidden element is never listed; a group is one row, \"group:<id>\", listed where its top-most touched member is, with its shown members (a group left with one shown member is that member's row); a member of a cropped group is touched only where the crop shows it; anything thinner than twice the radius is touched as if grown to that about its centre, a turned one in its turned frame. Probes stay clear of edges, so the iPhone's 4-unit slack does not matter. A probe's own touchRadius overrides the top-level one. behind gives Alt+Tab's next row for a selection: the row under the one holding it, round to the top past the bottom, the top when none holds it, null when there is no other row.",
+  "about": "Layers.hitStack on both phones: the page's elements back to front, and what a fingertip touchRadius round at each probe lands on, top-most first. A hidden element is never listed; a group is one row, \"group:<id>\", listed where its top-most touched member is, with its shown members (a group left with one shown member is that member's row); a member of a cropped group is touched only where the crop shows it; anything thinner than twice the radius is touched as if grown to that about its centre, a turned one in its turned frame. Probes stay clear of edges, so the iPhone's 4-unit slack does not matter. A probe's own touchRadius overrides the top-level one. behind gives Alt+Tab's next row for a selection: the row under the one holding it, round to the top past the bottom, the top when none holds it, null when there is no other row. oneRow says whether a selection is one whole row of the page's Layers list (one loose element, or every member of one outermost group, hidden ones too): Alt+Tab and Select what is behind step only from such a selection, and are refused otherwise. lid is a locked element (a backdrop to a hold) lying over the shape under: a hold on it lists both under Select behind.",
   "touchRadius": 22,
   "elements": [
     {"id": "backdrop", "type": "shape", "shapeId": "rect", "x": 0, "y": 0, "w": 1080, "h": 1080, "locked": true},
@@ -14,7 +14,9 @@
     {"id": "crop-a", "type": "shape", "shapeId": "rect", "x": 100, "y": 900, "w": 100, "h": 100, "group": "g-crop", "clip": {"x": 0, "y": 0, "w": 0.5, "h": 1}},
     {"id": "crop-b", "type": "shape", "shapeId": "rect", "x": 200, "y": 900, "w": 100, "h": 100, "group": "g-crop", "clip": {"x": 0, "y": 0, "w": 0.5, "h": 1}},
     {"id": "pair-a", "type": "shape", "shapeId": "rect", "x": 800, "y": 100, "w": 100, "h": 100, "group": "g-pair"},
-    {"id": "pair-b", "type": "shape", "shapeId": "rect", "x": 900, "y": 100, "w": 100, "h": 100, "group": "g-pair", "hidden": true}
+    {"id": "pair-b", "type": "shape", "shapeId": "rect", "x": 900, "y": 100, "w": 100, "h": 100, "group": "g-pair", "hidden": true},
+    {"id": "under", "type": "shape", "shapeId": "rect", "x": 600, "y": 300, "w": 100, "h": 100},
+    {"id": "lid", "type": "shape", "shapeId": "rect", "x": 580, "y": 280, "w": 140, "h": 140, "locked": true}
   ],
   "probes": [
     {"x": 250, "y": 250, "stack": ["cover", "group:g-logo", "card", "backdrop"]},
@@ -29,6 +31,7 @@
     {"x": 250, "y": 950, "stack": ["backdrop"]},
     {"x": 850, "y": 150, "stack": ["pair-a", "backdrop"]},
     {"x": 1040, "y": 500, "stack": ["backdrop"]},
+    {"x": 650, "y": 350, "stack": ["lid", "under", "backdrop"]},
     {"x": 2000, "y": 2000, "stack": []}
   ],
   "behind": [
@@ -40,6 +43,16 @@
     {"x": 250, "y": 250, "selection": ["cover"], "next": "group:g-logo"},
     {"x": 250, "y": 250, "selection": ["logo-a"], "next": "card"},
     {"x": 250, "y": 250, "selection": ["logo-a", "logo-b"], "next": "card"},
-    {"x": 1040, "y": 500, "selection": ["backdrop"], "next": null}
+    {"x": 1040, "y": 500, "selection": ["backdrop"], "next": null},
+    {"x": 650, "y": 350, "selection": ["lid"], "next": "under"}
+  ],
+  "oneRow": [
+    {"selection": ["tiny"], "oneRow": true},
+    {"selection": ["tiny", "cover"], "oneRow": false},
+    {"selection": ["logo-a"], "oneRow": false},
+    {"selection": ["logo-a", "logo-b"], "oneRow": true},
+    {"selection": ["pair-a"], "oneRow": false},
+    {"selection": ["pair-a", "pair-b"], "oneRow": true},
+    {"selection": [], "oneRow": false}
   ]
 }

@@ -18,40 +18,53 @@ extension DesignStore {
         return Layers.hitStack(page.elements, point, touchRadius: target / 2)
     }
 
-    /// One of Select behind's rows chosen: what it stands for selected —
-    /// a group whole, an element alone; a locked one selected but not free
-    /// to move, as a tap on it in Layers leaves it. Nothing on a locked
-    /// page.
+    /// One of Select behind's rows chosen: what a tap on it selects — a
+    /// group whole, hidden members too, as on the Android twin; a locked one
+    /// selected but not free to move. Nothing on a locked page.
     func selectStackRow(_ row: LayerRows.Row) {
         holdMenuAt = nil
-        selectLayers(Set(row.elements.map(\.id)))
+        guard let first = row.elements.first else { return }
+        select(first.id)
     }
 
-    /// Alt+Tab: with one thing (or one group) selected, what lies just
-    /// under it at the last tap — when the selection lies under it, else
-    /// at the middle of the selection — round again to the top past the
-    /// bottom (Layers.behind). Nothing changes when nothing else lies there.
+    /// Whether Select behind has anything to step to: one thing (or one
+    /// whole group) selected, on an unlocked page, with something else
+    /// under it — the Android twin's canSelectBehind.
+    var canSelectBehind: Bool {
+        guard let at = behindPoint else { return false }
+        return canStepBehind(at: at)
+    }
+
+    /// Alt+Tab, and VoiceOver's Select what is behind: with one thing (or
+    /// one group) selected, what lies just under it at the last tap — when
+    /// the selection lies under it, else at the middle of the selection —
+    /// round again to the top past the bottom (Layers.behind). Refused,
+    /// with a buzz, when the selection is not one row or nothing else lies
+    /// there.
     func selectBehind() {
-        let held = selection
-        let tapped = lastTapAt.flatMap { tap in
-            hitStack(at: tap).contains { row in row.elements.contains { held.contains($0.id) } } ? tap : nil
+        guard let at = behindPoint, canStepBehind(at: at),
+              let next = Layers.behind(hitStack(at: at), selection: selection) else {
+            buzz(.reject)
+            return
         }
-        stepBehind(at: tapped)
-    }
-
-    /// VoiceOver's Select what is behind on element `id`: it selected, then
-    /// what lies under its middle, as Alt+Tab steps.
-    func selectWhatIsBehind(_ id: String) {
-        guard let el = element(id) else { return }
-        if !selection.contains(id) { select(id) }
-        stepBehind(at: el.center)
-    }
-
-    private func stepBehind(at point: CGPoint?) {
-        guard let box = selectionBox else { return }
-        let at = point ?? CGPoint(x: box.midX, y: box.midY)
-        guard let next = Layers.behind(hitStack(at: at), selection: selection) else { return }
         selectStackRow(next)
         revealSelection()
+    }
+
+    /// Where Select behind looks: the last tap, when the selection lies
+    /// under it, else the selection's middle; nil with nothing selected.
+    private var behindPoint: CGPoint? {
+        let held = selection
+        if let tap = lastTapAt,
+           hitStack(at: tap).contains(where: { row in row.elements.contains { held.contains($0.id) } }) {
+            return tap
+        }
+        guard let box = selectionBox else { return nil }
+        return CGPoint(x: box.midX, y: box.midY)
+    }
+
+    private func canStepBehind(at point: CGPoint) -> Bool {
+        guard !isPageLocked, Layers.isOneRow(page.elements, selection: selection) else { return false }
+        return hitStack(at: point).count >= 2
     }
 }

@@ -462,6 +462,18 @@ extension Layers {
         return next.id == stack[at].id ? nil : next
     }
 
+    /// Whether `selection` is one whole row of the page's Layers list: one
+    /// loose element, or every member of one outermost group, hidden ones
+    /// too. Alt+Tab and Select what is behind step only from such a
+    /// selection and are refused otherwise — the Android twin's
+    /// Layers.isOneRow, with the shared fixture's oneRow rows.
+    static func isOneRow(_ elements: [Element], selection: Set<String>) -> Bool {
+        guard !selection.isEmpty else { return false }
+        return LayerRows.rows(elements, expanded: []).contains { row in
+            Set(row.elements.map(\.id)) == selection
+        }
+    }
+
     /// A row's name, as the Layers sheet shows it: "Group (3)", or the
     /// element's own (ElementNames).
     static func rowName(_ row: LayerRows.Row) -> String {
