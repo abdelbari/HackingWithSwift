@@ -16,7 +16,7 @@ final class TextCombosTests: XCTestCase {
         // The Android twin's TextCombosTest checks the same digest of its copy.
         let url = try XCTUnwrap(Bundle.main.url(forResource: "textcombos", withExtension: "json"))
         let digest = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(digest, "6c482c4dfe46c2df78f87d1280db2e8f2216281ab9fee5b011647f84777289a6")
+        XCTAssertEqual(digest, "39ba0653a80331fb711d16d1f628ff38bffd325f081d681d77e6c765733b5e34")
     }
 
     /// The rows of the Android twin's TextCombosTest: every combination, and
@@ -57,6 +57,103 @@ final class TextCombosTests: XCTestCase {
             ("countdown", 2), ("breaking-wipe", 2), ("sale-ends", 2), ("swipe-up-bounce", 2),
             ("coming-soon-typed", 2), ("thank-you-written", 1), ("new-drop", 2), ("live-now", 2),
             ("drifting-dream", 2), ("big-reveal", 2), ("quote-reveal", 2), ("new-year-burst", 2),
+            // Round 36: fifteen for each occasion and topic.
+            ("birthday-happy-birthday", 3), ("birthday-party-time", 3), ("birthday-make-a-wish", 3),
+            ("birthday-cheers-to-30", 2), ("birthday-sweet-sixteen", 3), ("birthday-birthday-girl", 2),
+            ("birthday-level-up", 2), ("birthday-hip-hip-hooray", 2), ("birthday-fabulous-at-50", 4),
+            ("birthday-let-them-eat-cake", 2), ("birthday-best-day-ever", 3), ("birthday-surprise", 2),
+            ("birthday-born-to-shine", 2), ("birthday-one-year-older", 3), ("birthday-birthday-bash", 3),
+            ("christmas-merry-bright", 3), ("christmas-joy-to-the-world", 3), ("christmas-holiday-sale", 3),
+            ("christmas-silent-night", 2), ("christmas-ho-ho-ho", 3), ("christmas-deck-the-halls", 2),
+            ("christmas-let-it-snow", 2), ("christmas-christmas-market", 2), ("christmas-season-greetings", 4),
+            ("christmas-ugly-sweater-party", 2), ("christmas-gift-guide", 3), ("christmas-merry-christmas", 2),
+            ("christmas-twas-the-night", 2), ("christmas-peace-on-earth", 3), ("christmas-elf-workshop", 3),
+            ("halloween-trick-or-treat", 3), ("halloween-spooky-season", 3), ("halloween-haunted-house", 3),
+            ("halloween-monster-mash", 2), ("halloween-boo", 3), ("halloween-pumpkin-patch", 2),
+            ("halloween-creepy-night", 2), ("halloween-witch-way", 2), ("halloween-ghoul-gang", 4),
+            ("halloween-fright-fest", 2), ("halloween-hocus-pocus", 3), ("halloween-zombie-walk", 2),
+            ("halloween-bat-night", 2), ("halloween-candy-crawl", 3), ("halloween-eek", 3), ("valentine-s-be-mine",
+            3), ("valentine-s-love-you-more", 3), ("valentine-s-date-night", 3), ("valentine-s-galentines", 2),
+            ("valentine-s-all-my-love", 3), ("valentine-s-sweetheart-sale", 2), ("valentine-s-love-is-sweet", 2),
+            ("valentine-s-hearts-aflutter", 2), ("valentine-s-you-me", 4), ("valentine-s-cupid-called", 2),
+            ("valentine-s-lovebirds", 3), ("valentine-s-crush", 2), ("valentine-s-self-love", 2),
+            ("valentine-s-love-letters", 3), ("valentine-s-heart-eyes", 3), ("easter-happy-easter", 3),
+            ("easter-egg-hunt", 3), ("easter-hoppy-easter", 3), ("easter-spring-brunch", 2), ("easter-he-is-risen",
+            3), ("easter-bunny-hop", 2), ("easter-egg-cellent", 2), ("easter-spring-fling", 2),
+            ("easter-chocolate-bunny", 4), ("easter-blooming-easter", 2), ("easter-easter-basket", 3),
+            ("easter-peep-show", 2), ("easter-new-life", 2), ("easter-easter-parade", 3), ("easter-hello-spring",
+            3), ("mother-s-father-s-day-best-mom-ever", 3), ("mother-s-father-s-day-love-you-mum", 3),
+            ("mother-s-father-s-day-queen-of-our-hearts", 3), ("mother-s-father-s-day-mother-day-brunch", 2),
+            ("mother-s-father-s-day-like-mother", 3), ("mother-s-father-s-day-gifts-for-mom", 2),
+            ("mother-s-father-s-day-mama-bear", 2), ("mother-s-father-s-day-hero-dad", 2),
+            ("mother-s-father-s-day-best-dad-ever", 4), ("mother-s-father-s-day-grill-master", 2),
+            ("mother-s-father-s-day-dad-jokes", 3), ("mother-s-father-s-day-gifts-for-dad", 2),
+            ("mother-s-father-s-day-like-father", 2), ("mother-s-father-s-day-daddy-me", 3),
+            ("mother-s-father-s-day-my-first-hero", 3), ("graduation-class-of-2027", 3), ("graduation-grad-party",
+            3), ("graduation-proud-of-you", 3), ("graduation-oh-the-places", 2), ("graduation-cap-gown", 3),
+            ("graduation-she-did-it", 2), ("graduation-he-did-it", 2), ("graduation-next-chapter", 2),
+            ("graduation-senior-year", 4), ("graduation-hats-off", 2), ("graduation-diploma-done", 3),
+            ("graduation-masters-mode", 2), ("graduation-smart-cookie", 2), ("graduation-dream-big", 3),
+            ("graduation-top-of-the-class", 3), ("back-to-school-back-to-school", 3), ("back-to-school-first-day",
+            3), ("back-to-school-school-supplies", 3), ("back-to-school-welcome-back", 2),
+            ("back-to-school-class-is-in-session", 3), ("back-to-school-a-deals", 2), ("back-to-school-lunch-box",
+            2), ("back-to-school-new-year-new-goals", 2), ("back-to-school-bus-stop", 4),
+            ("back-to-school-open-house", 2), ("back-to-school-hello-kindergarten", 3),
+            ("back-to-school-pencils-ready", 2), ("back-to-school-homework-club", 2),
+            ("back-to-school-uniform-sale", 3), ("back-to-school-teacher-appreciation", 3),
+            ("black-friday-black-friday", 3), ("black-friday-doorbusters", 3), ("black-friday-biggest-sale", 3),
+            ("black-friday-deals-inside", 2), ("black-friday-cyber-week", 3), ("black-friday-half-off", 2),
+            ("black-friday-flash-sale", 2), ("black-friday-shop-small", 2), ("black-friday-early-access", 4),
+            ("black-friday-price-drop", 2), ("black-friday-buy-one-get-one", 3), ("black-friday-final-hours", 2),
+            ("black-friday-gift-card-bonus", 2), ("black-friday-doors-open", 3), ("black-friday-steal-of-a-deal",
+            3), ("new-year-happy-new-year", 3), ("new-year-countdown", 3), ("new-year-new-year-new-me", 3),
+            ("new-year-cheers", 2), ("new-year-auld-lang-syne", 3), ("new-year-pop-the-bubbly", 2),
+            ("new-year-fresh-start", 2), ("new-year-goals-2028", 2), ("new-year-last-night", 4),
+            ("new-year-ring-it-in", 2), ("new-year-hello-2028", 3), ("new-year-sparkle", 2),
+            ("new-year-twelve-months", 2), ("new-year-first-light", 3), ("new-year-party-like", 3),
+            ("ramadan-eid-eid-mubarak", 3), ("ramadan-eid-ramadan-kareem", 3), ("ramadan-eid-iftar-night", 3),
+            ("ramadan-eid-eid-al-fitr", 2), ("ramadan-eid-moon-sighting", 3), ("ramadan-eid-suhoor-menu", 2),
+            ("ramadan-eid-eid-sale", 2), ("ramadan-eid-blessed-month", 2), ("ramadan-eid-eid-feast", 4),
+            ("ramadan-eid-lantern-night", 2), ("ramadan-eid-charity-drive", 3), ("ramadan-eid-peace-joy", 2),
+            ("ramadan-eid-henna-night", 2), ("ramadan-eid-last-ten-nights", 3), ("ramadan-eid-eid-bazaar", 3),
+            ("diwali-happy-diwali", 3), ("diwali-shubh-deepavali", 3), ("diwali-diya-night", 3),
+            ("diwali-diwali-mela", 2), ("diwali-rangoli-contest", 3), ("diwali-sweet-boxes", 2), ("diwali-glow-on",
+            2), ("diwali-lights-love", 2), ("diwali-diwali-sale", 4), ("diwali-lakshmi-puja", 2),
+            ("diwali-festival-feast", 3), ("diwali-spark-joy", 2), ("diwali-golden-glow", 2), ("diwali-lamps-lit",
+            3), ("diwali-light-wins", 3), ("thanksgiving-give-thanks", 3), ("thanksgiving-friendsgiving", 3),
+            ("thanksgiving-gather-together", 3), ("thanksgiving-thankful", 2), ("thanksgiving-turkey-trot", 3),
+            ("thanksgiving-pie-contest", 2), ("thanksgiving-harvest-table", 2), ("thanksgiving-gobble-gobble", 2),
+            ("thanksgiving-grateful-hearts", 4), ("thanksgiving-fall-feast", 2), ("thanksgiving-thanks-giving", 3),
+            ("thanksgiving-leftovers", 2), ("thanksgiving-count-your-blessings", 2), ("thanksgiving-pumpkin-spice",
+            3), ("thanksgiving-table-for-twelve", 3), ("business-quarterly-review", 3), ("business-meet-the-team",
+            3), ("business-now-hiring", 3), ("business-product-roadmap", 2), ("business-case-study", 3),
+            ("business-our-mission", 2), ("business-thank-you", 2), ("business-agenda", 2), ("business-key-metrics",
+            4), ("business-pitch-deck", 2), ("business-webinar-today", 3), ("business-annual-report", 2),
+            ("business-client-wins", 2), ("business-business-hours", 3), ("business-lets-talk", 3),
+            ("education-lesson-one", 3), ("education-study-guide", 3), ("education-science-fair", 3),
+            ("education-book-report", 2), ("education-fun-facts", 3), ("education-word-of-the-day", 2),
+            ("education-math-is-fun", 2), ("education-history-hour", 2), ("education-reading-club", 4),
+            ("education-lab-safety", 2), ("education-field-trip", 3), ("education-quiz-time", 2),
+            ("education-class-rules", 2), ("education-online-course", 3), ("education-spelling-bee", 3),
+            ("food-fresh-pasta", 3), ("food-taco-tuesday", 3), ("food-brunch-menu", 3), ("food-pizza-night", 2),
+            ("food-daily-special", 3), ("food-farm-to-table", 2), ("food-burger-bar", 2), ("food-sushi-time", 2),
+            ("food-bake-shop", 4), ("food-street-food", 2), ("food-coffee-cake", 3), ("food-vegan-eats", 2),
+            ("food-recipe-of-the-week", 2), ("food-ice-cream", 3), ("food-wine-tasting", 3), ("travel-wanderlust",
+            3), ("travel-road-trip", 3), ("travel-paris-in-spring", 3), ("travel-island-life", 2),
+            ("travel-pack-your-bags", 3), ("travel-mountain-calling", 2), ("travel-travel-diary", 2),
+            ("travel-bon-voyage", 2), ("travel-hidden-gems", 4), ("travel-camping-weekend", 2),
+            ("travel-passport-ready", 3), ("travel-ocean-view", 2), ("travel-explore-iceland", 2),
+            ("travel-weekend-away", 3), ("travel-around-the-world", 3), ("fitness-no-excuses", 3),
+            ("fitness-leg-day", 3), ("fitness-yoga-flow", 3), ("fitness-run-club", 2), ("fitness-beast-mode", 3),
+            ("fitness-spin-class", 2), ("fitness-30-day-plank", 2), ("fitness-gym-opening", 2),
+            ("fitness-stronger-every-day", 4), ("fitness-boxing-bootcamp", 2), ("fitness-rest-day", 3),
+            ("fitness-personal-best", 2), ("fitness-hiit-it", 2), ("fitness-marathon-ready", 3),
+            ("fitness-sweat-now", 3), ("real-estate-just-listed", 3), ("real-estate-open-house", 3),
+            ("real-estate-sold", 3), ("real-estate-dream-home", 2), ("real-estate-price-reduced", 3),
+            ("real-estate-new-development", 2), ("real-estate-home-sweet-home", 2), ("real-estate-luxury-living",
+            2), ("real-estate-for-rent", 4), ("real-estate-under-contract", 2), ("real-estate-first-home", 3),
+            ("real-estate-market-update", 2), ("real-estate-virtual-tour", 2), ("real-estate-curb-appeal", 3),
+            ("real-estate-your-agent", 3),
         ]
         XCTAssertEqual(TextCombos.all.map(\.id), expected.map(\.0))
         XCTAssertEqual(TextCombos.all.map(\.elements.count), expected.map(\.1))
@@ -80,11 +177,13 @@ final class TextCombosTests: XCTestCase {
             // In a category the chips list.
             XCTAssertTrue(TextCombos.categories.contains(combo.category ?? ""), combo.id)
         }
-        // About a hundred and seventy: twelve or more in each category,
-        // thirty-six of them Animated.
-        XCTAssertEqual(TextCombos.all.count, 168)
+        // About four hundred and fifty: twelve or more in each category,
+        // fifteen in each occasion's and topic's, thirty-six Animated.
+        XCTAssertEqual(TextCombos.all.count, 453)
         XCTAssertEqual(TextCombos.categories.map { TextCombos.search("", in: $0).count },
-                       [14, 13, 13, 14, 13, 13, 13, 13, 13, 13, 36])
+                       [14, 13, 13, 14, 13, 13, 13, 13, 13, 13,
+                        15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+                        15, 15, 15, 15, 15, 15, 36])
         XCTAssertEqual(Set(TextCombos.all.map(\.id)).count, TextCombos.all.count)
     }
 
@@ -345,7 +444,7 @@ extension TextCombosTests {
         XCTAssertTrue(animated.contains { $0.warp != nil })
         // Twelve more in the other categories, after the hundred and
         // twenty: eight bent by a warp, four by a curve.
-        let others = TextCombos.all.dropFirst(120).filter { $0.category != TextCombos.animatedCategory }
+        let others = TextCombos.all.prefix(168).dropFirst(120).filter { $0.category != TextCombos.animatedCategory }
         XCTAssertEqual(others.count, 12)
         XCTAssertEqual(others.filter { $0.elements.contains { $0.warp != nil } }.count, 8)
         XCTAssertEqual(others.filter { $0.elements.contains { ($0.curve ?? 0) != 0 } }.count, 4)
@@ -365,5 +464,87 @@ extension TextCombosTests {
         XCTAssertEqual(placed[0].animation?.kind, "typewriter")
         XCTAssertEqual(placed[0].animation?.by, "letter")
         XCTAssertEqual(placed[1].animation?.delay, 1.6)
+    }
+
+    // MARK: occasions and topics
+
+    /// The categories round 36 added, after Kids and before Animated.
+    private let added = Array(TextCombos.categories.dropFirst(10).prefix(19))
+
+    /// Shared: an occasion's combinations name its day in the calendar, and
+    /// Coming up shows the nearest one's, in the file's order.
+    func testOccasionsNameTheirDayAndComingUpShowsThemFirst() throws {
+        let keyed = TextCombos.all.filter { $0.occasion != nil }
+        XCTAssertEqual(keyed.count, 165)
+        for combo in keyed {
+            XCTAssertNotNil(Occasions.byId(combo.occasion), combo.id)
+            XCTAssertTrue(added.contains(combo.category ?? ""), combo.id)
+        }
+        XCTAssertNil(try XCTUnwrap(TextCombos.combo("birthday-happy-birthday")).occasion)
+        XCTAssertEqual(TextCombos.combo("halloween-trick-or-treat")?.occasion, "halloween")
+        XCTAssertEqual(TextCombos.combo("mother-s-father-s-day-best-mom-ever")?.occasion, "mothers-day")
+        XCTAssertEqual(TextCombos.combo("mother-s-father-s-day-best-dad-ever")?.occasion, "fathers-day")
+        let halloween = try XCTUnwrap(Occasions.byId("halloween"))
+        let next = Occasions.Upcoming(occasion: halloween, date: Occasions.CivilDay(ordinal: 0), days: 6)
+        let shown = TextCombos.comingUp(next)
+        XCTAssertEqual(shown.count, 15)
+        XCTAssertEqual(shown.first?.id, "halloween-trick-or-treat")
+        XCTAssertTrue(shown.allSatisfy { $0.occasion == "halloween" })
+        XCTAssertTrue(TextCombos.comingUp(nil).isEmpty)
+        // A file without the key reads as before.
+        let element = #"{"type":"text","text":"Hi","x":0,"y":0,"w":10,"h":10}"#
+        let plain = TextCombos.combos(from: Data(#"[{"id":"a","name":"A","w":100,"elements":[\#(element)]}]"#.utf8))
+        XCTAssertNil(plain.first?.occasion)
+    }
+
+    /// The newer looks are among them: 3D, gradient letters, a warp and a
+    /// curve, word marks, capitals, raised words and lists.
+    func testTheOccasionSetsUseTheNewerLooks() {
+        let texts = TextCombos.all.filter { added.contains($0.category ?? "") }
+            .flatMap { TextCombos.elements($0, scale: 1) }.filter { $0.type == .text }
+        XCTAssertTrue(texts.contains { $0.effect?.type == "extrude" })
+        XCTAssertTrue(texts.contains { $0.textFill?.kind == "gradient" })
+        XCTAssertTrue(texts.contains { $0.warp != nil })
+        XCTAssertTrue(texts.contains { ($0.curve ?? 0) != 0 })
+        XCTAssertTrue(texts.contains { $0.liveSpans.contains { $0.highlight != nil } })
+        XCTAssertTrue(texts.contains { $0.liveSpans.contains { $0.caps == true } })
+        XCTAssertTrue(texts.contains { $0.liveSpans.contains { $0.script != nil } })
+        XCTAssertTrue(texts.contains { TextLists.isList($0) })
+    }
+
+    /// The generator's checks, as the Android twin's test mirrors them:
+    /// ids once, every face bundled, every effect one the app draws with its
+    /// settings in range, words only in scripts their face covers, and each
+    /// straight line of the new sets within its box.
+    func testEveryCombinationPassesTheGeneratorsChecks() {
+        XCTAssertEqual(Set(TextCombos.all.map(\.id)).count, TextCombos.all.count)
+        for combo in TextCombos.all {
+            for el in combo.elements where el.type == .text {
+                XCTAssertNotNil(FontLibrary.all.first { $0.id == FontLibrary.of(el.fontFamily).id }, combo.id)
+                XCTAssertTrue(FontLibrary.covers(el.fontFamily, RichText.strip(el.text ?? "")), combo.id)
+                guard let spec = el.effect else { continue }
+                let effect = TextEffect.from(spec)
+                XCTAssertNotEqual(effect, .none, "\(combo.id) \(spec.type)")
+                for param in TextEffectParam.allCases {
+                    guard let value = spec[param] else { continue }
+                    XCTAssertTrue(effect.params.contains(param), "\(combo.id) \(param.rawValue)")
+                    XCTAssertTrue(param.range.contains(value), "\(combo.id) \(param.rawValue) \(value)")
+                }
+            }
+        }
+        for combo in TextCombos.all where added.contains(combo.category ?? "") {
+            for el in TextCombos.elements(combo, scale: 1) where el.type == .text && !TextOutliner.followsAPath(el) {
+                let drawn = FontLibrary.attributedString(for: el)
+                let ns = drawn.string as NSString
+                var start = 0
+                for line in drawn.string.components(separatedBy: "\n") {
+                    let length = (line as NSString).length
+                    let width = drawn.attributedSubstring(from: NSRange(location: start, length: length)).size().width
+                    XCTAssertLessThanOrEqual(Double(width), el.w * 1.02, "\(combo.id): \(line)")
+                    start += length + 1
+                }
+                XCTAssertEqual(start - 1, ns.length, combo.id)
+            }
+        }
     }
 }

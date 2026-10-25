@@ -18,7 +18,10 @@
 //
 // Add ▸ Text browses them by category, with this phone's Recently used
 // (RecentCombos) and, when the brand kit sets a title, heading or body face,
-// each one set in the kit's faces (branded).
+// each one set in the kit's faces (branded). Those for an occasion name its
+// day in the shared calendar (`occasion`, an Occasions id), and the nearest
+// coming up shows its combinations first (comingUp), as Home shows its
+// templates.
 
 import Foundation
 
@@ -29,6 +32,9 @@ enum TextCombos {
 
     /// The categories the chips browse by, in their order.
     static let categories = ["Headline", "Sale", "Quote", "Event", "Wedding", "Social", "Retro", "Minimal", "Badge", "Kids",
+                             "Birthday", "Christmas", "Halloween", "Valentine's", "Easter", "Mother's/Father's Day",
+                             "Graduation", "Back to school", "Black Friday", "New Year", "Ramadan/Eid", "Diwali",
+                             "Thanksgiving", "Business", "Education", "Food", "Travel", "Fitness", "Real estate",
                              animatedCategory]
     /// The category of the combinations that drop in already moving.
     static let animatedCategory = "Animated"
@@ -47,6 +53,9 @@ enum TextCombos {
         var elements: [Element]
         /// One of `categories`; nil for an entry with none.
         var category: String?
+        /// The day in the shared calendar it is for (Occasions); nil for
+        /// none.
+        var occasion: String? = nil
     }
 
     /// One entry as it reads, whatever is missing from it: a number is read
@@ -59,8 +68,9 @@ enum TextCombos {
         var w: Double?
         var elements: [Element] = []
         var category: String?
+        var occasion: String?
 
-        private enum CodingKeys: String, CodingKey { case id, name, tags, w, elements, category }
+        private enum CodingKeys: String, CodingKey { case id, name, tags, w, elements, category, occasion }
 
         init(from decoder: Decoder) throws {
             guard let c = try? decoder.container(keyedBy: CodingKeys.self) else { return }
@@ -70,6 +80,7 @@ enum TextCombos {
             w = try? c.decode(Double.self, forKey: .w)
             elements = (try? c.decode([Element].self, forKey: .elements)) ?? []
             category = try? c.decode(String.self, forKey: .category)
+            occasion = (try? c.decode(String.self, forKey: .occasion)).flatMap { $0.isEmpty ? nil : $0 }
         }
     }
 
@@ -92,7 +103,7 @@ enum TextCombos {
                   let w = entry.w, w > 0, !entry.elements.isEmpty else { return nil }
             let h = entry.elements.map { $0.y + $0.h }.max() ?? 0
             return Combo(id: id, name: name, tags: entry.tags, w: w, h: h, elements: entry.elements,
-                         category: entry.category)
+                         category: entry.category, occasion: entry.occasion)
         }
     }
 
@@ -119,6 +130,15 @@ enum TextCombos {
 
     static func combo(_ id: String?) -> Combo? {
         all.first { $0.id == id }
+    }
+
+    /// The Coming up row: the combinations for `next`, the nearest
+    /// occasion coming up (Occasions.upcoming), in the file's order — the
+    /// rule Home's templates follow; none when there is none, or nothing
+    /// for it.
+    static func comingUp(_ next: Occasions.Upcoming?, in library: [Combo] = all) -> [Combo] {
+        guard let id = next?.occasion.id else { return [] }
+        return library.filter { $0.occasion == id }
     }
 
     /// The combinations a search for `query` finds, in the file's order:

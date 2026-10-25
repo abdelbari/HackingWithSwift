@@ -1,7 +1,8 @@
-// Add ▸ Text's font combinations: chips for their categories, this phone's
-// Recently used, From your brand when the kit sets a title, heading or body
-// face, and the grid, two to a row — as the Android twin's Text tab lays
-// them out. A tap hands the combination over (`onPick`).
+// Add ▸ Text's font combinations: chips for their categories, the nearest
+// occasion's Coming up (while Settings ▸ Home shows seasonal ideas), this
+// phone's Recently used, From your brand when the kit sets a title, heading
+// or body face, and the grid, two to a row — as the Android twin's Text tab
+// lays them out. A tap hands the combination over (`onPick`).
 
 import SwiftUI
 
@@ -13,11 +14,16 @@ struct ComboChoices: View {
     var onPick: (TextCombos.Combo) -> Void
     /// The category chosen; nil is All.
     @State private var category: String?
+    /// Settings ▸ Home's "Show seasonal ideas", which the Coming up row
+    /// follows as Home's does.
+    @AppStorage(Occasions.seasonalKey) private var seasonal = true
 
     var body: some View {
         let combos = TextCombos.search(search, in: category)
         let browsing = search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && category == nil
         let recent = browsing ? TextCombos.named(RecentCombos.all()) : []
+        let next = browsing && seasonal ? Occasions.upcoming().first : nil
+        let soon = TextCombos.comingUp(next)
         let branded = combos.compactMap { TextCombos.branded($0, fonts: fonts) }
         return VStack(alignment: .leading, spacing: 10) {
             if combos.isEmpty && category == nil {
@@ -25,6 +31,7 @@ struct ComboChoices: View {
             } else {
                 header(tr("Font combinations"))
                 categoryChips
+                if let next, !soon.isEmpty { comboRow(Occasions.comingUp(next), soon) }
                 if !recent.isEmpty { comboRow(tr("Recently used"), recent) }
                 if !branded.isEmpty { comboRow(tr("From your brand"), branded) }
                 grid(combos)
