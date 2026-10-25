@@ -844,7 +844,9 @@ enum ColorTools {
     /// Every colour a page paints with — the background, then each element
     /// back to front — repeats kept, so a colour used more weighs more.
     /// Text and lines give their colour; a shape its fill (every stop of a
-    /// gradient) and its border when it has one, which is all a drawing is.
+    /// gradient) and its border when it has one, which is all a drawing is;
+    /// a frame filled with a colour in place of a photo that colour
+    /// (PhotoFrames.colourOf), as the Android twin's Palettes.coloursOf.
     static func pageColours(_ page: Page) -> [String] {
         var out: [String] = []
         switch page.background {
@@ -866,7 +868,11 @@ enum ColorTools {
                     }
                 }
                 if let stroke = el.stroke, (el.strokeWidth ?? 0) > 0 { out.append(stroke) }
-            case .image, .sticker:
+            case .image:
+                if let fill = PhotoFrames.colourOf(el) {
+                    if fill.kind == "gradient" { out += (fill.stops ?? []).map(\.color) } else if let c = fill.color { out.append(c) }
+                }
+            case .sticker:
                 break
             }
         }

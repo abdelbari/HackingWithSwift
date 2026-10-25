@@ -99,6 +99,18 @@ final class FrameColourFillTests: XCTestCase {
         XCTAssertEqual(PhotoFrames.fillOrder([top, bottom]).map(\.id), ["bottom"])
     }
 
+    func testItsColoursAreThePagesColours() throws {
+        let white = Background.color("#ffffff")
+        XCTAssertEqual(ColorTools.pageColours(Page(background: white, elements: [try cell()])), ["#ffffff", "#1f2430"])
+        var gradientCell = try cell()
+        gradientCell.fill = gradient()
+        XCTAssertEqual(ColorTools.pageColours(Page(background: white, elements: [gradientCell])),
+                       ["#ffffff", "#ff0000", "#0000ff"])
+        var photo = try cell()
+        photo.src = "media:1"
+        XCTAssertEqual(ColorTools.pageColours(Page(background: white, elements: [photo])), ["#ffffff"])
+    }
+
     func testAPhotoPutInDropsTheColourAndDetachLeavesTheFrameWithNone() throws {
         let coloured = try cell()
         let filled = Copies.filled(coloured, with: Element.image("media:9"), foreign: true)
