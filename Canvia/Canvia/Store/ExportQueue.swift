@@ -132,6 +132,9 @@ final class ExportQueue {
         var notify: @MainActor (_ job: UUID, _ title: String, _ body: String, _ actions: Bool) -> Void
         var clear: @MainActor (_ job: UUID) -> Void
         var beginContinued: @MainActor (_ job: UUID, _ title: String, _ subtitle: String) -> Bool = { _, _, _ in false }
+        /// Withdraws export `job`'s request the system has not started:
+        /// the export is over before it was.
+        var cancelContinued: @MainActor (_ job: UUID) -> Void = { _ in }
 
         static let app = Host(
             begin: { expired in
@@ -149,7 +152,8 @@ final class ExportQueue {
             clear: { job in ExportNotifications.clear(job: job) },
             beginContinued: { job, title, subtitle in
                 ContinuedExport.submit(job: job, title: title, subtitle: subtitle)
-            })
+            },
+            cancelContinued: { job in ContinuedExport.cancel(job: job) })
 
         static let none = Host(begin: { _ in .invalid }, end: { _ in }, isAway: { false },
                                notify: { _, _, _, _ in }, clear: { _ in })
@@ -197,6 +201,9 @@ final class ExportQueue {
     /// the task itself once the system has started it.
     private(set) var continuedAsked: UUID?
     @ObservationIgnored private(set) var continuedTask: Continued?
+    /// How the last few exports went, by job: a task the system starts
+    /// for one already over ends as it went, not as failed.
+    @ObservationIgnored private var outcomes: [(job: UUID, success: Bool)] = []
 
     init(host: Host) {
         self.host = host
@@ -345,7 +352,7 @@ final class ExportQueue {
             }
             running = nil
             current = nil
-            endContinued(success: succeeded)
+            endContinued(job.id, success: succeeded)
             endBackground()
         }
         runner = nil
@@ -480,7 +487,7 @@ final class ExportQueue {
     /// once.
     func continued(_ handle: ContinuedExport.Handle, job: UUID) {
         guard current?.id == job else {
-            handle.finish(false)
+            handle.finish(outcomes.last(where: { $0.job == job })?.success ?? false)
             return
         }
         continuedTask = Continued(job: job, handle: handle)
@@ -506,11 +513,18 @@ final class ExportQueue {
     }
 
     /// The export over: its continued processing task, when it has one,
-    /// ended as it went.
-    private func endContinued(success: Bool) {
-        continuedTask?.handle.finish(success)
+    /// ended as it went; asked for but not yet started, withdrawn, so the
+    /// system does not start it later and show it as failed.
+    private func endContinued(_ job: UUID, success: Bool) {
+        if let task = continuedTask {
+            task.handle.finish(success)
+        } else if let asked = continuedAsked {
+            host.cancelContinued(asked)
+        }
         continuedTask = nil
         continuedAsked = nil
+        outcomes.append((job: job, success: success))
+        if outcomes.count > 20 { outcomes.removeFirst(outcomes.count - 20) }
     }
 
     /// Where every exporter's pause between pages or frames waits while the

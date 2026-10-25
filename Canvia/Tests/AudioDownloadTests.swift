@@ -107,6 +107,7 @@ final class AudioDownloadTests: XCTestCase {
         var finished: [Bool] = []
         var expire: (() -> Void)?
         var notes: [String] = []
+        var withdrawn: [UUID] = []
     }
 
     @MainActor
@@ -117,6 +118,7 @@ final class AudioDownloadTests: XCTestCase {
             return grants
         }
         host.notify = { _, _, body, _ in heard.notes.append(body) }
+        host.cancelContinued = { job in heard.withdrawn.append(job) }
         return host
     }
 
@@ -172,6 +174,7 @@ final class AudioDownloadTests: XCTestCase {
         await queue.waitUntilIdle()
         XCTAssertEqual(heard.finished, [true])
         XCTAssertNil(queue.continuedTask)
+        XCTAssertTrue(heard.withdrawn.isEmpty, "a started task is ended, not withdrawn")
     }
 
     /// Stopped by the system, the export is cancelled cleanly and says to
@@ -224,5 +227,26 @@ final class AudioDownloadTests: XCTestCase {
         await queue.waitUntilIdle()
         XCTAssertEqual(heard.finished, [true, true])
         XCTAssertEqual(queue.finished.map(\.id), [batch], "handed over together")
+    }
+
+    /// An export over before the system started its task withdraws the
+    /// request; should the task start anyway, it ends as the export went —
+    /// succeeded — not as failed. One the system did start is not
+    /// withdrawn.
+    @MainActor
+    func testAQuickExportWithdrawsItsRequestAndALateTaskEndsAsItWent() async throws {
+        let heard = Heard()
+        let queue = ExportQueue(host: host(heard, grants: true))
+        let job = ExportQueue.Job(label: "Exporting PNG", designId: "d", work: { _ in
+            ExportQueue.Result(urls: [URL(fileURLWithPath: "/tmp/one.png")])
+        })
+        queue.enqueue(job)
+        await queue.waitUntilIdle()
+        XCTAssertEqual(heard.withdrawn, [job.id])
+        XCTAssertNil(queue.continuedAsked)
+        queue.continued(handle(heard), job: job.id)
+        XCTAssertEqual(heard.finished, [true])
+        queue.continued(handle(heard), job: UUID())
+        XCTAssertEqual(heard.finished, [true, false], "a task for no export it knows ends as failed")
     }
 }
