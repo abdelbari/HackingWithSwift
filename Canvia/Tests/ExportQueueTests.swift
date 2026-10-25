@@ -176,7 +176,8 @@ final class ExportQueueTests: XCTestCase {
         let queue = ExportQueue(host: .none)
         queue.enqueue(ExportQueue.Job(label: "Making the PDF", designId: "d") { _ in throw Broken() })
         await queue.waitUntilIdle()
-        XCTAssertEqual(queue.finished.map(\.result.failed), ["Export failed: the disk is full"])
+        // Said plainly (ExportFailure), not in the system's words.
+        XCTAssertEqual(queue.finished.map(\.result.failed), ["Export failed. Something went wrong."])
         XCTAssertTrue(queue.finished.first?.result.isOnlySaid ?? false)
     }
 
@@ -189,12 +190,14 @@ final class ExportQueueTests: XCTestCase {
             var errorDescription: String? { why }
         }
         let queue = ExportQueue(host: .none)
-        queue.enqueue(ExportQueue.Job(label: "Making the PDF", designId: "d") { _ in throw Broken(why: "the disk is full") })
-        queue.enqueue(ExportQueue.Job(label: "Rendering the video", designId: "d") { _ in throw Broken(why: "no room") })
+        queue.enqueue(ExportQueue.Job(label: "Making the PDF", designId: "d") { _ in throw Broken(why: "No space left on device") })
+        queue.enqueue(ExportQueue.Job(label: "Rendering the video", designId: "d") { _ in throw Broken(why: "the encoder refused it") })
         await queue.waitUntilIdle()
         XCTAssertTrue(queue.nextIsOnlySaid)
-        XCTAssertEqual(queue.takeRequested()?.finished.result.failed, "Export failed: the disk is full")
-        XCTAssertEqual(queue.takeRequested()?.finished.result.failed, "Export failed: no room")
+        XCTAssertEqual(queue.takeRequested()?.finished.result.failed,
+                       "Export failed. There isn't enough space on this phone.")
+        XCTAssertEqual(queue.takeRequested()?.finished.result.failed,
+                       "Export failed. This phone's video encoder couldn't make it.")
         XCTAssertNil(queue.takeRequested())
         XCTAssertFalse(queue.nextIsOnlySaid)
     }

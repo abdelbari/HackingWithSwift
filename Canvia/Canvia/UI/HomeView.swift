@@ -312,11 +312,11 @@ struct HomeView: View {
         // An export still running — from the editor, or asked for here; a
         // tap opens its design.
         .overlay(alignment: .bottom) {
-            ExportPill {
+            ExportPill(onTap: {
                 if let id = ExportQueue.shared.current?.designId, let design = DesignLibrary.load(id: id) {
                     onOpen(design)
                 }
-            }
+            }, onStorage: { homeSheet = .settings })
             .padding(.bottom, 12)
         }
         .overlay { if openingFile { OpeningDesignCard() } }
@@ -1825,7 +1825,9 @@ struct HomeView: View {
     private func share(_ designs: [RecentDesign], as format: HomeExports.Format) {
         let ids = designs.map(\.id)
         guard !ids.isEmpty else { return }
-        HomeExports.enqueue(ids, as: format, settings: HomeExports.settings(exportLast), queue: ExportQueue.shared)
+        let titles = Dictionary(designs.map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first })
+        HomeExports.enqueue(ids, as: format, settings: HomeExports.settings(exportLast), queue: ExportQueue.shared,
+                            titles: titles)
         stopSelecting()
     }
 

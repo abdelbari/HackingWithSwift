@@ -760,11 +760,15 @@ struct ExportSheet: View {
         case "html":
             run(tr("Making the web page"), format: "html") { ExportJobs.html(designSnapshot, settings: htmlSettings) }
         case "mp4":
-            run(tr("Rendering the video"), format: "mp4") {
+            let snapshot = designSnapshot, captions = captionsSrt
+            run(tr("Rendering the video"), format: "mp4", smaller: movieAt { ExportJobs.movie(snapshot, settings: $0, captions: captions) }) {
                 ExportJobs.movie(designSnapshot, settings: movieSettings, captions: captionsSrt)
             }
         case "gif":
-            run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gif(designSnapshot, settings: movieSettings) }
+            let snapshot = designSnapshot
+            run(tr("Rendering the GIF"), format: "gif", smaller: movieAt { ExportJobs.gif(snapshot, settings: $0) }) {
+                ExportJobs.gif(designSnapshot, settings: movieSettings)
+            }
         case "m4a":
             // The pages chosen — never the selection — heard on their own.
             run(tr("Making the audio"), format: "m4a") {
@@ -776,7 +780,13 @@ struct ExportSheet: View {
             run(tr("Making the Word document"), format: "docx") { ExportJobs.docx(doc) }
         default:
             let format = fileType
-            run(tr("Rendering"), format: format) { zipped(picturesWork(format == "jpg" ? .jpeg : .png)) }
+            let raster: DesignExporter.RasterFormat = format == "jpg" ? .jpeg : .png
+            let smaller = picturesAt(raster)
+            let zip = zipping, design = exportedDesign
+            run(tr("Rendering"), format: format, smaller: { settings in
+                let work = smaller(settings)
+                return zip ? ExportJobs.zipped(work, design: design) : work
+            }) { zipped(picturesWork(raster)) }
         }
     }
 
@@ -797,12 +807,25 @@ struct ExportSheet: View {
         photosNote = nil
         switch fileType {
         case "mp4":
-            run(tr("Rendering the video"), format: "mp4") { ExportJobs.movieToPhotos(designSnapshot, settings: movieSettings) }
+            let snapshot = designSnapshot
+            run(tr("Rendering the video"), format: "mp4", smaller: movieAt { ExportJobs.movieToPhotos(snapshot, settings: $0) }) {
+                ExportJobs.movieToPhotos(designSnapshot, settings: movieSettings)
+            }
         case "gif":
-            run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gifToPhotos(designSnapshot, settings: movieSettings) }
+            let snapshot = designSnapshot
+            run(tr("Rendering the GIF"), format: "gif", smaller: movieAt { ExportJobs.gifToPhotos(snapshot, settings: $0) }) {
+                ExportJobs.gifToPhotos(designSnapshot, settings: movieSettings)
+            }
         default:
             let format = fileType == "jpg" ? DesignExporter.RasterFormat.jpeg : .png
-            run(tr("Saving to your photos"), format: fileType == "jpg" ? "jpg" : "png") {
+            let snapshot = picturesSnapshot
+            let quality = jpegQuality, clear = transparent, compress = pngCompress && format == .png, split = pickedSplit
+            let smaller: @MainActor (ExportFailure.Asked) -> ExportQueue.Work = { settings in
+                ExportJobs.picturesToPhotos(snapshot, format: format, scale: settings.scale,
+                                            longEdge: Double(settings.longEdge ?? 0), quality: quality,
+                                            transparent: clear, compress: compress, split: split)
+            }
+            run(tr("Saving to your photos"), format: fileType == "jpg" ? "jpg" : "png", smaller: smaller) {
                 ExportJobs.picturesToPhotos(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
                                             quality: jpegQuality, transparent: transparent,
                                             compress: pngCompress && format == .png, split: pickedSplit)
@@ -1683,12 +1706,18 @@ struct ExportSheet: View {
     /// settings as they stand, to the app's queue — after any export
     /// already running — and the settings kept under `format`, when asked.
     @MainActor
-    private func run(_ working: String, format: String?, job: @MainActor () -> ExportQueue.Work) {
+    private func run(_ working: String, format: String?,
+                     smaller: (@MainActor (ExportFailure.Asked) -> ExportQueue.Work)? = nil,
+                     job: @MainActor () -> ExportQueue.Work) {
         errorMessage = nil
         musicNote = nil
         exportNote = nil
+        // Kept to try again should it fail: the design as it is, the
+        // settings, and — for a picture or a film — how it is made smaller.
+        let retry = ExportQueue.Retry(design: store.design, settings: format.map(failureSettings), smaller: smaller)
         queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, title: store.design.title,
-                                      detail: continuedDetail(format), units: continuedUnits(format), work: job()))
+                                      detail: continuedDetail(format), units: continuedUnits(format), retry: retry,
+                                      work: job()))
         // Kept for next time, when asked to be.
         if let format { rememberSettings(format) }
     }
@@ -1736,6 +1765,36 @@ struct ExportSheet: View {
         var snapshot = exportedSnapshot
         if !selectionOnly { snapshot.captionTime = store.playheadInPage }
         return snapshot
+    }
+
+    /// What a failed export of `format` is tried again smaller from
+    /// (ExportFailure.suggestion): the settings as they stand.
+    private func failureSettings(_ format: String) -> ExportFailure.Asked {
+        ExportFailure.Asked(format: format, scale: scale, longEdge: typedLongEdge.map { Int($0) },
+                               maxEdge: ExportFailure.videoFormats.contains(format) ? resolution.maxEdge : nil)
+    }
+
+    /// The pictures as they stand made at another scale or long edge — a
+    /// failed export tried at 1× — from the snapshot taken now.
+    private func picturesAt(_ format: DesignExporter.RasterFormat) -> @MainActor (ExportFailure.Asked) -> ExportQueue.Work {
+        let snapshot = picturesSnapshot
+        let quality = jpegQuality, clear = transparent, compress = pngCompress, split = pickedSplit
+        return { settings in
+            ExportJobs.pictures(snapshot, format: format, scale: settings.scale, longEdge: Double(settings.longEdge ?? 0),
+                                quality: quality, transparent: clear, compress: compress, split: split)
+        }
+    }
+
+    /// The film as it stands made at another long edge — a failed export
+    /// tried a quality lower — by `make`, from the motion settings now.
+    private func movieAt(_ make: @escaping @MainActor (MovieExporter.Settings) -> ExportQueue.Work)
+        -> @MainActor (ExportFailure.Asked) -> ExportQueue.Work {
+        let base = movieSettings
+        return { settings in
+            var lower = base
+            lower.maxEdge = settings.maxEdge ?? base.maxEdge
+            return make(lower)
+        }
     }
 
     private func picturesWork(_ format: DesignExporter.RasterFormat) -> ExportQueue.Work {

@@ -88,7 +88,39 @@ final class ExportQueue {
         var title: String? = nil
         var detail: String = ""
         var units: Int = 0
+        /// How it is made again should it fail (Retry); none, and it is
+        /// tried again as it was, with nothing smaller to suggest.
+        var retry: Retry? = nil
         let work: Work
+    }
+
+    /// What a failed job is tried again with: the design as it was, to
+    /// name the page of a photo gone missing; the settings it was asked
+    /// for with, to suggest a smaller try (ExportFailure.suggestion); and
+    /// its work made with those smaller settings.
+    struct Retry {
+        var design: Design?
+        var settings: ExportFailure.Asked?
+        var smaller: (@MainActor (ExportFailure.Asked) -> Work)?
+    }
+
+    /// An export that failed, kept to try again — its job as it was asked
+    /// for — until dismissed, at most ExportFailure.keptCount, newest
+    /// first: the pill's row and the failure notification offer Try again
+    /// (Retry these, for a batch) and, when there is one, the smaller
+    /// `suggestion` — as the Android twin's Exports.Failed.
+    struct Failed: Identifiable {
+        let id: UUID
+        let label: String
+        /// "Export failed. It's too large to make at this size."
+        let message: String
+        let failure: ExportFailure.Failure
+        let suggestion: ExportFailure.Suggestion?
+        /// A batch's designs that failed, by title, listed under its
+        /// message; empty for one design.
+        var titles: [String] = []
+        /// Made again: as it was, or smaller.
+        let again: @MainActor (_ smaller: Bool) -> Void
     }
 
     /// One of several designs exported at once — Home's Select ▸ Share: a
@@ -98,6 +130,9 @@ final class ExportQueue {
         /// Zero-based.
         let index: Int
         let total: Int
+        /// The designs of it that failed, by id, exported again as a batch
+        /// of their own: Retry these. None, and a failure is only said.
+        var again: (@MainActor ([String]) -> Void)? = nil
     }
 
     /// What the parts of a batch have come to so far, until its last.
@@ -105,6 +140,9 @@ final class ExportQueue {
         var urls: [URL] = []
         var failed = 0
         var left: Int
+        /// The parts that failed, and why the last of them did.
+        var failedJobs: [Job] = []
+        var why = ExportFailure.Reason.other
     }
 
     /// An export done, until it is shared, printed or said.
@@ -135,6 +173,10 @@ final class ExportQueue {
         /// Withdraws export `job`'s request the system has not started:
         /// the export is over before it was.
         var cancelContinued: @MainActor (_ job: UUID) -> Void = { _ in }
+        /// A failure's notification, with Try again and, when there is
+        /// one, the smaller try it suggests (`smaller`, its label).
+        var notifyFailed: @MainActor (_ job: UUID, _ title: String, _ body: String, _ smaller: String?) -> Void
+            = { _, _, _, _ in }
 
         static let app = Host(
             begin: { expired in
@@ -153,7 +195,10 @@ final class ExportQueue {
             beginContinued: { job, title, subtitle in
                 ContinuedExport.submit(job: job, title: title, subtitle: subtitle)
             },
-            cancelContinued: { job in ContinuedExport.cancel(job: job) })
+            cancelContinued: { job in ContinuedExport.cancel(job: job) },
+            notifyFailed: { job, title, body, smaller in
+                ExportNotifications.postFailed(job: job, title: title, body: body, smaller: smaller)
+            })
 
         static let none = Host(begin: { _ in .invalid }, end: { _ in }, isAway: { false },
                                notify: { _, _, _, _ in }, clear: { _ in })
@@ -192,6 +237,8 @@ final class ExportQueue {
     /// Whether the Export sheet is up, which then shows what is done
     /// itself.
     var sheetOpen = false
+    /// The exports that failed, kept to try again, newest first.
+    private(set) var failedExports: [Failed] = []
 
     @ObservationIgnored private var batches: [UUID: BatchMade] = [:]
     @ObservationIgnored private var runner: Task<Void, Never>?
@@ -342,12 +389,20 @@ final class ExportQueue {
                 // Asked for; nothing to say. One of a batch is left out.
                 collect(job, urls: [], failed: 0)
             } catch {
-                if job.batch != nil {
-                    collect(job, urls: [], failed: 1)
+                // Why, plainly, and kept to try again (ExportFailure).
+                let kind = ExportFailure.classify(error)
+                if kind == .cancelled {
+                    collect(job, urls: [], failed: 0)
+                } else if job.batch != nil {
+                    collect(job, urls: [], failed: 1, why: kind)
                 } else {
-                    let failed = Result(failed: ExportChoices.failedText(error.localizedDescription))
-                    finished.append(Finished(id: job.id, label: job.label, designId: job.designId, result: failed))
-                    if host.isAway() { host.notify(job.id, ExportChoices.failedTitle, error.localizedDescription, false) }
+                    let kept = failure(job, kind: kind)
+                    failedExports = ExportFailure.kept(failedExports, kept)
+                    finished.append(Finished(id: job.id, label: job.label, designId: job.designId,
+                                             result: Result(failed: kept.message)))
+                    if host.isAway() {
+                        host.notifyFailed(job.id, ExportChoices.failedTitle, kept.message, kept.suggestion?.label)
+                    }
                 }
             }
             running = nil
@@ -379,6 +434,59 @@ final class ExportQueue {
         DesignFacts.rememberExport(designId, type: ext)
     }
 
+    /// Job `job` failed as `kind`: what it says — a missing photo naming
+    /// its page — what it suggests, and how it is made again from the
+    /// design as it was, as it was or smaller.
+    private func failure(_ job: Job, kind: ExportFailure.Reason) -> Failed {
+        let design = job.retry?.design
+        let page = kind == .missingMedia
+            ? design.flatMap { d in ExportFailure.missingPage(d, pages: Array(d.pages.indices), exists: Self.mediaExists) }
+            : nil
+        let suggestion = ExportFailure.suggestion(kind, settings: job.retry?.settings)
+        return Failed(id: job.id, label: job.label, message: ExportFailure.failedText(kind, page: page),
+                      failure: ExportFailure.Failure(kind: kind, designIds: [job.designId]),
+                      suggestion: suggestion, again: { [weak self] smaller in
+            var work = job.work
+            if smaller, let suggestion, let make = job.retry?.smaller { work = make(suggestion.settings) }
+            // A fresh job, under an id of its own.
+            self?.enqueue(Job(label: job.label, designId: job.designId, batch: job.batch, title: job.title,
+                              detail: job.detail, units: job.units, retry: job.retry, work: work))
+        })
+    }
+
+    /// Whether a photo's file is still there: one of the app's own photos
+    /// ("media:<id>") by its file; anything else is taken to be.
+    nonisolated private static func mediaExists(_ src: String) -> Bool {
+        guard src.hasPrefix("media:") else { return true }
+        let id = String(src.dropFirst(6))
+        return MediaStore.extensions.contains { ext in
+            FileManager.default.fileExists(atPath: MediaStore.directory.appendingPathComponent("\(id).\(ext)").path)
+        }
+    }
+
+    /// Failed export `id` tried again: as it was, or with its smaller
+    /// suggestion. It leaves the list, its message and notification with
+    /// it; failing again puts it back.
+    func retry(_ id: UUID, smaller: Bool = false) {
+        guard let entry = failedExports.first(where: { $0.id == id }) else { return }
+        dismissFailed(id)
+        if note == entry.message { note = nil }
+        entry.again(smaller && entry.suggestion != nil)
+    }
+
+    /// Failed export `id` let go, with what is left of it to say.
+    func dismissFailed(_ id: UUID) {
+        failedExports.removeAll { $0.id == id }
+        finished.removeAll { $0.id == id && $0.result.isOnlySaid }
+        host.clear(id)
+    }
+
+    /// Whether a finished export's failure is in the list, where its row
+    /// says it — so it is not said again in the pill.
+    func isKeptFailure(_ id: UUID) -> Bool {
+        failedExports.contains { $0.id == id }
+    }
+
     private func finish(_ id: UUID, label: String, designId: String, result: Result) {
         finished.append(Finished(id: id, label: label, designId: designId, result: result))
         if host.isAway() { host.notify(id, ExportChoices.readyTitle, Self.readyBody(result), !result.urls.isEmpty) }
@@ -388,11 +496,15 @@ final class ExportQueue {
     /// its files kept with the others'. After the last, every file is
     /// handed over at once, what could not be exported said beside them —
     /// or, with none made, said alone. Nothing for a job of one design.
-    private func collect(_ job: Job, urls: [URL], failed: Int) {
+    private func collect(_ job: Job, urls: [URL], failed: Int, why: ExportFailure.Reason = .other) {
         guard let batch = job.batch else { return }
         var made = batches[batch.id] ?? BatchMade(left: batch.total)
         made.urls += urls
         made.failed += failed
+        if failed > 0 {
+            made.failedJobs.append(job)
+            made.why = why
+        }
         made.left -= 1
         guard made.left <= 0 else {
             batches[batch.id] = made
@@ -400,6 +512,15 @@ final class ExportQueue {
         }
         batches[batch.id] = nil
         let note = HomeExports.failureText(failed: made.failed, total: batch.total)
+        // Those that failed, named under "Couldn't export 2 of 5", with
+        // Retry these: a batch of them alone, as this one was asked.
+        if let note, let again = batch.again, !made.failedJobs.isEmpty {
+            let ids = made.failedJobs.map(\.designId)
+            let entry = Failed(id: batch.id, label: note, message: note,
+                               failure: ExportFailure.Failure(kind: made.why, designIds: ids), suggestion: nil,
+                               titles: made.failedJobs.map { $0.title ?? $0.designId }, again: { _ in again(ids) })
+            failedExports = ExportFailure.kept(failedExports, entry)
+        }
         if !made.urls.isEmpty {
             finish(batch.id, label: job.label, designId: job.designId, result: Result(urls: made.urls, skipped: note))
         } else if let note {
@@ -569,6 +690,10 @@ final class ExportNotifications: NSObject, UNUserNotificationCenterDelegate {
     static let category = "canvia.export.done"
     static let shareAction = "canvia.export.share"
     static let openAction = "canvia.export.open"
+    /// A failure's Try again, as it was or smaller.
+    static let failedCategory = "canvia.export.failed"
+    static let retryAction = "canvia.export.retry"
+    static let retrySmallerAction = "canvia.export.retrySmaller"
 
     /// At launch: this object hears the actions, the done category has its
     /// Share and Open, and a planned post's reminder its Share now
@@ -578,9 +703,45 @@ final class ExportNotifications: NSObject, UNUserNotificationCenterDelegate {
         center.delegate = shared
         let share = UNNotificationAction(identifier: shareAction, title: ExportChoices.shareAction, options: [.foreground])
         let open = UNNotificationAction(identifier: openAction, title: ExportChoices.openAction, options: [.foreground])
-        center.setNotificationCategories([UNNotificationCategory(identifier: category, actions: [share, open],
-                                                                  intentIdentifiers: [], options: []),
-                                          PostReminders.notificationCategory])
+        center.setNotificationCategories(Set([UNNotificationCategory(identifier: category, actions: [share, open],
+                                                                      intentIdentifiers: [], options: []),
+                                              PostReminders.notificationCategory] + failureCategories))
+    }
+
+    /// A failure's: Try again alone, and Try again with each smaller try
+    /// there can be — "Try at 1×", "Try at 1080p", "Try at 720p" — whose
+    /// labels a category fixes when it is registered.
+    static var failureCategories: [UNNotificationCategory] {
+        let again = UNNotificationAction(identifier: retryAction, title: ExportFailure.tryAgain, options: [.foreground])
+        let plain = UNNotificationCategory(identifier: failedCategory, actions: [again], intentIdentifiers: [], options: [])
+        let smaller = smallerLabels.map { label in
+            UNNotificationCategory(identifier: categoryFor(smaller: label),
+                                   actions: [again, UNNotificationAction(identifier: retrySmallerAction, title: label,
+                                                                         options: [.foreground])],
+                                   intentIdentifiers: [], options: [])
+        }
+        return [plain] + smaller
+    }
+
+    /// Every label a smaller try can have (ExportFailure.suggestion).
+    static var smallerLabels: [String] {
+        [tr("Try at 1×")] + MovieExporter.Resolution.allCases.dropLast().map { tr("Try at %@", $0.rawValue) }
+    }
+
+    /// The category of a failure suggesting `smaller`, or of one with none.
+    static func categoryFor(smaller: String?) -> String {
+        guard let smaller, smallerLabels.contains(smaller) else { return failedCategory }
+        return failedCategory + "|" + smaller
+    }
+
+    /// Export `job`'s failure: why, with Try again and the smaller try.
+    static func postFailed(job: UUID, title: String, body: String, smaller: String?) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.categoryIdentifier = categoryFor(smaller: smaller)
+        let request = UNNotificationRequest(identifier: identifier(job: job), content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
     }
 
     /// Asked once, the first time an export is kept going in the
@@ -627,6 +788,15 @@ final class ExportNotifications: NSObject, UNUserNotificationCenterDelegate {
         let identifier = response.notification.request.identifier
         let job = identifier.hasPrefix(Self.identifierPrefix)
             ? UUID(uuidString: String(identifier.dropFirst(Self.identifierPrefix.count))) : nil
+        // A failure's Try again, as it was or smaller.
+        let action = response.actionIdentifier
+        if action == Self.retryAction || action == Self.retrySmallerAction, let job {
+            Task { @MainActor in
+                ExportQueue.shared.retry(job, smaller: action == Self.retrySmallerAction)
+            }
+            completionHandler()
+            return
+        }
         Task { @MainActor in
             ExportQueue.shared.tapped(request, job: job)
         }
@@ -730,8 +900,10 @@ enum ExportPresenter {
     /// when Open asked — and what there is to say put in the pill.
     static func deliver(_ finished: ExportQueue.Finished, request: ExportQueue.Request?, queue: ExportQueue) {
         let result = finished.result
+        // A failure kept to try again says itself, in its row of the pill.
+        let kept = queue.isKeptFailure(finished.id)
         if let failed = result.failed {
-            queue.note = failed
+            if !kept { queue.note = failed }
             return
         }
         if let print = result.print {
@@ -745,7 +917,7 @@ enum ExportPresenter {
             queue.note = note
         } else if result.musicLost {
             queue.note = ExportChoices.musicLost
-        } else if let skipped = result.skipped {
+        } else if let skipped = result.skipped, !kept {
             queue.note = skipped
         }
     }

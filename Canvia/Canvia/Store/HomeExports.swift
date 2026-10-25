@@ -108,14 +108,22 @@ enum HomeExports {
         }
     }
 
-    /// The designs picked, one job each on `queue`, in the order given.
+    /// The designs picked, one job each on `queue`, in the order given,
+    /// each under its title in `titles` (by id) should it fail — those that
+    /// do are listed under "Couldn't export 2 of 5", with Retry these: a
+    /// batch of them alone, made as this one was.
     @MainActor
-    static func enqueue(_ ids: [String], as format: Format, settings: ExportLast, queue: ExportQueue) {
+    static func enqueue(_ ids: [String], as format: Format, settings: ExportLast, queue: ExportQueue,
+                        titles: [String: String] = [:]) {
         let batch = UUID()
+        let again: @MainActor ([String]) -> Void = { failed in
+            enqueue(failed, as: format, settings: settings, queue: queue, titles: titles)
+        }
         for (index, id) in ids.enumerated() {
             queue.enqueue(ExportQueue.Job(
                 label: label(index: index, total: ids.count), designId: id,
-                batch: ExportQueue.Batch(id: batch, index: index, total: ids.count),
+                batch: ExportQueue.Batch(id: batch, index: index, total: ids.count, again: again),
+                title: titles[id],
                 work: designWork(id: id, format: format, settings: settings, batch: batch,
                                  index: index, total: ids.count)))
         }
