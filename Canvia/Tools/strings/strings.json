@@ -30365,6 +30365,15 @@
     "ja": "このページ。長押しすると大画面で指し示せます",
     "pt-BR": "Esta página. Toque e segure para apontar para ela na tela grande"
   },
+  "This phone can't find a photo's subject, so this area's dials show only on an iPhone.": {
+    "ar": "لا يستطيع هذا الهاتف العثور على العنصر الرئيسي في الصورة، لذلك لا تظهر مؤشرات هذه المنطقة إلا على iPhone.",
+    "de": "Dieses Telefon kann das Motiv eines Fotos nicht finden, daher wirken die Regler dieses Bereichs nur auf einem iPhone.",
+    "es": "Este teléfono no puede encontrar el sujeto de una foto, así que los diales de esta zona solo se ven en un iPhone.",
+    "fr": "Ce téléphone ne sait pas trouver le sujet d'une photo : les réglages de cette zone ne s'affichent que sur un iPhone.",
+    "it": "Questo telefono non riesce a trovare il soggetto di una foto, quindi le regolazioni di quest'area si vedono solo su un iPhone.",
+    "ja": "このスマートフォンでは写真の被写体を見つけられないため、この範囲の調整は iPhone でのみ表示されます。",
+    "pt-BR": "Este celular não consegue encontrar o objeto principal de uma foto, então os ajustes desta área só aparecem em um iPhone."
+  },
   "This phone draws %@ as Normal; it is kept, and shows on an iPhone or Android 10 and later.": {
     "ar": "يرسم هذا الهاتف %@ كـ «عادي»؛ ويُحتفظ به، ويظهر على iPhone أو Android 10 والإصدارات الأحدث.",
     "de": "Dieses Telefon zeigt %@ als „Normal“ an; es bleibt erhalten und wird auf einem iPhone oder ab Android 10 angezeigt.",

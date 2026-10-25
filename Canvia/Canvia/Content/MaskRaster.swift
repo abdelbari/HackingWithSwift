@@ -657,12 +657,28 @@ enum MaskRaster {
         guard pixels[tapped * 4 + 3] > 0 else { return out }
         let ref = lab(Int(pixels[tapped * 4]), Int(pixels[tapped * 4 + 1]), Int(pixels[tapped * 4 + 2]))
         let limit = keyLimit(entry.tol)
+        // Each pixel's answer kept (0 not yet asked, 1 outside, 2 within),
+        // and each colour's, so a flat background measures its colour in
+        // Lab once rather than at every neighbour's test.
+        var known = [UInt8](repeating: 0, count: w * h)
+        var byColour: [UInt32: Bool] = [:]
         func within(_ p: Int) -> Bool {
+            if known[p] != 0 { return known[p] == 2 }
             let i = p * 4
-            guard pixels[i + 3] > 0 else { return false }
-            let c = lab(Int(pixels[i]), Int(pixels[i + 1]), Int(pixels[i + 2]))
-            let dl = c.l - ref.l, da = c.a - ref.a, db = c.b - ref.b
-            return dl * dl + da * da + db * db <= limit
+            var inside = false
+            if pixels[i + 3] > 0 {
+                let packed = UInt32(pixels[i]) << 16 | UInt32(pixels[i + 1]) << 8 | UInt32(pixels[i + 2])
+                if let seen = byColour[packed] {
+                    inside = seen
+                } else {
+                    let c = lab(Int(pixels[i]), Int(pixels[i + 1]), Int(pixels[i + 2]))
+                    let dl = c.l - ref.l, da = c.a - ref.a, db = c.b - ref.b
+                    inside = dl * dl + da * da + db * db <= limit
+                    byColour[packed] = inside
+                }
+            }
+            known[p] = inside ? 2 : 1
+            return inside
         }
         var cleared = [Bool](repeating: false, count: w * h)
         if entry.all {

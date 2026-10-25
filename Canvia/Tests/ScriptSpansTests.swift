@@ -143,6 +143,9 @@ final class ScriptSpansTests: XCTestCase {
                                     TextSpan(start: 7, end: 9, script: "super")])
         let back = ForeignText.fromHtml("<sup>a<span style=\"vertical-align: baseline\">b</span></sup>")
         XCTAssertEqual(back.spans, [TextSpan(start: 0, end: 1, script: "super")])
+        // A cell's or a block's top and bottom place it, and raise nothing.
+        let cells = ForeignText.fromHtml("<table><tr><td style=\"vertical-align:bottom\">a</td></tr></table><span style=\"vertical-align:top\">b</span><span style=\"vertical-align:text-bottom\">c</span><span style=\"vertical-align:-2px\">d</span>")
+        XCTAssertEqual(cells.spans, [])
         // RTF's \super and \sub, as the system hands them over.
         XCTAssertEqual(ForeignText.look(of: [.baselineOffset: 4.0]).script, "super")
         XCTAssertEqual(ForeignText.look(of: [NSAttributedString.Key("NSSuperScript"): -1]).script, "sub")

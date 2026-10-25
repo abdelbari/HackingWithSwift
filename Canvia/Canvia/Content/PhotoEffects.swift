@@ -411,14 +411,25 @@ enum PhotoEffects {
         return c
     }()
 
+    /// The last edge shown for each element, by its id: what the screen
+    /// keeps showing while a mask with taps of Clear a colour is made.
+    private static let lastEdges: NSCache<NSString, EdgeImage> = {
+        let c = NSCache<NSString, EdgeImage>()
+        c.countLimit = 24
+        return c
+    }()
+
     /// `el`'s outline or glow, made from what the photo shows — `picture`'s
     /// own alpha, placed, zoomed, straightened and cut to its frame as the
     /// canvas draws it — so it follows a cut-out's shape, and a plain
     /// photo's frame. Grown (an outline) or blurred (a glow) at one to two
     /// pixels a page unit and laid down in the edge's colour; kept while
-    /// nothing that shapes it changes. nil when there is none.
+    /// nothing that shapes it changes. nil when there is none. `later` —
+    /// the screen — never reads the picture for a tap of Clear a colour on
+    /// the main thread: the mask is made on a worker (ImageMasking.isReady)
+    /// and the last edge shown for `el`, if any, stands in meanwhile.
     @MainActor
-    static func edge(_ el: Element, picture: UIImage, key: String) -> EdgeImage? {
+    static func edge(_ el: Element, picture: UIImage, key: String, later: Bool = false) -> EdgeImage? {
         guard let edge = el.edge, el.w > 0, el.h > 0, picture.size.width > 0, picture.size.height > 0 else { return nil }
         let t = thickness(edge)
         guard t > 0 else { return nil }
@@ -432,7 +443,13 @@ enum PhotoEffects {
                   "\(el.cropFit == true)", "\(el.straighten ?? 0)", ContentLibrary.frameShape(of: el)?.id ?? "", "\(el.radius ?? 0)",
                   "\(edge.kind)\(edge.color)\(edge.width)", "\(scale)",
                   "\(el.mask?.hashValue ?? 0)"].joined(separator: "|") as NSString
-        if let made = edges.object(forKey: id) { return made }
+        if let made = edges.object(forKey: id) {
+            lastEdges.setObject(made, forKey: el.id as NSString)
+            return made
+        }
+        if later, !ImageMasking.isReady(el.mask, picture: picture, key: key) {
+            return lastEdges.object(forKey: el.id as NSString)
+        }
         // What the photo shows once its mask is laid over it, so the edge
         // follows what was erased and restored.
         let shown = ImageMasking.drawn(el, picture: picture, key: key)
@@ -515,6 +532,7 @@ enum PhotoEffects {
               let laid = ImageFilterEngine.cgImage(out, from: extent) else { return nil }
         let made = EdgeImage(image: UIImage(cgImage: laid, scale: scale, orientation: .up), pad: pad)
         edges.setObject(made, forKey: id)
+        lastEdges.setObject(made, forKey: el.id as NSString)
         return made
     }
 }

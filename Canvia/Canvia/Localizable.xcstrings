@@ -174666,6 +174666,59 @@
         }
       }
     },
+    "This phone can't find a photo's subject, so this area's dials show only on an iPhone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يستطيع هذا الهاتف العثور على العنصر الرئيسي في الصورة، لذلك لا تظهر مؤشرات هذه المنطقة إلا على iPhone."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Telefon kann das Motiv eines Fotos nicht finden, daher wirken die Regler dieses Bereichs nur auf einem iPhone."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This phone can't find a photo's subject, so this area's dials show only on an iPhone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este teléfono no puede encontrar el sujeto de una foto, así que los diales de esta zona solo se ven en un iPhone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce téléphone ne sait pas trouver le sujet d'une photo : les réglages de cette zone ne s'affichent que sur un iPhone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo telefono non riesce a trovare il soggetto di una foto, quindi le regolazioni di quest'area si vedono solo su un iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このスマートフォンでは写真の被写体を見つけられないため、この範囲の調整は iPhone でのみ表示されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este celular não consegue encontrar o objeto principal de uma foto, então os ajustes desta área só aparecem em um iPhone."
+          }
+        }
+      }
+    },
     "This phone draws %@ as Normal; it is kept, and shows on an iPhone or Android 10 and later." : {
       "extractionState" : "manual",
       "localizations" : {

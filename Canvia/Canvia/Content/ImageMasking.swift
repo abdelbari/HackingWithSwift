@@ -5,6 +5,7 @@
 import CoreGraphics
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import Observation
 import UIKit
 
 enum ImageMasking {
@@ -72,10 +73,10 @@ enum ImageMasking {
     private static func greyImage(_ mask: ImageMask, picture: CGSize, start: Float, key: String, tag: String,
                                   source: UIImage?) -> CGImage? {
         let grid = MaskRaster.gridSize(width: Double(picture.width), height: Double(picture.height))
-        let id = "\(key)|\(mask.hashValue)|\(grid.width)x\(grid.height)|\(tag)" as NSString
+        let id = madeID(mask, grid: grid, key: key, tag: tag)
         if let kept = made.object(forKey: id) { return kept }
         var keyed: MaskRaster.Keyed = { _ in nil }
-        if let source, let proxy = gridPixels(source, width: grid.width, height: grid.height) {
+        if let source, let proxy = sampledPixels(source, key: key, width: grid.width, height: grid.height) {
             keyed = { entry in MaskRaster.keyCoverage(proxy, width: grid.width, height: grid.height, entry: entry) }
         }
         let painted = MaskRaster.raster(mask.strokes, width: grid.width, height: grid.height, start: start,
@@ -83,6 +84,78 @@ enum ImageMasking {
         guard let image = grey(painted, width: grid.width, height: grid.height) else { return nil }
         made.setObject(image, forKey: id)
         return image
+    }
+
+    /// What a mask painted into its grid is kept under in `made`.
+    private static func madeID(_ mask: ImageMask, grid: (width: Int, height: Int), key: String, tag: String) -> NSString {
+        "\(key)|\(mask.hashValue)|\(grid.width)x\(grid.height)|\(tag)" as NSString
+    }
+
+    /// A picture's grid pixels as Clear a colour reads them, kept.
+    private final class SampledPixels {
+        let bytes: [UInt8]
+        init(_ bytes: [UInt8]) { self.bytes = bytes }
+    }
+
+    /// The pictures sampled onto their grids, by picture and grid: a step
+    /// of the Tolerance slider, or Everywhere turned, only keys again,
+    /// never reading the whole picture back.
+    private static let sampled: NSCache<NSString, SampledPixels> = {
+        let c = NSCache<NSString, SampledPixels>()
+        c.countLimit = 4
+        return c
+    }()
+
+    /// `source`, named by `key`, sampled onto `width` × `height`
+    /// (gridPixels), kept.
+    private static func sampledPixels(_ source: UIImage, key: String, width: Int, height: Int) -> [UInt8]? {
+        let id = "\(key)|\(width)x\(height)" as NSString
+        if let kept = sampled.object(forKey: id) { return kept.bytes }
+        guard let bytes = gridPixels(source, width: width, height: height) else { return nil }
+        sampled.setObject(SampledPixels(bytes), forKey: id)
+        return bytes
+    }
+
+    /// Moves on each time a mask with taps of Clear a colour is made off
+    /// the main thread, so the photos whose edge waits for it — which read
+    /// it — draw again with it.
+    @Observable
+    final class MasksMade {
+        fileprivate(set) var version = 0
+    }
+
+    static let prepared = MasksMade()
+
+    /// The masks being made on the worker, by the key they are kept under;
+    /// guarded by `preparingLock`.
+    private static var preparing = Set<String>()
+    private static let preparingLock = NSLock()
+    private static let preparer = DispatchQueue(label: "canvia.photo-masks", qos: .userInitiated)
+
+    /// Whether `mask` over `picture`, named by `key`, is made and kept. A
+    /// mask with a tap of Clear a colour reads the picture pixel by pixel,
+    /// too slow for a frame: when it is not kept it is made on a worker —
+    /// once, however often it is asked for meanwhile — and `prepared` moves
+    /// on when it is ready. A mask without a tap is quick, and always ready.
+    static func isReady(_ mask: ImageMask?, picture: UIImage, key: String) -> Bool {
+        guard let mask, mask.strokes.contains(where: \.keys) else { return true }
+        let pixels = CGSize(width: picture.size.width * picture.scale, height: picture.size.height * picture.scale)
+        let grid = MaskRaster.gridSize(width: Double(pixels.width), height: Double(pixels.height))
+        let id = madeID(mask, grid: grid, key: key, tag: "")
+        if made.object(forKey: id) != nil { return true }
+        preparingLock.lock()
+        let start = preparing.insert(id as String).inserted
+        preparingLock.unlock()
+        if start {
+            preparer.async {
+                _ = ImageMasking.masking(mask, picture: picture, key: key)
+                ImageMasking.preparingLock.lock()
+                ImageMasking.preparing.remove(id as String)
+                ImageMasking.preparingLock.unlock()
+                DispatchQueue.main.async { ImageMasking.prepared.version &+= 1 }
+            }
+        }
+        return false
     }
 
     /// `picture` sampled onto `width` × `height` — the mask's grid — as
