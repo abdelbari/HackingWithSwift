@@ -759,6 +759,8 @@ enum Geometry {
         case pageEdge, pageCentre, guide, grid, margin
         /// The outer edge of a print bleed shown (Bleed).
         case bleedEdge
+        /// An inner edge of the platform safe zone shown (SafeZones).
+        case safeZone
         case element(String)
 
         /// Which of two lines in the same place names the guide: one placed
@@ -772,8 +774,9 @@ enum Geometry {
             case .pageCentre: return 2
             case .pageEdge: return 3
             case .bleedEdge: return 4
-            case .margin: return 5
-            case .grid: return 6
+            case .safeZone: return 5
+            case .margin: return 6
+            case .grid: return 7
             }
         }
     }
@@ -819,6 +822,13 @@ enum Geometry {
             let m = settings.marginInset(for: size)
             xs += [SnapLine(position: m, source: .margin), SnapLine(position: pw - m, source: .margin)]
             ys += [SnapLine(position: m, source: .margin), SnapLine(position: ph - m, source: .margin)]
+        }
+        // The safe zone shown, its inner edges: where the platform's
+        // buttons and captions stop covering the page.
+        if let zone = SafeZones.shown(design, page: page) {
+            let edges = SafeZones.edges(zone, size: size)
+            xs += edges.x.map { SnapLine(position: $0, source: .safeZone) }
+            ys += edges.y.map { SnapLine(position: $0, source: .safeZone) }
         }
         // Guides are placed on purpose, so they snap whatever else is off —
         // unless Show guides is off (Guides.shown).

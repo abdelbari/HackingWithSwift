@@ -41,7 +41,7 @@ final class CaptionsAuditTests: XCTestCase {
     func testCaptionsComeAfterColourVisionAndBeforeMissingLetters() {
         let kinds = AccessibilityAudit.Kind.allCases
         XCTAssertEqual(kinds.firstIndex(of: .colourVision).map { $0 + 1 }, kinds.firstIndex(of: .captions))
-        XCTAssertEqual(kinds.last, .missingLetters)
+        XCTAssertEqual(kinds.firstIndex(of: .missingLetters).map { $0 + 1 }, kinds.firstIndex(of: .safeZone))
         XCTAssertEqual(AccessibilityAudit.Fix.addCaptions.rawValue, "Add captions")
     }
 

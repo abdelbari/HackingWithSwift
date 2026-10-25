@@ -86,6 +86,7 @@ enum ElementNames {
         case .pageCentre: return vertical ? tr("Centre of the page") : tr("Middle of the page")
         case .pageEdge: return tr("Edge of the page")
         case .bleedEdge: return tr("Edge of the bleed")
+        case .safeZone: return tr("Safe zone")
         case .guide: return tr("Your guide")
         case .grid: return tr("Grid")
         case .margin: return tr("Page margin")

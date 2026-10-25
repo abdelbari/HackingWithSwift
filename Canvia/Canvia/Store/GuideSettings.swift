@@ -37,6 +37,23 @@ extension DesignStore {
     /// Lock guides: off unless turned on.
     var guidesLocked: Bool { design.guidesLocked == true }
 
+    /// The safe zone shown on this page (SafeZones.shown): its id, or
+    /// SafeZones.off.
+    var safeZoneChoice: String {
+        SafeZones.shown(design, page: page)?.id ?? SafeZones.off
+    }
+
+    /// The Snapping and guides sheet's Safe zone: a zone's id, or
+    /// SafeZones.off, kept as the design's `safeZone`, as one undo step
+    /// named Edit.
+    func setSafeZone(_ id: String) {
+        guard id != safeZoneChoice else { return }
+        // Words being typed are a step of their own.
+        if hasPendingChanges && (editingTextId != nil || dictationTarget != nil) { commit() }
+        namedStep = tr("Edit")
+        apply { $0.safeZone = id }
+    }
+
     /// Show guides turned on or off, as one undo step named Edit.
     func setGuidesShown(_ shown: Bool) {
         guard shown != guidesShown else { return }

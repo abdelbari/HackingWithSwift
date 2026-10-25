@@ -18,6 +18,7 @@ struct SnappingSheet: View {
                 snapSection
                 gridSection
                 marginSection
+                safeZoneSection
                 guidesSection
             }
             .navigationTitle("Snapping and guides")
@@ -57,6 +58,24 @@ struct SnappingSheet: View {
             }
             Toggle("Show margins", isOn: $store.snapping.showMargins)
                 .disabled(!store.snapping.marginEnabled)
+        }
+    }
+
+    /// Safe zone: the zones this page's size matches, and Off — only on a
+    /// page one matches, a story, a reel, a TikTok or a Short.
+    @ViewBuilder
+    private var safeZoneSection: some View {
+        let zones = SafeZones.matching(store.pageSize)
+        if !zones.isEmpty {
+            Section {
+                Picker("Safe zone", selection: Binding(get: { store.safeZoneChoice },
+                                                       set: { store.setSafeZone($0) })) {
+                    ForEach(zones) { zone in Text(verbatim: zone.label).tag(zone.id) }
+                    Text("Off").tag(SafeZones.off)
+                }
+            } footer: {
+                Text("Shows where the app's own buttons and captions cover the page. Never exported.")
+            }
         }
     }
 

@@ -767,6 +767,10 @@ struct Design: Codable, Equatable, Identifiable {
     /// bleed: a design written before it, or with it turned off, prints as
     /// it always did (see Bleed). Never 0 or less.
     var bleed: Double?
+    /// The platform safe zone the canvas shows (SafeZones): a zone's id,
+    /// or "none" for none. Nil, and not written, is the zone the page's size
+    /// matches first, so a story opens with its zone shown.
+    var safeZone: String?
     /// The sound under the film, in the order the Audio sheet lists it. Nil,
     /// and not written, when there is none. A design from before tracks
     /// reads its soundtrack in as the one track (AudioTrack.migrated).
@@ -880,6 +884,7 @@ struct Design: Codable, Equatable, Identifiable {
         unit = (try? c.decode(String.self, forKey: .unit)).flatMap { $0 == "px" ? nil : $0 }
         dpi = (try? c.decode(Double.self, forKey: .dpi)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
         bleed = (try? c.decode(Double.self, forKey: .bleed)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
+        safeZone = (try? c.decode(String.self, forKey: .safeZone)).flatMap { $0.isEmpty ? nil : $0 }
         starred = (try? c.decode(Bool.self, forKey: .starred)) == true ? true : nil
         // Each word on its own: one that is not a string is passed over.
         let words = (try? c.decode([Proofreader.LenientWord].self, forKey: .spellIgnore))?.compactMap(\.word) ?? []
@@ -938,7 +943,7 @@ struct Design: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
         case guidesHidden, guidesLocked
-        case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present, beatSyncRestore, recordings
+        case titleAuto, fonts, unit, dpi, bleed, safeZone, audio, starred, spellIgnore, language, present, beatSyncRestore, recordings
         case bulk
         case plannedPosts, kind, blocks, docPage
     }

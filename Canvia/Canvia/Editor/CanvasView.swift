@@ -658,6 +658,10 @@ struct CanvasView: View {
                 if store.snapping.showGrid { gridOverlay }
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
                 if let split = store.page.split { seamsOverlay(split) }
+                // Where the platform's buttons and captions cover a story.
+                if let zone = SafeZones.shown(store.design, page: shownPage) {
+                    SafeZoneLayer(zone: zone, size: store.design.size(for: shownPage), unit: iz)
+                }
                 ForEach(Guides.shown(store.design)) { guide in guideLine(guide) }
                 if store.showsReadingOrder { readingOrderOverlay }
                 if underlineLinks { LinkUnderlines(design: store.design, page: shownPage) }

@@ -43,6 +43,11 @@
 //  - missingLetters: words — a text's or a shape's — with letters their font
 //    does not have (FontLibrary.covers), which the phone draws in a
 //    stand-in font: Cyrillic in a Latin-only face.
+//  - safeZone: a shown text more than a fifth of whose box lies under the
+//    platform safe zone shown on its page (SafeZones) — its profile row,
+//    caption, buttons or progress bar: "Text sits under the app's buttons",
+//    with Move inside, which moves it the least way into the safe part of
+//    the page, one step.
 //
 // Findings come page by page; within a page in that order of kinds, and
 // within a kind in layer order, back to front. Hidden elements and hidden
@@ -56,7 +61,7 @@ enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
         case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, headings, colourVision, captions
-        case missingLetters
+        case missingLetters, safeZone
     }
 
     /// What a finding's button does.
@@ -67,6 +72,7 @@ enum AccessibilityAudit {
         case fixHeadingLevel = "Fix heading level"
         case makeHeading = "Make it a heading"
         case addCaptions = "Add captions"
+        case moveInside = "Move inside"
     }
 
     /// One thing found: {kind, pageIndex, elementId, message, fix}.
@@ -159,8 +165,25 @@ enum AccessibilityAudit {
                 out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
                                    message: missingLettersNote))
             }
+            for el in underSafeZone(design, page: page) {
+                out.append(Finding(kind: .safeZone, pageIndex: p, elementId: el.id, message: safeZoneNote,
+                                   fix: el.holdsPlace ? nil : .moveInside))
+            }
         }
         return out
+    }
+
+    /// What a text under the safe zone's covered parts is said to be.
+    static let safeZoneNote = tr("Text sits under the app's buttons")
+
+    /// The shown texts of `page` under the safe zone shown on it
+    /// (SafeZones.isUnder), back to front; none with no zone shown.
+    static func underSafeZone(_ design: Design, page: Page) -> [Element] {
+        guard let zone = SafeZones.shown(design, page: page) else { return [] }
+        let size = design.size(for: page)
+        return page.elements.filter { el in
+            el.type == .text && !el.isHidden && SafeZones.isUnder(Geometry.aabb(el), zone: zone, size: size)
+        }
     }
 
     /// What a box whose font lacks some of its letters is said to have.
@@ -496,6 +519,14 @@ enum AccessibilityAudit {
             // A locked page keeps its words as they are.
             guard !PageLocks.isLocked(design.pages[f.pageIndex]) else { return design }
             el = withHeading(el, role: headingFix(design, id: id))
+        case .some(.moveInside):
+            let page = design.pages[f.pageIndex]
+            guard !PageLocks.isLocked(page), !el.holdsPlace,
+                  let zone = SafeZones.shown(design, page: page) else { return design }
+            let box = Geometry.aabb(el)
+            let moved = SafeZones.movedInside(box, zone: zone, size: design.size(for: page))
+            el.x += moved.minX - box.minX
+            el.y += moved.minY - box.minY
         case .some(.addAltText), .some(.addCaptions), .none:
             return design
         }
