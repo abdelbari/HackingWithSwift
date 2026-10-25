@@ -40,7 +40,8 @@ enum Spreadsheets {
 
     /// A new design of `rows` — a sheet's, as the grid takes them — titled
     /// `title`: one 1080 square page with a column chart across its middle,
-    /// its legend shown, or a table of the rows when they hold no numbers to
+    /// its legend shown, in the brand kit's colours (the new design having
+    /// none of its own), or a table of the rows when they hold no numbers to
     /// draw; nil when there are no rows.
     static func design(rows: [[String]], title: String) -> Design? {
         var design = Design(title: title, width: 1080, height: 1080)
@@ -49,7 +50,7 @@ enum Spreadsheets {
         var spec = ChartSpec(kind: DataGraphics.ChartKind.column.rawValue, data: DataGrid.chartText(rows))
         spec.legend = true
         let frame = CGRect(x: 108, y: 216, width: 864, height: 648)
-        let palette = DataGraphics.palette(for: design, page: page)
+        let palette = DataGraphics.palette(for: design, page: page, brand: BrandKit.load())
         var elements = DataGraphics.chart(spec, in: frame, palette: palette, ink: DataGraphics.ink(for: page))
         if elements.isEmpty, let accent = palette.first {
             elements = DataGraphics.table(rows, in: frame, accent: accent)
