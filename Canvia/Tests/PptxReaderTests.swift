@@ -884,3 +884,135 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(imported.media, ["image1.png": "ppt/media/image1.png", "image2.png": "ppt/media/image2.png"])
     }
 }
+
+// MARK: text fidelity
+
+/// Shared rows (the twin's 'text-fidelity' slide): lists and their levels,
+/// letter, line and paragraph spacing, strikethrough, links out and to a
+/// slide, and type shrunk to fit come in as editable text.
+extension PptxReaderTests {
+
+    private func fidelityBox(_ body: String, lstStyle: String = "<a:lstStyle/>",
+                             bodyPr: String = "<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"/>") -> String {
+        "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"t\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr>\(box)</p:spPr>"
+            + "<p:txBody>\(bodyPr)\(lstStyle)\(body)</p:txBody></p:sp>"
+    }
+
+    private func para(_ words: String, pPr: String = "", rPr: String = "<a:rPr sz=\"2400\"/>") -> String {
+        "<a:p>\(pPr)<a:r>\(rPr)<a:t>\(words)</a:t></a:r></a:p>"
+    }
+
+    /// The text-fidelity slide, and a second slide its words jump to.
+    private func fidelityDeck() throws -> PptxReader.Imported {
+        let bullets = fidelityBox(
+            para("Plan", pPr: "<a:pPr><a:buChar char=\"•\"/></a:pPr>")
+                + para("Steps", pPr: "<a:pPr lvl=\"1\"><a:buChar char=\"◦\"/></a:pPr>")
+                + para("Detail", pPr: "<a:pPr lvl=\"2\"/>"),
+            lstStyle: "<a:lstStyle><a:lvl3pPr><a:buChar char=\"▪\"/></a:lvl3pPr></a:lstStyle>")
+        let numbered = fidelityBox(
+            para("Four", pPr: "<a:pPr><a:buAutoNum type=\"arabicPeriod\" startAt=\"4\"/></a:pPr>")
+                + para("Five", pPr: "<a:pPr><a:buAutoNum type=\"arabicPeriod\" startAt=\"4\"/></a:pPr>"))
+        let spaced = fidelityBox(para(
+            "Wide", pPr: "<a:pPr><a:lnSpc><a:spcPct val=\"150000\"/></a:lnSpc><a:spcAft><a:spcPts val=\"1200\"/></a:spcAft></a:pPr>",
+            rPr: "<a:rPr sz=\"2400\" spc=\"300\"/>"))
+        let struck = fidelityBox("<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Was </a:t></a:r>"
+            + "<a:r><a:rPr sz=\"2400\" strike=\"sngStrike\"/><a:t>$40</a:t></a:r></a:p>")
+        let linked = fidelityBox(para("Visit us", rPr: "<a:rPr sz=\"2400\"><a:hlinkClick r:id=\"rId1\"/></a:rPr>"))
+        let jump = fidelityBox("<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Go </a:t></a:r>"
+            + "<a:r><a:rPr sz=\"2400\"><a:hlinkClick r:id=\"rId2\" action=\"ppaction://hlinksldjump\"/></a:rPr><a:t>next</a:t></a:r></a:p>")
+        let shrunk = fidelityBox(para("Fits", rPr: "<a:rPr sz=\"3200\"/>"),
+                                 bodyPr: "<a:bodyPr><a:normAutofit fontScale=\"62500\" lnSpcReduction=\"20000\"/></a:bodyPr>")
+        let pictured = fidelityBox(para("Pic", pPr: "<a:pPr><a:buBlip><a:blip r:embed=\"rId9\"/></a:buBlip></a:pPr>"))
+        let counted = fidelityBox(
+            para("A", pPr: "<a:pPr><a:buAutoNum type=\"alphaUcParenR\"/></a:pPr>")
+                + para("B", pPr: "<a:pPr><a:buAutoNum type=\"romanLcPeriod\"/></a:pPr>")
+                + para("C", pPr: "<a:pPr><a:buNone/></a:pPr>"))
+        let base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+        let rels = "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+            + "<Relationship Id=\"rId1\" Type=\"\(base)hyperlink\" Target=\"https://example.com/\" TargetMode=\"External\"/>"
+            + "<Relationship Id=\"rId2\" Type=\"\(base)slide\" Target=\"slide2.xml\"/></Relationships>"
+        let first = [bullets, numbered, spaced, struck, linked, jump, shrunk, pictured, counted].joined()
+        return try read(deck([first, textBox(box, "<a:p><a:r><a:t>Next</a:t></a:r></a:p>")], slideRels: [0: rels]))
+    }
+
+    func testListsComeInWithTheirLevelsFromTheParagraphElseTheListStyle() throws {
+        let els = try fidelityDeck().design.pages[0].elements
+        XCTAssertEqual(TextLists.lines(els[0]), [TextParagraph(list: "bullet", level: 0),
+                                                 TextParagraph(list: "bullet", level: 1),
+                                                 TextParagraph(list: "bullet", level: 2)])
+        XCTAssertNotNil(els[0].paragraphs)
+        // Every line alike at the first level: the box-wide list.
+        XCTAssertEqual(els[1].listStyle, "number")
+        XCTAssertNil(els[1].paragraphs)
+        XCTAssertEqual(TextLists.lines(els[8]).map(\.list), ["letter", "number", "none"])
+    }
+
+    func testListSchemesMapAsBothPhonesMapThem() {
+        let rows: [(String?, String?, String?)] = [
+            ("buChar", nil, "bullet"), ("buBlip", nil, "bullet"), ("buNone", nil, "none"),
+            ("buAutoNum", "arabicPeriod", "number"), ("buAutoNum", "arabicParenR", "number"),
+            ("buAutoNum", "alphaLcPeriod", "letter"), ("buAutoNum", "alphaUcParenBoth", "letter"),
+            ("buAutoNum", "romanUcPeriod", "number"), ("buAutoNum", "circleNumDbPlain", "number"),
+            ("buFont", nil, nil), (nil, nil, nil),
+        ]
+        for (bullet, scheme, list) in rows {
+            XCTAssertEqual(PptxReader.list(bullet: bullet, autoNum: scheme), list, "\(bullet ?? "-") \(scheme ?? "-")")
+        }
+    }
+
+    func testSpacingStrikeAndShrunkTypeComeIn() throws {
+        let els = try fidelityDeck().design.pages[0].elements
+        // spc 300 is 4 px; lnSpc 150% of single spacing (1.25); 12 pt after
+        // 24 pt type is half an em.
+        XCTAssertEqual(try XCTUnwrap(els[2].letterSpacing), 4, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(els[2].lineHeight), 1.875, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(els[2].paragraphSpacing), 0.5, accuracy: 1e-9)
+        XCTAssertEqual(els[3].text, "Was ~~$40~~")
+        XCTAssertEqual(RichText.parse(els[3].text ?? "").runs.map(\.style), [RichText.Style(strike: true)])
+        // normAutofit: 32 pt at 62.5%, the lines 20% closer.
+        XCTAssertEqual(try XCTUnwrap(els[6].fontSize), 3200 / 75 * 0.625, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(els[6].lineHeight), 1.0, accuracy: 1e-9)
+    }
+
+    func testLinksGoOutOrToTheSlidesPageAndPictureBulletsAreSaid() throws {
+        let imported = try fidelityDeck()
+        let els = imported.design.pages[0].elements
+        XCTAssertEqual(els[4].link, "https://example.com/")
+        XCTAssertFalse(els[4].liveSpans.contains { $0.link != nil })
+        let next = imported.design.pages[1].id
+        XCTAssertNil(els[5].link)
+        XCTAssertEqual(els[5].liveSpans.filter { $0.link != nil }.map { [$0.start, $0.end] }, [[3, 7]])
+        XCTAssertEqual(els[5].liveSpans.compactMap(\.link), [Links.pageLink(next)])
+        XCTAssertEqual(els[7].listStyle, "bullet")
+        XCTAssertEqual(imported.skipped[PptxReader.picture], 1)
+    }
+
+    /// A box the exporter wrote reads back with its lists, spacing and
+    /// links.
+    func testListsSpacingAndLinksRoundTrip() throws {
+        var el = Element.text("Plan\nSteps\nDetail **now**", fontSize: 32, w: 600)
+        el.id = "t1"
+        el.h = 200
+        el.align = "left"
+        el.setLines([TextParagraph(list: "bullet"), TextParagraph(list: "bullet", level: 1),
+                      TextParagraph(list: "number", level: 2)])
+        el.letterSpacing = 4
+        el.lineHeight = 1.5
+        el.paragraphSpacing = 0.5
+        el.setSpans([TextSpan(start: 0, end: 4, link: "https://example.com/"),
+                     TextSpan(start: 5, end: 10, link: Links.pageLink("p2"))])
+        var design = Design(title: "Deck", width: 1280, height: 720)
+        design.pages = [Page(id: "p1", elements: [el]), Page(id: "p2", elements: [])]
+        let imported = try read(exported(design))
+        let back = try XCTUnwrap(imported.design.pages.first?.elements.first)
+        XCTAssertEqual(TextLists.lines(back).map(\.list), ["bullet", "bullet", "number"])
+        XCTAssertEqual(TextLists.lines(back).map(\.level), [0, 1, 2])
+        XCTAssertEqual(try XCTUnwrap(back.letterSpacing), 4, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(back.lineHeight), 1.5, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(back.paragraphSpacing), 0.5, accuracy: 1e-9)
+        let links = back.liveSpans.filter { $0.link != nil }
+        XCTAssertEqual(links.map { [$0.start, $0.end] }, [[0, 4], [5, 10]])
+        XCTAssertEqual(links.map(\.link), ["https://example.com/", Links.pageLink(imported.design.pages[1].id)])
+        XCTAssertEqual(back.text, "Plan\nSteps\nDetail **now**")
+    }
+}
