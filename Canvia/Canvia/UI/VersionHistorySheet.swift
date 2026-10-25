@@ -204,6 +204,9 @@ struct VersionPreview: View {
     @State private var copySaved = false
     @State private var savedTask: Task<Void, Never>?
     @State private var copyFailed = false
+    /// Each page's badge (VersionDiff.pages), worked out once the version
+    /// reads and again as the design changes, not on every swipe.
+    @State private var states: [VersionDiff.PageState] = []
 
     var body: some View {
         NavigationStack {
@@ -256,8 +259,23 @@ struct VersionPreview: View {
             }.value
             design = read
             loaded = true
+            await diff()
         }
+        .task(id: store.design) { await diff() }
         .onDisappear { savedTask?.cancel() }
+    }
+
+    /// The badges worked out off the main thread: every page of both
+    /// designs is written out to compare them.
+    @MainActor
+    private func diff() async {
+        guard let kept = design else { return }
+        let now = store.design
+        let found = await Task.detached(priority: .userInitiated) {
+            VersionDiff.pages(kept, now)
+        }.value
+        guard !Task.isCancelled, design == kept, store.design == now else { return }
+        states = found
     }
 
     /// The page as large as the screen leaves room for.
@@ -277,7 +295,6 @@ struct VersionPreview: View {
 
     /// "Page 2 of 4 · Changed since".
     private func pageLine(_ design: Design) -> String {
-        let states = VersionDiff.pages(design, store.design)
         let place = tr("Page %d of %d", page + 1, design.pages.count)
         guard states.indices.contains(page) else { return place }
         return place + " · " + Self.badge(states[page].state)
