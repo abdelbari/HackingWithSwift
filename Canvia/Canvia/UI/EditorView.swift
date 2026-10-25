@@ -241,7 +241,7 @@ struct EditorView: View {
             PagesBar(store: store).chromeTypeSize()
         }
         .background(keyboardCommands)
-        .background(UndoHost(store: store, live: undoHostLive, claim: undoClaim) { present(from: $0) })
+        .background(UndoHost(store: store, live: undoHostLive, claim: undoClaim) { presentKey($0) })
         .onChange(of: undoHostLive, initial: true) { _, live in
             if live { undoClaim += 1 }
         }
@@ -611,6 +611,14 @@ struct EditorView: View {
             presentStart = here
         }
         presenting = true
+    }
+
+    /// F5 or ⇧F5 (UndoHostView): Present, but not while a crop, the
+    /// eraser, a brush or the pen is out — the key does nothing then, as on
+    /// the Android twin (EditorKeys).
+    private func presentKey(_ choice: String) {
+        guard store.cropping == nil, store.erasing == nil, store.brushing == nil, store.drawing == nil else { return }
+        present(from: choice)
     }
 
     /// Present, in More: past the first of several pages, From the
