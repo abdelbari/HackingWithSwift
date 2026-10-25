@@ -293,11 +293,14 @@ enum Crop {
     /// mask, the picture before its Cut out with it, and its retouch — was
     /// painted over that picture, and goes with it; and alt text drawn from
     /// it (`altTextSource` its source) no longer says what shows, and goes
-    /// too. Alt text typed for the frame stays.
+    /// too. Alt text typed for the frame stays. So does a frame's colour in
+    /// place of a photo (PhotoFrames.colourOf): a photo put in drops it, and
+    /// a frame emptied — Detach image — is left with none.
     static func replaced(_ el: Element, src: String?) -> Element {
         var out = reset(el)
         out.src = src
         out.straighten = nil
+        if el.type == .image { out.fill = nil }
         out.mask = nil
         out.retouch = nil
         if let from = el.altTextSource, from == el.src, src != el.src {

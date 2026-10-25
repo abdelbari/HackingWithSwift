@@ -1208,6 +1208,12 @@ struct ImageElementView: View {
                     .position(x: frameW / 2 + offsetX, y: frameH / 2 + offsetY)
                     .scaleEffect((element.cropScale ?? 1) * cover,
                                  anchor: UnitPoint(x: cropX, y: cropY))
+            } else if let colour = PhotoFrames.colourOf(element) {
+                // A frame filled with a colour in place of a photo, clipped
+                // to the frame's shape and corners and bordered below, as
+                // the photo would be.
+                colour.fillView()
+                    .frame(width: element.w, height: element.h)
             } else {
                 Color(hex: "#e3e6ea")
                     .overlay(Image(systemName: "photo").font(.largeTitle).foregroundStyle(.secondary))

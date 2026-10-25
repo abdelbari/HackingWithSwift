@@ -944,9 +944,10 @@ final class DesignStore {
     // MARK: colour for a multi-selection
 
     /// Whether anything selected takes a colour: an unlocked text, line or
-    /// shape. Photos and stickers keep their own.
+    /// shape, or an empty frame or grid cell (PhotoFrames.takesColour).
+    /// Photos and stickers keep their own.
     var selectionTakesColour: Bool {
-        selectedElements.contains { !$0.locked && [.text, .line, .shape].contains($0.type) }
+        selectedElements.contains { !$0.locked && ([.text, .line, .shape].contains($0.type) || PhotoFrames.takesColour($0)) }
     }
 
     /// Whether anything selected takes a gradient: text, or a shape that is
@@ -956,7 +957,7 @@ final class DesignStore {
     }
 
     private static func takesGradient(_ el: Element) -> Bool {
-        el.type == .text || (el.type == .shape && !Freehand.isStroke(el))
+        el.type == .text || (el.type == .shape && !Freehand.isStroke(el)) || PhotoFrames.takesColour(el)
     }
 
     /// One colour for everything selected, as the Android twin recolours a
@@ -1059,6 +1060,12 @@ final class DesignStore {
             if !same(el.stroke) { e.stroke = hex }
         case .shape:
             if !(el.fill?.kind == "solid" && same(el.fill?.color)) { e.fill = .solid(hex) }
+        case .image:
+            // An empty frame or grid cell takes the colour in place of a
+            // photo (PhotoFrames.colourOf); a photo keeps its own.
+            if PhotoFrames.takesColour(el) && !(el.fill?.kind == "solid" && same(el.fill?.color)) {
+                e = PhotoFrames.coloured(el, .solid(hex))
+            }
         default:
             break
         }
@@ -1069,6 +1076,12 @@ final class DesignStore {
     static func withGradient(_ el: Element, _ paint: Paint) -> Element {
         guard takesGradient(el) else { return el }
         var e = el
+        if el.type == .image {
+            // A frame draws a colour or a gradient and nothing else
+            // (PhotoFrames.colourOf).
+            guard paint.kind == "gradient" else { return el }
+            return PhotoFrames.coloured(el, paint)
+        }
         if el.type == .text {
             // Letters draw a gradient or a photo and nothing else: a pattern
             // picked for a mixed selection is the shapes', and on the text

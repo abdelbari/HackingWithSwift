@@ -58,6 +58,10 @@ enum ElementNames {
                 return QRForms.form(of: el).map { tr("%@ QR code", $0.kind.name) } ?? tr("QR code")
             }
             if let code = Barcodes.parse(el.src) { return tr("%@ barcode", code.kind.name) }
+            // A frame filled with a colour in place of a photo is named for
+            // it, as a shape is: "Frame, filled dark blue" — a gradient by
+            // its first colour, as on the Android twin.
+            if let fill = PhotoFrames.colourOf(el) { return tr("Frame, filled %@", colourName(fill.primaryColor)) }
             // A letter frame is named for its glyph, as its tile is: "Empty
             // A letter frame", the same on both phones.
             if let glyph = GlyphFrames.frame(shape?.id)?.glyph {

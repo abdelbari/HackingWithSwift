@@ -14768,6 +14768,15 @@
     "ja": "フレームの形",
     "pt-BR": "Forma da moldura"
   },
+  "Frame, filled %@": {
+    "ar": "إطار، مملوء بـ%@",
+    "de": "Rahmen, gefüllt mit %@",
+    "es": "Marco, relleno de %@",
+    "fr": "Cadre, rempli de %@",
+    "it": "Cornice, riempita di %@",
+    "ja": "フレーム、%@で塗りつぶし",
+    "pt-BR": "Moldura, preenchida de %@"
+  },
   "Frames": {
     "ar": "الإطارات",
     "de": "Rahmen",

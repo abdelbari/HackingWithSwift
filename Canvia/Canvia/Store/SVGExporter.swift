@@ -260,6 +260,11 @@ enum SVGExporter {
                 } ?? ""
                 return barcodeMarkup(el, code) + words
             }
+            // A frame filled with a colour in place of a photo: a path in the
+            // frame's shape, filled and bordered as the canvas draws it.
+            if let fill = PhotoFrames.colourOf(el) {
+                return frameColourMarkup(el, fill: fill, index: index, defs: &defs)
+            }
             return bitmapMarkup(el, standIns: standIns)
         case .sticker: return bitmapMarkup(el, standIns: standIns)
         }
@@ -398,6 +403,37 @@ enum SVGExporter {
         }
         return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
                "<path d=\"\(d)\" fill=\"\(paint)\"\(rule)\(stroke)/></g>"
+    }
+
+    /// The outline a photo shows through, in its own space at its own size,
+    /// as the canvas clips it (FrameShape): its frame — a library shape, a
+    /// letter or a mask, or a grid cell's cut — else its rectangle, its
+    /// corners rounded. The Android twin's SvgWriter.framePath.
+    static func framePath(_ el: Element) -> String {
+        let shape = FrameShape(definition: ContentLibrary.frameShape(of: el), cornerRadius: el.radius ?? 0)
+        let path = shape.path(in: CGRect(x: 0, y: 0, width: el.w, height: el.h)).cgPath
+        return TextOutliner.svgPathData(path)
+    }
+
+    /// A frame filled with `fill` in place of a photo (PhotoFrames.colourOf):
+    /// its outline (framePath) filled — a gradient by its def — and its
+    /// border over it.
+    private static func frameColourMarkup(_ el: Element, fill: Paint, index: Int, defs: inout [String]) -> String {
+        let paint: String
+        if fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
+            let id = "grad\(index)"
+            defs.append(gradientDef(id: id, paint: fill, left: 0, top: 0, width: el.w, height: el.h))
+            paint = "url(#\(id))"
+        } else {
+            paint = escape(fill.color ?? "#8b5cf6")
+        }
+        var stroke = ""
+        if let color = el.stroke, let width = el.strokeWidth, width > 0 {
+            stroke = " stroke=\"\(escape(color))\" stroke-width=\"\(num(width))\"" +
+                     " stroke-linejoin=\"round\"" + borderDash(el.dash, width: width)
+        }
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
+               "<path d=\"\(framePath(el))\" fill=\"\(paint)\"\(stroke)/></g>"
     }
 
     /// A border's ends and, when it is dashed or dotted, its pattern and

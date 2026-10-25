@@ -36,6 +36,35 @@ enum PhotoFrames {
         el.type == .image && (el.src ?? "").isEmpty
     }
 
+    /// The colour or gradient an empty frame or grid cell is filled with in
+    /// place of a photo — its `fill`, read only while it has no picture —
+    /// or nil for none: a colour block in a grid that mixes photos and
+    /// colour. Drawn clipped to the frame's shape, corners and border as the
+    /// photo would be; a photo put in drops it (Crop.replaced). Only a solid
+    /// colour or a gradient: any other paint is no fill. An older build
+    /// ignores `fill` on a photo and shows the empty frame. The Android
+    /// twin's PhotoFrames.colourOf.
+    static func colourOf(_ el: Element) -> Paint? {
+        guard isEmpty(el), let fill = el.fill, fill.kind == "solid" || fill.kind == "gradient" else { return nil }
+        return fill
+    }
+
+    /// Whether `el` takes a colour in place of a photo: an unlocked frame or
+    /// cell with no picture in it — empty or already coloured. A frame
+    /// holding a photo keeps it; the simplest rule, the same on both phones.
+    static func takesColour(_ el: Element) -> Bool {
+        isEmpty(el) && !el.locked
+    }
+
+    /// `el` filled with `paint` — or emptied of its colour for nil — when it
+    /// takes a colour (`takesColour`); unchanged otherwise.
+    static func coloured(_ el: Element, _ paint: Paint?) -> Element {
+        guard takesColour(el) else { return el }
+        var out = el
+        out.fill = paint
+        return out
+    }
+
     /// Whether `el` can be dragged into a frame: one unlocked photo or clip.
     /// Not a code — a frame covers and crops what it holds, and a cropped
     /// code no longer scans — nor an empty frame, which has nothing to give.
@@ -92,9 +121,10 @@ enum PhotoFrames {
 
     /// Where pictures picked while `selected` is the selection go: its
     /// unlocked empty frames, in reading order — the one frame selected, or
-    /// a grid's empty cells. None, and the pictures are added as photos.
+    /// a grid's empty cells. A cell filled with a colour (`colourOf`) counts
+    /// as filled, and is skipped. None, and the pictures are added as photos.
     static func fillOrder(_ selected: [Element]) -> [Element] {
-        readingOrder(selected.filter { isEmpty($0) && !$0.locked })
+        readingOrder(selected.filter { isEmpty($0) && !$0.locked && colourOf($0) == nil })
     }
 
     /// A photo dragged onto a frame and let go: the frame takes its picture,

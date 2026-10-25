@@ -1278,7 +1278,13 @@ struct ContextToolbar: View {
 
     @ViewBuilder
     private func imageControls(_ el: Element) -> some View {
-        cutoutButton(el)
+        Group {
+            // An empty frame or grid cell takes a colour in place of a photo
+            // (PhotoFrames.colourOf); Replace, further along, puts a photo
+            // back.
+            if PhotoFrames.takesColour(el) { frameColourChip(el) }
+            cutoutButton(el)
+        }
         toolButton("square.on.circle", "Frame") { activeSheet = .frame }
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         // Crop mode, on the canvas: the picture dragged, pinched and trimmed
@@ -1614,6 +1620,17 @@ struct ContextToolbar: View {
                       "Lock", active: current == .full || current == .position)
         }
         .accessibilityValue(current == .full ? tr("Locked") : current == .position ? tr("Position locked") : "")
+    }
+
+    /// An empty frame's colour in place of a photo: its colour, or none yet,
+    /// shown as a frame with no fill. The sheet colours every frame
+    /// selected (recolourSelection).
+    private func frameColourChip(_ el: Element) -> some View {
+        let fill = PhotoFrames.colourOf(el)
+        return colorChip(fill?.primaryColor ?? "#ffffff", "Colour",
+                         spoken: fill == nil ? tr("no fill") : FillChoices.spokenFill(fill)) {
+            activeSheet = .colorSelection
+        }
     }
 
     /// A colour chip with no one colour in it, since the selection has many.
