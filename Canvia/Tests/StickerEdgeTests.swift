@@ -145,4 +145,24 @@ final class StickerEdgeTests: XCTestCase {
         d.pages = [Page(background: .color("#ffffff"), elements: [shadowed])]
         XCTAssertEqual(PptxExporter.drawnElements(design: d, page: d.pages[0]).count, 1)
     }
+
+    func testPowerPointBringsAnAnimatedGraphicsEdgeInWithItsShape() {
+        // A rectangle of the pack's, so it stays a shape PowerPoint edits.
+        var shape = Element.shape("rect")
+        shape.id = "h"
+        shape.graphicId = "sticker-heart-01"
+        shape.edge = PhotoEdge(kind: "outline", color: "#ff0000", width: 20)
+        shape.animation = ElementAnimation(kind: "fade", delay: 0.5, duration: 0.6)
+        XCTAssertTrue(PhotoEffects.hasDrawnEdge(shape))
+        var d = Design(title: "Stickers", width: 1080, height: 1080)
+        d.pages = [Page(background: .color("#ffffff"), elements: [shape])]
+        let slide = PptxExporter.slide(design: d, page: d.pages[0], number: 1, previous: nil, firstImage: 1).xml
+        // The edge, a picture named after its shape, then the shape: both
+        // fade in together, half a second in.
+        XCTAssertTrue(slide.contains("<p:cNvPr id=\"2\" name=\"h edge\"/>"), slide)
+        XCTAssertTrue(slide.contains("<p:cNvPr id=\"3\" name=\"h\""), slide)
+        XCTAssertTrue(slide.contains("<p:spTgt spid=\"2\"/>"), slide)
+        XCTAssertTrue(slide.contains("<p:spTgt spid=\"3\"/>"), slide)
+        XCTAssertEqual(slide.components(separatedBy: "<p:cond delay=\"500\"/>").count - 1, 2)
+    }
 }

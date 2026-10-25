@@ -580,8 +580,9 @@ enum PptxExporter {
             }
             let id = nextId
             nextId += 1
+            // An edge laid under its shape enters with it, as Present plays them.
             timed.append((id: id, el: el))
-            let link = clickAttributes(el.link, design: design, slides: slides, rels: &rels)
+            let link = el.edgeOnly ? nil : clickAttributes(el.link, design: design, slides: slides, rels: &rels)
             switch kind {
             case .text:
                 // Letters full of a photo: the picture, cropped to the
@@ -715,8 +716,14 @@ enum PptxExporter {
     }
 
     /// The shape's own properties: its number, its name (the element's
-    /// id), its alt text and its link.
+    /// id), its alt text and its link. A shape's edge laid under it is
+    /// named after it — "<id> edge", as the Android twin names its
+    /// underlay — and carries neither.
     private static func cNvPr(_ el: Element, id: Int, link: String?) -> String {
+        if el.edgeOnly {
+            let base = el.id.hasSuffix("#edge") ? String(el.id.dropLast(5)) : el.id
+            return "<p:cNvPr id=\"\(id)\" name=\"\(SVGExporter.escape(base)) edge\"/>"
+        }
         var attributes = "id=\"\(id)\" name=\"\(SVGExporter.escape(el.id))\""
         if let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
             attributes += " descr=\"\(SVGExporter.escape(alt))\""
