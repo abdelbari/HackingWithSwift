@@ -135509,55 +135509,55 @@
         }
       }
     },
-    "Pinch out past the whole page to open the organizer; pinch in it to make the thumbnails larger or smaller, and tap a page to go to it." : {
+    "Pinch out past the whole page and let go to see every page as a grid; pinch in the grid to make the pages bigger or smaller." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "باعِد إصبعيك إلى ما بعد الصفحة كاملة لفتح المنظِّم؛ واقرص داخله لتكبير الصور المصغّرة أو تصغيرها، واضغط على صفحة للانتقال إليها."
+            "value" : "باعد بإصبعين إلى ما بعد الصفحة كاملة ثم أفلِت لترى كل الصفحات في شبكة؛ وقرّب أو باعد بإصبعين داخل الشبكة لتكبير الصفحات أو تصغيرها."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zieh die Finger über die ganze Seite hinaus auseinander, um die Organisation zu öffnen; zieh sie dort auf oder zu, um die Miniaturen zu vergrößern oder zu verkleinern, und tippe auf eine Seite, um zu ihr zu wechseln."
+            "value" : "Ziehe zwei Finger über die ganze Seite hinaus zusammen und lass los, um alle Seiten als Raster zu sehen; zoome im Raster, um die Seiten größer oder kleiner zu machen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pinch out past the whole page to open the organizer; pinch in it to make the thumbnails larger or smaller, and tap a page to go to it."
+            "value" : "Pinch out past the whole page and let go to see every page as a grid; pinch in the grid to make the pages bigger or smaller."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pellizca hacia fuera más allá de la página entera para abrir el organizador; pellizca dentro de él para agrandar o reducir las miniaturas y toca una página para ir a ella."
+            "value" : "Pellizca más allá de la página entera y suelta para ver todas las páginas en una cuadrícula; pellizca en la cuadrícula para agrandar o reducir las páginas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Écartez les doigts au-delà de la page entière pour ouvrir l’organiseur ; pincez-y pour agrandir ou réduire les miniatures, et touchez une page pour y aller."
+            "value" : "Pincez au-delà de la page entière et relâchez pour voir toutes les pages en grille ; pincez dans la grille pour agrandir ou réduire les pages."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allarga le dita oltre l’intera pagina per aprire l’organizzatore; pizzica al suo interno per ingrandire o rimpicciolire le miniature e tocca una pagina per andarci."
+            "value" : "Pizzica oltre la pagina intera e rilascia per vedere tutte le pagine in una griglia; pizzica nella griglia per ingrandire o rimpicciolire le pagine."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ページ全体を超えてピンチアウトすると整理画面が開きます。整理画面でピンチするとサムネイルを拡大・縮小でき、ページをタップするとそのページに移動します。"
+            "value" : "ページ全体よりさらにピンチで縮小して指を離すと、すべてのページがグリッドで表示されます。グリッド内でピンチすると、ページを大きくしたり小さくしたりできます。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afaste os dedos além da página inteira para abrir o organizador; faça o gesto de pinça nele para aumentar ou diminuir as miniaturas e toque em uma página para ir até ela."
+            "value" : "Faça a pinça além da página inteira e solte para ver todas as páginas em grade; faça a pinça na grade para deixar as páginas maiores ou menores."
           }
         }
       }
@@ -141449,6 +141449,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "R, C e L adicionam um quadrado, um círculo e uma linha, ⇧R mostra ou oculta as réguas, de 1 a 9 definem a transparência em 10–90% e 0 em 100%, ⌘Return adiciona uma página depois desta, Home e End vão para a primeira e a última página, e ⌘⌥ com uma seta adiciona uma forma conectada nessa direção."
+          }
+        }
+      }
+    },
+    "R, C and L add a square, a circle and a line. Shift+R shows or hides the rulers. 1 to 9 set the selection's transparency to 10% to 90%, and 0 to 100%; Ctrl+Enter adds a page after this one, Home and End go to the first and last page, and Ctrl+Alt and an arrow add a connected shape on that side." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تضيف R وC وL مربعًا ودائرة وخطًا. يُظهر Shift+R المساطر أو يخفيها. تضبط المفاتيح من 1 إلى 9 شفافية التحديد من 10% إلى 90%، والمفتاح 0 على 100%؛ ويضيف Ctrl+Enter صفحة بعد هذه الصفحة، وينتقل Home وEnd إلى الصفحة الأولى والأخيرة، ويضيف Ctrl+Alt مع سهم شكلًا متصلًا في ذلك الاتجاه."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R, C und L fügen ein Quadrat, einen Kreis und eine Linie hinzu. Shift+R blendet die Lineale ein oder aus. 1 bis 9 setzen die Transparenz der Auswahl auf 10 bis 90 %, 0 auf 100 %; Ctrl+Enter fügt eine Seite nach dieser hinzu, Home und End springen zur ersten und letzten Seite, und Ctrl+Alt mit einem Pfeil fügt auf dieser Seite eine verbundene Form hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R, C and L add a square, a circle and a line. Shift+R shows or hides the rulers. 1 to 9 set the selection's transparency to 10% to 90%, and 0 to 100%; Ctrl+Enter adds a page after this one, Home and End go to the first and last page, and Ctrl+Alt and an arrow add a connected shape on that side."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R, C y L añaden un cuadrado, un círculo y una línea. Shift+R muestra u oculta las reglas. Del 1 al 9 ponen la transparencia de la selección del 10% al 90%, y el 0 al 100%; Ctrl+Enter añade una página después de esta, Inicio y Fin van a la primera y la última página, y Ctrl+Alt con una flecha añade una forma conectada en ese lado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R, C et L ajoutent un carré, un cercle et une ligne. Maj+R affiche ou masque les règles. 1 à 9 règlent la transparence de la sélection de 10 % à 90 %, et 0 à 100 % ; Ctrl+Entrée ajoute une page après celle-ci, Début et Fin vont à la première et à la dernière page, et Ctrl+Alt avec une flèche ajoute une forme connectée de ce côté."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R, C e L aggiungono un quadrato, un cerchio e una linea. Maiusc+R mostra o nasconde i righelli. Da 1 a 9 impostano la trasparenza della selezione dal 10% al 90%, e 0 al 100%; Ctrl+Invio aggiunge una pagina dopo questa, Home e Fine vanno alla prima e all’ultima pagina, e Ctrl+Alt con una freccia aggiunge una forma collegata da quel lato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R、C、L で正方形、円、線を追加します。Shift+R で定規の表示/非表示を切り替えます。1～9 で選択範囲の透明度を 10%～90% に、0 で 100% にします。Ctrl+Enter でこのページの後にページを追加し、Home と End で最初と最後のページへ移動し、Ctrl+Alt と矢印キーでその方向に接続された図形を追加します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "R, C e L adicionam um quadrado, um círculo e uma linha. Shift+R mostra ou oculta as réguas. 1 a 9 definem a transparência da seleção de 10% a 90%, e 0 para 100%; Ctrl+Enter adiciona uma página depois desta, Home e End vão para a primeira e a última página, e Ctrl+Alt com uma seta adiciona uma forma conectada nesse lado."
           }
         }
       }
@@ -173504,6 +173557,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toque em uma cor da foto para removê-la."
+          }
+        }
+      }
+    },
+    "Tap a page to go to it, or its circle to tick it. Hold a page and drag it to move it; ticked pages move together. Pinch to change the size." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضغط على صفحة للانتقال إليها، أو على دائرتها لتحديدها. اضغط مطولًا على صفحة واسحبها لنقلها؛ تنتقل الصفحات المحددة معًا. قرّب أو بعّد بإصبعين لتغيير الحجم."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe auf eine Seite, um zu ihr zu gehen, oder auf ihren Kreis, um sie abzuhaken. Halte eine Seite gedrückt und ziehe sie, um sie zu verschieben; abgehakte Seiten wandern zusammen. Mit zwei Fingern zoomen ändert die Größe."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a page to go to it, or its circle to tick it. Hold a page and drag it to move it; ticked pages move together. Pinch to change the size."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toca una página para ir a ella, o su círculo para marcarla. Mantén pulsada una página y arrástrala para moverla; las páginas marcadas se mueven juntas. Pellizca para cambiar el tamaño."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez une page pour y aller, ou son cercle pour la cocher. Maintenez une page et faites-la glisser pour la déplacer ; les pages cochées se déplacent ensemble. Pincez pour changer la taille."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca una pagina per andarci, o il suo cerchio per spuntarla. Tieni premuta una pagina e trascinala per spostarla; le pagine spuntate si spostano insieme. Pizzica per cambiare le dimensioni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページをタップするとそのページへ移動し、円をタップするとチェックが付きます。ページを長押ししてドラッグすると移動でき、チェックしたページはまとめて移動します。ピンチでサイズを変更できます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque em uma página para ir até ela, ou no círculo para marcá-la. Toque e segure uma página e arraste para movê-la; as páginas marcadas se movem juntas. Faça o gesto de pinça para mudar o tamanho."
           }
         }
       }

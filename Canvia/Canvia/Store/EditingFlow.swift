@@ -90,6 +90,7 @@ extension DesignStore {
             return
         }
         let line = QuickFlow.connector(from: source, to: target, style: QuickFlow.lastConnector(on: page))
+        namedStep = QuickFlow.stepName
         applyToPage { $0.elements.append(line) }
         buzz(.confirm)
     }
@@ -111,16 +112,17 @@ extension DesignStore {
 
     /// R, C or L: a square, a circle or a level line, centred and selected
     /// as T's text box is — onto the next unlocked page from a locked one —
-    /// and kept under Add's Recently used, as Add puts them there.
+    /// and kept under Add's Recently used, as Add puts them there. The
+    /// same sizes as Add's, unrounded, as the Android twin's.
     func addKeyShape(_ kind: KeyShape) {
-        let side = (min(pageWidth, pageHeight) * 0.28).rounded()
+        let side = min(pageWidth, pageHeight) * 0.28
         switch kind {
         case .square:
             if add(.shape("rect", w: side, h: side)) { ElementSearch.remember(.shape, "rect") }
         case .circle:
             if add(.shape("circle", w: side, h: side)) { ElementSearch.remember(.shape, "circle") }
         case .line:
-            if add(.line(w: (pageWidth * 0.3).rounded())) { ElementSearch.remember(.line, "Line") }
+            if add(.line(w: pageWidth * 0.3)) { ElementSearch.remember(.line, "Line") }
         }
     }
 

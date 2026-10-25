@@ -63,13 +63,16 @@ enum QuickFlow {
     }
 
     /// Where the copy of `source` going `side` lands on `page`, of size
-    /// `frame`: place(_:side:obstacles:bounds:) with every other shown
-    /// element's turned box in the way, kept inside the page — or, on a
-    /// whiteboard, inside its bounds.
+    /// `frame`: kept inside the page — but not on a whiteboard, which grows
+    /// to take it, as its bounds follow what is on it.
     static func place(_ source: Element, side: Side, page: Page, frame: CGSize) -> CGRect {
-        let bounds = Whiteboards.isExpanded(page)
-            ? Whiteboards.contentBounds(frame: frame, elements: page.elements)
-            : CGRect(origin: .zero, size: frame)
+        place(source, side: side, page: page, bounds: Whiteboards.isExpanded(page) ? nil : CGRect(origin: .zero, size: frame))
+    }
+
+    /// place(_:side:obstacles:bounds:) from the source's unturned frame —
+    /// the copy keeping its turn — with every other shown element's turned
+    /// box in the way, kept inside `bounds` when there are any.
+    static func place(_ source: Element, side: Side, page: Page, bounds: CGRect?) -> CGRect {
         let others = page.elements.filter { $0.id != source.id && !$0.isHidden }.map(Geometry.aabb)
         return place(source.frame, side: side, obstacles: others, bounds: bounds)
     }
@@ -78,9 +81,9 @@ enum QuickFlow {
     /// the source's side along that way) between them. While it overlaps
     /// one of `obstacles` — sharing area, not just an edge — it moves on
     /// that way by its own size, up to `moves` times, and stays where it
-    /// got to. Last, it is kept inside `bounds`: pushed back in on each
-    /// axis, to the left or top edge when it is the wider.
-    static func place(_ source: CGRect, side: Side, obstacles: [CGRect], bounds: CGRect) -> CGRect {
+    /// got to. Last, it is kept inside `bounds`, when given: pushed back in
+    /// on each axis, to the left or top edge when it is the wider.
+    static func place(_ source: CGRect, side: Side, obstacles: [CGRect], bounds: CGRect?) -> CGRect {
         let w = Double(source.width), h = Double(source.height)
         let along = side == .left || side == .right ? w : h
         let gap = max(minGap, gapShare * along)
@@ -92,6 +95,7 @@ enum QuickFlow {
             box = box.offsetBy(dx: step.dx * w, dy: step.dy * h)
             moved += 1
         }
+        guard let bounds else { return box }
         return kept(box, inside: bounds)
     }
 

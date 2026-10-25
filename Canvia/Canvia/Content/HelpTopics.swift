@@ -51,7 +51,7 @@ enum HelpTopics {
                   keywords: ["order", "front", "back", "arrange", "position", "hide", "lock", "rename", "group"], opens: .layers),
         HelpTopic(id: "pages", title: tr("Pages"),
                   body: tr("The bar at the bottom shows every page. Add, duplicate, reorder, copy and paste pages (even into another design), keep notes on a page, and open the organizer to manage many at once.")
-                    + " " + tr("Pinch out past the whole page to open the organizer; pinch in it to make the thumbnails larger or smaller, and tap a page to go to it."),
+                    + " " + tr("Pinch out past the whole page and let go to see every page as a grid; pinch in the grid to make the pages bigger or smaller."),
                   keywords: ["page", "organizer", "notes", "duplicate", "reorder", "pinch", "grid"], opens: .pages),
         HelpTopic(id: "colors", title: tr("Colours and themes"),
                   body: tr("Every colour picker offers recent colours, the document's colours, colours from the selected photo and harmonies of the current colour. The sparkles button reshuffles the page's palette; Document theme applies a palette and a type pairing to every page."),

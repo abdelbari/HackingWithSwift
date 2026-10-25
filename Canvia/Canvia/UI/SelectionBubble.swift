@@ -63,9 +63,12 @@ struct SelectionBubble: View {
         // furthest of its handles, and several have "N selected" over their
         // box: the pill keeps clear of either. With the handles moved above,
         // out of reach below, the pill goes below (Geometry.bubbleAnchor).
+        // Quick flow's + discs stand further out still: the pill keeps
+        // clear of them too, as on Android.
         let turns = store.singleSelection.map { !$0.holdsPlace } ?? false
         let clears = turns || store.selection.count > 1
-        let place = Geometry.bubbleAnchor(screen, viewport: canvas, handleOutset: clears ? 40 : 8,
+        let flow = store.quickFlowSource != nil ? QuickFlow.discGap + QuickFlow.discSize : 0
+        let place = Geometry.bubbleAnchor(screen, viewport: canvas, handleOutset: (clears ? 40 : 8) + flow,
                                           handles: SelectionOverlay.handlesSide(store))
         let half = CGFloat(width / 2 + 8)
         let x = size.width > half * 2 ? min(max(place.point.x, half), size.width - half) : size.width / 2

@@ -173,15 +173,26 @@ final class EditingFlowTests: XCTestCase {
 
     // MARK: quick flow
 
+    /// A shape whose unturned frame is `frame`.
+    private func shape(_ frame: CGRect, turned rotation: Double = 0) -> Element {
+        var el = Element.shape("rect", w: Double(frame.width), h: Double(frame.height))
+        el.x = Double(frame.minX)
+        el.y = Double(frame.minY)
+        el.rotation = rotation
+        return el
+    }
+
     func testTheSharedQuickFlowRows() throws {
         let rows = try rows("quick_flow")
         XCTAssertGreaterThanOrEqual(rows.count, 10)
         for row in rows {
             let name = row["name"] as? String ?? ""
             let side = try XCTUnwrap(QuickFlow.Side(rawValue: row["side"] as? String ?? ""), name)
-            let obstacles = try XCTUnwrap(row["obstacles"] as? [Any], name).map { try rect($0) }
-            let box = QuickFlow.place(try rect(row["source"]), side: side, obstacles: obstacles,
-                                      bounds: try rect(row["bounds"]))
+            let source = try shape(rect(row["source"]), turned: row["rotation"] as? Double ?? 0)
+            let obstacles = try XCTUnwrap(row["obstacles"] as? [Any], name).map { try shape(rect($0)) }
+            // No bounds on a whiteboard, which grows to take the copy.
+            let bounds: CGRect? = try row["bounds"] is NSNull ? nil : rect(row["bounds"])
+            let box = QuickFlow.place(source, side: side, page: Page(elements: [source] + obstacles), bounds: bounds)
             XCTAssertEqual(box, try rect(row["box"]), name)
         }
     }
@@ -203,6 +214,12 @@ final class EditingFlowTests: XCTestCase {
         XCTAssertEqual(copy.sticky, true)
         XCTAssertEqual(copy.x, 500)
         XCTAssertEqual(copy.w, note.w)
+        // A turned shape's copy keeps its turn and size.
+        let turned = shape(CGRect(x: 100, y: 100, width: 200, height: 100), turned: 45)
+        let next = QuickFlow.copy(of: turned, at: QuickFlow.place(turned, side: .right, page: Page(elements: [turned]),
+                                                                   bounds: CGRect(x: 0, y: 0, width: 1080, height: 1080)))
+        XCTAssertEqual(next.frame, CGRect(x: 400, y: 100, width: 200, height: 100))
+        XCTAssertEqual(next.rotation, 45)
         // Lines, photos poured into shapes and locked shapes offer none.
         XCTAssertFalse(QuickFlow.offers(Element.line()))
         var locked = note

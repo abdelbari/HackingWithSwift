@@ -200,9 +200,10 @@ enum Geometry {
     /// stands `outsetY` off its top and bottom, the turn handle `offset`
     /// beyond that: below, unless the point below falls outside `reachable`
     /// and the point above falls inside it. `reachable` is what a finger
-    /// can reach, in page units: on this phone the part of the page in the
-    /// canvas — which already stops at the top bar, the bottom bar and the
-    /// safe area — since only the page takes a touch. The Android twin's
+    /// can reach, in page units: the part of the page in the canvas — which
+    /// already stops at the top bar, the bottom bar and the safe area —
+    /// since only the page takes a touch here; Android passes the same
+    /// rectangle, so the two put the handles on the same side. The Android twin's
     /// Geometry.turnHandleSide, with the same rows
     /// (Fixtures/turn_handle_side.json).
     static func turnHandleSide(_ el: Element, outsetY: Double, offset: Double, reachable: CGRect) -> TurnSide {

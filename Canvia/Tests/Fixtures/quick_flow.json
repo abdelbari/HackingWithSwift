@@ -1,5 +1,5 @@
 {
-  "about": "QuickFlow.place on both phones: where the copy of a shape at source (x, y, w, h) goes, side of it (top, right, bottom or left). It is the source's size, with a gap of max(40, half the source's side along that way) between them. While it overlaps one of obstacles (sharing area; touching edges do not count) it moves on that way by its own size, up to 3 times, and stays where it got to. Then it is kept inside bounds (the page, or a whiteboard's bounds): pushed back in on each axis, its left or top on the bounds' when it is the wider. box is the result.",
+  "about": "QuickFlow.place on both phones: where the copy of a shape at source (x, y, w, h: its unturned frame, turned rotation degrees about its centre when given) goes, side of it (top, right, bottom or left). It is the source's frame size, with a gap of max(40, half the source's side along that way) between them; the copy keeps the source's turn. While it overlaps one of obstacles (their turned boxes, sharing area; touching edges do not count) it moves on that way by its own size, up to 3 times, and stays where it got to. Then it is kept inside bounds (the page): pushed back in on each axis, its left or top on the bounds' when it is the wider. bounds is null on a whiteboard, which grows to take the copy, so nothing pushes it back. box is the result.",
   "rows": [
     {
       "name": "right of a small shape: the 40 gap",
@@ -284,7 +284,7 @@
       ]
     },
     {
-      "name": "on a whiteboard: kept inside its bounds",
+      "name": "on a whiteboard: no bounds, the board grows to take it",
       "source": [
         1200,
         400,
@@ -293,14 +293,9 @@
       ],
       "side": "right",
       "obstacles": [],
-      "bounds": [
-        -300,
-        -200,
-        1800,
-        1400
-      ],
+      "bounds": null,
       "box": [
-        1300,
+        1500,
         400.0,
         200,
         200
@@ -326,6 +321,72 @@
         0,
         100.0,
         600,
+        100
+      ]
+    },
+    {
+      "name": "past the last shape on a whiteboard: not pushed back onto it",
+      "source": [
+        1000,
+        400,
+        80,
+        80
+      ],
+      "side": "right",
+      "obstacles": [],
+      "bounds": null,
+      "box": [
+        1120,
+        400,
+        80,
+        80
+      ]
+    },
+    {
+      "name": "turned 45: placed from its unturned frame",
+      "source": [
+        400,
+        400,
+        200,
+        100
+      ],
+      "rotation": 45,
+      "side": "right",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        700,
+        400,
+        200,
+        100
+      ]
+    },
+    {
+      "name": "turned 90: its frame's height sets the gap below",
+      "source": [
+        400,
+        400,
+        200,
+        100
+      ],
+      "rotation": 90,
+      "side": "bottom",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        400,
+        550,
+        200,
         100
       ]
     }
