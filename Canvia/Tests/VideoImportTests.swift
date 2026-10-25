@@ -84,15 +84,19 @@ final class VideoImportTests: XCTestCase {
         XCTAssertEqual(VideoImport.label(10), "Optimised from 1 MB")
     }
 
-    func testALongClipMayTravelLargerAbout4MBAMinute() {
+    func testALongClipMayTravelLargerAMinuteOfAConvertedClipAMinute() {
+        XCTAssertEqual(VideoImport.packedBytesPerMinute, 60_960_000)
         XCTAssertEqual(VideoImport.packedLimit(nil), Int64(DesignPackage.maxPackedVideoBytes))
-        XCTAssertEqual(VideoImport.packedLimit(60), Int64(DesignPackage.maxPackedVideoBytes))
-        XCTAssertEqual(VideoImport.packedLimit(600), 40 * mb)
+        XCTAssertEqual(VideoImport.packedLimit(20), Int64(DesignPackage.maxPackedVideoBytes))
+        XCTAssertEqual(VideoImport.packedLimit(60), 60_960_000)
+        XCTAssertEqual(VideoImport.packedLimit(600), 609_600_000)
+        // A minute's converted clip travels whole; at 20 seconds the same
+        // bytes are more than a converted clip that long, so a still.
         let clips: [String: (bytes: Int, ext: String)] = [
-            "long": (bytes: Int(35 * mb), ext: "mp4"),
-            "short": (bytes: Int(35 * mb), ext: "mp4"),
+            "long": (bytes: Int(55 * mb), ext: "mp4"),
+            "short": (bytes: Int(55 * mb), ext: "mp4"),
         ]
-        XCTAssertEqual(DesignPackage.packedVideoIDs(clips, seconds: ["long": 600, "short": 30]), ["long"])
+        XCTAssertEqual(DesignPackage.packedVideoIDs(clips, seconds: ["long": 60, "short": 20]), ["long"])
         XCTAssertFalse(VideoImport.needsOptimising(light))
         XCTAssertTrue(DesignPackage.packableVideoTypes.contains("mp4"))
     }

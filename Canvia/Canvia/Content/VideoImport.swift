@@ -99,8 +99,11 @@ enum VideoImport {
         tr("Optimised from %d MB", max(1, Int((Double(originalBytes) / 1_000_000).rounded())))
     }
 
-    /// A converted clip's packing allowance a minute.
-    static let packedBytesPerMinute: Int64 = 4 * 1024 * 1024
+    /// A clip's packing allowance a minute: a minute of a converted clip,
+    /// picture and sound at their target bit rates (60,960,000 bytes), so
+    /// only a clip longer than the design file's whole allowance travels as
+    /// a still.
+    static let packedBytesPerMinute = Int64(videoBitRate + audioBitRate) / 8 * 60
 
     /// How many bytes a clip `seconds` long may be and still travel whole in
     /// a design file (DesignPackage.packedVideoIDs): maxPackedVideoBytes, or
