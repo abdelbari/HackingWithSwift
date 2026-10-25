@@ -73,10 +73,11 @@ final class ClipOptimiser {
         func string(_ key: CFString) -> String? {
             CMFormatDescriptionGetExtension(format, extensionKey: key) as? String
         }
-        switch string(kCMFormatDescriptionExtension_TransferFunction) {
-        case .some(kCMFormatDescriptionTransferFunction_ITU_R_2100_HLG as String): probe.transfer = HdrToneMap.hlg
-        case .some(kCMFormatDescriptionTransferFunction_SMPTE_ST_2084_PQ as String): probe.transfer = HdrToneMap.pq
-        default: break
+        let transfer = string(kCMFormatDescriptionExtension_TransferFunction)
+        if transfer == kCMFormatDescriptionTransferFunction_ITU_R_2100_HLG as String {
+            probe.transfer = HdrToneMap.hlg
+        } else if transfer == kCMFormatDescriptionTransferFunction_SMPTE_ST_2084_PQ as String {
+            probe.transfer = HdrToneMap.pq
         }
         if string(kCMFormatDescriptionExtension_ColorPrimaries) == kCMFormatDescriptionColorPrimaries_ITU_R_2020 as String {
             probe.primaries = VideoImport.bt2020

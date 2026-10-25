@@ -827,7 +827,7 @@ enum DesignLibrary {
         var used = Set(designs.flatMap { CustomFonts.used(in: $0, faces: faces) })
         for kit in BrandKits.load().kits {
             for role in BrandFonts.Role.allCases {
-                if let sha = CustomFonts.sha(kit.fonts[role: role]?.family) { used.insert(sha) }
+                if let sha = CustomFonts.sha(kit.fonts[role]?.family) { used.insert(sha) }
             }
         }
         return used
