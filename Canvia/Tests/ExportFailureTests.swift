@@ -36,6 +36,20 @@ final class ExportFailureTests: XCTestCase {
         XCTAssertEqual(ExportFailure.classify(gone), .missingMedia)
     }
 
+    /// AVFoundation's disk full and out of memory are not the encoder's
+    /// fault; an AVFoundation error with a deciding error under it defers
+    /// to it, and is codec only when nothing under it says anything.
+    func testAnAVFoundationDiskFullIsNoSpaceAndOutOfMemoryTooLarge() {
+        XCTAssertEqual(ExportFailure.classify(NSError(domain: AVFoundationErrorDomain, code: -11807)), .noSpace)
+        XCTAssertEqual(ExportFailure.classify(NSError(domain: AVFoundationErrorDomain, code: -11801)), .tooLarge)
+        let under = NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC))
+        let wrapped = NSError(domain: AVFoundationErrorDomain, code: -11800, userInfo: [NSUnderlyingErrorKey: under])
+        XCTAssertEqual(ExportFailure.classify(wrapped), .noSpace)
+        let silent = NSError(domain: AVFoundationErrorDomain, code: -11800,
+                             userInfo: [NSUnderlyingErrorKey: NSError(domain: "x", code: 1)])
+        XCTAssertEqual(ExportFailure.classify(silent), .codec)
+    }
+
     func testAPictureTooLargeIsTriedAt1xAFilmOneStepDownNoneBelow720p() throws {
         let png = ExportFailure.Asked(format: "png", scale: 3)
         let s = try XCTUnwrap(ExportFailure.suggestion(.tooLarge, settings: png))

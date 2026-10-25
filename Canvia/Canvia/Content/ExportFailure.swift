@@ -34,17 +34,24 @@ enum ExportFailure {
     /// cancelled; a message of a size too large ("too large", "exceeds",
     /// "out of memory") is tooLarge; out of space (ENOSPC, "No space left",
     /// Cocoa's out-of-space write) is noSpace; a file not found is
-    /// missingMedia; an AVFoundation error, or a message naming an encoder
-    /// or codec, is codec. Anything else is other.
+    /// missingMedia; a message naming an encoder or codec is codec.
+    /// AVFoundation's disk full is noSpace and its out of memory tooLarge;
+    /// any other AVFoundation error is codec when nothing under it decides.
+    /// Anything else is other.
     static func classify(_ error: Error?) -> Reason {
         var next: Error? = error
         var depth = 0
+        // An AVFoundation error that says nothing more is codec, but only
+        // once the errors under it have had their say (disk full under it).
+        var fallback: Reason? = nil
         while let e = next, depth < 8 {
             if let kind = kindOf(e) { return kind }
-            next = (e as NSError).userInfo[NSUnderlyingErrorKey] as? Error
+            let ns = e as NSError
+            if ns.domain == AVFoundationErrorDomain && fallback == nil { fallback = .codec }
+            next = ns.userInfo[NSUnderlyingErrorKey] as? Error
             depth += 1
         }
-        return .other
+        return fallback ?? .other
     }
 
     private static func kindOf(_ e: Error) -> Reason? {
@@ -52,6 +59,12 @@ enum ExportFailure {
         let ns = e as NSError
         let said = ns.localizedDescription.lowercased()
         if ns.domain == NSCocoaErrorDomain && ns.code == NSUserCancelledError { return .cancelled }
+        // AVFoundation's own disk full and out of memory, as Android reads
+        // ENOSPC and OutOfMemoryError.
+        if ns.domain == AVFoundationErrorDomain {
+            if ns.code == AVError.Code.diskFull.rawValue { return .noSpace }
+            if ns.code == AVError.Code.outOfMemory.rawValue { return .tooLarge }
+        }
         if said.contains("too large") || said.contains("exceeds") || said.contains("out of memory") { return .tooLarge }
         if (ns.domain == NSPOSIXErrorDomain && ns.code == Int(ENOSPC))
             || (ns.domain == NSCocoaErrorDomain && ns.code == NSFileWriteOutOfSpaceError)
@@ -62,7 +75,7 @@ enum ExportFailure {
             || (ns.domain == NSPOSIXErrorDomain && ns.code == Int(ENOENT)) {
             return .missingMedia
         }
-        if ns.domain == AVFoundationErrorDomain || said.contains("encoder") || said.contains("codec") { return .codec }
+        if said.contains("encoder") || said.contains("codec") { return .codec }
         if said.contains("not enough space") { return .noSpace }
         return nil
     }
@@ -187,7 +200,10 @@ enum ExportFailure {
     /// `running` first, then a clip being made light as it came in
     /// (`optimising`, whose X keeps the original), then the last export
     /// that `failed`, else nothing — so a failure kept to try again waits
-    /// under a clip's progress rather than covering it.
+    /// under a clip's progress rather than covering it. The iOS pill also
+    /// says its notes (ExportQueue.note) between optimising and failed, so a
+    /// later export's note is not hidden by a kept failure; Android says
+    /// those in its export sheet and editor.
     static func pillShows(running: Bool, optimising: Bool, failed: Bool) -> Pill {
         if running { return .running }
         if optimising { return .optimising }
