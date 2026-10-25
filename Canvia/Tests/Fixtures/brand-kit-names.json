@@ -1,5 +1,5 @@
 {
-  "about": "Named brand colours: a palette's optional \"names\", keyed by the colour as #RRGGBB in upper case, each at most 40 characters, left out when empty. `kit` reads and writes back as it is; `names` are what each colour reads as — `name` its brand name (null for none), `spoken` as a swatch says it: the brand name, else its hue's with a capital; `rename` rows each start from `kit`, call the palette's colour by the name given (null or blank takes it away) and give the palette's names after; `swap` rows are what Change all and Colours in selection say for a swap; `describe` rows give a guidelines swatch's first line for a colour called `name` — kept as typed, its stars no style markers — or its hue's for none. Shared row for row by both phones' tests (Android BrandColourNamesTest, iOS BrandColourNamesTests).",
+  "about": "Named brand colours: a palette's optional \"names\", keyed by the colour as #RRGGBB in upper case, each at most 40 characters, left out when empty. `kit` reads and writes back as it is; `names` are what each colour reads as — `name` its brand name (null for none), `spoken` as a swatch says it: the brand name, else its hue's with a capital; `rename` rows each start from `kit`, call the palette's colour by the name given (null or blank takes it away) and give the palette's names after; `swap` rows are what Change all and Colours in selection say for a swap; `describe` rows give a guidelines swatch's first line for a colour called `name` — kept as typed, its stars no style markers — or its hue's for none; `gone` rows each start from `kit`, take palette 0's colour `remove` out (if given), then add each of `add` to palette 0 in turn (newest first, at most 12 kept), and give palette 0's names after and the name `probe` reads by then (null for none) — a colour no longer in the palette has no name, even when added back. Shared row for row by both phones' tests (Android BrandColourNamesTest, iOS BrandColourNamesTests).",
   "kit": {
     "id": "kit-names",
     "name": "Acme",
@@ -27,6 +27,12 @@
     {"from": "#1A6BFF", "to": "#f2d7a0", "said": "Ocean → Sand"},
     {"from": "#0b1f33", "to": "#1a6bff", "said": "Dark blue → Ocean"},
     {"from": "#f2d7a0", "to": "#101820", "said": "Sand → Black"}
+  ],
+  "gone": [
+    {"name": "taken out", "remove": "#1A6BFF", "add": [], "probe": "#1a6bff", "said": null, "names": {"#F2D7A0": "Sand"}},
+    {"name": "taken out, then added back", "remove": "#1a6bff", "add": ["#1a6bff"], "probe": "#1A6BFF", "said": null, "names": {"#F2D7A0": "Sand"}},
+    {"name": "pushed out by eleven newer", "add": ["#012030", "#112030", "#212030", "#312030", "#412030", "#512030", "#612030", "#712030", "#812030", "#912030", "#a12030"], "probe": "#f2d7a0", "said": null, "names": {"#1A6BFF": "Ocean"}},
+    {"name": "kept while still among the twelve", "add": ["#012030", "#112030", "#212030", "#312030", "#412030", "#512030", "#612030", "#712030", "#812030", "#912030"], "probe": "#f2d7a0", "said": "Sand", "names": {"#1A6BFF": "Ocean", "#F2D7A0": "Sand"}}
   ],
   "describe": [
     {"hex": "#1a6bff", "name": "Ocean", "first": "Ocean"},

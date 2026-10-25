@@ -252,7 +252,7 @@ struct BrandKitSheet: View {
     private func swatch(_ hex: String, palette index: Int) -> some View {
         let remove = {
             editKit { kit in
-                if kit.palettes.indices.contains(index) { kit.palettes[index].colors.removeAll { $0 == hex } }
+                kit.removeColor(hex, palette: index)
             }
         }
         let rename = {
