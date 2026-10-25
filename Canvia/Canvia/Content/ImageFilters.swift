@@ -998,8 +998,9 @@ extension PhotoLook {
     /// blue) whole and the other two at 1 − 0.35 × amount — and a slight
     /// barrel vignette, 1 − amount / 4 × d² / 2, d² the pixel centre's
     /// squared distance from the middle with the sides at ±1. Each
-    /// premultiplied channel is multiplied by its mask, then by the row and
-    /// the vignette together, rounded half up and kept within its alpha.
+    /// premultiplied channel is multiplied by (row × vignette) × mask, once,
+    /// rounded half up and kept within its alpha — the Android twin's
+    /// numbers in its order, so both draw photo-fx-more.json to one hash.
     static func screen(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double) {
         let period = max(2, Int((2 + 6 * amount + 0.5).rounded(.down)))
         let dim = 1 - 0.35 * amount
@@ -1016,7 +1017,7 @@ extension PhotoLook {
                 let lit = row * fall
                 for c in 0..<3 {
                     let mask = x % 3 == c ? 1 : dim
-                    let v = Double(bytes[i + c]) * mask * lit
+                    let v = Double(bytes[i + c]) * (lit * mask)
                     bytes[i + c] = UInt8(min(alpha, Int(v + 0.5)))
                 }
             }
@@ -1072,8 +1073,8 @@ extension PhotoLook {
     /// nearest site of the nine squares round its own, the first of equals
     /// in that order, its centre at half a pixel; each tile is its pixels'
     /// mean, rounded half up, and a 1-pixel grout — a pixel whose right or
-    /// lower neighbour is in another tile — its tile's colour halved
-    /// ((v + 1) / 2), its alpha kept.
+    /// lower neighbour is in another tile — its tile's colour halved, rounded
+    /// half up ((v + 1) / 2, as the Android twin does), its alpha kept.
     static func mosaic(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double, seed: Int) {
         let side = max(2, pixels(0.01 + 0.07 * amount, of: min(w, h)))
         let cols = (w + side - 1) / side, rows = (h + side - 1) / side
@@ -1136,9 +1137,11 @@ extension PhotoLook {
     /// Kaleido: 4 + round(8 × amount) wedges about the photo's centre (w /
     /// 2, h / 2), each mirroring the first. A pixel centre at angle θ
     /// (atan2 of its offset, y down) and distance r is folded into the first
-    /// wedge — t = θ less whole wedges, and the wedge's width less that in
-    /// an odd one — and takes the pixel under (centre + r (cos t, sin t)),
-    /// rounded down and held within the picture.
+    /// wedge — t = θ less whole wedges, mirrored about the wedge's middle
+    /// (the wedge's width less t) when past it, every wedge alike, so an odd
+    /// count leaves no seam; the Android twin's rule — and takes the pixel
+    /// under (centre + r (cos t, sin t)), rounded down and held within the
+    /// picture.
     static func kaleido(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double) {
         let segments = 4 + Int((amount * 8 + 0.5).rounded(.down))
         let wedge = 2 * Double.pi / Double(segments)
@@ -1149,9 +1152,8 @@ extension PhotoLook {
                 let dx = Double(x) + 0.5 - cx, dy = Double(y) + 0.5 - cy
                 let r = (dx * dx + dy * dy).squareRoot()
                 let theta = atan2(dy, dx)
-                let turns = (theta / wedge).rounded(.down)
-                var t = theta - turns * wedge
-                if Int(turns) % 2 != 0 { t = wedge - t }
+                var t = theta - (theta / wedge).rounded(.down) * wedge
+                if t > wedge / 2 { t = wedge - t }
                 let sx = min(max(Int((cx + r * cos(t)).rounded(.down)), 0), w - 1)
                 let sy = min(max(Int((cy + r * sin(t)).rounded(.down)), 0), h - 1)
                 for c in 0..<4 { bytes[(y * w + x) * 4 + c] = source[(sy * w + sx) * 4 + c] }

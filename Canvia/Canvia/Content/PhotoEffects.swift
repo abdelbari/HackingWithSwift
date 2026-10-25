@@ -94,6 +94,10 @@ struct PhotoFx: Codable, Equatable, Hashable {
     /// The palette ColorMix offers for posterize: ink, red, paper, mist.
     static let colourMix = ["#1d3557", "#e63946", "#f1faee", "#a8dadc"]
 
+    /// The most colours a posterize's palette keeps, read or chosen — the
+    /// Android twin's PhotoFx.MAX_COLOURS.
+    static let maxColours = 16
+
     private enum CodingKeys: String, CodingKey { case kind, amount, seed, colours }
 
     init(kind: String, amount: Double = 0.5, seed: Int = 0, colours: [String]? = nil) {
@@ -114,6 +118,7 @@ struct PhotoFx: Codable, Equatable, Hashable {
         seed = (try? c.decode(Int.self, forKey: .seed)) ?? 0
         // Only posterize keeps colours, and only ones it can read.
         let given = (try? c.decode([String].self, forKey: .colours))?.filter { Self.rgb($0) != nil }
+            .prefix(Self.maxColours).map { $0 }
         colours = kind == "posterize" && given?.isEmpty == false ? given : nil
     }
 

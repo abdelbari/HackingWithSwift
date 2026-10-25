@@ -63,7 +63,9 @@ final class PhotoFxMoreTests: XCTestCase {
     func testTheSmallPicturesPixelForPixel() throws {
         let small = try XCTUnwrap(try fixture()["small"] as? [String: Any])
         XCTAssertEqual(words(drawn(6, 4, PhotoFx(kind: "mosaic", amount: 1, seed: 5))), small["mosaic"] as? [String])
-        XCTAssertEqual(words(drawn(4, 4, PhotoFx(kind: "kaleido", amount: 0))), small["kaleido"] as? [String])
+        XCTAssertEqual(words(drawn(4, 4, PhotoFx(kind: "kaleido", amount: 0.01))), small["kaleido"] as? [String])
+        XCTAssertEqual(words(drawn(4, 4, PhotoFx(kind: "kaleido", amount: 0.125))), small["kaleido5"] as? [String],
+                       "five wedges, each folded about its middle")
     }
 
     func testTheKindsAreOfferedInOrderAndReadForgivingly() throws {
@@ -75,6 +77,9 @@ final class PhotoFxMoreTests: XCTestCase {
         XCTAssertNil(read(##"{"kind": "mosaic", "colours": ["#ff0000"]}"##)?.colours, "only posterize keeps colours")
         XCTAssertNil(read(#"{"kind": "posterize", "colours": []}"#)?.colours)
         XCTAssertNil(read(#"{"kind": "liquify"}"#), "an unknown kind is still no fx")
+        let twenty = (0..<20).map { String(format: "\"#%06lx\"", $0 * 0x0b0b0b) }.joined(separator: ", ")
+        XCTAssertEqual(read(#"{"kind": "posterize", "colours": [\#(twenty)]}"#)?.colours?.count, PhotoFx.maxColours,
+                       "a palette keeps 16 colours at most, as on the Android twin")
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         let written = String(decoding: try encoder.encode(PhotoFx(kind: "kaleido", amount: 1, seed: 0)), as: UTF8.self)

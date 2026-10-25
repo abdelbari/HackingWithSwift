@@ -1145,12 +1145,39 @@ struct FiltersSheet: View {
             }
             .font(.callout)
         }
-        if fx.kind == "posterize" {
-            Toggle("Colour mix", isOn: Binding(
-                get: { fx.colours != nil },
-                set: { on in store.updateSelected { $0.fx?.colours = on ? PhotoFx.colourMix : nil } }))
-                .font(.callout)
+        if fx.kind == "posterize" { colourMixRow(fx) }
+    }
+
+    /// Posterize's Colour mix, as on the Android twin: None, each brand
+    /// palette of two colours or more, and the design's own colours ("In
+    /// this design") — a tap maps the photo's colours to the nearest of
+    /// them (PhotoFx `colours`, Canva's ColorMix), at most
+    /// PhotoFx.maxColours of them. No row when there is nothing to choose.
+    @ViewBuilder
+    private func colourMixRow(_ fx: PhotoFx) -> some View {
+        let choices = Self.colourMixChoices(store.design)
+        if choices.count > 1 {
+            Text("Colour mix").font(.callout)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(choices.enumerated()), id: \.offset) { _, choice in
+                        effectChip(choice.name, on: fx.colours == choice.colours) { $0.fx?.colours = choice.colours }
+                    }
+                }
+            }
         }
+    }
+
+    /// The Colour mix choices: None first, then the brand's palettes, then
+    /// the design's own colours, each at most PhotoFx.maxColours long.
+    private static func colourMixChoices(_ design: Design) -> [(name: String, colours: [String]?)] {
+        var choices: [(name: String, colours: [String]?)] = [(tr("None"), nil)]
+        for palette in BrandKit.load().palettes where palette.colors.count >= 2 {
+            choices.append((palette.name, Array(palette.colors.prefix(PhotoFx.maxColours))))
+        }
+        let inDesign = Array(ColorTools.documentColors(design).prefix(PhotoFx.maxColours))
+        if inDesign.count >= 2 { choices.append((tr("In this design"), inDesign)) }
+        return choices
     }
 
     private func effectChip(_ name: String, on: Bool, _ toggle: @escaping (inout Element) -> Void) -> some View {
