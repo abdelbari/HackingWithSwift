@@ -1,15 +1,16 @@
-// Things dropped onto the page from other apps — a photo from Photos or
-// Files, a passage from Notes, a link from Safari — land where the finger
-// let go, as the elements the Add sheet would have made; a photo let go over
-// a frame goes into the frame, and one let go over a selected text box is
-// offered to its letters (PhotoInLetters). Nothing lands on a locked page.
+// Things dropped onto the page from other apps — a photo or a clip from
+// Photos, Files or Add's Gallery, a passage from Notes, a link from Safari —
+// land where the finger let go, as the elements the Add sheet would have
+// made; a photo or a clip let go over a frame goes into the frame, and a
+// photo let go over a selected text box is offered to its letters
+// (PhotoInLetters). Nothing lands on a locked page.
 
 import SwiftUI
 import UniformTypeIdentifiers
 
 enum CanvasDrop {
 
-    static let types: [UTType] = [.image, .text, .url]
+    static let types: [UTType] = [.movie, .image, .text, .url]
 
     /// A dropped picture takes up to half the page's width, keeps its shape,
     /// is centred on the drop point and pulled back inside the page.
@@ -58,7 +59,7 @@ enum CanvasDrop {
         return el
     }
 
-    /// Pictures first, then text, then links as their address. Returns
+    /// Clips and pictures first, then text, then links as their address. Returns
     /// whether anything was taken; the elements arrive as each item loads,
     /// and once all have, it is said if none could be used — as the Android
     /// twin says it.
@@ -72,17 +73,19 @@ enum CanvasDrop {
         for provider in providers {
             let offset = Double(taken) * page.width * 0.04
             let at = CGPoint(x: point.x + offset, y: point.y + offset)
-            if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier)
+            let clip = provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
+            if clip || provider.hasItemConformingToTypeIdentifier(UTType.image.identifier)
                 || provider.canLoadObject(ofClass: UIImage.self) {
                 taken += 1
-                loadPicture(provider) { stored in
+                let landed: @MainActor ((src: String, natural: CGSize)?) -> Void = { stored in
                     guard let stored else { tally.finished(landed: false); return }
                     // Let go over a selected text box, the picture may fill
                     // its letters: asked (PhotoInLettersPrompts), the photo
                     // kept for the page meanwhile. Only the first of several
                     // is offered; the rest go on as any photo does, as on the
-                    // Android twin, so none is lost to a later offer.
-                    if store.letterFillOffer == nil, let text = store.letterFillTarget(at: at) {
+                    // Android twin, so none is lost to a later offer. A clip
+                    // never is.
+                    if !clip, store.letterFillOffer == nil, let text = store.letterFillTarget(at: at) {
                         let frame = imageFrame(natural: stored.natural, page: page, at: at)
                         store.letterFillOffer = LetterFillOffer(id: text.id, src: stored.src, frame: frame)
                         tally.finished(landed: true)
@@ -105,6 +108,7 @@ enum CanvasDrop {
                     store.tipEvent = .dropped
                     tally.finished(landed: true)
                 }
+                if clip { loadClip(provider, done: landed) } else { loadPicture(provider, done: landed) }
             } else if provider.canLoadObject(ofClass: NSString.self) {
                 taken += 1
                 provider.loadObject(ofClass: NSString.self) { object, _ in
@@ -162,6 +166,30 @@ enum CanvasDrop {
             if let image = object as? UIImage, let src = MediaStore.storeTransparent(image) {
                 Uploads.record(source: src)
                 stored = (src, image.size)
+            }
+            let result = stored
+            Task { @MainActor in done(result) }
+        }
+    }
+
+    /// A dropped clip — one dragged from Add's Gallery or Photos — kept as
+    /// a picked one is: its bytes stored whole under a fresh id, among your
+    /// uploads, and made light in the background (VideoImport); shown by its
+    /// poster frame. `done` runs on the main actor.
+    private static func loadClip(_ provider: NSItemProvider,
+                                 done: @escaping @MainActor ((src: String, natural: CGSize)?) -> Void) {
+        let type = provider.registeredTypeIdentifiers.first { UTType($0)?.conforms(to: .movie) == true }
+            ?? UTType.movie.identifier
+        provider.loadFileRepresentation(forTypeIdentifier: type) { url, _ in
+            // The file is there only while this runs: its bytes kept at once,
+            // off the main thread.
+            var stored: (src: String, natural: CGSize)?
+            if let url, let data = try? Data(contentsOf: url),
+               let id = VideoStore.store(data, ext: UTType(type)?.preferredFilenameExtension ?? url.pathExtension),
+               let poster = VideoStore.poster(id) {
+                Uploads.record(id, kind: .video)
+                VideoImport.optimiseSoon(id)
+                stored = (VideoStore.src(id, at: nil), poster.size)
             }
             let result = stored
             Task { @MainActor in done(result) }

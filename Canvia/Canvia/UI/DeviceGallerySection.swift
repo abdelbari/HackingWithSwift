@@ -2,10 +2,12 @@
 // of Add ▸ Photos and Add ▸ Videos, under a row of filter chips. A tap on
 // one brings it in at once through the sheet's own import (`onPick`), into
 // the selected empty frames first; Select turns on picking several, ticked
-// in the order picked, and Add N brings them in in that order. It asks for
-// no permission: the picker shows the library in its own process and hands
-// over only what is picked. The sheet's Add photos or video button stays
-// beside it as the fallback.
+// in the order picked, and Add N brings them in in that order. Held and
+// dragged out of the picker onto the page, a photo or a clip lands there, or
+// in the frame it is let go over, through the page's own drop (CanvasDrop).
+// It asks for no permission: the picker shows the library in its own process
+// and hands over only what is picked. The sheet's Add photos or video button
+// stays beside it as the fallback.
 
 import PhotosUI
 import SwiftUI
