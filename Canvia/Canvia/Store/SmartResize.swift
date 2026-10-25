@@ -99,7 +99,10 @@ extension DesignStore {
     ///    restacks with them instead: a photo beside its words goes above
     ///    them.
     /// 4. The rest: when the orientation flips (wide to tall or tall to
-    ///    wide) they restack (`restacked`); otherwise each keeps its share
+    ///    wide) they restack (`restacked`), their words made readable
+    ///    (below) before the columns are measured, and whatever sits under
+    ///    a box that grew moved down by as much, so raised type never runs
+    ///    into the next thing; otherwise each keeps its share
     ///    of the free room, scaled by the smaller ratio, as Keep layout does
     ///    (words in a group not widened, so the group keeps its shape).
     ///
@@ -190,8 +193,8 @@ extension DesignStore {
         }
 
         if flips {
-            for (el, e) in restacked(rest, on: CGSize(width: nw, height: nh), across: across) {
-                placed[el.id] = onPage(readable(el, e))
+            for (el, e) in restacked(rest, on: CGSize(width: nw, height: nh), across: across, readable: readable) {
+                placed[el.id] = onPage(e)
             }
         } else {
             for el in rest { placed[el.id] = onPage(readable(el, keptShare(el))) }
@@ -208,16 +211,26 @@ extension DesignStore {
         var hi: Double
     }
 
+    /// How many times restacked columns that do not fit are scaled down
+    /// again: type at its floor does not shrink with them.
+    static let fitTries = 3
+
     /// `items` restacked on `new` (see `smartReflow`): grouped elements
     /// together, they are clustered into columns where their spans across
     /// overlap, the columns laid out top to bottom in reading order inside a
     /// `stackMargin` margin — or, `across`, going tall to wide, rows laid
     /// left to right — all scaled alike so the widest fills the new width
-    /// (the tallest the new height), and down together when they do not
-    /// fit, the room left shared evenly before, between and after them. The
-    /// maths is the same with the axes swapped, so it is written once for
-    /// columns, along "main" (the axis they stack on) and "cross".
-    private static func restacked(_ items: [Element], on new: CGSize, across: Bool) -> [(Element, Element)] {
+    /// (the tallest the new height), the room left shared evenly before,
+    /// between and after them. Each element is scaled and then made
+    /// `readable` before anything is placed: a box that grew pushes down
+    /// whatever starts below its old bottom in its column, by the most any
+    /// chain above it grew; the columns' lengths are measured so; and, when
+    /// they do not fit, the shared scale is brought down by the room over,
+    /// at most `fitTries` times. The maths is the same with the axes
+    /// swapped, so it is written once for columns, along "main" (the axis
+    /// they stack on) and "cross".
+    private static func restacked(_ items: [Element], on new: CGSize, across: Bool,
+                                  readable: (Element, Element) -> Element) -> [(Element, Element)] {
         guard !items.isEmpty else { return [] }
         func crossLo(_ e: Element) -> Double { across ? e.y : e.x }
         func crossLen(_ e: Element) -> Double { across ? e.h : e.w }
@@ -258,39 +271,81 @@ extension DesignStore {
         let crossMargin = crossSide * stackMargin
         let mainMargin = mainSide * stackMargin
         let room = crossSide - 2 * crossMargin
+        let avail = mainSide - 2 * mainMargin
         // One scale for every column, so the widest fills the new width and
         // the rest keep their sizes beside it.
         let widest = max(stacks.map { $0.hi - $0.lo }.max() ?? 1, 1)
-        let k0 = room / widest
-        let boxes = stacks.map { st -> (stack: Stack, top: Double, length: Double) in
+
+        // Each column at scale k: every member scaled, made readable and
+        // placed from its column's top (main 0, cross 0 at the column's
+        // start across), and the column's length along main.
+        func laidOut(_ st: Stack, _ k: Double) -> (members: [(Element, Element)], length: Double) {
             let top = st.members.map(mainLo).min() ?? 0
-            let bottom = st.members.map { mainLo($0) + mainLen($0) }.max() ?? 0
-            return (st, top, bottom - top)
-        }
-        let total = boxes.reduce(0) { $0 + $1.length * k0 }
-        let avail = mainSide - 2 * mainMargin
-        let fit = total > avail && total > 0 ? avail / total : 1
-        let gap = (avail - total * fit) / Double(boxes.count + 1)
-        let k = k0 * fit
-        var at = mainMargin + gap
-        var out: [(Element, Element)] = []
-        for box in boxes {
-            let st = box.stack
-            let offset = crossMargin + (room - (st.hi - st.lo) * k) / 2
-            for el in st.members {
-                var e = el.scaledSizes(by: k)
-                let c = offset + (crossLo(el) - st.lo) * k
-                let m = at + (mainLo(el) - box.top) * k
+            var push: [String: Double] = [:]
+            var grew: [String: Double] = [:]
+            var above: [Element] = []
+            var out: [(Element, Element)] = []
+            // Top to bottom, so a box's push is known before those under it;
+            // a tie keeps their order, as Android's stable sort does.
+            let order = st.members.enumerated().sorted { a, b in
+                a.element.y != b.element.y ? a.element.y < b.element.y : a.offset < b.offset
+            }.map(\.element)
+            for el in order {
+                let sized = readable(el, el.scaledSizes(by: k))
+                let pushes = above.filter { $0.y + $0.h <= el.y }.map { (push[$0.id] ?? 0) + (grew[$0.id] ?? 0) }
+                let down = max(pushes.max() ?? 0, 0)
+                push[el.id] = down
+                grew[el.id] = sized.h - el.h * k
+                above.append(el)
+                let c = (crossLo(el) - st.lo) * k
+                let m = (mainLo(el) - top) * k
+                var e = sized
                 if across {
                     e.x = m
-                    e.y = c
+                    e.y = c + down
                 } else {
                     e.x = c
-                    e.y = m
+                    e.y = m + down
                 }
                 out.append((el, e))
             }
-            at += box.length * k + gap
+            let length = out.map { mainLo($0.1) + mainLen($0.1) }.max() ?? 0
+            return (out, length)
+        }
+
+        func everyColumn(_ k: Double) -> [(members: [(Element, Element)], length: Double)] {
+            var all: [(members: [(Element, Element)], length: Double)] = []
+            for st in stacks { all.append(laidOut(st, k)) }
+            return all
+        }
+
+        var k = room / widest
+        var columns = everyColumn(k)
+        var total = columns.reduce(0) { $0 + $1.length }
+        var tries = 0
+        while total > avail && total > 0 && tries < fitTries {
+            k *= avail / total
+            columns = everyColumn(k)
+            total = columns.reduce(0) { $0 + $1.length }
+            tries += 1
+        }
+        let gap = max(avail - total, 0) / Double(stacks.count + 1)
+        var at = mainMargin + gap
+        var out: [(Element, Element)] = []
+        for (i, st) in stacks.enumerated() {
+            let offset = crossMargin + (room - (st.hi - st.lo) * k) / 2
+            for (el, placed) in columns[i].members {
+                var e = placed
+                if across {
+                    e.x += at
+                    e.y += offset
+                } else {
+                    e.x += offset
+                    e.y += at
+                }
+                out.append((el, e))
+            }
+            at += columns[i].length + gap
         }
         return out
     }

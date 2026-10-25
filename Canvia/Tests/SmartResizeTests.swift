@@ -7,8 +7,14 @@ import XCTest
 
 final class SmartResizeTests: XCTestCase {
 
-    /// A text box's height as the fixture gives it: its own.
+    /// A text box's height as the rules one at a time give it: its own.
     private let ownHeight: (Element) -> Double = { $0.h }
+
+    /// A text box's height as the fixture measures it: its lineHeight times
+    /// the font size, for each line of its text.
+    private func measured(_ lineHeight: Double) -> (Element) -> Double {
+        { e in (e.fontSize ?? 0) * lineHeight * Double((e.text ?? "").components(separatedBy: "\n").count) }
+    }
 
     private func page(_ o: [String: Any]) throws -> (page: Page, size: CGSize) {
         let raw = try XCTUnwrap(o["elements"] as? [[String: Any]])
@@ -21,6 +27,7 @@ final class SmartResizeTests: XCTestCase {
         let fixture = try SharedFixture.object("resize-smart")
         let pages = try XCTUnwrap(fixture["pages"] as? [[String: Any]])
         let targets = try XCTUnwrap(fixture["targets"] as? [[Double]])
+        let measure = measured(try XCTUnwrap(fixture["lineHeight"] as? Double))
         XCTAssertGreaterThanOrEqual(pages.count, 8)
         XCTAssertEqual(targets.count, 4)
         for p in pages {
@@ -30,7 +37,7 @@ final class SmartResizeTests: XCTestCase {
             for t in targets {
                 let key = "\(Int(t[0]))x\(Int(t[1]))"
                 let out = DesignStore.smartReflow(source, from: old, to: CGSize(width: t[0], height: t[1]),
-                                                  heightFor: ownHeight)
+                                                  heightFor: measure)
                 let byId = Dictionary(out.elements.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
                 for (id, want) in expected[key] ?? [:] {
                     let e = try XCTUnwrap(byId[id], "\(name) @ \(key): \(id)")
@@ -40,6 +47,23 @@ final class SmartResizeTests: XCTestCase {
                 }
             }
         }
+    }
+
+    func testRaisedTypeInARestackedColumnPushesDownWhatIsUnderIt() throws {
+        let fixture = try SharedFixture.object("resize-smart")
+        let pages = try XCTUnwrap(fixture["pages"] as? [[String: Any]])
+        let (source, old) = try page(try XCTUnwrap(pages.last))
+        let measure = measured(try XCTUnwrap(fixture["lineHeight"] as? Double))
+        let out = DesignStore.smartReflow(source, from: old, to: CGSize(width: 1080, height: 1920), heightFor: measure)
+            .elements.sorted { $0.y < $1.y }
+        // Nothing overlaps the next thing down, and every box is on the page.
+        for (a, b) in zip(out, out.dropFirst()) {
+            XCTAssertLessThanOrEqual(a.y + a.h, b.y + 0.01, "\(a.id) runs into \(b.id)")
+        }
+        XCTAssertTrue(out.allSatisfy { $0.y >= 0 && $0.y + $0.h <= 1920.01 })
+        // The words were raised to the readable floor.
+        let body = try XCTUnwrap(out.first { $0.id == "body1" })
+        XCTAssertEqual(try XCTUnwrap(body.fontSize), 1080 * DesignStore.bodyMin, accuracy: 1e-9)
     }
 
     private func one(_ elements: [Element], _ old: CGSize, _ new: CGSize) -> [String: Element] {
