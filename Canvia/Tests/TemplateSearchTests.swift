@@ -95,5 +95,11 @@ final class TemplateSearchTests: XCTestCase {
     func testTheEditorsTemplatesAreFoundTheSameWay() {
         let found = ContentLibrary.editorTemplates(width: 1, height: 1, everySize: true, matching: "bday")
         XCTAssertEqual(found.map(\.id), TemplateSearch.search("bday").templates.map(\.id))
+        // A template used lately ranks higher there too, as on Home.
+        let recent = Set(found.suffix(1).map(\.id))
+        let ranked = ContentLibrary.editorTemplates(width: 1, height: 1, everySize: true, matching: "bday", recent: recent)
+        XCTAssertEqual(ranked.map(\.id), TemplateSearch.search("bday", recent: recent).templates.map(\.id))
+        // Remembered, a search gives what searching again gives.
+        XCTAssertEqual(TemplateSearch.remembered("bday").templates.map(\.id), found.map(\.id))
     }
 }

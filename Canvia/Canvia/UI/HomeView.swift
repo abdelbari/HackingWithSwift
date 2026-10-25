@@ -651,11 +651,12 @@ struct HomeView: View {
 
     /// What a search finds of the templates, forgiving plurals, synonyms,
     /// colours and typos (TemplateSearch) — as typed, once "Search instead"
-    /// is asked; nil with nothing searched.
+    /// is asked; nil with nothing searched. Remembered, so the reads of a
+    /// pass search once.
     private var templateSearch: TemplateSearch.Result? {
         guard !searchedFor.isEmpty else { return nil }
         let recent = RecentSearches.decode(recentTemplatesText, limit: RecentSearches.templateLimit, searches: false)
-        return TemplateSearch.search(query, filter: templateFilter, recent: Set(recent), correct: searchAsTyped != query)
+        return TemplateSearch.remembered(query, filter: templateFilter, recent: Set(recent), correct: searchAsTyped != query)
     }
 
     private var shownTemplates: [Template] {

@@ -215,6 +215,35 @@ enum TemplateSearch {
                entries: index, table: stemmedSynonyms, words: vocabulary)
     }
 
+    /// `search`, remembered: Home and the editor read what a search found
+    /// several times a pass, so the last few searches are kept and each
+    /// runs once per query, filter and recent templates — as Android's
+    /// remember(query, …).
+    static func remembered(_ query: String, filter: TemplateFilter = TemplateFilter(), recent: Set<String> = [],
+                           correct: Bool = true) -> Result {
+        let key = SearchKey(query: query, filter: filter, recent: recent, correct: correct)
+        memoLock.lock()
+        let hit = memo.first { $0.key == key }?.result
+        memoLock.unlock()
+        if let hit { return hit }
+        let result = search(query, filter: filter, recent: recent, correct: correct)
+        memoLock.lock()
+        memo = [(key: key, result: result)] + Array(memo.prefix(3))
+        memoLock.unlock()
+        return result
+    }
+
+    /// What a remembered search was asked with.
+    private struct SearchKey: Equatable {
+        var query: String
+        var filter: TemplateFilter
+        var recent: Set<String>
+        var correct: Bool
+    }
+
+    private static var memo: [(key: SearchKey, result: Result)] = []
+    private static let memoLock = NSLock()
+
     static func search(_ query: String, filter: TemplateFilter, recent: Set<String>, correct: Bool,
                        entries: [Indexed], table: [String: Set<String>], words: [String: Int]) -> Result {
         let toks = tokens(query)

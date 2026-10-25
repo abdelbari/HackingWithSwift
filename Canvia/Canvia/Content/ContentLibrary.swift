@@ -519,15 +519,16 @@ enum ContentLibrary {
     /// and every size (fitted to the page) is shown once asked for — or
     /// from the start when nothing is made for it. Found as Home finds them
     /// (TemplateSearch): words, plurals, synonyms, colours and typos, the
-    /// best first. As the Android twin's TemplatesPanel.
+    /// best first, the `recent` ids (RecentSearches.usedTemplates) scoring
+    /// 1 more. As the Android twin's TemplatesPanel.
     static func editorTemplates(width: Double, height: Double, everySize: Bool,
-                                matching query: String) -> [Template] {
+                                matching query: String, recent: Set<String> = []) -> [Template] {
         let exact = sizedTemplates(width: width, height: height, category: nil)
         let pool = everySize || exact.isEmpty ? templates : exact
         let needle = query.trimmingCharacters(in: .whitespaces)
         guard !needle.isEmpty else { return pool }
         let ids = Set(pool.map(\.id))
-        return TemplateSearch.search(needle).templates.filter { ids.contains($0.id) }
+        return TemplateSearch.remembered(needle, recent: recent).templates.filter { ids.contains($0.id) }
     }
 
     /// The line over the editor's templates: what a tap will do — on a page
