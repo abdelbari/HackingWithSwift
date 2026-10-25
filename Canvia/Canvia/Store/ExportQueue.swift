@@ -195,7 +195,7 @@ final class ExportQueue {
     @ObservationIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     /// The export whose continued processing task has been asked for, and
     /// the task itself once the system has started it.
-    @ObservationIgnored private var continuedAsked: UUID?
+    private(set) var continuedAsked: UUID?
     @ObservationIgnored private(set) var continuedTask: Continued?
 
     init(host: Host) {
@@ -203,6 +203,10 @@ final class ExportQueue {
     }
 
     var isBusy: Bool { current != nil || !waiting.isEmpty }
+
+    /// Whether the export running goes on once Canvia is left: its
+    /// continued processing task was granted (ContinuedExport).
+    var keepsGoing: Bool { current != nil && continuedAsked == current?.id }
 
     /// "Rendering the video 42%", for the pill.
     var pillText: String? {
@@ -314,8 +318,12 @@ final class ExportQueue {
             }
             let task = Task { try await job.work(reporter) }
             running = task
+            // How the export went, for its continued processing task: one of
+            // a batch hands nothing over itself until the last is done.
+            var succeeded = false
             do {
                 let result = try await task.value
+                succeeded = job.batch != nil || result.failed == nil
                 if job.batch != nil {
                     collect(job, urls: result.urls, failed: result.failed == nil ? 0 : 1)
                 } else {
@@ -335,7 +343,7 @@ final class ExportQueue {
             }
             running = nil
             current = nil
-            endContinued(success: finished.last?.id == job.id && finished.last?.result.failed == nil)
+            endContinued(success: succeeded)
             endBackground()
         }
         runner = nil

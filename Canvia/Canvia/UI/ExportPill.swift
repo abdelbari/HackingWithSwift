@@ -27,6 +27,7 @@ struct ExportPill: View {
 
     private func running(_ job: ExportQueue.Job) -> some View {
         let text = queue.paused ? ExportChoices.paused : ExportChoices.pillText(label: job.label, fraction: queue.progress)
+        let away = ExportChoices.keepsGoing(queue.keepsGoing)
         return HStack(spacing: 10) {
             Button {
                 onTap()
@@ -39,8 +40,8 @@ struct ExportPill: View {
                             .monospacedDigit()
                             .lineLimit(1)
                         // Whether it goes on once Canvia is left: on iOS 26,
-                        // under the system's task (ContinuedExport).
-                        Text(ExportChoices.keepsGoing)
+                        // with the system's task granted (ContinuedExport).
+                        Text(away)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -48,7 +49,7 @@ struct ExportPill: View {
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(text + ", " + ExportChoices.keepsGoing)
+            .accessibilityLabel(text + ", " + away)
             .accessibilityHint("Shows the export")
             Button {
                 queue.cancel(job.id)

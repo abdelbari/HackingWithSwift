@@ -45,6 +45,8 @@ final class AudioDownloadTests: XCTestCase {
     func testAVoiceOverIsATrackNamedAsARecordingIs() {
         XCTAssertTrue(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: "Voice-over")))
         XCTAssertTrue(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: "Voice-over 3")))
+        XCTAssertTrue(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: "Voz en off 2")))
+        XCTAssertTrue(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: "ナレーション")))
         XCTAssertTrue(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: AudioTracks.voiceOverName(after: []))))
         XCTAssertFalse(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: "Theme")))
         XCTAssertFalse(AudioMix.isVoiceOver(AudioTrack(src: "video:c", name: AudioTracks.clipSoundName)))
@@ -125,8 +127,9 @@ final class AudioDownloadTests: XCTestCase {
         queue.enqueue(ExportQueue.Job(label: "Rendering the video", designId: "d") { _ in ExportQueue.Result() })
         await queue.waitUntilIdle()
         XCTAssertNil(queue.continuedTask)
-        XCTAssertEqual(ExportChoices.keepsGoing,
-                       ContinuedExport.isSupported ? "Keeps going if you leave Canvia" : "Keep Canvia open to finish")
+        XCTAssertFalse(queue.keepsGoing)
+        XCTAssertEqual(ExportChoices.keepsGoing(false), "Keep Canvia open to finish")
+        XCTAssertEqual(ExportChoices.keepsGoing(true), "Keeps going if you leave Canvia")
         XCTAssertEqual(ContinuedExport.job(of: ContinuedExport.identifier(job: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!)),
                        UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
         XCTAssertNil(ContinuedExport.job(of: "com.canvia.backup"))
@@ -151,6 +154,7 @@ final class AudioDownloadTests: XCTestCase {
         XCTAssertEqual(heard.asked.map { $0.title }, ["Exporting Lisbon"])
         XCTAssertEqual(heard.asked.map { $0.subtitle }, ["MP4 · 3 pages"])
         XCTAssertEqual(heard.asked.first?.job, job.id)
+        XCTAssertTrue(queue.keepsGoing, "granted, the pill says it keeps going")
         queue.left()
         XCTAssertEqual(heard.asked.count, 1, "asked once")
         queue.continued(handle(heard), job: job.id)
@@ -184,5 +188,33 @@ final class AudioDownloadTests: XCTestCase {
         XCTAssertTrue(queue.finished.isEmpty, "a stopped export hands nothing on")
         queue.continued(handle(heard), job: job.id)
         XCTAssertEqual(heard.finished, [false, false])
+    }
+
+    /// Each design of a batch (Home's Select ▸ Share) has its own task,
+    /// ended as succeeded once its part is made — though the files are
+    /// handed over together only after the last.
+    @MainActor
+    func testEachPartOfABatchEndsItsTaskAsSucceeded() async throws {
+        let heard = Heard()
+        let queue = ExportQueue(host: host(heard, grants: true))
+        let batch = UUID()
+        var released = 0
+        let jobs = (0..<2).map { index in
+            ExportQueue.Job(label: HomeExports.label(index: index, total: 2), designId: "d\(index)",
+                            batch: ExportQueue.Batch(id: batch, index: index, total: 2)) { report in
+                report(0.5)
+                while released <= index { try await Task.sleep(nanoseconds: 5_000_000) }
+                return ExportQueue.Result(urls: [URL(fileURLWithPath: "/tmp/d\(index).pdf")])
+            }
+        }
+        for job in jobs { queue.enqueue(job) }
+        for (index, job) in jobs.enumerated() {
+            while queue.current?.id != job.id || queue.progress == 0 { try await Task.sleep(nanoseconds: 5_000_000) }
+            queue.continued(handle(heard), job: job.id)
+            released = index + 1
+        }
+        await queue.waitUntilIdle()
+        XCTAssertEqual(heard.finished, [true, true])
+        XCTAssertEqual(queue.finished.map(\.id), [batch], "handed over together")
     }
 }

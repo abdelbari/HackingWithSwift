@@ -82,16 +82,16 @@ final class AutoBackups {
         update { $0.on = false }
     }
 
-    /// The folder the bookmark names, and whether it had to be renewed.
-    private func folderURL(_ bookmark: String) throws -> URL {
+    /// The folder the bookmark names, and its bookmark renewed when it had
+    /// to be (nil when it did not). Off the main actor, with the copy.
+    nonisolated private static func folderURL(_ bookmark: String) throws -> (url: URL, fresh: String?) {
         guard let data = Data(base64Encoded: bookmark) else { throw AutoBackupError.folderGone }
         var stale = false
         guard let url = try? URL(resolvingBookmarkData: data, options: [], relativeTo: nil,
                                  bookmarkDataIsStale: &stale) else { throw AutoBackupError.folderGone }
-        if stale, let fresh = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
-            update { $0.folder = fresh.base64EncodedString() }
-        }
-        return url
+        guard stale, let fresh = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil,
+                                                       relativeTo: nil) else { return (url, nil) }
+        return (url, fresh.base64EncodedString())
     }
 
     // MARK: running
@@ -146,7 +146,22 @@ final class AutoBackups {
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("auto-" + name)
         defer { try? FileManager.default.removeItem(at: temporary) }
         _ = try await Backup.write(to: temporary, now: date) { _ in }
-        let folder = try folderURL(bookmark)
+        // The copy into the folder — which may be iCloud Drive or a drive
+        // plugged in — and the pruning run off the main actor, so the app
+        // keeps answering however big the backup is.
+        let copied = try await Task.detached(priority: .utility) {
+            try AutoBackups.copy(temporary, named: name, into: bookmark, keep: keep)
+        }.value
+        if let fresh = copied.fresh { update { $0.folder = fresh } }
+        return copied.bytes
+    }
+
+    /// `temporary` copied into the bookmark's folder as `name` — over one
+    /// of that name — and the backups past `keep` there deleted: the bytes
+    /// it came to, and the bookmark renewed when it had to be.
+    nonisolated private static func copy(_ temporary: URL, named name: String, into bookmark: String,
+                                         keep: Int) throws -> (bytes: Int64, fresh: String?) {
+        let (folder, fresh) = try folderURL(bookmark)
         guard folder.startAccessingSecurityScopedResource() else { throw AutoBackupError.folderGone }
         defer { folder.stopAccessingSecurityScopedResource() }
         let files = FileManager.default
@@ -159,7 +174,7 @@ final class AutoBackups {
         for gone in AutoBackup.pruned(names, keep: keep) {
             try? files.removeItem(at: folder.appendingPathComponent(gone))
         }
-        return Int64(size)
+        return (Int64(size), fresh)
     }
 
     // MARK: in the background
@@ -195,8 +210,16 @@ final class AutoBackups {
     /// task so it can finish — stopped cleanly should that time run out.
     func appLeft() {
         guard config.on, !running, leaving == nil else { return }
+        // Time running out stops the backup and ends the task there and
+        // then, as the system asks: the copy into the folder cannot be
+        // stopped part way, and waiting on it would see Canvia ended.
         leavingTask = UIApplication.shared.beginBackgroundTask(withName: "Backup") {
-            MainActor.assumeIsolated { AutoBackups.shared.leaving?.cancel() }
+            MainActor.assumeIsolated {
+                let backups = AutoBackups.shared
+                backups.leaving?.cancel()
+                if backups.leavingTask != .invalid { UIApplication.shared.endBackgroundTask(backups.leavingTask) }
+                backups.leavingTask = .invalid
+            }
         }
         leaving = Task { @MainActor in
             await self.runIfDue()

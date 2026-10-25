@@ -225,12 +225,12 @@ enum AudioMix {
     }
 
     /// Whether `track` is a recorded voice-over: named as a recording is
-    /// when it becomes a track — "Voice-over" or "Voice-over 2" …, in
-    /// English as the Android twin names it, or in the app's language as
-    /// AudioTracks.voiceOverName names it here — as the audio panel tells
-    /// one by its mic.
+    /// when it becomes a track — "Voice-over" or "Voice-over 2" …, or in
+    /// any of the app's languages, "Voz en off" … (AudioTracks
+    /// .voiceOverNames, the Android twin's list) — whichever phone and
+    /// language named it.
     static func isVoiceOver(_ track: AudioTrack) -> Bool {
-        track.name.hasPrefix("Voice-over") || track.name.hasPrefix(AudioTracks.firstVoiceOver)
+        AudioTracks.voiceOverNames.contains { track.name.hasPrefix($0) }
     }
 
     /// The mix the MP4 of `pages` of `design` carries, at `settings`: their

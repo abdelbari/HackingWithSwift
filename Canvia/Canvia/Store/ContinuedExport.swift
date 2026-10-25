@@ -1,7 +1,7 @@
 // An export that keeps going once Canvia is left, on iOS 26 and later: the
 // system's continued processing task (BGContinuedProcessingTask), asked
 // for as an export starts — or as the app is left with one running — under
-// "com.canvia.export.<job id>", queued behind any other. The system shows
+// "com.canvia.app.export.<job id>", queued behind any other. The system shows
 // its title and subtitle and how far along it is, which the queue reports
 // (ExportQueue.progress); it ends when the export does, and should the
 // system stop it, the export stops cleanly and says so. Below iOS 26 the
@@ -18,8 +18,10 @@ import Foundation
 
 enum ContinuedExport {
 
-    /// Every export's task identifier starts so, its job's id after it.
-    static let prefix = "com.canvia.export."
+    /// Every export's task identifier starts so, its job's id after it:
+    /// under the app's bundle identifier (com.canvia.app), as the system
+    /// asks of a continued processing task's.
+    static let prefix = "com.canvia.app.export."
     /// What the app registers, and Info.plist permits.
     static let wildcard = prefix + "*"
 

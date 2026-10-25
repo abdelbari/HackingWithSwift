@@ -30,8 +30,8 @@
 
 	An export started in Canvia keeps going once it is left, on iOS 26 and
 	later: each asks for a continued processing task named after it,
-	"com.canvia.export.<job id>", which the wildcard permits
-	(ContinuedExport). "Back up automatically" writes its backup from the
+	"com.canvia.app.export.<job id>" — under the app's bundle identifier,
+	as iOS asks of these — which the wildcard permits (ContinuedExport). "Back up automatically" writes its backup from the
 	processing task "com.canvia.backup", a day apart (AutoBackups).
 -->
 <plist version="1.0">
@@ -174,7 +174,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.canvia.backup</string>
-		<string>com.canvia.export.*</string>
+		<string>com.canvia.app.export.*</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

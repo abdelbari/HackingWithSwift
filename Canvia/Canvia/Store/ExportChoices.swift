@@ -80,12 +80,12 @@ enum ExportChoices {
     /// An export the system stopped while Canvia was left (ContinuedExport).
     static let stoppedAway = tr("Export stopped — open Canvia to finish")
 
-    /// Under the pill: on iOS 26 and later an export runs on under the
-    /// system's continued processing task while Canvia is left; before,
-    /// it waits for the app to come back. The Android twin says the first
-    /// always (ExportPlan.KEEPS_GOING).
-    static var keepsGoing: String {
-        ContinuedExport.isSupported ? tr("Keeps going if you leave Canvia") : tr("Keep Canvia open to finish")
+    /// Under the pill: an export whose continued processing task the
+    /// system granted (iOS 26 and later, ExportQueue.keepsGoing) runs on
+    /// under it while Canvia is left; any other waits for the app to come
+    /// back. The Android twin says the first always (ExportPlan.KEEPS_GOING).
+    static func keepsGoing(_ granted: Bool) -> String {
+        granted ? tr("Keeps going if you leave Canvia") : tr("Keep Canvia open to finish")
     }
 
     /// "Export failed: <why>", in the sheet or the pill.
