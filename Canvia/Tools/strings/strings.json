@@ -5399,6 +5399,15 @@
     "ja": "キャプションを追加",
     "pt-BR": "Adicionar uma legenda"
   },
+  "Add a circle": {
+    "ar": "إضافة دائرة",
+    "de": "Kreis hinzufügen",
+    "es": "Añadir un círculo",
+    "fr": "Ajouter un cercle",
+    "it": "Aggiungi un cerchio",
+    "ja": "円を追加",
+    "pt-BR": "Adicionar um círculo"
+  },
   "Add a colour": {
     "ar": "إضافة لون",
     "de": "Farbe hinzufügen",
@@ -5444,6 +5453,15 @@
     "ja": "見出しを追加",
     "pt-BR": "Adicionar um título"
   },
+  "Add a line": {
+    "ar": "إضافة خط",
+    "de": "Linie hinzufügen",
+    "es": "Añadir una línea",
+    "fr": "Ajouter une ligne",
+    "it": "Aggiungi una linea",
+    "ja": "線を追加",
+    "pt-BR": "Adicionar uma linha"
+  },
   "Add a page": {
     "ar": "إضافة صفحة",
     "de": "Seite hinzufügen",
@@ -5452,6 +5470,15 @@
     "it": "Aggiungi una pagina",
     "ja": "ページを追加",
     "pt-BR": "Adicionar uma página"
+  },
+  "Add a page after this one": {
+    "ar": "إضافة صفحة بعد هذه الصفحة",
+    "de": "Seite nach dieser hinzufügen",
+    "es": "Añadir una página después de esta",
+    "fr": "Ajouter une page après celle-ci",
+    "it": "Aggiungi una pagina dopo questa",
+    "ja": "このページの後にページを追加",
+    "pt-BR": "Adicionar uma página depois desta"
   },
   "Add a page at the end": {
     "ar": "إضافة صفحة في النهاية",
@@ -5524,6 +5551,15 @@
     "it": "Aggiungi un'intestazione di sezione",
     "ja": "セクション見出しを追加",
     "pt-BR": "Adicionar um cabeçalho de seção"
+  },
+  "Add a square": {
+    "ar": "إضافة مربع",
+    "de": "Quadrat hinzufügen",
+    "es": "Añadir un cuadrado",
+    "fr": "Ajouter un carré",
+    "it": "Aggiungi un quadrato",
+    "ja": "正方形を追加",
+    "pt-BR": "Adicionar um quadrado"
   },
   "Add a stop": {
     "ar": "إضافة نقطة لون",
@@ -5677,6 +5713,51 @@
     "it": "Aggiungi colonna a destra",
     "ja": "右に列を追加",
     "pt-BR": "Adicionar coluna à direita"
+  },
+  "Add connected shape": {
+    "ar": "إضافة شكل متصل",
+    "de": "Verbundene Form hinzufügen",
+    "es": "Añadir forma conectada",
+    "fr": "Ajouter une forme connectée",
+    "it": "Aggiungi forma collegata",
+    "ja": "接続された図形を追加",
+    "pt-BR": "Adicionar forma conectada"
+  },
+  "Add connected shape above": {
+    "ar": "إضافة شكل متصل في الأعلى",
+    "de": "Verbundene Form oben hinzufügen",
+    "es": "Añadir forma conectada arriba",
+    "fr": "Ajouter une forme connectée au-dessus",
+    "it": "Aggiungi forma collegata sopra",
+    "ja": "上に接続された図形を追加",
+    "pt-BR": "Adicionar forma conectada acima"
+  },
+  "Add connected shape below": {
+    "ar": "إضافة شكل متصل في الأسفل",
+    "de": "Verbundene Form unten hinzufügen",
+    "es": "Añadir forma conectada debajo",
+    "fr": "Ajouter une forme connectée en dessous",
+    "it": "Aggiungi forma collegata sotto",
+    "ja": "下に接続された図形を追加",
+    "pt-BR": "Adicionar forma conectada abaixo"
+  },
+  "Add connected shape left": {
+    "ar": "إضافة شكل متصل على اليسار",
+    "de": "Verbundene Form links hinzufügen",
+    "es": "Añadir forma conectada a la izquierda",
+    "fr": "Ajouter une forme connectée à gauche",
+    "it": "Aggiungi forma collegata a sinistra",
+    "ja": "左に接続された図形を追加",
+    "pt-BR": "Adicionar forma conectada à esquerda"
+  },
+  "Add connected shape right": {
+    "ar": "إضافة شكل متصل على اليمين",
+    "de": "Verbundene Form rechts hinzufügen",
+    "es": "Añadir forma conectada a la derecha",
+    "fr": "Ajouter une forme connectée à droite",
+    "it": "Aggiungi forma collegata a destra",
+    "ja": "右に接続された図形を追加",
+    "pt-BR": "Adicionar forma conectada à direita"
   },
   "Add element": {
     "ar": "إضافة عنصر",
@@ -7498,6 +7579,24 @@
     "it": "Piega",
     "ja": "曲げ",
     "pt-BR": "Curvar"
+  },
+  "Bend less": {
+    "ar": "تقليل الانحناء",
+    "de": "Weniger biegen",
+    "es": "Curvar menos",
+    "fr": "Courber moins",
+    "it": "Curva di meno",
+    "ja": "曲げを弱める",
+    "pt-BR": "Curvar menos"
+  },
+  "Bend more": {
+    "ar": "زيادة الانحناء",
+    "de": "Stärker biegen",
+    "es": "Curvar más",
+    "fr": "Courber davantage",
+    "it": "Curva di più",
+    "ja": "もっと曲げる",
+    "pt-BR": "Curvar mais"
   },
   "Black": {
     "ar": "أسود",
@@ -22268,6 +22367,15 @@
     "ja": "輪郭のサイズ",
     "pt-BR": "Tamanho do contorno"
   },
+  "Outline under pointer": {
+    "ar": "إطار تحت المؤشر",
+    "de": "Umriss unter dem Zeiger",
+    "es": "Contorno bajo el puntero",
+    "fr": "Contour sous le pointeur",
+    "it": "Contorno sotto il puntatore",
+    "ja": "ポインタの下に輪郭を表示",
+    "pt-BR": "Contorno sob o ponteiro"
+  },
   "Oval": {
     "ar": "بيضاوي",
     "de": "Oval",
@@ -23552,6 +23660,15 @@
     "ja": "素材の上でも、どこでもピンチでズームできます。2 本指、またはページの空いている所やグレーの作業領域を 1 本指でドラッグしてパンします。作業領域をダブルタップするとその場所を拡大し、もう一度ダブルタップするとページ全体を表示します。右上の表示が現在の倍率で、タップするとページ全体と実際のサイズを切り替えます。選択中のものが画面外にスクロールした場合は、「表示に戻す」で見つけられます。",
     "pt-BR": "Faça o gesto de pinça em qualquer lugar para ampliar, até sobre elementos. Mova a tela com dois dedos, ou com um dedo na página vazia ou na área cinza. Toque duas vezes na área de trabalho para ampliar um ponto, e de novo para ajustar a página. O indicador no canto superior direito mostra o zoom; toque nele para alternar entre a página inteira e o tamanho real. Se o que você selecionou sair da tela, Trazer de volta o encontra."
   },
+  "Pinch out past the whole page to open the organizer; pinch in it to make the thumbnails larger or smaller, and tap a page to go to it.": {
+    "ar": "باعِد إصبعيك إلى ما بعد الصفحة كاملة لفتح المنظِّم؛ واقرص داخله لتكبير الصور المصغّرة أو تصغيرها، واضغط على صفحة للانتقال إليها.",
+    "de": "Zieh die Finger über die ganze Seite hinaus auseinander, um die Organisation zu öffnen; zieh sie dort auf oder zu, um die Miniaturen zu vergrößern oder zu verkleinern, und tippe auf eine Seite, um zu ihr zu wechseln.",
+    "es": "Pellizca hacia fuera más allá de la página entera para abrir el organizador; pellizca dentro de él para agrandar o reducir las miniaturas y toca una página para ir a ella.",
+    "fr": "Écartez les doigts au-delà de la page entière pour ouvrir l’organiseur ; pincez-y pour agrandir ou réduire les miniatures, et touchez une page pour y aller.",
+    "it": "Allarga le dita oltre l’intera pagina per aprire l’organizzatore; pizzica al suo interno per ingrandire o rimpicciolire le miniature e tocca una pagina per andarci.",
+    "ja": "ページ全体を超えてピンチアウトすると整理画面が開きます。整理画面でピンチするとサムネイルを拡大・縮小でき、ページをタップするとそのページに移動します。",
+    "pt-BR": "Afaste os dedos além da página inteira para abrir o organizador; faça o gesto de pinça nele para aumentar ou diminuir as miniaturas e toque em uma página para ir até ela."
+  },
   "Pinch resizes what is selected": {
     "ar": "القرص يغيّر حجم المحدد",
     "de": "Aufziehen ändert die Größe der Auswahl",
@@ -24548,6 +24665,15 @@
     "ja": "引用",
     "pt-BR": "Citação"
   },
+  "R, C and L add a square, a circle and a line, ⇧R shows or hides the rulers, 1 to 9 set the transparency to 10–90% and 0 to 100%, ⌘Return adds a page after this one, Home and End go to the first and last page, and ⌘⌥ with an arrow adds a connected shape that way.": {
+    "ar": "R وC وL تضيف مربعًا ودائرة وخطًا، و⇧R يُظهر المساطر أو يخفيها، و1 إلى 9 تضبط الشفافية على 10–90% و0 على 100%، و⌘Return يضيف صفحة بعد هذه الصفحة، وHome وEnd تنتقلان إلى الصفحة الأولى والأخيرة، و⌘⌥ مع سهم يضيف شكلًا متصلًا في ذلك الاتجاه.",
+    "de": "R, C und L fügen ein Quadrat, einen Kreis und eine Linie hinzu, ⇧R blendet die Lineale ein oder aus, 1 bis 9 stellen die Transparenz auf 10–90 % und 0 auf 100 %, ⌘Return fügt eine Seite nach dieser hinzu, Pos1 und Ende gehen zur ersten und letzten Seite, und ⌘⌥ mit einem Pfeil fügt in diese Richtung eine verbundene Form hinzu.",
+    "es": "R, C y L añaden un cuadrado, un círculo y una línea, ⇧R muestra u oculta las reglas, del 1 al 9 fijan la transparencia en 10–90 % y 0 en 100 %, ⌘Retorno añade una página después de esta, Inicio y Fin van a la primera y la última página, y ⌘⌥ con una flecha añade una forma conectada en esa dirección.",
+    "fr": "R, C et L ajoutent un carré, un cercle et une ligne, ⇧R affiche ou masque les règles, 1 à 9 règlent la transparence de 10 à 90 % et 0 à 100 %, ⌘Retour ajoute une page après celle-ci, Début et Fin vont à la première et à la dernière page, et ⌘⌥ avec une flèche ajoute une forme connectée dans ce sens.",
+    "it": "R, C e L aggiungono un quadrato, un cerchio e una linea, ⇧R mostra o nasconde i righelli, da 1 a 9 impostano la trasparenza al 10–90% e 0 al 100%, ⌘Invio aggiunge una pagina dopo questa, Home e Fine vanno alla prima e all’ultima pagina, e ⌘⌥ con una freccia aggiunge una forma collegata in quella direzione.",
+    "ja": "R、C、L で正方形、円、線を追加、⇧R で定規を表示/非表示、1〜9 で透明度を 10〜90%、0 で 100% に設定、⌘Return でこのページの後にページを追加、Home と End で最初と最後のページへ移動、⌘⌥ と矢印でその方向に接続された図形を追加します。",
+    "pt-BR": "R, C e L adicionam um quadrado, um círculo e uma linha, ⇧R mostra ou oculta as réguas, de 1 a 9 definem a transparência em 10–90% e 0 em 100%, ⌘Return adiciona uma página depois desta, Home e End vão para a primeira e a última página, e ⌘⌥ com uma seta adiciona uma forma conectada nessa direção."
+  },
   "RGB": {
     "ar": "RGB",
     "de": "RGB",
@@ -24880,6 +25006,15 @@
     "it": "Normale",
     "ja": "標準",
     "pt-BR": "Normal"
+  },
+  "Release for all pages": {
+    "ar": "أفلِت لعرض كل الصفحات",
+    "de": "Loslassen für alle Seiten",
+    "es": "Suelta para ver todas las páginas",
+    "fr": "Relâchez pour voir toutes les pages",
+    "it": "Rilascia per vedere tutte le pagine",
+    "ja": "指を離すとすべてのページを表示",
+    "pt-BR": "Solte para ver todas as páginas"
   },
   "Remember these settings": {
     "ar": "تذكّر هذه الإعدادات",
@@ -28021,6 +28156,15 @@
     "it": "Mostra note",
     "ja": "ノートを表示",
     "pt-BR": "Mostrar anotações"
+  },
+  "Show or hide rulers": {
+    "ar": "إظهار المساطر أو إخفاؤها",
+    "de": "Lineale ein- oder ausblenden",
+    "es": "Mostrar u ocultar las reglas",
+    "fr": "Afficher ou masquer les règles",
+    "it": "Mostra o nascondi i righelli",
+    "ja": "定規を表示/非表示",
+    "pt-BR": "Mostrar ou ocultar as réguas"
   },
   "Show original": {
     "ar": "عرض الأصل",
@@ -32119,6 +32263,15 @@
     "it": "Trasparenza",
     "ja": "透明度",
     "pt-BR": "Transparência"
+  },
+  "Transparency %@": {
+    "ar": "الشفافية %@",
+    "de": "Transparenz %@",
+    "es": "Transparencia %@",
+    "fr": "Transparence %@",
+    "it": "Trasparenza %@",
+    "ja": "透明度 %@",
+    "pt-BR": "Transparência %@"
   },
   "Transparent background": {
     "ar": "خلفية شفافة",
