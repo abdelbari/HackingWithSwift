@@ -409,10 +409,12 @@ enum DesignExporter {
 
     /// The pages as `exportPages` writes them; with `compress`, each PNG in
     /// 256 colours where that is enough smaller, and how many were not.
+    /// A page in `pageScales` (by id) is drawn at its own scale there.
     @MainActor
     static func exportPictures(design: Design, range: PageRange, current: Int, format: RasterFormat,
                                scale: Double, longEdge: Double, quality: Double, transparent: Bool,
                                captionTime: Double?, compress: Bool, split: Bool = false,
+                               pageScales: [String: Double] = [:],
                                progress: ((Double) -> Void)? = nil) async throws -> (urls: [URL], uncompressed: Int) {
         var uncompressed = 0
         let indices = range.indices(in: design, current: current)
@@ -429,7 +431,10 @@ enum DesignExporter {
             let suffix = indices.count > 1 ? "-\(index + 1)" : ""
             let url = fileURL(for: design, ext: format.ext, suffix: suffix)
             let page = design.pages[index]
-            let pageScale = longEdge > 0 ? DesignExporter.scale(forLongEdge: longEdge, size: design.size(for: page)) : scale
+            // A page's own scale, when it has one (Share to's app width).
+            let pageScale = longEdge > 0
+                ? DesignExporter.scale(forLongEdge: longEdge, size: design.size(for: page))
+                : (pageScales[page.id] ?? scale)
             let pageCaption = index == current ? captionTime : nil
             // A carousel, when asked, as its slides in order; else the page.
             let made: [(URL, CGImage)]
