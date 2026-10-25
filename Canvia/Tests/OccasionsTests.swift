@@ -46,6 +46,11 @@ final class OccasionsTests: XCTestCase {
         XCTAssertEqual(Occasions.byId("diwali")?.rule.day(in: 2026), try day(2026, 11, 8))
         // Beyond its table a moving feast has no day.
         XCTAssertNil(Occasions.byId("diwali")?.rule.day(in: 2036))
+        // A year the table gives a list: each of its days, earliest first.
+        let eid = try XCTUnwrap(Occasions.byId("eid")?.rule)
+        XCTAssertEqual(eid.days(in: 2033), try [day(2033, 1, 2), day(2033, 12, 22)])
+        XCTAssertEqual(eid.day(in: 2033), try day(2033, 1, 2))
+        XCTAssertEqual(eid.days(in: 2034), try [day(2034, 12, 12)])
         let last = Occasions.Rule(rule: "weekday", month: 5, weekday: 1, nth: -1)
         XCTAssertEqual(last.day(in: 2026), try day(2026, 5, 25))
     }

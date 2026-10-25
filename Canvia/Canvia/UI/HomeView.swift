@@ -664,7 +664,9 @@ struct HomeView: View {
     private var shownTemplates: [Template] {
         let found: [Template]
         if let searched = templateSearch {
-            found = searched.templates.filter { templateCategory == nil || $0.category == templateCategory }
+            // A search looks through every category, as on Android: the
+            // category chips are hidden while searching (templatesStack).
+            found = searched.templates
         } else {
             found = ContentLibrary.filteredTemplates(in: templateCategory, matching: "", facets: templateFilter)
         }
@@ -2028,7 +2030,10 @@ struct HomeView: View {
             .padding(.horizontal)
             TemplateFilterChips(filter: $filterSession.filter)
                 .padding(.horizontal)
-            templateCategoryChips
+            // Hidden while searching, which looks through every category.
+            if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                templateCategoryChips
+            }
             // The templates used lately lead the templates, under All.
             if showsRecentTemplates {
                 RecentTemplatesRow(templates: recentTemplates) { previewing = $0 }

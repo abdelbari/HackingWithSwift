@@ -8,7 +8,8 @@
 // (the Gregorian computus) or "weekday" (the `nth` `weekday`, ISO 1 =
 // Monday to 7 = Sunday, of `month`; a negative nth counts from the month's
 // end) — moved by "offset" days, or on the day a table of "dates" by year
-// gives (moving feasts up to 2035; a year not in it has none). A region may
+// gives (moving feasts up to 2035; a year not in it has none; a year may give
+// a list, as Eid al-Fitr falls twice in 2033). A region may
 // fall on a rule of its own ("regions", by the locale's country):
 // Mothering Sunday in the UK, Thanksgiving in Canada. It is coming up for
 // its "lead" days before it, and on the day itself.
@@ -95,21 +96,25 @@ enum Occasions {
         var weekday = 7
         var nth = 1
         var offset = 0
-        var dates: [String: String] = [:]
+        var dates: [String: [String]] = [:]
 
-        /// Its day in `year`, or nil when it has none that year.
-        func day(in year: Int) -> CivilDay? {
-            let base: CivilDay?
+        /// Its first day in `year`, or nil when it has none that year.
+        func day(in year: Int) -> CivilDay? { days(in: year).first }
+
+        /// Its days in `year`, earliest first: one, or none, or — a table
+        /// giving a year a list — each it gives.
+        func days(in year: Int) -> [CivilDay] {
+            let base: [CivilDay]
             if let date {
-                base = Occasions.monthDay(year, date)
+                base = [Occasions.monthDay(year, date)].compactMap { $0 }
             } else if rule == "easter" {
-                base = Occasions.easter(year)
+                base = [Occasions.easter(year)]
             } else if rule == "weekday" {
-                base = Occasions.weekdayIn(year, month: month, weekday: weekday, nth: nth)
+                base = [Occasions.weekdayIn(year, month: month, weekday: weekday, nth: nth)].compactMap { $0 }
             } else {
-                base = dates[String(year)].flatMap { Occasions.monthDay(year, $0) }
+                base = (dates[String(year)] ?? []).compactMap { Occasions.monthDay(year, $0) }
             }
-            return base?.adding(days: offset)
+            return base.map { $0.adding(days: offset) }.sorted()
         }
     }
 
@@ -142,11 +147,12 @@ enum Occasions {
     /// The occasions of `calendar` whose window — `lead` days before the
     /// day, to the day itself — holds `today`, in `region` (a country
     /// code), nearest first; a tie keeps the calendar's order. An occasion
-    /// whose day this year is past looks to next year's.
+    /// whose days this year are past looks to next year's.
     static func upcoming(_ today: CivilDay, region: String?, calendar: [Occasion] = all) -> [Upcoming] {
         let found = calendar.enumerated().compactMap { i, occasion -> (Upcoming, Int)? in
             let rule = occasion.rule(for: region)
-            guard let day = [today.year, today.year + 1].lazy.compactMap({ rule.day(in: $0) }).first(where: { $0 >= today })
+            let years = [today.year, today.year + 1]
+            guard let day = years.compactMap({ y in rule.days(in: y).first(where: { d in d >= today }) }).first
             else { return nil }
             let days = day.ordinal - today.ordinal
             guard days <= occasion.lead else { return nil }
@@ -265,8 +271,22 @@ struct OccasionSpec: Decodable {
         rule.weekday = int("weekday", 7)
         rule.nth = int("nth", 1)
         rule.offset = int("offset", 0)
-        rule.dates = (try? c.decode([String: String].self, forKey: Key("dates"))) ?? [:]
+        rule.dates = datesTable(c)
         return rule
+    }
+
+    /// The "dates" table: a year's day, or a list of its days.
+    private static func datesTable(_ c: KeyedDecodingContainer<Key>) -> [String: [String]] {
+        guard let table = try? c.nestedContainer(keyedBy: Key.self, forKey: Key("dates")) else { return [:] }
+        var found: [String: [String]] = [:]
+        for key in table.allKeys {
+            if let one = try? table.decode(String.self, forKey: key) {
+                found[key.stringValue] = [one]
+            } else if let many = try? table.decode([String].self, forKey: key), !many.isEmpty {
+                found[key.stringValue] = many
+            }
+        }
+        return found
     }
 
     /// Any key.
