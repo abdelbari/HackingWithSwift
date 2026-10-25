@@ -67,8 +67,8 @@ enum ImageMasking {
     }
 
     /// `mask` painted into the grid; its taps of Clear a colour read
-    /// `source` drawn at the grid's size (gridPixels), and are passed over
-    /// without it.
+    /// `source` sampled at the grid's size (gridPixels), and are passed
+    /// over without it.
     private static func greyImage(_ mask: ImageMask, picture: CGSize, start: Float, key: String, tag: String,
                                   source: UIImage?) -> CGImage? {
         let grid = MaskRaster.gridSize(width: Double(picture.width), height: Double(picture.height))
@@ -85,17 +85,39 @@ enum ImageMasking {
         return image
     }
 
-    /// `picture` drawn at `width` × `height` — the mask's grid — as RGBA,
-    /// not premultiplied, top row first: what a tap of Clear a colour reads.
+    /// `picture` sampled onto `width` × `height` — the mask's grid — as
+    /// RGBA, not premultiplied, top row first: what a tap of Clear a colour
+    /// reads. Each grid pixel is the picture's own pixel under its centre —
+    /// column ⌊(gx + 0.5) × w / width⌋, row ⌊(gy + 0.5) × h / height⌋ —
+    /// never a blend, as the Android twin's MaskRaster.proxy samples, so
+    /// both phones measure a colour on the same pixels.
     static func gridPixels(_ picture: UIImage, width: Int, height: Int) -> [UInt8]? {
-        guard width > 0, height > 0, let cg = picture.cgImage,
-              let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        guard width > 0, height > 0, let cg = picture.cgImage, cg.width > 0, cg.height > 0,
+              let full = rgba(cg) else { return nil }
+        let w = cg.width, h = cg.height
+        if w == width && h == height { return full }
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        for gy in 0..<height {
+            let y = min(h - 1, Int(((Double(gy) + 0.5) * Double(h) / Double(height)).rounded(.down)))
+            for gx in 0..<width {
+                let x = min(w - 1, Int(((Double(gx) + 0.5) * Double(w) / Double(width)).rounded(.down)))
+                let from = (y * w + x) * 4, to = (gy * width + gx) * 4
+                for c in 0..<4 { bytes[to + c] = full[from + c] }
+            }
+        }
+        return bytes
+    }
+
+    /// `cg` at its own size as RGBA, not premultiplied, top row first.
+    private static func rgba(_ cg: CGImage) -> [UInt8]? {
+        let width = cg.width, height = cg.height
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
         var bytes = [UInt8](repeating: 0, count: width * height * 4)
         let drawn: Bool = bytes.withUnsafeMutableBytes { raw in
             guard let ctx = CGContext(data: raw.baseAddress, width: width, height: height, bitsPerComponent: 8,
                                       bytesPerRow: width * 4, space: space,
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
-            ctx.interpolationQuality = .high
+            ctx.interpolationQuality = .none
             ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
             return true
         }

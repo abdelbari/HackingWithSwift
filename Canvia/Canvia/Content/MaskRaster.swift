@@ -512,9 +512,11 @@ enum MaskRaster {
     /// stroke's points are at x × width, y × height and its reach (reach)
     /// in shares of the grid's shorter side.
     ///
-    /// A tap of Clear a colour takes each cell down as an Erase does, by
-    /// what `keyed` gives for it — its keyCoverage over the grid's own
-    /// pixels — and is passed over when there is none to give.
+    /// A tap of Clear a colour takes each cell down to the least of it and
+    /// what `keyed` leaves of it — its keyCoverage over the grid's own
+    /// pixels — so a colour tapped twice, or an edge two taps share, never
+    /// goes further (the Android twin's rule); it is passed over when there
+    /// is nothing to give.
     static func raster(_ strokes: [MaskStroke], width: Int, height: Int, start: Float = 1,
                        initial: [Float]? = nil, keyed: Keyed = { _ in nil }) -> [Float] {
         let w = max(1, width), h = max(1, height)
@@ -522,8 +524,8 @@ enum MaskRaster {
         let short = Double(min(w, h))
         for stroke in strokes {
             if stroke.keys {
-                guard let cover = keyed(stroke), cover.count == w * h else { continue }
-                for k in 0..<(w * h) where cover[k] > 0 { grid[k] *= 1 - cover[k] }
+                guard let left = keyed(stroke), left.count == w * h else { continue }
+                for k in 0..<(w * h) where left[k] < grid[k] { grid[k] = left[k] }
                 continue
             }
             let (share, fade) = reach(stroke)
@@ -595,7 +597,7 @@ enum MaskRaster {
 
     // MARK: clear a colour
 
-    /// What a tap of Clear a colour clears of the grid, one value a cell;
+    /// What a tap of Clear a colour leaves of the grid, one value a cell;
     /// nil when there is no picture to read.
     typealias Keyed = (MaskStroke) -> [Float]?
 
@@ -606,19 +608,21 @@ enum MaskRaster {
         return e * e
     }
 
-    /// sRGB channels 0…255 in CIE Lab (D65): linear light, then XYZ, then
-    /// L*, a* and b* by the textbook formulas both phones write out.
+    /// sRGB channels 0…255 in CIE Lab (D65, white X 0.95047, Y 1, Z
+    /// 1.08883): linear light, then XYZ by the 7-digit sRGB matrix, then
+    /// L*, a* and b* with the CIE's exact 216/24389 and 24389/27 — the same
+    /// numbers, written the same way, as the Android twin's lab.
     static func lab(_ red: Int, _ green: Int, _ blue: Int) -> (l: Double, a: Double, b: Double) {
         let r = linear[min(max(red, 0), 255)], g = linear[min(max(green, 0), 255)], b = linear[min(max(blue, 0), 255)]
-        let x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
-        let y = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        let z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+        let x = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047
+        let y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
+        let z = (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / 1.08883
         let fx = labF(x), fy = labF(y), fz = labF(z)
         return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
     }
 
     private static func labF(_ t: Double) -> Double {
-        t > 0.008856 ? cbrt(t) : 7.787 * t + 16.0 / 116.0
+        t > 216.0 / 24389 ? cbrt(t) : (24389.0 / 27 * t + 16) / 116
     }
 
     /// Each sRGB level 0…255 as linear light, 0…1.
@@ -627,7 +631,7 @@ enum MaskRaster {
         return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
     }
 
-    /// What a tap of Clear a colour clears of a picture `width` × `height`
+    /// What a tap of Clear a colour leaves of a picture `width` × `height`
     /// — `pixels` RGBA, not premultiplied, top row first; the grid's own
     /// proxy of the picture, at most maxSide on its longer side, so the
     /// coverage is scaled up with the rest of the mask — one value a pixel,
@@ -635,13 +639,14 @@ enum MaskRaster {
     /// height rounded down, held within the picture); a pixel is its
     /// colour when it is not clear and lies within keyLimit(tol) of it in
     /// Lab. Those joined to the tapped pixel through its four neighbours
-    /// are cleared (1) — or with `all`, every such pixel — and a pixel not
-    /// cleared with a cleared one among its four neighbours is half cleared
-    /// (0.5): the one-pixel feathered edge. A clear tapped pixel clears
-    /// nothing. The Android twin's rule, pixel for pixel.
+    /// are cleared (0 left) — or with `all`, every such pixel — the rest
+    /// kept (1), and a pixel not cleared with a cleared one among its four
+    /// neighbours is half left (0.5): the one-pixel feathered edge. A clear
+    /// tapped pixel clears nothing. The Android twin's rule, pixel for
+    /// pixel, checked on both phones by Fixtures/colour-key.json.
     static func keyCoverage(_ pixels: [UInt8], width: Int, height: Int, entry: MaskStroke) -> [Float] {
         let w = max(0, width), h = max(0, height)
-        var out = [Float](repeating: 0, count: w * h)
+        var out = [Float](repeating: 1, count: w * h)
         guard w > 0, h > 0, pixels.count >= w * h * 4, entry.keys else { return out }
         let tx = min(max(Int((entry.x * Double(w)).rounded(.down)), 0), w - 1)
         let ty = min(max(Int((entry.y * Double(h)).rounded(.down)), 0), h - 1)
@@ -675,7 +680,7 @@ enum MaskRaster {
         }
         for p in 0..<(w * h) {
             if cleared[p] {
-                out[p] = 1
+                out[p] = 0
                 continue
             }
             let x = p % w, y = p / w
