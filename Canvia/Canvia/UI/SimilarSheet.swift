@@ -94,7 +94,7 @@ extension DesignStore {
         switch hit.kind {
         case .icon:
             guard let icon = IconLibrary.icon(hit.id) else { return [] }
-            let fill = IconLibrary.fill(for: page, brandColours: BrandKit.load().colors)
+            let fill = IconLibrary.fill(for: design, page: page, brand: BrandKit.load())
             return [IconLibrary.element(icon, pageWidth: pageWidth, pageHeight: pageHeight, fill: fill)]
         case .graphic:
             guard let graphic = GraphicsLibrary.graphic(hit.id) else { return [] }

@@ -96,8 +96,24 @@ final class PresentSession {
     var stoppedAt: Double?
     var autoplay = false
     /// Where the presenter points, in the page's own units: a red dot over
-    /// the page while a finger is held down; nil otherwise.
+    /// the page while a finger is held down — on the phone's stage or the
+    /// console's page — nil otherwise.
     var pointer: CGPoint?
+    /// The presenter's pen (PresentInk): on, a finger draws on the slide;
+    /// its colour and width; and the ink on the page up, in the page's own
+    /// units, drawn on both screens. Never saved: it goes with the page, at
+    /// Clear (E) or, with Fade ink on, a little after each stroke lifts.
+    var penOn = false
+    var penColor = PresentInk.startColor
+    var penWidth = PresentInk.startWidth
+    var ink = PresentInk.Ink()
+    /// Laser lock (L): a touch points at once, without waiting for a hold.
+    var laserLock = false
+    /// A finger is on the slide, and whether this touch has pointed or
+    /// drawn — so it is no tap or swipe. Read only by the gestures' own
+    /// closures; set again as the next touch lands.
+    var inTouch = false
+    var heldThisTouch = false
     /// At the end of the last page shown, go round to the first: the
     /// design's own setting, which the Loop button changes.
     var loop: Bool
@@ -122,6 +138,69 @@ final class PresentSession {
 
     /// Whether the page is blurred by the presenter.
     var blurred: Bool { effects.contains { $0.id == "blur" } }
+
+    /// Fade ink, kept as the "presentInkFade" preference: on unless turned
+    /// off.
+    static var inkFades: Bool {
+        UserDefaults.standard.object(forKey: PresentInk.fadePref) as? Bool ?? true
+    }
+
+    /// The clock strokes are lifted and faded by, in seconds.
+    static var inkClock: Double { Date().timeIntervalSinceReferenceDate }
+
+    /// A finger at `location` in a view of `size` that fits the page up in
+    /// its middle — `held` once it has been held still long enough to
+    /// point, `moved` how far it has gone. With the pen on it draws; held,
+    /// or at once with Laser lock, it points. A touch that drew, held, or
+    /// moved the locked laser is no tap or swipe (`heldThisTouch`).
+    func touched(at location: CGPoint, moved: CGSize, held: Bool, in size: CGSize) {
+        let begun = !inTouch
+        if begun {
+            inTouch = true
+            heldThisTouch = false
+        }
+        let at = Presenter.pagePoint(location, in: size, page: design.size(for: page))
+        if penOn {
+            heldThisTouch = true
+            if begun { liftInk() }
+            guard let at else { return }
+            let open = ink.strokes.last.map { $0.liftedAt == nil } ?? false
+            ink = open ? ink.extended(to: at) : ink.started(at: at, color: penColor, width: penWidth)
+            return
+        }
+        guard held || laserLock else { return }
+        if held || hypot(moved.width, moved.height) > 10 { heldThisTouch = true }
+        pointer = at
+    }
+
+    /// The finger lifted: the dot goes, and a stroke being drawn is done —
+    /// to fade, with Fade ink on, `PresentInk.fadeAfter` seconds on.
+    func released() {
+        inTouch = false
+        pointer = nil
+        liftInk()
+    }
+
+    /// The stroke being drawn lifted, and let go of once it has faded.
+    private func liftInk() {
+        guard let last = ink.strokes.last, last.liftedAt == nil else { return }
+        ink = ink.lifted(at: Self.inkClock)
+        letGoOfFadedInk()
+    }
+
+    /// With Fade ink on, the lifted strokes let go of once the last lifted
+    /// has faded — after a lift, and when Fade ink is turned on over ink
+    /// already lifted — so the ink layer's clock stops once nothing is
+    /// left to fade.
+    func letGoOfFadedInk() {
+        guard Self.inkFades, let lastLift = ink.strokes.compactMap(\.liftedAt).max() else { return }
+        let wait = max(lastLift + PresentInk.fadeAfter + PresentInk.fadeSeconds - Self.inkClock, 0) + 0.05
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(wait))
+            guard let self else { return }
+            self.ink = self.ink.kept(at: PresentSession.inkClock, fade: PresentSession.inkFades)
+        }
+    }
 
     var page: Page { design.pages[min(index, design.pages.count - 1)] }
 
@@ -238,6 +317,7 @@ struct PresentStage: View {
         }
         // Settings ▸ Accessibility's Underline links, never in an export.
         .overlay(alignment: .topLeading) { if underlineLinks { LinkUnderlines(design: design, page: shown) } }
+        .overlay(alignment: .topLeading) { PresentInkLayer(ink: session.ink, page: pageSize) }
         .overlay(alignment: .topLeading) { PointerDot(point: session.pointer, page: pageSize) }
         .scaleEffect(scale)
         .frame(width: pageSize.width * scale, height: pageSize.height * scale)

@@ -22,5 +22,7 @@
 {"id":"coin","name":"Coin","seconds":0.6,"tags":["game","money","collect"]},
 {"id":"bubble","name":"Bubble","seconds":0.3,"tags":["water","pop","blip"]},
 {"id":"swipe","name":"Swipe","seconds":0.35,"tags":["slide","transition","page"]},
-{"id":"glitch","name":"Glitch","seconds":0.6,"tags":["digital","error","noise","tech"]}
+{"id":"glitch","name":"Glitch","seconds":0.6,"tags":["digital","error","noise","tech"]},
+{"id":"drumroll","name":"Drumroll","seconds":2.5,"tags":["drum","roll","reveal","suspense","snare"]},
+{"id":"micdrop","name":"Mic drop","seconds":2.5,"tags":["microphone","drop","thud","feedback","end"]}
 ]

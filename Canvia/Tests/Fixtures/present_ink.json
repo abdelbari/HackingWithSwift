@@ -1,0 +1,19 @@
+{
+  "_about": "Present's pen (PresentInk): colours, widths as a share of the page's shorter side, and how solid a stroke is at a moment, lifted at liftedAt (null while drawn), with Fade ink on or off.",
+  "colors": ["#ff3b30", "#ffcc00", "#ffffff"],
+  "widths": [0.004, 0.008, 0.016],
+  "fadeAfter": 3.0,
+  "fadeSeconds": 0.5,
+  "keys": {"laser": "l", "pen": "p", "clear": "e"},
+  "alpha": [
+    {"liftedAt": null, "now": 10.0, "fade": true, "alpha": 1.0},
+    {"liftedAt": 2.0, "now": 2.0, "fade": true, "alpha": 1.0},
+    {"liftedAt": 2.0, "now": 5.0, "fade": true, "alpha": 1.0},
+    {"liftedAt": 2.0, "now": 5.1, "fade": true, "alpha": 0.8},
+    {"liftedAt": 2.0, "now": 5.25, "fade": true, "alpha": 0.5},
+    {"liftedAt": 2.0, "now": 5.5, "fade": true, "alpha": 0.0},
+    {"liftedAt": 2.0, "now": 60.0, "fade": true, "alpha": 0.0},
+    {"liftedAt": 2.0, "now": 60.0, "fade": false, "alpha": 1.0}
+  ],
+  "width": {"page": [1920, 1080], "stroke": 1, "points": 8.64}
+}

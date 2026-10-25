@@ -72,12 +72,13 @@ final class PresentLoopAndEffectsTests: XCTestCase {
     func testTheEffectsAndTheirKeys() {
         XCTAssertEqual(Presenter.effects.map(\.id), [
             "timer1", "timer2", "timer3", "timer4", "timer5", "timer6", "timer7", "timer8", "timer9",
-            "blur", "confetti", "bubbles", "quiet", "curtain", "clear",
+            "blur", "confetti", "bubbles", "quiet", "curtain", "drumroll", "micdrop", "clear",
         ])
         let rows: [(String, String?)] = [
             ("1", "timer1"), ("5", "timer5"), ("9", "timer9"), ("b", "blur"), ("B", "blur"),
             ("c", "confetti"), ("o", "bubbles"), ("q", "quiet"), ("u", "curtain"), ("x", "clear"),
-            ("X", "clear"), ("0", nil), ("d", nil), ("z", nil), ("", nil),
+            ("X", "clear"), ("d", "drumroll"), ("M", "micdrop"), ("0", nil), ("z", nil), ("", nil),
+            ("l", nil), ("p", nil), ("e", nil),
         ]
         for (key, id) in rows {
             XCTAssertEqual(Presenter.effect(forKey: key)?.id, id, "key \(key)")

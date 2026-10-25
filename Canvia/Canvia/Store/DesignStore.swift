@@ -81,6 +81,9 @@ final class DesignStore {
     /// Edit chart asked for from the canvas — VoiceOver's Edit data on a
     /// chart — with the chart selected; the editor opens it and clears this.
     var chartEditRequested = false
+    /// Edit diagram asked for from the canvas — VoiceOver's Edit diagram on
+    /// a diagram — with it selected; the editor opens it and clears this.
+    var diagramEditRequested = false
     /// The words the link prompt is open for, from the typing bar's Link.
     var wordLinkTarget: WordRange?
     /// A photo dropped on a selected text box, waiting to be asked whether

@@ -87,6 +87,9 @@ struct ContextToolbar: View {
                     if store.selectedChart != nil {
                         toolButton("chart.bar.xaxis", "Edit chart") { activeSheet = .chart }
                         Divider().frame(height: 24).padding(.horizontal, 6)
+                    } else if store.selectedDiagram != nil {
+                        toolButton("point.3.connected.trianglepath.dotted", "Edit diagram") { activeSheet = .diagram }
+                        Divider().frame(height: 24).padding(.horizontal, 6)
                     }
                     if let el = store.singleSelection, hasTypeControls(el) {
                         typeControls(el)

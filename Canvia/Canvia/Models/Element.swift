@@ -883,6 +883,11 @@ struct Element: Codable, Equatable, Identifiable {
     /// DataGraphics.chart.
     var chart: ChartSpec?
     var chartPart: String?
+    /// The diagram this element was made as part of (Diagrams) — what Edit
+    /// diagram reopens — and which part of it it is: "item:<n>",
+    /// "label:<n>" or "connector:<n>".
+    var diagram: DiagramSpec?
+    var diagramPart: String?
     /// For an empty frame laid out by a photo grid: which grid, which of its
     /// cells, and the spacing it was laid with (see PhotoGrids).
     var grid: GridCell?
@@ -1219,6 +1224,8 @@ struct Element: Codable, Equatable, Identifiable {
         sides = (try? c.decode(String.self, forKey: .sides)).map { $0.filter { "tlbr".contains($0) } }
         chart = try? c.decode(ChartSpec.self, forKey: .chart)
         chartPart = try? c.decode(String.self, forKey: .chartPart)
+        diagram = try? c.decode(DiagramSpec.self, forKey: .diagram)
+        diagramPart = try? c.decode(String.self, forKey: .diagramPart)
         grid = try? c.decode(GridCell.self, forKey: .grid)
         photoFrame = (try? c.decode(Bool.self, forKey: .photoFrame)) == true ? true : nil
         shapeId = try? c.decode(String.self, forKey: .shapeId)
@@ -1360,6 +1367,7 @@ struct Element: Codable, Equatable, Identifiable {
         case subgroups, groupTurn, altTextSource
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, sides, chart, chartPart, grid, photoFrame
+        case diagram, diagramPart
         case shapeId, pathData, iconId, graphicId, bulkField, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case shapeParams, widths
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align

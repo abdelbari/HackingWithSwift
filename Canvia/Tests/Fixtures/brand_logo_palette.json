@@ -1,0 +1,47 @@
+{
+  "note": "Brand colours from a logo, and the palette new charts, tables and icons take. extract: PhotoPalette.logo on pixels given as runs of #aarrggbb, count of each, in order; pixels with alpha under 32 are left out; near-white (every channel 235 or more) and near-black (none above 20) are left out unless each is more than 20% of the pixels left; the rest ranked as PhotoPalette.extract ranks them, up to six. png: brand_logo.png (tools/generate_brand_logo.py) read as ARGB pixels gives these colours. palette: DataGraphics.paletteFor on a page with this background and one shape filled with each colour, with the brand kit's palettes in use (null: no kit): the design's own colours when two or more show, else the kit's first palette with two or more colours that show, as far as they show, else the library's first palette as far as it shows. logoPalette: 'Add as a palette' for a logo named name (null: none), kept as media:img-logo1. Both phones read this file.",
+  "extract": [
+    {"name": "clear and faint pixels, and a little white and black, are not the logo's colours",
+     "pixels": [["#ff1a2b6d", 500], ["#ffff7a00", 300], ["#ffffffff", 100], ["#ff000000", 50], ["#10ff0000", 400], ["#4000a050", 60]],
+     "colors": ["#1a2b6d", "#ff7a00", "#00a050"]},
+    {"name": "a black-and-white logo keeps both",
+     "pixels": [["#ffffffff", 600], ["#ff000000", 300], ["#ffe03030", 100]],
+     "colors": ["#ffffff", "#000000", "#e03030"]},
+    {"name": "white at exactly a fifth is still left out",
+     "pixels": [["#ff1a2b6d", 800], ["#fffafafa", 200]],
+     "colors": ["#1a2b6d"]},
+    {"name": "alpha 32 counts, 31 does not",
+     "pixels": [["#1f123456", 900], ["#20e03030", 100]],
+     "colors": ["#e03030"]},
+    {"name": "nothing to see",
+     "pixels": [["#00ffffff", 100]],
+     "colors": []}
+  ],
+  "png": {"file": "brand_logo.png", "colors": ["#1a2b6d", "#ff7a00"]},
+  "palette": [
+    {"name": "two design colours win over the kit",
+     "background": "#ffffff", "fills": ["#ff0000", "#0000ff"],
+     "kit": [{"name": "Primary", "colors": ["#1a6bff", "#ff7a00"]}],
+     "colors": ["#ff0000", "#0000ff"]},
+    {"name": "one design colour: the kit's first palette with two that show",
+     "background": "#ffffff", "fills": ["#ff0000"],
+     "kit": [{"name": "Mono", "colors": ["#ffffff", "#123456"]}, {"name": "Primary", "colors": ["#1A6BFF", "#ff7a00", "#fafafa"]}],
+     "colors": ["#1a6bff", "#ff7a00"]},
+    {"name": "no kit: the library's first palette",
+     "background": "#ffffff", "fills": [],
+     "kit": null,
+     "colors": ["#1a1a2e", "#e94560", "#0f3460", "#16c79a", "#f9ed69"]},
+    {"name": "a kit with no palette of two: the library's",
+     "background": "#ffffff", "fills": [],
+     "kit": [{"name": "One", "colors": ["#123456"]}],
+     "colors": ["#1a1a2e", "#e94560", "#0f3460", "#16c79a", "#f9ed69"]},
+    {"name": "on a dark page the library's colour like it is left out",
+     "background": "#1a1a2e", "fills": [],
+     "kit": null,
+     "colors": ["#e94560", "#0f3460", "#16c79a", "#f9ed69"]}
+  ],
+  "logoPalette": [
+    {"name": "Acme", "colors": ["#1A2B6D", "#ff7a00", "#1a2b6d"], "palette": {"name": "Acme colours", "colors": ["#1a2b6d", "#ff7a00"], "source": "logo:img-logo1"}},
+    {"name": null, "colors": ["#ff7a00"], "palette": {"name": "Logo colours", "colors": ["#ff7a00"], "source": "logo:img-logo1"}}
+  ]
+}

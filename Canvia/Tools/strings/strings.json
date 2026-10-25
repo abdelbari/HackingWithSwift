@@ -368,6 +368,24 @@
     "ja": "%@°",
     "pt-BR": "%@°"
   },
+  "%@ diagram": {
+    "ar": "مخطط %@",
+    "de": "Diagramm: %@",
+    "es": "Diagrama: %@",
+    "fr": "Diagramme : %@",
+    "it": "Diagramma: %@",
+    "ja": "%@ の図",
+    "pt-BR": "Diagrama: %@"
+  },
+  "%@ diagram, %@": {
+    "ar": "مخطط %@، %@",
+    "de": "Diagramm: %@, %@",
+    "es": "Diagrama: %@, %@",
+    "fr": "Diagramme : %@, %@",
+    "it": "Diagramma: %@, %@",
+    "ja": "%@ の図、%@",
+    "pt-BR": "Diagrama: %@, %@"
+  },
   "%@ diamond": {
     "ar": "معيّن (%@)",
     "de": "Raute (%@)",
@@ -1622,6 +1640,15 @@
     "ja": "%@、非表示、ロック中",
     "pt-BR": "%@, oculto, bloqueado"
   },
+  "%@, in %@": {
+    "ar": "%@، في %@",
+    "de": "%@, in %@",
+    "es": "%@, en %@",
+    "fr": "%@, dans %@",
+    "it": "%@, in %@",
+    "ja": "%@、%@ 内",
+    "pt-BR": "%@, em %@"
+  },
   "%@, in %@. Double tap to take it out.": {
     "ar": "%@، في %@. انقر مرتين لإخراجه.",
     "de": "%@, in %@. Zum Herausnehmen doppeltippen.",
@@ -1658,6 +1685,15 @@
     "ja": "%@、このデザイン内",
     "pt-BR": "%@, neste design"
   },
+  "%@, level %d": {
+    "ar": "%@، المستوى %d",
+    "de": "%@, Ebene %d",
+    "es": "%@, nivel %d",
+    "fr": "%@, niveau %d",
+    "it": "%@, livello %d",
+    "ja": "%@、レベル %d",
+    "pt-BR": "%@, nível %d"
+  },
   "%@, linear gradient": {
     "ar": "%@، تدرّج خطي",
     "de": "%@, linearer Verlauf",
@@ -1666,6 +1702,15 @@
     "it": "%@, sfumatura lineare",
     "ja": "%@、線形グラデーション",
     "pt-BR": "%@, degradê linear"
+  },
+  "%@, link": {
+    "ar": "%@، رابط",
+    "de": "%@, Link",
+    "es": "%@, enlace",
+    "fr": "%@, lien",
+    "it": "%@, link",
+    "ja": "%@、リンク",
+    "pt-BR": "%@, link"
   },
   "%@, locked": {
     "ar": "%@، مقفل",
@@ -3289,6 +3334,15 @@
     "it": "%d di %d",
     "ja": "%d / %d",
     "pt-BR": "%d de %d"
+  },
+  "%d of %d: %@": {
+    "ar": "%d من %d: %@",
+    "de": "%d von %d: %@",
+    "es": "%d de %d: %@",
+    "fr": "%d sur %d : %@",
+    "it": "%d di %d: %@",
+    "ja": "%d / %d：%@",
+    "pt-BR": "%d de %d: %@"
   },
   "%d other item|%d other items": {
     "ar": {
@@ -5309,6 +5363,15 @@
     "ja": "横",
     "pt-BR": "Horizontal"
   },
+  "Act": {
+    "ar": "حسّن",
+    "de": "Handeln",
+    "es": "Actuar",
+    "fr": "Agir",
+    "it": "Agire",
+    "ja": "改善",
+    "pt-BR": "Agir"
+  },
   "Actions for %@": {
     "ar": "إجراءات %@",
     "de": "Aktionen für %@",
@@ -5693,6 +5756,15 @@
     "ja": "ページをもう 1 枚追加",
     "pt-BR": "Adicionar outra página"
   },
+  "Add as a palette": {
+    "ar": "إضافة كلوحة ألوان",
+    "de": "Als Palette hinzufügen",
+    "es": "Añadir como paleta",
+    "fr": "Ajouter comme palette",
+    "it": "Aggiungi come tavolozza",
+    "ja": "パレットとして追加",
+    "pt-BR": "Adicionar como paleta"
+  },
   "Add as a track": {
     "ar": "إضافة كمسار",
     "de": "Als Spur hinzufügen",
@@ -5864,6 +5936,15 @@
     "ja": "水平ガイドを追加",
     "pt-BR": "Adicionar guia horizontal"
   },
+  "Add item": {
+    "ar": "إضافة عنصر",
+    "de": "Eintrag hinzufügen",
+    "es": "Añadir elemento",
+    "fr": "Ajouter un élément",
+    "it": "Aggiungi voce",
+    "ja": "項目を追加",
+    "pt-BR": "Adicionar item"
+  },
   "Add link": {
     "ar": "إضافة رابط",
     "de": "Link hinzufügen",
@@ -6007,6 +6088,15 @@
     "it": "Aggiungi i colori di questo design",
     "ja": "このデザインの色を追加",
     "pt-BR": "Adicionar as cores deste design"
+  },
+  "Add to %@": {
+    "ar": "إضافة إلى %@",
+    "de": "Zu %@ hinzufügen",
+    "es": "Añadir a %@",
+    "fr": "Ajouter à %@",
+    "it": "Aggiungi a %@",
+    "ja": "%@ に追加",
+    "pt-BR": "Adicionar a %@"
   },
   "Add to Home screen": {
     "ar": "إضافة إلى الشاشة الرئيسية",
@@ -8483,6 +8573,15 @@
     "ja": "バブル",
     "pt-BR": "Bolhas"
   },
+  "Build": {
+    "ar": "البناء",
+    "de": "Bauen",
+    "es": "Construir",
+    "fr": "Construire",
+    "it": "Costruire",
+    "ja": "構築",
+    "pt-BR": "Construir"
+  },
   "Bulge": {
     "ar": "انتفاخ",
     "de": "Wölbung",
@@ -9170,6 +9269,24 @@
     "ja": "グラフと表",
     "pt-BR": "Gráficos e tabelas"
   },
+  "Cheap": {
+    "ar": "رخيص",
+    "de": "Günstig",
+    "es": "Barato",
+    "fr": "Bon marché",
+    "it": "Economico",
+    "ja": "安い",
+    "pt-BR": "Barato"
+  },
+  "Check": {
+    "ar": "تحقّق",
+    "de": "Prüfen",
+    "es": "Verificar",
+    "fr": "Vérifier",
+    "it": "Verificare",
+    "ja": "評価",
+    "pt-BR": "Verificar"
+  },
   "Check accessibility": {
     "ar": "التحقق من إمكانية الوصول",
     "de": "Barrierefreiheit prüfen",
@@ -9817,6 +9934,15 @@
     "it": "Colori e temi",
     "ja": "色とテーマ",
     "pt-BR": "Cores e temas"
+  },
+  "Colours from this logo": {
+    "ar": "ألوان من هذا الشعار",
+    "de": "Farben aus diesem Logo",
+    "es": "Colores de este logotipo",
+    "fr": "Couleurs de ce logo",
+    "it": "Colori da questo logo",
+    "ja": "このロゴの色",
+    "pt-BR": "Cores deste logotipo"
   },
   "Colours in selection": {
     "ar": "الألوان في التحديد",
@@ -11264,6 +11390,15 @@
     "ja": "カスタム：%@ px ごと",
     "pt-BR": "Personalizado: a cada %@ px"
   },
+  "Customers": {
+    "ar": "العملاء",
+    "de": "Kunden",
+    "es": "Clientes",
+    "fr": "Clients",
+    "it": "Clienti",
+    "ja": "顧客",
+    "pt-BR": "Clientes"
+  },
   "Customize this template": {
     "ar": "تخصيص هذا القالب",
     "de": "Diese Vorlage anpassen",
@@ -11341,6 +11476,15 @@
     "it": "Scontorna",
     "ja": "背景を削除",
     "pt-BR": "Remover fundo"
+  },
+  "Cycle": {
+    "ar": "دورة",
+    "de": "Kreislauf",
+    "es": "Ciclo",
+    "fr": "Cycle",
+    "it": "Ciclo",
+    "ja": "サイクル",
+    "pt-BR": "Ciclo"
   },
   "Daily": {
     "ar": "يوميًا",
@@ -11539,6 +11683,15 @@
     "it": "Formato di esportazione predefinito",
     "ja": "デフォルトの書き出し形式",
     "pt-BR": "Formato de exportação padrão"
+  },
+  "Delegate": {
+    "ar": "فوّض",
+    "de": "Delegieren",
+    "es": "Delegar",
+    "fr": "Déléguer",
+    "it": "Delegare",
+    "ja": "任せる",
+    "pt-BR": "Delegar"
   },
   "Delete": {
     "ar": "حذف",
@@ -12092,6 +12245,15 @@
     "ja": "デザインファイル",
     "pt-BR": "Arquivos de design"
   },
+  "Design lead": {
+    "ar": "قائد التصميم",
+    "de": "Designleitung",
+    "es": "Responsable de diseño",
+    "fr": "Responsable design",
+    "it": "Responsabile design",
+    "ja": "デザインリード",
+    "pt-BR": "Líder de design"
+  },
   "Design type: %@, %@": {
     "ar": "نوع التصميم: %@، %@",
     "de": "Designtyp: %@, %@",
@@ -12118,6 +12280,15 @@
     "it": "Tipi di design: %@",
     "ja": "デザインの種類：%@",
     "pt-BR": "Tipos de design: %@"
+  },
+  "Designer": {
+    "ar": "مصمم",
+    "de": "Designer",
+    "es": "Diseñador",
+    "fr": "Designer",
+    "it": "Designer",
+    "ja": "デザイナー",
+    "pt-BR": "Designer"
   },
   "Designs": {
     "ar": "التصاميم",
@@ -12242,6 +12413,15 @@
     "ja": "斜めのブラシ",
     "pt-BR": "Pincel diagonal"
   },
+  "Diagrams": {
+    "ar": "المخططات",
+    "de": "Diagramme",
+    "es": "Diagramas",
+    "fr": "Diagrammes",
+    "it": "Diagrammi",
+    "ja": "図",
+    "pt-BR": "Diagramas"
+  },
   "Diamond": {
     "ar": "معيّن",
     "de": "Raute",
@@ -12304,6 +12484,15 @@
     "it": "Direzione",
     "ja": "方向",
     "pt-BR": "Direção"
+  },
+  "Director": {
+    "ar": "المدير",
+    "de": "Leitung",
+    "es": "Dirección",
+    "fr": "Direction",
+    "it": "Direzione",
+    "ja": "ディレクター",
+    "pt-BR": "Diretoria"
   },
   "Discard": {
     "ar": "تجاهل",
@@ -12430,6 +12619,24 @@
     "it": "Diwali",
     "ja": "ディワリ",
     "pt-BR": "Diwali"
+  },
+  "Do": {
+    "ar": "نفّذ",
+    "de": "Umsetzen",
+    "es": "Hacer",
+    "fr": "Faire",
+    "it": "Fare",
+    "ja": "実行",
+    "pt-BR": "Fazer"
+  },
+  "Do now": {
+    "ar": "نفّذ الآن",
+    "de": "Sofort erledigen",
+    "es": "Hacer ya",
+    "fr": "À faire maintenant",
+    "it": "Fare subito",
+    "ja": "すぐやる",
+    "pt-BR": "Fazer agora"
   },
   "Doc": {
     "ar": "مستند",
@@ -13016,6 +13223,15 @@
     "ja": "配置しました。他のアプリから画像、テキスト、リンクを直接ページにドラッグできます。",
     "pt-BR": "Solto no lugar. Imagens, texto e links de outros apps podem ser arrastados direto para a página."
   },
+  "Drumroll": {
+    "ar": "قرع الطبول",
+    "de": "Trommelwirbel",
+    "es": "Redoble de tambor",
+    "fr": "Roulement de tambour",
+    "it": "Rullo di tamburi",
+    "ja": "ドラムロール",
+    "pt-BR": "Rufar de tambores"
+  },
   "Dry brush": {
     "ar": "فرشاة جافة",
     "de": "Trockener Pinsel",
@@ -13403,6 +13619,15 @@
     "ja": "データを編集",
     "pt-BR": "Editar dados"
   },
+  "Edit diagram": {
+    "ar": "تعديل المخطط",
+    "de": "Diagramm bearbeiten",
+    "es": "Editar diagrama",
+    "fr": "Modifier le diagramme",
+    "it": "Modifica diagramma",
+    "ja": "図を編集",
+    "pt-BR": "Editar diagrama"
+  },
   "Edit link": {
     "ar": "تعديل الرابط",
     "de": "Link bearbeiten",
@@ -13637,6 +13862,15 @@
     "ja": "素材",
     "pt-BR": "Elementos"
   },
+  "Eliminate": {
+    "ar": "استبعد",
+    "de": "Streichen",
+    "es": "Eliminar",
+    "fr": "Éliminer",
+    "it": "Eliminare",
+    "ja": "やめる",
+    "pt-BR": "Eliminar"
+  },
   "Ellipsis": {
     "ar": "علامة الحذف",
     "de": "Auslassungspunkte",
@@ -13834,6 +14068,24 @@
     "it": "Estremità",
     "ja": "端点",
     "pt-BR": "Pontas"
+  },
+  "Engineer": {
+    "ar": "مهندس",
+    "de": "Entwickler",
+    "es": "Ingeniero",
+    "fr": "Ingénieur",
+    "it": "Ingegnere",
+    "ja": "エンジニア",
+    "pt-BR": "Engenheiro"
+  },
+  "Engineering lead": {
+    "ar": "قائد الهندسة",
+    "de": "Technische Leitung",
+    "es": "Responsable de ingeniería",
+    "fr": "Responsable technique",
+    "it": "Responsabile tecnico",
+    "ja": "エンジニアリングリード",
+    "pt-BR": "Líder de engenharia"
   },
   "English (Australia)": {
     "ar": "الإنجليزية (أستراليا)",
@@ -14567,6 +14819,15 @@
     "ja": "フェードイン",
     "pt-BR": "Aparecer gradualmente"
   },
+  "Fade ink": {
+    "ar": "تلاشي الحبر",
+    "de": "Tinte ausblenden",
+    "es": "Desvanecer la tinta",
+    "fr": "Estomper l'encre",
+    "it": "Dissolvi l'inchiostro",
+    "ja": "インクをフェード",
+    "pt-BR": "Esmaecer a tinta"
+  },
   "Fade out": {
     "ar": "اختفاء تدريجي",
     "de": "Ausblenden",
@@ -14575,6 +14836,15 @@
     "it": "Dissolvenza in uscita",
     "ja": "フェードアウト",
     "pt-BR": "Desaparecer gradualmente"
+  },
+  "Fast": {
+    "ar": "سريع",
+    "de": "Schnell",
+    "es": "Rápido",
+    "fr": "Rapide",
+    "it": "Veloce",
+    "ja": "速い",
+    "pt-BR": "Rápido"
   },
   "Father's Day": {
     "ar": "عيد الأب",
@@ -15584,6 +15854,15 @@
     "ja": "ファネル",
     "pt-BR": "Funil"
   },
+  "Funnel steps": {
+    "ar": "مراحل القمع",
+    "de": "Trichterstufen",
+    "es": "Pasos de embudo",
+    "fr": "Étapes en entonnoir",
+    "it": "Fasi a imbuto",
+    "ja": "ファネルのステップ",
+    "pt-BR": "Etapas de funil"
+  },
   "Gallery": {
     "ar": "المعرض",
     "de": "Galerie",
@@ -15761,6 +16040,15 @@
     "ja": "このページに移動",
     "pt-BR": "Ir para esta página"
   },
+  "Goals": {
+    "ar": "الأهداف",
+    "de": "Ziele",
+    "es": "Objetivos",
+    "fr": "Objectifs",
+    "it": "Obiettivi",
+    "ja": "目標",
+    "pt-BR": "Metas"
+  },
   "Goes with these · %@": {
     "ar": "يتناسق مع هذه · %@",
     "de": "Passt dazu · %@",
@@ -15796,6 +16084,15 @@
     "it": "Luccichio dorato",
     "ja": "ゴールドシマー",
     "pt-BR": "Cintilar dourado"
+  },
+  "Good": {
+    "ar": "جيد",
+    "de": "Gut",
+    "es": "Bueno",
+    "fr": "Bon",
+    "it": "Buono",
+    "ja": "良い",
+    "pt-BR": "Bom"
   },
   "Gradient": {
     "ar": "تدرّج",
@@ -16796,6 +17093,15 @@
     "ja": "アイコン · %@",
     "pt-BR": "Ícones · %@"
   },
+  "Idea": {
+    "ar": "فكرة",
+    "de": "Idee",
+    "es": "Idea",
+    "fr": "Idée",
+    "it": "Idea",
+    "ja": "アイデア",
+    "pt-BR": "Ideia"
+  },
   "Idea 1": {
     "ar": "فكرة 1",
     "de": "Idee 1",
@@ -17108,6 +17414,15 @@
     "ja": "インデント",
     "pt-BR": "Recuo"
   },
+  "Indent %@": {
+    "ar": "زيادة مسافة %@",
+    "de": "%@ einrücken",
+    "es": "Aumentar sangría de %@",
+    "fr": "Décaler %@ vers la droite",
+    "it": "Rientra %@",
+    "ja": "%@ を字下げ",
+    "pt-BR": "Recuar %@"
+  },
   "Indent less": {
     "ar": "تقليل المسافة البادئة",
     "de": "Einzug verkleinern",
@@ -17404,6 +17719,33 @@
     "it": "Articolo",
     "ja": "品目",
     "pt-BR": "Item"
+  },
+  "Item %d": {
+    "ar": "العنصر %d",
+    "de": "Eintrag %d",
+    "es": "Elemento %d",
+    "fr": "Élément %d",
+    "it": "Voce %d",
+    "ja": "項目 %d",
+    "pt-BR": "Item %d"
+  },
+  "Item %d of %d": {
+    "ar": "العنصر %d من %d",
+    "de": "Eintrag %d von %d",
+    "es": "Elemento %d de %d",
+    "fr": "Élément %d sur %d",
+    "it": "Voce %d di %d",
+    "ja": "項目 %d / %d",
+    "pt-BR": "Item %d de %d"
+  },
+  "Items": {
+    "ar": "العناصر",
+    "de": "Einträge",
+    "es": "Elementos",
+    "fr": "Éléments",
+    "it": "Voci",
+    "ja": "項目",
+    "pt-BR": "Itens"
   },
   "Its %d design can move up a level, out of the folder, or go to Recently deleted.|Its %d designs can move up a level, out of the folder, or go to Recently deleted.": {
     "ar": {
@@ -17840,6 +18182,15 @@
     "ja": "大きい順",
     "pt-BR": "Maiores"
   },
+  "Laser lock": {
+    "ar": "قفل الليزر",
+    "de": "Laser fixieren",
+    "es": "Bloquear láser",
+    "fr": "Verrouiller le laser",
+    "it": "Blocca laser",
+    "ja": "レーザーを固定",
+    "pt-BR": "Travar laser"
+  },
   "Last backed up %@ · %@": {
     "ar": "آخر نسخة احتياطية %@ · %@",
     "de": "Zuletzt gesichert: %@ · %@",
@@ -17884,6 +18235,15 @@
     "it": "Ultima pagina",
     "ja": "最後のページ",
     "pt-BR": "Última página"
+  },
+  "Launch": {
+    "ar": "الإطلاق",
+    "de": "Starten",
+    "es": "Lanzar",
+    "fr": "Lancer",
+    "it": "Lanciare",
+    "ja": "公開",
+    "pt-BR": "Lançar"
   },
   "Layer order": {
     "ar": "ترتيب الطبقات",
@@ -18505,6 +18865,15 @@
     "it": "Logo e area di rispetto",
     "ja": "ロゴと余白",
     "pt-BR": "Logotipo e área de proteção"
+  },
+  "Logo options": {
+    "ar": "خيارات الشعار",
+    "de": "Logo-Optionen",
+    "es": "Opciones del logotipo",
+    "fr": "Options du logo",
+    "it": "Opzioni del logo",
+    "ja": "ロゴのオプション",
+    "pt-BR": "Opções do logotipo"
   },
   "Logo too large": {
     "ar": "الشعار كبير جدًا",
@@ -19139,6 +19508,15 @@
     "ja": "一致",
     "pt-BR": "Resultados"
   },
+  "Matrix": {
+    "ar": "مصفوفة",
+    "de": "Matrix",
+    "es": "Matriz",
+    "fr": "Matrice",
+    "it": "Matrice",
+    "ja": "マトリックス",
+    "pt-BR": "Matriz"
+  },
   "Matte": {
     "ar": "غير لامع",
     "de": "Matt",
@@ -19255,6 +19633,15 @@
     "it": "Messaggio",
     "ja": "メッセージ",
     "pt-BR": "Mensagem"
+  },
+  "Mic drop": {
+    "ar": "إسقاط الميكروفون",
+    "de": "Mic-Drop",
+    "es": "Soltar el micro",
+    "fr": "Lâcher de micro",
+    "it": "Lancio del microfono",
+    "ja": "マイクドロップ",
+    "pt-BR": "Largar o microfone"
   },
   "Microphone": {
     "ar": "الميكروفون",
@@ -19652,6 +20039,15 @@
     "ja": "%@を背面へ",
     "pt-BR": "Mover %@ para trás"
   },
+  "Move %@ down": {
+    "ar": "نقل %@ للأسفل",
+    "de": "%@ nach unten",
+    "es": "Bajar %@",
+    "fr": "Descendre %@",
+    "it": "Sposta giù %@",
+    "ja": "%@ を下へ",
+    "pt-BR": "Mover %@ para baixo"
+  },
   "Move %@ in front": {
     "ar": "نقل %@ إلى الأمام",
     "de": "%@ nach vorne verschieben",
@@ -19660,6 +20056,15 @@
     "it": "Sposta %@ davanti",
     "ja": "%@を前面へ",
     "pt-BR": "Mover %@ para a frente"
+  },
+  "Move %@ up": {
+    "ar": "نقل %@ للأعلى",
+    "de": "%@ nach oben",
+    "es": "Subir %@",
+    "fr": "Monter %@",
+    "it": "Sposta su %@",
+    "ja": "%@ を上へ",
+    "pt-BR": "Mover %@ para cima"
   },
   "Move %d design|Move %d designs": {
     "ar": {
@@ -20690,6 +21095,15 @@
     "ja": "この画像にコードが見つかりません",
     "pt-BR": "Nenhum código encontrado nesta imagem"
   },
+  "No colours to take from this logo.": {
+    "ar": "لا توجد ألوان يمكن أخذها من هذا الشعار.",
+    "de": "Aus diesem Logo lassen sich keine Farben übernehmen.",
+    "es": "Este logotipo no tiene colores que tomar.",
+    "fr": "Aucune couleur à tirer de ce logo.",
+    "it": "Nessun colore da prendere da questo logo.",
+    "ja": "このロゴから取り出せる色はありません。",
+    "pt-BR": "Não há cores para tirar deste logotipo."
+  },
   "No design matches “%@”.": {
     "ar": "لا يوجد تصميم يطابق «%@».",
     "de": "Kein Design passt zu „%@“.",
@@ -21373,6 +21787,15 @@
     "it": "Tacca",
     "ja": "切り込み",
     "pt-BR": "Entalhe"
+  },
+  "Note": {
+    "ar": "ملاحظة",
+    "de": "Notiz",
+    "es": "Nota",
+    "fr": "Note",
+    "it": "Nota",
+    "ja": "メモ",
+    "pt-BR": "Nota"
   },
   "Notes": {
     "ar": "الملاحظات",
@@ -22292,6 +22715,15 @@
     "ja": "新しいウインドウで開く",
     "pt-BR": "Abrir em nova janela"
   },
+  "Open link": {
+    "ar": "فتح الرابط",
+    "de": "Link öffnen",
+    "es": "Abrir enlace",
+    "fr": "Ouvrir le lien",
+    "it": "Apri link",
+    "ja": "リンクを開く",
+    "pt-BR": "Abrir link"
+  },
   "Open now": {
     "ar": "فتح الآن",
     "de": "Jetzt öffnen",
@@ -22427,6 +22859,15 @@
     "ja": "オレンジ",
     "pt-BR": "Laranja"
   },
+  "Org chart": {
+    "ar": "مخطط تنظيمي",
+    "de": "Organigramm",
+    "es": "Organigrama",
+    "fr": "Organigramme",
+    "it": "Organigramma",
+    "ja": "組織図",
+    "pt-BR": "Organograma"
+  },
   "Organisation": {
     "ar": "المؤسسة",
     "de": "Organisation",
@@ -22481,6 +22922,15 @@
     "ja": "元の比率",
     "pt-BR": "Original"
   },
+  "Ours": {
+    "ar": "نحن",
+    "de": "Wir",
+    "es": "Lo nuestro",
+    "fr": "Nous",
+    "it": "Noi",
+    "ja": "自社",
+    "pt-BR": "Nosso"
+  },
   "Outdent": {
     "ar": "إنقاص المسافة البادئة",
     "de": "Einzug verkleinern",
@@ -22489,6 +22939,15 @@
     "it": "Riduci rientro",
     "ja": "インデントを解除",
     "pt-BR": "Diminuir recuo"
+  },
+  "Outdent %@": {
+    "ar": "إنقاص مسافة %@",
+    "de": "%@ ausrücken",
+    "es": "Reducir sangría de %@",
+    "fr": "Décaler %@ vers la gauche",
+    "it": "Riduci rientro di %@",
+    "ja": "%@ の字下げを解除",
+    "pt-BR": "Remover recuo de %@"
   },
   "Outer": {
     "ar": "خارجي",
@@ -22705,6 +23164,15 @@
     "it": "Pagina %d di %d",
     "ja": "ページ %d / %d",
     "pt-BR": "Página %d de %d"
+  },
+  "Page %d of %d, %@": {
+    "ar": "الصفحة %d من %d، %@",
+    "de": "Seite %d von %d, %@",
+    "es": "Página %d de %d, %@",
+    "fr": "Page %d sur %d, %@",
+    "it": "Pagina %d di %d, %@",
+    "ja": "ページ %d / %d、%@",
+    "pt-BR": "Página %d de %d, %@"
   },
   "Page %d of %d, hidden": {
     "ar": "الصفحة %d من %d، مخفية",
@@ -23954,6 +24422,15 @@
     "ja": "プレーン",
     "pt-BR": "Simples"
   },
+  "Plan": {
+    "ar": "خطّط",
+    "de": "Planen",
+    "es": "Planificar",
+    "fr": "Planifier",
+    "it": "Pianificare",
+    "ja": "計画",
+    "pt-BR": "Planejar"
+  },
   "Plan a post": {
     "ar": "خطّط لمنشور",
     "de": "Beitrag planen",
@@ -24422,6 +24899,24 @@
     "ja": "全画面でプレゼンテーション、すべてのページが非表示です",
     "pt-BR": "Apresentar em tela cheia, todas as páginas estão ocultas"
   },
+  "Present shows the design full screen: tap the right or left side, or swipe, to change page. Press and hold on the slide to point at it with a red laser dot that follows your finger. Pen draws on the slide in red, yellow or white at three widths; Clear wipes it, and with Fade ink on each stroke fades 3 seconds after you lift your finger. Ink is never saved. With a keyboard, L locks the laser on, P turns the pen on and off and E clears the ink; the magic shortcuts' keys play a countdown, blur, confetti, bubbles, quiet, a curtain, D a drumroll and M a mic drop. With TalkBack, each page says its number and title, then its headings, text, pictures, charts, tables and links in reading order.": {
+    "ar": "يعرض العرض التقديمي التصميم بملء الشاشة: انقر على الجانب الأيمن أو الأيسر، أو اسحب، لتغيير الصفحة. اضغط مطولًا على الشريحة للإشارة إليها بنقطة ليزر حمراء تتبع إصبعك. يرسم القلم على الشريحة بالأحمر أو الأصفر أو الأبيض بثلاثة سماكات؛ ويمحوه زر مسح، ومع تشغيل تلاشي الحبر يتلاشى كل خط بعد 3 ثوانٍ من رفع إصبعك. لا يُحفظ الحبر أبدًا. باستخدام لوحة المفاتيح، يثبّت L الليزر، ويشغّل P القلم ويوقفه، ويمسح E الحبر؛ وتشغّل مفاتيح الاختصارات السحرية عدًّا تنازليًا وتمويهًا وقصاصات ملونة وفقاعات وهدوءًا وستارة، وD قرع الطبول وM إسقاط الميكروفون. مع TalkBack، تذكر كل صفحة رقمها وعنوانها، ثم عناوينها ونصوصها وصورها ومخططاتها وجداولها وروابطها بترتيب القراءة.",
+    "de": "Präsentieren zeigt das Design im Vollbild: Tippe auf die rechte oder linke Seite oder wische, um die Seite zu wechseln. Halte den Finger auf der Folie, um mit einem roten Laserpunkt darauf zu zeigen, der deinem Finger folgt. Stift zeichnet in Rot, Gelb oder Weiß in drei Stärken auf die Folie; Löschen entfernt es, und mit Tinte ausblenden verblasst jeder Strich 3 Sekunden nachdem du den Finger hebst. Die Tinte wird nie gespeichert. Mit einer Tastatur hält L den Laser an, P schaltet den Stift ein und aus und E löscht die Tinte; die Tasten der magischen Kurzbefehle spielen einen Countdown, Unschärfe, Konfetti, Blasen, Ruhe, einen Vorhang, D einen Trommelwirbel und M einen Mic-Drop. Mit TalkBack nennt jede Seite ihre Nummer und ihren Titel, dann ihre Überschriften, Texte, Bilder, Diagramme, Tabellen und Links in Lesereihenfolge.",
+    "es": "Presentar muestra el diseño a pantalla completa: toca el lado derecho o izquierdo, o desliza, para cambiar de página. Mantén pulsada la diapositiva para señalarla con un punto láser rojo que sigue tu dedo. Bolígrafo dibuja sobre la diapositiva en rojo, amarillo o blanco con tres grosores; Borrar lo quita y, con Desvanecer la tinta activado, cada trazo se desvanece 3 segundos después de levantar el dedo. La tinta nunca se guarda. Con un teclado, L fija el láser, P activa y desactiva el bolígrafo y E borra la tinta; las teclas de los atajos mágicos ponen una cuenta atrás, desenfoque, confeti, burbujas, silencio, un telón, D un redoble de tambor y M soltar el micro. Con TalkBack, cada página dice su número y su título, y luego sus títulos, texto, imágenes, gráficos, tablas y enlaces en orden de lectura.",
+    "fr": "Présenter affiche le design en plein écran : touchez le côté droit ou gauche, ou balayez, pour changer de page. Maintenez le doigt sur la diapositive pour la montrer avec un point laser rouge qui suit votre doigt. Stylo dessine sur la diapositive en rouge, jaune ou blanc, en trois épaisseurs ; Effacer l'efface et, avec Estomper l'encre activé, chaque trait s'estompe 3 secondes après que vous levez le doigt. L'encre n'est jamais enregistrée. Avec un clavier, L fixe le laser, P active et désactive le stylo et E efface l'encre ; les touches des raccourcis magiques lancent un compte à rebours, un flou, des confettis, des bulles, le silence, un rideau, D un roulement de tambour et M un lâcher de micro. Avec TalkBack, chaque page annonce son numéro et son titre, puis ses titres, son texte, ses images, ses graphiques, ses tableaux et ses liens dans l'ordre de lecture.",
+    "it": "Presenta mostra il design a schermo intero: tocca il lato destro o sinistro, o scorri, per cambiare pagina. Tieni premuto sulla diapositiva per indicarla con un punto laser rosso che segue il dito. Penna disegna sulla diapositiva in rosso, giallo o bianco con tre spessori; Cancella la toglie e, con Dissolvi l'inchiostro attivo, ogni tratto svanisce 3 secondi dopo che sollevi il dito. L'inchiostro non viene mai salvato. Con una tastiera, L blocca il laser, P attiva e disattiva la penna ed E cancella l'inchiostro; i tasti delle scorciatoie magiche avviano un conto alla rovescia, sfocatura, coriandoli, bolle, silenzio, un sipario, D un rullo di tamburi e M un lancio del microfono. Con TalkBack, ogni pagina dice il suo numero e titolo, poi i titoli, il testo, le immagini, i grafici, le tabelle e i link in ordine di lettura.",
+    "ja": "プレゼンテーションはデザインを全画面で表示します。右側か左側をタップするか、スワイプしてページを切り替えます。スライドを長押しすると、指に合わせて動く赤いレーザーポイントで指し示せます。ペンはスライドに赤・黄・白の3種類の太さで描けます。クリアで消え、インクをフェードがオンなら各ストロークは指を離して3秒後に消えます。インクは保存されません。キーボードでは、L でレーザーを固定、P でペンのオン／オフ、E でインクを消去します。マジックショートカットのキーでカウントダウン、ぼかし、紙吹雪、泡、静粛、カーテン、D でドラムロール、M でマイクドロップを再生します。TalkBack では、各ページの番号とタイトルに続いて、見出し、テキスト、画像、グラフ、表、リンクを読み上げ順に読み上げます。",
+    "pt-BR": "Apresentar mostra o design em tela cheia: toque no lado direito ou esquerdo, ou deslize, para mudar de página. Toque e segure no slide para apontar para ele com um ponto de laser vermelho que segue seu dedo. Caneta desenha no slide em vermelho, amarelo ou branco, em três espessuras; Limpar apaga e, com Esmaecer a tinta ativado, cada traço some 3 segundos depois que você levanta o dedo. A tinta nunca é salva. Com um teclado, L fixa o laser, P liga e desliga a caneta e E apaga a tinta; as teclas dos atalhos mágicos tocam uma contagem regressiva, desfoque, confete, bolhas, silêncio, uma cortina, D um rufar de tambores e M largar o microfone. Com o TalkBack, cada página diz seu número e título e depois seus títulos, textos, imagens, gráficos, tabelas e links na ordem de leitura."
+  },
+  "Present shows the design full screen: tap the right or left side, or swipe, to change page. Press and hold on the slide to point at it with a red laser dot that follows your finger. Pen draws on the slide in red, yellow or white at three widths; Clear wipes it, and with Fade ink on each stroke fades 3 seconds after you lift your finger. Ink is never saved. With a keyboard, L locks the laser on, P turns the pen on and off and E clears the ink; the magic shortcuts' keys play a countdown, blur, confetti, bubbles, quiet, a curtain, D a drumroll and M a mic drop. With VoiceOver, each page says its number and title, then its headings, text, pictures, charts, tables and links in reading order.": {
+    "ar": "يعرض العرض التقديمي التصميم بملء الشاشة: انقر على الجانب الأيمن أو الأيسر، أو اسحب، لتغيير الصفحة. اضغط مطولًا على الشريحة للإشارة إليها بنقطة ليزر حمراء تتبع إصبعك. يرسم القلم على الشريحة بالأحمر أو الأصفر أو الأبيض بثلاثة سماكات؛ ويمحوه زر مسح، ومع تشغيل تلاشي الحبر يتلاشى كل خط بعد 3 ثوانٍ من رفع إصبعك. لا يُحفظ الحبر أبدًا. باستخدام لوحة المفاتيح، يثبّت L الليزر، ويشغّل P القلم ويوقفه، ويمسح E الحبر؛ وتشغّل مفاتيح الاختصارات السحرية عدًّا تنازليًا وتمويهًا وقصاصات ملونة وفقاعات وهدوءًا وستارة، وD قرع الطبول وM إسقاط الميكروفون. مع VoiceOver، تذكر كل صفحة رقمها وعنوانها، ثم عناوينها ونصوصها وصورها ومخططاتها وجداولها وروابطها بترتيب القراءة.",
+    "de": "Präsentieren zeigt das Design im Vollbild: Tippe auf die rechte oder linke Seite oder wische, um die Seite zu wechseln. Halte den Finger auf der Folie, um mit einem roten Laserpunkt darauf zu zeigen, der deinem Finger folgt. Stift zeichnet in Rot, Gelb oder Weiß in drei Stärken auf die Folie; Löschen entfernt es, und mit Tinte ausblenden verblasst jeder Strich 3 Sekunden nachdem du den Finger hebst. Die Tinte wird nie gespeichert. Mit einer Tastatur hält L den Laser an, P schaltet den Stift ein und aus und E löscht die Tinte; die Tasten der magischen Kurzbefehle spielen einen Countdown, Unschärfe, Konfetti, Blasen, Ruhe, einen Vorhang, D einen Trommelwirbel und M einen Mic-Drop. Mit VoiceOver nennt jede Seite ihre Nummer und ihren Titel, dann ihre Überschriften, Texte, Bilder, Diagramme, Tabellen und Links in Lesereihenfolge.",
+    "es": "Presentar muestra el diseño a pantalla completa: toca el lado derecho o izquierdo, o desliza, para cambiar de página. Mantén pulsada la diapositiva para señalarla con un punto láser rojo que sigue tu dedo. Bolígrafo dibuja sobre la diapositiva en rojo, amarillo o blanco con tres grosores; Borrar lo quita y, con Desvanecer la tinta activado, cada trazo se desvanece 3 segundos después de levantar el dedo. La tinta nunca se guarda. Con un teclado, L fija el láser, P activa y desactiva el bolígrafo y E borra la tinta; las teclas de los atajos mágicos ponen una cuenta atrás, desenfoque, confeti, burbujas, silencio, un telón, D un redoble de tambor y M soltar el micro. Con VoiceOver, cada página dice su número y su título, y luego sus títulos, texto, imágenes, gráficos, tablas y enlaces en orden de lectura.",
+    "fr": "Présenter affiche le design en plein écran : touchez le côté droit ou gauche, ou balayez, pour changer de page. Maintenez le doigt sur la diapositive pour la montrer avec un point laser rouge qui suit votre doigt. Stylo dessine sur la diapositive en rouge, jaune ou blanc, en trois épaisseurs ; Effacer l'efface et, avec Estomper l'encre activé, chaque trait s'estompe 3 secondes après que vous levez le doigt. L'encre n'est jamais enregistrée. Avec un clavier, L fixe le laser, P active et désactive le stylo et E efface l'encre ; les touches des raccourcis magiques lancent un compte à rebours, un flou, des confettis, des bulles, le silence, un rideau, D un roulement de tambour et M un lâcher de micro. Avec VoiceOver, chaque page annonce son numéro et son titre, puis ses titres, son texte, ses images, ses graphiques, ses tableaux et ses liens dans l'ordre de lecture.",
+    "it": "Presenta mostra il design a schermo intero: tocca il lato destro o sinistro, o scorri, per cambiare pagina. Tieni premuto sulla diapositiva per indicarla con un punto laser rosso che segue il dito. Penna disegna sulla diapositiva in rosso, giallo o bianco con tre spessori; Cancella la toglie e, con Dissolvi l'inchiostro attivo, ogni tratto svanisce 3 secondi dopo che sollevi il dito. L'inchiostro non viene mai salvato. Con una tastiera, L blocca il laser, P attiva e disattiva la penna ed E cancella l'inchiostro; i tasti delle scorciatoie magiche avviano un conto alla rovescia, sfocatura, coriandoli, bolle, silenzio, un sipario, D un rullo di tamburi e M un lancio del microfono. Con VoiceOver, ogni pagina dice il suo numero e titolo, poi i titoli, il testo, le immagini, i grafici, le tabelle e i link in ordine di lettura.",
+    "ja": "プレゼンテーションはデザインを全画面で表示します。右側か左側をタップするか、スワイプしてページを切り替えます。スライドを長押しすると、指に合わせて動く赤いレーザーポイントで指し示せます。ペンはスライドに赤・黄・白の3種類の太さで描けます。クリアで消え、インクをフェードがオンなら各ストロークは指を離して3秒後に消えます。インクは保存されません。キーボードでは、L でレーザーを固定、P でペンのオン／オフ、E でインクを消去します。マジックショートカットのキーでカウントダウン、ぼかし、紙吹雪、泡、静粛、カーテン、D でドラムロール、M でマイクドロップを再生します。VoiceOver では、各ページの番号とタイトルに続いて、見出し、テキスト、画像、グラフ、表、リンクを読み上げ順に読み上げます。",
+    "pt-BR": "Apresentar mostra o design em tela cheia: toque no lado direito ou esquerdo, ou deslize, para mudar de página. Toque e segure no slide para apontar para ele com um ponto de laser vermelho que segue seu dedo. Caneta desenha no slide em vermelho, amarelo ou branco, em três espessuras; Limpar apaga e, com Esmaecer a tinta ativado, cada traço some 3 segundos depois que você levanta o dedo. A tinta nunca é salva. Com um teclado, L fixa o laser, P liga e desliga a caneta e E apaga a tinta; as teclas dos atalhos mágicos tocam uma contagem regressiva, desfoque, confete, bolhas, silêncio, uma cortina, D um rufar de tambores e M largar o microfone. Com o VoiceOver, cada página diz seu número e título e depois seus títulos, textos, imagens, gráficos, tabelas e links na ordem de leitura."
+  },
   "Presentations": {
     "ar": "العروض التقديمية",
     "de": "Präsentationen",
@@ -24430,6 +24925,15 @@
     "it": "Presentazioni",
     "ja": "プレゼンテーション",
     "pt-BR": "Apresentações"
+  },
+  "Presenting": {
+    "ar": "العرض التقديمي",
+    "de": "Präsentieren",
+    "es": "Presentar",
+    "fr": "Présenter",
+    "it": "Presentare",
+    "ja": "プレゼンテーション",
+    "pt-BR": "Apresentar"
   },
   "Presenting from page %d of %d": {
     "ar": "العرض من الصفحة %d من %d",
@@ -24662,6 +25166,15 @@
     "ja": "プリント…",
     "pt-BR": "Imprimir…"
   },
+  "Process": {
+    "ar": "عملية",
+    "de": "Prozess",
+    "es": "Proceso",
+    "fr": "Processus",
+    "it": "Processo",
+    "ja": "プロセス",
+    "pt-BR": "Processo"
+  },
   "Progress bar": {
     "ar": "شريط التقدم",
     "de": "Fortschrittsbalken",
@@ -24688,6 +25201,15 @@
     "it": "Anello di avanzamento",
     "ja": "プログレスリング",
     "pt-BR": "Anel de progresso"
+  },
+  "Projects": {
+    "ar": "المشاريع",
+    "de": "Projekte",
+    "es": "Proyectos",
+    "fr": "Projets",
+    "it": "Progetti",
+    "ja": "プロジェクト",
+    "pt-BR": "Projetos"
   },
   "Proofing": {
     "ar": "التدقيق",
@@ -24760,6 +25282,15 @@
     "it": "Metti al centro del codice",
     "ja": "コードの中央に置く",
     "pt-BR": "Colocar no meio do código"
+  },
+  "Pyramid": {
+    "ar": "هرم",
+    "de": "Pyramide",
+    "es": "Pirámide",
+    "fr": "Pyramide",
+    "it": "Piramide",
+    "ja": "ピラミッド",
+    "pt-BR": "Pirâmide"
   },
   "QR code": {
     "ar": "رمز QR",
@@ -27308,6 +27839,15 @@
     "ja": "ページ上のグラフを選択すると編集できます。",
     "pt-BR": "Selecione um gráfico na página para editá-lo."
   },
+  "Select a diagram on the page to edit it.": {
+    "ar": "حدّد مخططًا في الصفحة لتعديله.",
+    "de": "Wähle ein Diagramm auf der Seite aus, um es zu bearbeiten.",
+    "es": "Selecciona un diagrama en la página para editarlo.",
+    "fr": "Sélectionnez un diagramme sur la page pour le modifier.",
+    "it": "Seleziona un diagramma nella pagina per modificarlo.",
+    "ja": "編集するには、ページ上の図を選択してください。",
+    "pt-BR": "Selecione um diagrama na página para editá-lo."
+  },
   "Select a photo grid on the page to space it out.": {
     "ar": "حدّد شبكة صور في الصفحة لضبط تباعدها.",
     "de": "Wähle ein Fotoraster auf der Seite aus, um die Abstände festzulegen.",
@@ -28603,6 +29143,15 @@
     "it": "Lati",
     "ja": "辺の数",
     "pt-BR": "Lados"
+  },
+  "Sign-ups": {
+    "ar": "التسجيلات",
+    "de": "Anmeldungen",
+    "es": "Registros",
+    "fr": "Inscriptions",
+    "it": "Iscrizioni",
+    "ja": "登録",
+    "pt-BR": "Cadastros"
   },
   "Single page": {
     "ar": "صفحة واحدة",
@@ -30503,6 +31052,15 @@
     "ja": "テープで留めた写真",
     "pt-BR": "Foto com fita"
   },
+  "Tasks": {
+    "ar": "المهام",
+    "de": "Aufgaben",
+    "es": "Tareas",
+    "fr": "Tâches",
+    "it": "Attività",
+    "ja": "タスク",
+    "pt-BR": "Tarefas"
+  },
   "Teacher": {
     "ar": "معلم",
     "de": "Lehrkraft",
@@ -31433,6 +31991,15 @@
     "ja": "次回ホームを開くとウェルカムツアーが表示されます。",
     "pt-BR": "O tour de boas-vindas aparece na próxima vez que você estiver no Início."
   },
+  "Theirs": {
+    "ar": "هم",
+    "de": "Sie",
+    "es": "Lo suyo",
+    "fr": "Eux",
+    "it": "Loro",
+    "ja": "他社",
+    "pt-BR": "Deles"
+  },
   "Theme": {
     "ar": "السمة",
     "de": "Thema",
@@ -31729,6 +32296,15 @@
     "it": "Impossibile aprire il file di questo design.",
     "ja": "このデザインのファイルを開けません。",
     "pt-BR": "Não é possível abrir o arquivo deste design."
+  },
+  "This diagram is locked. Unlock it from More to edit it.": {
+    "ar": "هذا المخطط مقفل. ألغِ قفله من المزيد لتعديله.",
+    "de": "Dieses Diagramm ist gesperrt. Entsperre es unter Mehr, um es zu bearbeiten.",
+    "es": "Este diagrama está bloqueado. Desbloquéalo desde Más para editarlo.",
+    "fr": "Ce diagramme est verrouillé. Déverrouillez-le depuis Plus pour le modifier.",
+    "it": "Questo diagramma è bloccato. Sbloccalo da Altro per modificarlo.",
+    "ja": "この図はロックされています。編集するには「その他」からロックを解除してください。",
+    "pt-BR": "Este diagrama está bloqueado. Desbloqueie-o em Mais para editá-lo."
   },
   "This element is locked": {
     "ar": "هذا العنصر مقفل",
@@ -33812,6 +34388,24 @@
     "ja": "値",
     "pt-BR": "Valores"
   },
+  "Venn, three circles": {
+    "ar": "فن، ثلاث دوائر",
+    "de": "Venn, drei Kreise",
+    "es": "Venn, tres círculos",
+    "fr": "Venn, trois cercles",
+    "it": "Venn, tre cerchi",
+    "ja": "ベン図（3つの円）",
+    "pt-BR": "Venn, três círculos"
+  },
+  "Venn, two circles": {
+    "ar": "فن، دائرتان",
+    "de": "Venn, zwei Kreise",
+    "es": "Venn, dos círculos",
+    "fr": "Venn, deux cercles",
+    "it": "Venn, due cerchi",
+    "ja": "ベン図（2つの円）",
+    "pt-BR": "Venn, dois círculos"
+  },
   "Version": {
     "ar": "الإصدار",
     "de": "Version",
@@ -34123,6 +34717,24 @@
     "it": "Vignettatura",
     "ja": "周辺減光",
     "pt-BR": "Vinheta"
+  },
+  "Vision": {
+    "ar": "الرؤية",
+    "de": "Vision",
+    "es": "Visión",
+    "fr": "Vision",
+    "it": "Visione",
+    "ja": "ビジョン",
+    "pt-BR": "Visão"
+  },
+  "Visitors": {
+    "ar": "الزوار",
+    "de": "Besucher",
+    "es": "Visitantes",
+    "fr": "Visiteurs",
+    "it": "Visitatori",
+    "ja": "訪問者",
+    "pt-BR": "Visitantes"
   },
   "Vivid": {
     "ar": "زاهٍ",

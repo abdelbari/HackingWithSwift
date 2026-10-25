@@ -3,6 +3,8 @@
 // can be shared as a file and one brought in from another phone. Opened
 // from Home or Settings it has no design attached: what would take from a
 // design is not offered, and a logo comes from the photo library instead.
+// A logo just added, or one whose menu is asked for 'Colours from this
+// logo', offers the colours it is made of (BrandLogoColours.swift).
 
 import PhotosUI
 import SwiftUI
@@ -41,6 +43,11 @@ struct BrandKitSheet: View {
     @State private var pickedLogos: [PhotosPickerItem] = []
     /// Your own templates, read as the sheet opens.
     @State private var ownTemplates: [UserTemplate] = []
+    /// The colours a logo suggests, while they are offered.
+    @State private var fromLogo: LogoColours?
+    /// The logo whose colours were asked for last, so a slow read of an
+    /// earlier one does not replace its offer.
+    @State private var logoAsked: String?
 
     private enum ImportKind {
         case kit, svg
@@ -89,7 +96,14 @@ struct BrandKitSheet: View {
         withAlerts(withSheets(form))
             // Every change kept as it is made, as on the Android twin, so
             // the sheet can be swiped away as well as closed with Done.
-            .onChange(of: kits) { _, changed in changed.save() }
+            .onChange(of: kits) { old, changed in
+                changed.save()
+                // A logo added — switched on here, or picked from the
+                // photos — offers its colours; switching kits does not.
+                guard old.activeId == changed.activeId,
+                      let added = changed.active.logos.last(where: { !old.active.logos.contains($0) }) else { return }
+                offerColours(of: added)
+            }
             .onChange(of: kits.activeId) { openedWithLogos = kits.active.logos }
             .onChange(of: pickedPhotos) { _, items in bringIn(items, to: .photos) }
             .onChange(of: pickedGraphics) { _, items in bringIn(items, to: .graphics) }
@@ -122,6 +136,7 @@ struct BrandKitSheet: View {
                 }
                 typeSection
                 logosSection
+                if let offer = fromLogo { logoColours(offer) }
                 assetSection(.photos)
                 assetSection(.graphics)
                 templatesSection
@@ -381,8 +396,21 @@ struct BrandKitSheet: View {
         }
     }
 
+    /// A logo's colours, offered as chips: each tapped goes into the palette
+    /// chosen, or all of them become a palette of their own.
+    private func logoColours(_ offer: LogoColours) -> some View {
+        LogoColoursSection(offer: offer, kit: kit,
+                           add: { hex, index in editKit { $0.addColor(hex, palette: index) } },
+                           addPalette: {
+                               editKit { $0.addLogoPalette(logo: offer.src, name: offer.name, colors: offer.colors) }
+                               fromLogo = nil
+                           },
+                           done: { fromLogo = nil })
+    }
+
     /// One switch per picture, told apart by its place in the list — the
-    /// picture is all that differs, and VoiceOver cannot see it.
+    /// picture is all that differs, and VoiceOver cannot see it. A logo has
+    /// a menu with 'Colours from this logo'.
     private func logoRow(_ src: String, index: Int, count: Int) -> some View {
         HStack {
             if let ui = PhotoLibrary.resolve(src) {
@@ -399,6 +427,16 @@ struct BrandKitSheet: View {
                     }
                 }))
             .accessibilityLabel("Picture \(index + 1) of \(count), a brand logo")
+            if kit.logos.contains(src) {
+                Menu {
+                    Button("Colours from this logo") { offerColours(of: src) }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.button)
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Logo options")
+            }
         }
     }
 
@@ -509,6 +547,16 @@ struct BrandKitSheet: View {
             editKit { kit in
                 for src in added { kit.add(src, to: keyPath) }
             }
+        }
+    }
+
+    /// `src`'s colours offered as chips once they are read, off the main
+    /// thread (LogoColours.of); the last logo asked about wins.
+    private func offerColours(of src: String) {
+        logoAsked = src
+        Task { @MainActor in
+            let offer = await LogoColours.of(src)
+            if logoAsked == src { fromLogo = offer }
         }
     }
 

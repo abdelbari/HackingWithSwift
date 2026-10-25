@@ -22,13 +22,20 @@
 // Loop, beside Autoplay, goes round from the last page shown to the first,
 // the music from its start — kept in the design, so a kiosk keeps looping.
 // The presenter's effects (Presenter.effects) come from the keys 1 to 9, B,
-// C, O, Q, U and X, or the sparkle button's grid, and show on both screens.
+// C, O, Q, U, D, M and X, or the sparkle button's grid, and show on both
+// screens; the drumroll and the mic drop are heard too, unless the sound is
+// off.
 // Live captions (LiveCaptions.swift) — the button beside Loop, or Shift-C —
 // show what the presenter says over the slide on both screens too.
 // A tap on a clip brings up its own Play/Pause and scrubber
 // (PresentClipControls), and Space plays or pauses the clip last tapped;
 // while one is played by hand, autoplay waits on the page, and the arrows
 // and a clicker still turn it.
+// Press and hold on the slide for the laser dot, and turn on the pen (P) to
+// draw on it, on both screens (PresentPen.swift); L locks the laser and E
+// clears the ink. Neither is ever saved. VoiceOver hears the page's header,
+// then the slide's own stops in reading order (PresentSpeech), and each new
+// page's header and first heading as it comes up.
 
 import SwiftUI
 
@@ -169,6 +176,7 @@ struct PresentationView: View {
             settleTask?.cancel()
             exitTask?.cancel()
             sound.stop(fade: true)
+            Audition.shared.stop()
             // The talk's clips' players: an export's readers are its own.
             ClipPlayers.shared.closeAll()
             UIApplication.shared.isIdleTimerDisabled = false
@@ -196,25 +204,14 @@ struct PresentationView: View {
     private func onPhone(in size: CGSize) -> some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            PresentStage(session: session, size: size)
-                .scaleEffect(onBoard ? boardZoom * pinching : 1)
-                .offset(onBoard ? boardOffset : .zero)
-                .gesture(swipe)
-                .simultaneousGesture(boardPinch)
-                .simultaneousGesture(touch)
-                .onTapGesture { location in
-                    // A linked element opens its link, as a click on it
-                    // does in the PDF — where the page is fitted, so not
-                    // while a whiteboard is pinched in. A clip shows its
-                    // own controls, or puts them away.
-                    if !zoomedIn, let url = link(at: location, in: size) { follow(url) }
-                    else if !zoomedIn, let tappedClip = clip(at: location, in: size) { tapped(clip: tappedClip) }
-                    else if location.x > size.width * 0.66 { go(1) }
-                    else if location.x < size.width * 0.33 { go(-1) }
-                    else { withAnimation { showingChrome.toggle() } }
-                }
+            stage(in: size)
+                .accessibilityElement(children: .ignore)
                 .accessibilityLabel(spokenPlace)
                 .accessibilityActions { pageActions }
+                .accessibilitySortPriority(2)
+            // The slide's own stops, after its header and before the bar.
+            PresentSlideReader(design: design, page: page, size: size) { follow($0) }
+                .accessibilitySortPriority(1)
             if !zoomedIn {
                 PresentClipControls(session: session, size: size) { showControls(session.controlsClip) }
             }
@@ -222,13 +219,44 @@ struct PresentationView: View {
             if showingChrome && onBoard { zoomToFit }
             if let linkRefused { refusedNote(linkRefused) }
         }
+        .accessibilityElement(children: .contain)
         .onChange(of: session.index) { _, _ in fitBoard() }
         // A clip played, paused or scrubbed is heard from where it now is.
         .onChange(of: session.clipOverrides) { _, _ in soundClips() }
-        // Ended or cancelled, the touch is over, and the next starts clean.
+        // Ended or cancelled, the touch is over, and the next starts clean;
+        // the dot goes and a stroke being drawn is done.
         .onChange(of: touching) { _, down in
-            if !down { pinchedThisTouch = false }
+            if !down {
+                pinchedThisTouch = false
+                session.released()
+            }
         }
+    }
+
+    /// The page, turned by a tap or a swipe, pointed at with a hold and
+    /// drawn on with the pen (PresenterPointing). A touch that pointed or
+    /// drew is neither a tap nor a swipe.
+    private func stage(in size: CGSize) -> some View {
+        PresentStage(session: session, size: size)
+            .scaleEffect(onBoard ? boardZoom * pinching : 1)
+            .offset(onBoard ? boardOffset : .zero)
+            .gesture(swipe)
+            .simultaneousGesture(boardPinch)
+            .simultaneousGesture(touch)
+            .simultaneousGesture(PresenterPointing.gesture(session: session, in: size))
+            .onTapGesture { location in tapped(at: location, in: size) }
+    }
+
+    private func tapped(at location: CGPoint, in size: CGSize) {
+        guard !session.heldThisTouch else { return }
+        // A linked element opens its link, as a click on it does in the
+        // PDF — where the page is fitted, so not while a whiteboard is
+        // pinched in. A clip shows its own controls, or puts them away.
+        if !zoomedIn, let url = link(at: location, in: size) { follow(url) }
+        else if !zoomedIn, let tappedClip = clip(at: location, in: size) { tapped(clip: tappedClip) }
+        else if location.x > size.width * 0.66 { go(1) }
+        else if location.x < size.width * 0.33 { go(-1) }
+        else { withAnimation { showingChrome.toggle() } }
     }
 
     // MARK: whiteboards
@@ -250,13 +278,15 @@ struct PresentationView: View {
     private var swipe: some Gesture {
         DragGesture(minimumDistance: 30)
             .updating($panning) { value, state, _ in
-                if zoomedIn && !magnifying { state = value.translation }
+                if zoomedIn && !magnifying && !session.penOn { state = value.translation }
             }
             .updating($swiping) { _, state, _ in state = true }
             .onEnded { value in
                 let pinched = pinchedThisTouch || magnifying
                 pinchedThisTouch = false
                 if onBoard && pinched { return }
+                // A finger that pointed or drew turns nothing.
+                if session.heldThisTouch { return }
                 if zoomedIn {
                     boardPan.width += value.translation.width
                     boardPan.height += value.translation.height
@@ -323,7 +353,7 @@ struct PresentationView: View {
     /// closes and a timer paused there runs on from where it stood, as on
     /// the Android twin.
     private func displayChanged(_ attached: Bool) {
-        session.pointer = nil
+        session.released()
         guard !attached else { return }
         showingPages = false
         if timer.paused { timer.toggle(at: Date()) }
@@ -404,12 +434,9 @@ struct PresentationView: View {
                          next: { go(1) },
                          end: { dismiss() },
                          showPages: { showingPages = true },
-                         toggleClip: { session.toggleClip($0) }) {
-            soundButton
-            autoplayButton
-            loopButton
-            captionsButton
-            effectsButton
+                         toggleClip: { session.toggleClip($0) },
+                         follow: { follow($0) }) {
+            talkButtons
         }
     }
 
@@ -453,11 +480,10 @@ struct PresentationView: View {
         return (at + 1, visible.count)
     }
 
-    /// The page as VoiceOver says it: "Page 2 of 5", and its title.
+    /// The page as VoiceOver says it: "Page 2 of 5, Results" — its header
+    /// (PresentSpeech), with the turns as its actions.
     private var spokenPlace: String {
-        var label = tr("Page %d of %d", place.number, place.count)
-        if let title = page.title.flatMap(PageTitles.kept) { label += ", " + title }
-        return label
+        PresentSpeech.header(design, index: index)
     }
 
     /// The Notes button, as VoiceOver says it.
@@ -680,11 +706,7 @@ struct PresentationView: View {
                     .font(.system(.body, design: .monospaced))
                     .accessibilityLabel("Elapsed \(timeString)")
                 Spacer()
-                soundButton
-                autoplayButton
-                loopButton
-                captionsButton
-                effectsButton
+                talkButtons
                 Button { showingNotes.toggle() } label: {
                     // A blank note, dimmed, when this page has none — as on
                     // the Android twin — so the button says so before it is
@@ -697,6 +719,8 @@ struct PresentationView: View {
             }
             .foregroundStyle(.white)
             .background(.black.opacity(0.35))
+            // The pen's colours, widths, Clear and Fade ink, while it is on.
+            if session.penOn { PresentPenBar(session: session) }
             Spacer()
             if showingNotes {
                 ScrollView {
@@ -719,6 +743,19 @@ struct PresentationView: View {
         }
     }
 
+    /// The sound, autoplay, loop, live captions, magic shortcuts and pen
+    /// buttons, on the phone's bar and the console's alike.
+    private var talkButtons: some View {
+        Group {
+            soundButton
+            autoplayButton
+            loopButton
+            captionsButton
+            effectsButton
+            PresentPenButton(session: session)
+        }
+    }
+
     /// The speaker, only when the design has something to hear.
     @ViewBuilder
     private var soundButton: some View {
@@ -726,6 +763,7 @@ struct PresentationView: View {
             Button {
                 soundOn.toggle()
                 startSound()
+                if !soundOn { Audition.shared.stop() }
             } label: {
                 Image(systemName: soundOn ? "speaker.wave.2.fill" : "speaker.slash.fill").padding(10)
             }
@@ -784,13 +822,19 @@ struct PresentationView: View {
     }
 
     /// An effect asked for, by key or from the grid: shown on both
-    /// screens in place of any other; one of three seconds is let go of
-    /// once they are up.
+    /// screens in place of any other; one that passes is let go of once its
+    /// seconds are up. The drumroll and the mic drop are heard too, as the
+    /// sound effects of the same names, unless the talk's sound is off; a
+    /// new effect stops the last one's sound.
     private func show(effect id: String) {
         session.effects = Presenter.showing(session.effects, adding: id, at: Date())
+        Audition.shared.stop()
+        if soundOn, Presenter.sounds(id), let url = SoundEffects.url(id) {
+            Audition.shared.play(url, 0...Presenter.seconds(of: id))
+        }
         guard id != "clear", !Presenter.lasts(id) else { return }
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(Presenter.effectSeconds + 0.05))
+            try? await Task.sleep(for: .seconds(Presenter.seconds(of: id) + 0.05))
             session.effects = Presenter.live(session.effects, at: Date())
         }
     }
@@ -818,11 +862,31 @@ struct PresentationView: View {
             }
             key(.escape, tr("End presentation")) { dismiss() }
             key("c", tr("Live captions"), modifiers: .shift) { toggleCaptions() }
-            // The effects' keys: 1 to 9, B, C, O, Q, U and X.
+            // The effects' keys: 1 to 9, B, C, O, Q, U, D, M and X.
             ForEach(Presenter.effects) { effect in
                 effectKeys(effect)
             }
+            penKeys
         }
+    }
+
+    /// The pen's keys, none a magic shortcut's letter: L locks the laser,
+    /// P turns the pen on and off, E clears the ink — capitals too.
+    private var penKeys: some View {
+        Group {
+            letterKeys(PresentInk.laserKey, tr("Laser lock")) { session.laserLock.toggle() }
+            letterKeys(PresentInk.penKey, tr("Pen")) { session.penOn.toggle() }
+            letterKeys(PresentInk.clearKey, tr("Clear")) { session.ink = PresentInk.Ink() }
+        }
+    }
+
+    /// A letter's key, with Shift and with Caps Lock as well.
+    @ViewBuilder
+    private func letterKeys(_ letter: String, _ title: String, action: @escaping () -> Void) -> some View {
+        let typed = KeyEquivalent(Character(letter))
+        key(typed, title, action: action)
+        key(typed, title, modifiers: .shift, action: action)
+        key(typed, title, modifiers: .capsLock, action: action)
     }
 
     /// An effect's key, and for a letter its capital too, with Shift or
@@ -892,6 +956,10 @@ struct PresentationView: View {
         exitTask?.cancel()
         session.pointer = nil
         session.effects = []
+        // The ink is the page's, so it goes with it; so does an effect's
+        // sound.
+        session.ink = PresentInk.Ink()
+        Audition.shared.stop()
         if looping {
             sound.stop()
             musicFrom = 0
@@ -928,7 +996,14 @@ struct PresentationView: View {
             session.exitFrom = nil
             pageArrived()
             if autoplay { scheduleAdvance() }
+            announce(page: next)
         }
+    }
+
+    /// VoiceOver hears the page come up: its header and its first heading
+    /// (PresentSpeech.announcement).
+    private func announce(page index: Int) {
+        AccessibilityNotification.Announcement(PresentSpeech.announcement(design, index: index)).post()
     }
 
     /// Wait this page's own hold (or the document's) — or `wait` seconds,

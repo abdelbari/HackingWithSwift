@@ -1,5 +1,6 @@
 // The sound effects that come with the app — whoosh, pop, ding, riser, drum
-// hits and the rest, two dozen, each under two seconds — synthesised by
+// hits and the rest, two dozen, each under two seconds, and Present's
+// drumroll and mic drop, two and a half (Presenter.sounds) — synthesised by
 // tools/generate_sounds.py, which writes the WAVs (the bundle's sfx folder
 // here, the Android twin's assets/sfx) and sfx.json, this list, the same on
 // both phones.

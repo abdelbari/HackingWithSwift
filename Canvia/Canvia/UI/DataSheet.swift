@@ -556,7 +556,7 @@ struct DataSheet: View {
     private func builtForPage(_ spec: ChartSpec) -> [Element] {
         let w = store.pageWidth, h = store.pageHeight
         let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
-        let colors = DataGraphics.palette(for: store.design, page: store.page)
+        let colors = store.newChartPalette
         if mode == 0 {
             return DataGraphics.chart(spec, in: frame, palette: colors, ink: DataGraphics.ink(for: store.page))
         }

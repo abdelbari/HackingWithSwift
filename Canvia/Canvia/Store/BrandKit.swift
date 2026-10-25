@@ -6,7 +6,8 @@
 //   {"activeId": "kit-1",
 //    "kits": [{"id": "kit-1", "name": "My brand",
 //              "palettes": [{"name": "Colours", "colors": ["#1f2430", …],
-//                            "names"?: {"#1F2430": "Ink"}}],
+//                            "names"?: {"#1F2430": "Ink"},
+//                            "source"?: "logo:<photoId>"}],
 //              "fonts": {"title": {"family", "weight", "size"?, "color"?,
 //                                  "letterSpacing"?, "lineHeight"?,
 //                                  "uppercase"?, "italic"?},
@@ -41,14 +42,17 @@ import Foundation
 /// "Primary CTA"): `names`, keyed by the colour as upper-case "#RRGGBB",
 /// each name at most `BrandPalette.nameLimit` characters, written only when
 /// there are some, and only for colours the palette has — the rule both
-/// phones keep. A reader that knows nothing of it passes it over.
+/// phones keep. A reader that knows nothing of it passes it over. A
+/// palette taken from a logo says so in `source`, "logo:<photoId>"
+/// (BrandKit.logoSource), written only when set.
 struct BrandPalette: Codable, Equatable {
     var name: String
     var colors: [String]
     var names: [String: String] = [:]
+    var source: String?
 
     // Declared, as both coding directions are written by hand below.
-    enum CodingKeys: String, CodingKey { case name, colors, names }
+    enum CodingKeys: String, CodingKey { case name, colors, names, source }
 
     /// The longest a colour's name may be.
     static let nameLimit = 40
@@ -554,6 +558,28 @@ struct BrandKit: Codable, Equatable, Identifiable {
         palettes[index].names = palettes[index].keptNames
     }
 
+    /// A palette taken from logo `src`'s pixels says so: "logo:" and the
+    /// photo's id — the "img-…" of "media:img-…" — as the Android twin
+    /// writes it.
+    static func logoSource(_ src: String) -> String {
+        "logo:" + (src.hasPrefix("media:") ? String(src.dropFirst("media:".count)) : src)
+    }
+
+    /// 'Add as a palette' for colours taken from a logo
+    /// (PhotoPalette.logo): a palette last, called "<logo name> colours" —
+    /// "Logo colours" for a logo with no name — of `colors` (normalised,
+    /// once each, at most `limit`), its source the logo's (`logoSource`).
+    /// Nothing to add, nothing added. The Android twin's withLogoPalette.
+    mutating func addLogoPalette(logo src: String, name logoName: String?, colors: [String]) {
+        var kept: [String] = []
+        for hex in colors.map(RecentColors.normalise) where !hex.isEmpty && !kept.contains(hex) { kept.append(hex) }
+        kept = Array(kept.prefix(Self.limit))
+        guard !kept.isEmpty else { return }
+        let named = (logoName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = tr("%@ colours", named.isEmpty ? tr("Logo") : named)
+        palettes.append(BrandPalette(name: name, colors: kept, source: Self.logoSource(src)))
+    }
+
     /// `hex` taken out of the palette at `palette`, and its name with it,
     /// so the colour added back has none — as on the Android twin.
     mutating func removeColor(_ hex: String, palette index: Int) {
@@ -703,6 +729,7 @@ extension BrandPalette {
         let raw = (try? c.decode([String: Lossy<String>].self, forKey: .names)) ?? [:]
         names = raw.compactMapValues(\.value)
         names = keptNames
+        source = (try? c.decode(String.self, forKey: .source)).flatMap { $0.isEmpty ? nil : $0 }
     }
 
     /// The names only when there are some, so a palette without them is
@@ -713,6 +740,7 @@ extension BrandPalette {
         try c.encode(colors, forKey: .colors)
         let kept = keptNames
         if !kept.isEmpty { try c.encode(kept, forKey: .names) }
+        try c.encodeIfPresent(source, forKey: .source)
     }
 }
 

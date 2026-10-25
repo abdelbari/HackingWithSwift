@@ -1,12 +1,14 @@
 // The presenter's console's page grid, to go straight to a page, and its
 // pointer: a press and hold on the page up draws a red dot on the second
 // screen at the same place on the page, which follows the finger and goes
-// when it lifts.
+// when it lifts. The phone's own stage points the same way, and with the
+// pen on, a finger on either draws instead (PresentSession.touched).
 
 import SwiftUI
 
-/// The pointer: a press and hold on the page, then a drag, moves the red
-/// dot with the finger; letting go takes it away.
+/// The pointer and the pen: a press and hold on the page, then a drag,
+/// moves the red dot with the finger — at once with Laser lock; letting go
+/// takes it away. With the pen on, a finger draws.
 enum PresenterPointing {
     @MainActor
     static func gesture(session: PresentSession, in size: CGSize) -> some Gesture {
@@ -17,11 +19,16 @@ enum PresenterPointing {
             .sequenced(before: DragGesture(minimumDistance: 0))
             .simultaneously(with: DragGesture(minimumDistance: 0))
             .onChanged { value in
-                guard case .second(true, _)? = value.first, let drag = value.second else { return }
-                session.pointer = Presenter.pagePoint(drag.location, in: size,
-                                                      page: session.design.size(for: session.page))
+                guard let drag = value.second else { return }
+                session.touched(at: drag.location, moved: drag.translation, held: held(value.first), in: size)
             }
-            .onEnded { _ in session.pointer = nil }
+            .onEnded { _ in session.released() }
+    }
+
+    /// Whether the hold has lasted long enough to point.
+    private static func held(_ value: SequenceGesture<LongPressGesture, DragGesture>.Value?) -> Bool {
+        if case .second(true, _)? = value { return true }
+        return false
     }
 }
 

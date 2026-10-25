@@ -18,7 +18,8 @@ enum Copies {
     /// a fresh id, each source group — every level of a nested one — one
     /// fresh key its copies share, each table one fresh id its cells' copies
     /// share — so the copy is a table of its own — each source chart one
-    /// fresh chart id, so Edit chart on the copy leaves the original alone,
+    /// fresh chart id, so Edit chart on the copy leaves the original alone —
+    /// and each diagram one, so Edit diagram does too —
     /// and each arrow its ends' copies, or no end, where that end was not
     /// copied.
     /// Unlocked unless `keepingLocks` — both locks, the whole and the
@@ -30,6 +31,7 @@ enum Copies {
         var groups: [String: String] = [:]
         var tables: [String: String] = [:]
         var charts: [String: String] = [:]
+        var diagrams: [String: String] = [:]
         return elements.map { el in
             var copy = el
             copy.id = ids[el.id] ?? UID.make()
@@ -50,6 +52,10 @@ enum Copies {
             if let chart = el.chart {
                 if charts[chart.id] == nil { charts[chart.id] = UID.make("chart") }
                 copy.chart?.id = charts[chart.id] ?? chart.id
+            }
+            if let diagram = el.diagram {
+                if diagrams[diagram.id] == nil { diagrams[diagram.id] = Diagrams.newId() }
+                copy.diagram?.id = diagrams[diagram.id] ?? diagram.id
             }
             copy.connectFrom = el.connectFrom.flatMap { ids[$0] }
             copy.connectTo = el.connectTo.flatMap { ids[$0] }

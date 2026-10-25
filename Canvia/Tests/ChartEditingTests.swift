@@ -204,7 +204,7 @@ final class ChartEditingTests: XCTestCase {
                   let paint = DesignStore.chartColour(of: el) else { continue }
             colours[n] = paint
         }
-        XCTAssertEqual(DataGraphics.palette(updating: spec.id, design: s.design, page: s.page, colours: colours), fresh,
+        XCTAssertEqual(DataGraphics.palette(updating: spec.id, design: s.design, page: s.page, colours: colours, brand: nil), fresh,
                        "its own bars and labels are not the design's colours")
         var five = spec
         five.data = "Spring, 40\nSummer, 65\nAutumn, 30\nWinter, 20\nMore, 50"

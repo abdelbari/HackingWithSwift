@@ -27,6 +27,8 @@ enum EditorSheet: String, Identifiable {
     case history, proofread, theme, help, accessibility, brand, shapes, clip, shapeText, table
     /// Edit chart: the chart sheet again, filled in from the selected chart.
     case chart
+    /// Edit diagram: the selected diagram as a list (DiagramSheet).
+    case diagram
     /// Opened by Help's "Show me": the page organiser, and the snapping
     /// switches as a sheet (a Menu cannot be opened from code).
     case pages, snapping
@@ -1881,6 +1883,8 @@ struct EditorView: View {
             if let spec = store.selectedChart {
                 DataSheet(store: store, editing: spec)
             }
+        case .diagram:
+            DiagramSheet(store: store)
         case .history:
             VersionHistorySheet(store: store)
         case .proofread:
@@ -2338,6 +2342,11 @@ private struct WordRequests: ViewModifier {
                 guard asked else { return }
                 store.chartEditRequested = false
                 if store.selectedChart != nil { activeSheet = .chart }
+            }
+            .onChange(of: store.diagramEditRequested) { _, asked in
+                guard asked else { return }
+                store.diagramEditRequested = false
+                if store.selectedDiagram != nil { activeSheet = .diagram }
             }
             // A painted area brushed for the dials: back to them.
             .onChange(of: store.adjustAreaAsked) { _, asked in

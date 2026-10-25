@@ -16,6 +16,13 @@ import Vision
 
 enum AltText {
 
+    /// What a screen reader calls `el`: its description, trimmed, else its
+    /// name (ElementNames) — the Android twin's AltText.spoken.
+    static func spoken(_ el: Element) -> String {
+        let alt = (el.altText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return alt.isEmpty ? ElementNames.name(of: el) : alt
+    }
+
     /// "Photo of a dog, grass and sky", from the strongest classifications;
     /// nil when the classifier is unsure of everything.
     static func describe(_ image: UIImage, maxLabels: Int = 3, minConfidence: Float = 0.3) -> String? {

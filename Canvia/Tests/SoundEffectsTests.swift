@@ -1,5 +1,6 @@
 // The built-in sound effects, row for row with the Android twin's
-// SoundEffectsTest: two dozen short mono WAVs in the bundle, found by their
+// SoundEffectsTest: two dozen short mono WAVs and Present's drumroll and mic
+// drop in the bundle, found by their
 // tags, each going under the film as an "sfx:" track that no design file
 // or backup carries.
 
@@ -8,11 +9,11 @@ import XCTest
 
 final class SoundEffectsTests: XCTestCase {
 
-    func testTwoDozenEffectsEachAShortMonoWAVTheAppShips() throws {
+    func testTwoDozenEffectsAndPresentsTwoEachAShortMonoWAVTheAppShips() throws {
         XCTAssertEqual(SoundEffects.all.map(\.id), [
             "whoosh", "swoosh", "pop", "click", "tick", "ding", "chime", "bell", "sparkle", "riser", "drop", "boom",
             "kick", "snare", "clap", "typewriter-key", "camera-shutter", "notification", "error-buzz", "success",
-            "coin", "bubble", "swipe", "glitch",
+            "coin", "bubble", "swipe", "glitch", "drumroll", "micdrop",
         ])
         for e in SoundEffects.all {
             let url = try XCTUnwrap(SoundEffects.url(e.id), e.id)
@@ -26,14 +27,16 @@ final class SoundEffectsTests: XCTestCase {
             XCTAssertEqual(u16(34), 16, e.id)
             let seconds = Double(u32(40)) / 2 / 44100
             XCTAssertEqual(e.seconds, seconds, accuracy: 0.001, e.id)
-            XCTAssertTrue(e.seconds < 2 && !e.tags.isEmpty, e.id)
+            // Present's drumroll and mic drop play as long as their pictures.
+            let most = Presenter.sounds(e.id) ? Presenter.seconds(of: e.id) : 2
+            XCTAssertTrue(e.seconds <= most && !e.tags.isEmpty, e.id)
         }
     }
 
     func testASearchReadsNamesIdsAndTags() {
-        XCTAssertEqual(SoundEffects.search("drum").map(\.id), ["kick", "snare"])
+        XCTAssertEqual(SoundEffects.search("drum").map(\.id), ["kick", "snare", "drumroll"])
         XCTAssertEqual(SoundEffects.search("Camera").map(\.id), ["camera-shutter"])
-        XCTAssertEqual(SoundEffects.search("").count, 24)
+        XCTAssertEqual(SoundEffects.search("").count, 26)
     }
 
     func testAnEffectIsATrackFromThePagesStartOnceThatNoFileOrBackupCarries() throws {

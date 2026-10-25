@@ -6,7 +6,8 @@
 Synthesises each effect in EFFECTS — additive tones and seeded noise, shaped
 by envelopes, nothing recorded or downloaded — and writes it as a mono
 44.1 kHz 16-bit WAV to app/src/main/assets/sfx/<id>.wav, every one under two
-seconds. AAC would be smaller, but no encoder ships with Python, so they stay
+seconds but the drumroll and the mic drop, Present's magic shortcuts D and M,
+which play for 2.5 s, as long as their pictures. AAC would be smaller, but no encoder ships with Python, so they stay
 WAV, which both phones play and mix as they do any song. Beside them it
 writes core/src/main/resources/com/canvia/core/content/sfx.json, the list
 both phones read: [{"id", "name", "tags": [...], "seconds"}], seconds to the
@@ -268,6 +269,68 @@ def glitch():
     return make(0.6, at)
 
 
+# The drumroll's strokes, as Presenter.rollStrokes times them: gaps from
+# 0.14 s shortening by 0.93 each to 0.03 s, until the crash at 1.9 s.
+ROLL_END = 1.9
+
+
+def roll_strokes():
+    out, t, gap = [], 0.0, 0.14
+    while t < ROLL_END - 1e-9:
+        out.append(t)
+        t += gap
+        gap = max(0.03, gap * 0.93)
+    return out
+
+
+def drumroll():
+    """A snare roll that speeds up and swells, ending in a crash cymbal."""
+    noise = Noise(14)
+    crash = Noise(15)
+    strokes = roll_strokes()
+
+    def at(t):
+        s = 0.0
+        for start in strokes:
+            if start > t:
+                break
+            d = t - start
+            if d < 0.15:
+                loud = 0.35 + 0.65 * start / ROLL_END
+                s += loud * (0.6 * noise.white() * env(d, 0.001, 0.035) + 0.3 * tone(190, d) * env(d, 0.001, 0.03))
+        if t >= ROLL_END:
+            d = t - ROLL_END
+            w = crash.white()
+            # High-passed noise: the white less its own low part.
+            s += 1.4 * (w - crash.low(0.08)) * env(d, 0.002, 0.35) + 0.5 * tone(110, d) * env(d, 0.001, 0.08)
+        return s
+    return make(2.5, at)
+
+
+def micdrop():
+    """A microphone falling, its thud on the floor at 0.5 s, the speakers'
+    feedback squeal, and the room ringing out."""
+    fall = Noise(16)
+    room = Noise(17)
+    land = 0.5
+
+    def at(t):
+        s = 0.0
+        if t < land:
+            s += 0.15 * fall.low(0.05 + 0.3 * t / land) * (t / land) ** 2
+        else:
+            d = t - land
+            s += (tone(55 + 60 * math.exp(-d * 30), d) * 0.9 + 0.4 * fall.low(0.1)) * env(d, 0.002, 0.09)
+            if d >= 0.08:
+                q = d - 0.08
+                swell = min(1.0, q / 0.5) * math.exp(-max(0.0, q - 0.6) / 0.35)
+                f = 2650 + 120 * q + 18 * math.sin(TAU * 5.5 * q)
+                s += 0.35 * swell * (tone(f, q) + 0.3 * tone(2 * f, q))
+            s += 0.25 * room.low(0.04) * env(d, 0.02, 0.6)
+        return s
+    return make(2.5, at)
+
+
 # id, name, tags, how it is made. The order the audio panel lists them in.
 EFFECTS = [
     ('whoosh', 'Whoosh', ['air', 'fast', 'transition', 'wind'], whoosh),
@@ -294,6 +357,8 @@ EFFECTS = [
     ('bubble', 'Bubble', ['water', 'pop', 'blip'], bubble),
     ('swipe', 'Swipe', ['slide', 'transition', 'page'], swipe),
     ('glitch', 'Glitch', ['digital', 'error', 'noise', 'tech'], glitch),
+    ('drumroll', 'Drumroll', ['drum', 'roll', 'reveal', 'suspense', 'snare'], drumroll),
+    ('micdrop', 'Mic drop', ['microphone', 'drop', 'thud', 'feedback', 'end'], micdrop),
 ]
 
 
@@ -347,7 +412,7 @@ def main():
     for key, name, tags, fn in EFFECTS:
         samples = normalise(fade(fn()))
         seconds = len(samples) / RATE
-        assert seconds < 2.0, key
+        assert seconds < (3.0 if key in ('drumroll', 'micdrop') else 2.0), key
         data = wav(samples, RATE)
         (ASSETS / (key + '.wav')).write_bytes(data)
         if ios:

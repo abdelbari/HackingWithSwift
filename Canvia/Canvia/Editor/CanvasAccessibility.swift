@@ -24,6 +24,8 @@ enum CanvasAccessibility {
         // A chart is one thing to a reader, named by its summary; its parts'
         // own alt text is what Next value and Previous value step through.
         if let chart = ChartSpeech.summary(of: el) { return chart }
+        // So is a diagram, by its summary; its items are its values.
+        if let diagram = el.diagram, el.diagramPart != nil { return Diagrams.summary(diagram) }
         if let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
             return alt
         }
@@ -70,24 +72,36 @@ extension CanvasAccessibility {
     /// The elements of `elements` that stand for their chart to VoiceOver:
     /// of each chart, the part read first in `order`. The chart's other
     /// parts are hidden from it, so the chart is one stop — as the Android
-    /// twin groups a chart's members into one node.
+    /// twin groups a chart's members into one node. A diagram is one stop
+    /// the same way.
     static func chartStops(_ elements: [Element], order: [String]) -> (heads: Set<String>, hidden: Set<String>) {
         var heads: Set<String> = []
         var hidden: Set<String> = []
         var seen: Set<String> = []
         let byId = Dictionary(elements.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         for id in order {
-            guard let el = byId[id], let chart = el.chart?.id, el.chartPart != nil else { continue }
+            guard let el = byId[id], let chart = stopKey(of: el) else { continue }
             if seen.insert(chart).inserted { heads.insert(id) } else { hidden.insert(id) }
         }
         return (heads, hidden)
     }
 
+    /// The chart or diagram `el` is a part of, by id; nil for anything else.
+    static func stopKey(of el: Element) -> String? {
+        if let chart = el.chart?.id, el.chartPart != nil { return chart }
+        if let diagram = el.diagram?.id, el.diagramPart != nil { return diagram }
+        return nil
+    }
+
     /// The labels Next value and Previous value step through on chart
     /// `id`: its series parts' alt text, in the page's order
-    /// (ChartSpeech.stops).
+    /// (ChartSpeech.stops) — or, for a diagram, its items as a list, "2 of
+    /// 4: Do" (Diagrams.stops).
     static func values(ofChart id: String, in elements: [Element]) -> [String] {
-        ChartSpeech.stops(elements.filter { $0.chart?.id == id })
+        if let diagram = elements.lazy.compactMap(\.diagram).first(where: { $0.id == id }) {
+            return Diagrams.stops(diagram)
+        }
+        return ChartSpeech.stops(elements.filter { $0.chart?.id == id })
     }
 
     /// The stop after (or before) `current` among `count`, from the first
