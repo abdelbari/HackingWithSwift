@@ -78,6 +78,16 @@ struct PageSplit: Codable, Equatable {
         return out
     }
 
+    /// The split a page resized to `width` × `height` has: a carousel
+    /// type's slides at exactly its pixels (SizePreset.carouselAt), none at
+    /// any other size — so a carousel made a square post is one post, and
+    /// a design made the carousel's size is cut as one made there. Both
+    /// phones' rule for Resize, a page's own size and Copy & resize.
+    static func forSize(width: Double, height: Double, presets: [SizePreset] = SizePreset.all) -> PageSplit? {
+        guard let columns = SizePreset.carouselAt(width: width, height: height, presets: presets)?.split else { return nil }
+        return PageSplit(columns: columns)
+    }
+
     /// Where the seams between `split`'s slides fall on a page of `size`,
     /// in page units: the vertical ones, then the horizontal ones.
     static func seams(_ size: CGSize, _ split: PageSplit) -> (vertical: [Double], horizontal: [Double]) {

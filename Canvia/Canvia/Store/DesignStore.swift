@@ -3515,7 +3515,8 @@ final class DesignStore {
 
     /// Reflow the whole design to a new canvas rather than scaling the old
     /// one onto it (see `reflowedPage`); pages with a size of their own are
-    /// brought to the new size too. Pure; `magicResize` commits it.
+    /// brought to the new size too, and each is cut into slides as the new
+    /// size is (PageSplit.forSize). Pure; `magicResize` commits it.
     static func reflowed(_ design: Design, width: Double, height: Double) -> Design {
         guard width > 0, height > 0 else { return design }
         let new = CGSize(width: width, height: height)
@@ -3526,6 +3527,7 @@ final class DesignStore {
             out.pages[p] = reflowedPage(design.pages[p], from: design.size(for: design.pages[p]), to: new)
             out.pages[p].width = nil
             out.pages[p].height = nil
+            out.pages[p].split = PageSplit.forSize(width: width, height: height)
         }
         let rx = width / max(design.width, 1), ry = height / max(design.height, 1)
         out.guides = out.guides.map { g in
@@ -3600,6 +3602,7 @@ final class DesignStore {
                 d.pages[p] = Self.scaledPage(d.pages[p], from: d.size(for: d.pages[p]), to: new)
                 d.pages[p].width = nil
                 d.pages[p].height = nil
+                d.pages[p].split = PageSplit.forSize(width: width, height: height)
             }
             d.width = width
             d.height = height
@@ -3624,6 +3627,7 @@ final class DesignStore {
             let isDocument = width == d.width && height == d.height
             pg.width = isDocument ? nil : width
             pg.height = isDocument ? nil : height
+            pg.split = PageSplit.forSize(width: width, height: height)
             d.pages[index] = pg
         }
         announce(tr("This page is now %@", "\(Int(width)) × \(Int(height))"))
