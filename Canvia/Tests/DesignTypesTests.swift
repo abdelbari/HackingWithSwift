@@ -127,6 +127,42 @@ final class DesignTypesTests: XCTestCase {
         XCTAssertEqual(seams.horizontal, [])
     }
 
+    /// Resize, a page's own size and Copy & resize cut each page as its
+    /// new size is: a carousel type's pixels into its slides, any other
+    /// size not at all. Both phones' rows.
+    @MainActor
+    func testAResizedPageIsCutAsItsNewSizeIs() throws {
+        XCTAssertEqual(PageSplit.forSize(width: 3240, height: 1350), PageSplit(columns: 3))
+        XCTAssertNil(PageSplit.forSize(width: 1080, height: 1080))
+        XCTAssertNil(PageSplit.forSize(width: 3240, height: 1080))
+        var carousel = Design(title: "c", width: 3240, height: 1350)
+        var page = Page(id: "p")
+        page.split = PageSplit(columns: 3)
+        carousel.pages = [page]
+        XCTAssertNil(DesignStore.reflowed(carousel, width: 1080, height: 1080).pages[0].split)
+        let scaled = DesignStore(design: carousel)
+        scaled.resizeDesign(width: 1080, height: 1080)
+        XCTAssertNil(scaled.design.pages[0].split)
+        var square = Design(title: "s", width: 1080, height: 1080)
+        square.pages = [Page(id: "p")]
+        XCTAssertEqual(DesignStore.reflowed(square, width: 3240, height: 1350).pages[0].split, PageSplit(columns: 3))
+        // A carousel stepped to four slides, resized to the carousel type:
+        // three again, as its size says.
+        let four = DesignStore(design: try XCTUnwrap(PageSplit.resized(carousel, pageId: "p", columns: 4)))
+        four.resizeDesign(width: 3240, height: 1350)
+        XCTAssertEqual(four.design.pages[0].split, PageSplit(columns: 3))
+        // One page to a size of its own.
+        let one = DesignStore(design: carousel)
+        one.resizePage(width: 1080, height: 1080, reflow: true)
+        XCTAssertNil(one.design.pages[0].split)
+        let made = DesignStore(design: square)
+        made.resizePage(width: 3240, height: 1350, reflow: false)
+        XCTAssertEqual(made.design.pages[0].split, PageSplit(columns: 3))
+        // Copy & resize.
+        let copy = CopyResize.copy(of: carousel, to: .custom(width: 1080, height: 1080, unit: "px"), title: "t")
+        XCTAssertNil(copy.pages[0].split)
+    }
+
     @MainActor
     func testTheStepperIsOneUndoStepAndRefusedOnALockedPage() {
         var design = Design(title: "c", width: 3240, height: 1350)

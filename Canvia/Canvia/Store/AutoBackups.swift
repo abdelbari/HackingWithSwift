@@ -40,15 +40,17 @@ final class AutoBackups {
         config = AutoBackup.decode(defaults.string(forKey: AutoBackup.key))
     }
 
-    /// The preference changed and kept at once, and the next run asked for
-    /// as it now stands.
+    /// The preference changed and kept at once; turned on or off, the
+    /// background run asked for or taken away. Nothing else — a run's
+    /// stamp, a renewed bookmark — touches the run already asked for.
     func update(_ change: (inout AutoBackup.Config) -> Void) {
         var next = config
         change(&next)
         guard next != config else { return }
+        let turned = next.on != config.on
         config = next
         defaults.set(AutoBackup.encode(next), forKey: AutoBackup.key)
-        Self.schedule(on: next.on)
+        if turned { Self.schedule(on: next.on) }
     }
 
     enum AutoBackupError: LocalizedError {
@@ -97,10 +99,18 @@ final class AutoBackups {
     // MARK: running
 
     /// When the newest design, upload or brand kit changed, in ms since
-    /// 1970, or nil when there is nothing at all.
-    static func newestChange() -> Int64? {
+    /// 1970, or nil when there is nothing at all. A trashed design counts
+    /// from when it was deleted, its file's own date, so none is read.
+    /// Off the main actor: every design and upload is listed.
+    nonisolated static func newestChange() -> Int64? {
         var stamps: [Double] = DesignLibrary.recents().map(\.updatedAt)
-        stamps += DesignLibrary.trashed().map(\.updatedAt)
+        let trash = (try? FileManager.default.contentsOfDirectory(
+            at: DesignLibrary.trashDir, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+        for url in trash where url.pathExtension == "json" {
+            if let deleted = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate {
+                stamps.append(deleted.timeIntervalSince1970 * 1000)
+            }
+        }
         stamps += Uploads.all().map(\.added)
         if let kits = try? BrandKits.fileURL.resourceValues(forKeys: [.contentModificationDateKey]),
            let changed = kits.contentModificationDate {
@@ -118,9 +128,14 @@ final class AutoBackups {
         let config = self.config
         guard config.on, let folder = config.folder, !running else { return false }
         let ms = Int64((now.timeIntervalSince1970 * 1000).rounded(.down))
-        guard force || AutoBackup.isDue(config, now: ms, newestChange: Self.newestChange()) else { return false }
+        // Not yet a day or a week since the last: nothing more looked at.
+        guard force || ms - config.lastAt >= AutoBackup.intervalMs(config.every) else { return false }
         running = true
         defer { running = false }
+        if !force {
+            let newest = await Task.detached(priority: .utility) { AutoBackups.newestChange() }.value
+            guard self.config.on, AutoBackup.isDue(config, now: ms, newestChange: newest) else { return false }
+        }
         do {
             let bytes = try await write(into: folder, keep: config.keep, date: now)
             update {
@@ -193,12 +208,25 @@ final class AutoBackups {
         }
     }
 
-    /// The next run asked for a day from now while it is on — on power or
-    /// not, needing no network — and the one asked for taken away when it
-    /// is off.
+    /// While it is on, the next run asked for a day from now — on power or
+    /// not, needing no network — unless one is asked for already, which is
+    /// left as it is, so opening Canvia every day does not keep putting it
+    /// off; the one asked for taken away when it is off.
     static func schedule(on: Bool) {
-        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskId)
-        guard on else { return }
+        guard on else {
+            BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskId)
+            return
+        }
+        Task { @MainActor in
+            let pending = await BGTaskScheduler.shared.pendingTaskRequests()
+            guard !pending.contains(where: { $0.identifier == AutoBackups.taskId }),
+                  AutoBackups.shared.config.on else { return }
+            AutoBackups.submitNext()
+        }
+    }
+
+    /// The next run asked for, a day from now.
+    private static func submitNext() {
         let request = BGProcessingTaskRequest(identifier: taskId)
         request.requiresExternalPower = false
         request.requiresNetworkConnectivity = false

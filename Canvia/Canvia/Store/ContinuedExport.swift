@@ -80,6 +80,17 @@ enum ContinuedExport {
         return false
     }
 
+    /// Withdraws export `job`'s request, should the system not have
+    /// started it yet: the export is already over.
+    @MainActor
+    static func cancel(job: UUID) {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: identifier(job: job))
+        }
+        #endif
+    }
+
     /// The task as the queue holds it: how far along, its end, and what to
     /// do should the system stop it — closures, so the queue builds and is
     /// tested without iOS 26's types (ExportQueue.Continued).

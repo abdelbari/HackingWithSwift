@@ -736,8 +736,8 @@ struct SizePreset: Identifiable, Codable, Equatable {
     /// The first carousel type in the catalogue whose pixels are `width` ×
     /// `height` — Instagram Carousel for 3240 × 1350 — or nil: what a
     /// template made at that size is cut into slides as.
-    static func carouselAt(width: Double, height: Double) -> SizePreset? {
-        all.first { $0.split != nil && $0.w == width && $0.h == height }
+    static func carouselAt(width: Double, height: Double, presets: [SizePreset] = SizePreset.all) -> SizePreset? {
+        presets.first { $0.split != nil && $0.w == width && $0.h == height }
     }
 
     // MARK: search
