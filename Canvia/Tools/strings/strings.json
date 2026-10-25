@@ -17,6 +17,15 @@
     "ja": "%@ %@ グラデーション",
     "pt-BR": "Degradê %@ %@"
   },
+  "%@ (%@)": {
+    "ar": "%@ (%@)",
+    "de": "%@ (%@)",
+    "es": "%@ (%@)",
+    "fr": "%@ (%@)",
+    "it": "%@ (%@)",
+    "ja": "%@（%@）",
+    "pt-BR": "%@ (%@)"
+  },
   "%@ (Doc)": {
     "ar": "%@ (مستند)",
     "de": "%@ (Dokument)",
@@ -277,6 +286,24 @@
     "it": "Grafico %@",
     "ja": "%@グラフ",
     "pt-BR": "Gráfico %@"
+  },
+  "%@ chart of %@": {
+    "ar": "مخطط %@ لـ %@",
+    "de": "Diagramm %@ von %@",
+    "es": "Gráfico de %@ de %@",
+    "fr": "Graphique %@ de %@",
+    "it": "Grafico %@ di %@",
+    "ja": "%@グラフ（%@）",
+    "pt-BR": "Gráfico %@ de %@"
+  },
+  "%@ chart of %@ by %@": {
+    "ar": "مخطط %@ لـ %@ حسب %@",
+    "de": "Diagramm %@ von %@ nach %@",
+    "es": "Gráfico de %@ de %@ por %@",
+    "fr": "Graphique %@ de %@ par %@",
+    "it": "Grafico %@ di %@ per %@",
+    "ja": "%@グラフ（%@、%@ 別）",
+    "pt-BR": "Gráfico %@ de %@ por %@"
   },
   "%@ chevron": {
     "ar": "شيفرون (%@)",
@@ -7184,6 +7211,15 @@
     "ja": "バーコード",
     "pt-BR": "Código de barras"
   },
+  "Barcode for %@": {
+    "ar": "رمز شريطي لـ %@",
+    "de": "Strichcode für %@",
+    "es": "Código de barras de %@",
+    "fr": "Code-barres de %@",
+    "it": "Codice a barre di %@",
+    "ja": "%@ のバーコード",
+    "pt-BR": "Código de barras de %@"
+  },
   "Baseline": {
     "ar": "خط الأساس",
     "de": "Grundlinie",
@@ -8117,6 +8153,15 @@
     "ja": "箇条書き",
     "pt-BR": "Marcadores"
   },
+  "Burn in captions": {
+    "ar": "دمج التسميات التوضيحية",
+    "de": "Untertitel einbrennen",
+    "es": "Incrustar subtítulos",
+    "fr": "Incruster les sous-titres",
+    "it": "Sovrimprimi i sottotitoli",
+    "ja": "字幕を焼き込む",
+    "pt-BR": "Gravar legendas no vídeo"
+  },
   "Burst": {
     "ar": "انفجار",
     "de": "Explosion",
@@ -8563,6 +8608,15 @@
     "it": "Cambia colore",
     "ja": "色を変更",
     "pt-BR": "Mudar cor"
+  },
+  "Change fill": {
+    "ar": "تغيير التعبئة",
+    "de": "Füllung ändern",
+    "es": "Cambiar relleno",
+    "fr": "Changer le remplissage",
+    "it": "Cambia riempimento",
+    "ja": "塗りを変更",
+    "pt-BR": "Mudar preenchimento"
   },
   "Change shape": {
     "ar": "تغيير الشكل",
@@ -13769,6 +13823,15 @@
     "ja": "退場",
     "pt-BR": "Saída"
   },
+  "Expand": {
+    "ar": "توسيع",
+    "de": "Erweitern",
+    "es": "Expandir",
+    "fr": "Agrandir",
+    "it": "Espandi",
+    "ja": "拡張",
+    "pt-BR": "Expandir"
+  },
   "Expand to whiteboard": {
     "ar": "توسيع إلى سبورة بيضاء",
     "de": "Zum Whiteboard erweitern",
@@ -13786,6 +13849,15 @@
     "it": "Espanso",
     "ja": "展開",
     "pt-BR": "Expandido"
+  },
+  "Expanding the photo": {
+    "ar": "جارٍ توسيع الصورة",
+    "de": "Foto wird erweitert",
+    "es": "Expandiendo la foto",
+    "fr": "Agrandissement de la photo",
+    "it": "Espansione della foto",
+    "ja": "写真を拡張中",
+    "pt-BR": "Expandindo a foto"
   },
   "Export": {
     "ar": "تصدير",
@@ -13966,6 +14038,15 @@
     "it": "F5 avvia la presentazione dall'inizio, ⇧F5 da questa pagina.",
     "ja": "F5 で最初から、⇧F5 でこのページからプレゼンテーションします。",
     "pt-BR": "F5 apresenta desde o início, e ⇧F5 a partir desta página."
+  },
+  "Face retouch": {
+    "ar": "تنقيح الوجه",
+    "de": "Gesichtsretusche",
+    "es": "Retoque facial",
+    "fr": "Retouche du visage",
+    "it": "Ritocco viso",
+    "ja": "顔のレタッチ",
+    "pt-BR": "Retoque facial"
   },
   "Fade": {
     "ar": "تلاشٍ",
@@ -14245,6 +14326,15 @@
     "it": "Trova e sostituisci…",
     "ja": "検索と置換…",
     "pt-BR": "Localizar e substituir…"
+  },
+  "Finding faces…": {
+    "ar": "جارٍ البحث عن الوجوه…",
+    "de": "Gesichter werden gesucht …",
+    "es": "Buscando caras…",
+    "fr": "Recherche des visages…",
+    "it": "Ricerca dei volti…",
+    "ja": "顔を検出中…",
+    "pt-BR": "Procurando rostos…"
   },
   "Finish": {
     "ar": "إنهاء",
@@ -15358,6 +15448,15 @@
     "it": "Crescita",
     "ja": "伸びる",
     "pt-BR": "Crescer"
+  },
+  "Grows the photo to a new shape and fills the new edges from the picture.": {
+    "ar": "يوسّع الصورة إلى شكل جديد ويملأ الحواف الجديدة من الصورة نفسها.",
+    "de": "Vergrößert das Foto auf eine neue Form und füllt die neuen Ränder aus dem Bild.",
+    "es": "Amplía la foto a una nueva forma y rellena los bordes nuevos a partir de la imagen.",
+    "fr": "Agrandit la photo à une nouvelle forme et remplit les nouveaux bords à partir de l’image.",
+    "it": "Allarga la foto a una nuova forma e riempie i nuovi bordi a partire dall’immagine.",
+    "ja": "写真を新しい形に広げ、新しい縁を写真から埋めます。",
+    "pt-BR": "Amplia a foto para um novo formato e preenche as novas bordas a partir da imagem."
   },
   "Guide": {
     "ar": "خط إرشادي",
@@ -17033,6 +17132,15 @@
     "ja": "ノートパソコン",
     "pt-BR": "Notebook"
   },
+  "Large": {
+    "ar": "كبير",
+    "de": "Groß",
+    "es": "Grande",
+    "fr": "Grand",
+    "it": "Grande",
+    "ja": "大",
+    "pt-BR": "Grande"
+  },
   "Larger": {
     "ar": "أكبر",
     "de": "Größer",
@@ -17635,6 +17743,15 @@
     "it": "Elenco",
     "ja": "リスト",
     "pt-BR": "Lista"
+  },
+  "Live captions": {
+    "ar": "تسميات توضيحية مباشرة",
+    "de": "Live-Untertitel",
+    "es": "Subtítulos en directo",
+    "fr": "Sous-titres en direct",
+    "it": "Sottotitoli in tempo reale",
+    "ja": "ライブキャプション",
+    "pt-BR": "Legendas ao vivo"
   },
   "Lock": {
     "ar": "قفل",
@@ -18575,6 +18692,15 @@
     "ja": "ミントフレッシュ",
     "pt-BR": "Menta fresca"
   },
+  "Mirror": {
+    "ar": "مرآة",
+    "de": "Spiegeln",
+    "es": "Espejo",
+    "fr": "Miroir",
+    "it": "Specchio",
+    "ja": "ミラー",
+    "pt-BR": "Espelho"
+  },
   "Missing": {
     "ar": "غير متوفر",
     "de": "Fehlt",
@@ -18772,6 +18898,24 @@
     "it": "Quasi tutte le pagine",
     "ja": "ほとんどのページ",
     "pt-BR": "Mais páginas"
+  },
+  "Mostly %@ and %@ photo": {
+    "ar": "صورة يغلب عليها اللونان %@ و%@",
+    "de": "Überwiegend %@ und %@ gefärbtes Foto",
+    "es": "Foto mayormente %@ y %@",
+    "fr": "Photo surtout %@ et %@",
+    "it": "Foto prevalentemente %@ e %@",
+    "ja": "主に%@と%@の写真",
+    "pt-BR": "Foto principalmente %@ e %@"
+  },
+  "Mostly %@ photo": {
+    "ar": "صورة يغلب عليها اللون %@",
+    "de": "Überwiegend %@ gefärbtes Foto",
+    "es": "Foto mayormente %@",
+    "fr": "Photo surtout %@",
+    "it": "Foto prevalentemente %@",
+    "ja": "主に%@の写真",
+    "pt-BR": "Foto principalmente %@"
   },
   "Motion": {
     "ar": "الحركة",
@@ -19918,6 +20062,15 @@
     "it": "Nessuna uscita",
     "ja": "退場なし",
     "pt-BR": "Sem saída"
+  },
+  "No faces found": {
+    "ar": "لم يُعثر على وجوه",
+    "de": "Keine Gesichter gefunden",
+    "es": "No se encontraron caras",
+    "fr": "Aucun visage trouvé",
+    "it": "Nessun volto trovato",
+    "ja": "顔が見つかりません",
+    "pt-BR": "Nenhum rosto encontrado"
   },
   "No folder": {
     "ar": "بلا مجلد",
@@ -21250,6 +21403,15 @@
     "it": "In Foto si possono salvare solo PNG, JPEG, GIF e MP4.",
     "ja": "写真に保存できるのは PNG、JPEG、GIF、MP4 のみです。",
     "pt-BR": "Só PNG, JPEG, GIF e MP4 podem ser salvos em Fotos."
+  },
+  "Only a still photo can be expanded.": {
+    "ar": "يمكن توسيع الصور الثابتة فقط.",
+    "de": "Nur ein Standbild kann erweitert werden.",
+    "es": "Solo se puede expandir una foto fija.",
+    "fr": "Seule une photo fixe peut être agrandie.",
+    "it": "Solo una foto statica può essere espansa.",
+    "ja": "拡張できるのは静止画の写真だけです。",
+    "pt-BR": "Só uma foto estática pode ser expandida."
   },
   "Only the first %d of %d rows will be made.": {
     "ar": "سيتم إنشاء أول %d من %d صف فقط.",
@@ -23183,6 +23345,15 @@
     "ja": "位置をロック中",
     "pt-BR": "Posição bloqueada"
   },
+  "Position: %@": {
+    "ar": "الموضع: %@",
+    "de": "Position: %@",
+    "es": "Posición: %@",
+    "fr": "Position : %@",
+    "it": "Posizione: %@",
+    "ja": "位置: %@",
+    "pt-BR": "Posição: %@"
+  },
   "Position…": {
     "ar": "الموضع…",
     "de": "Position …",
@@ -23674,6 +23845,15 @@
     "it": "Codice QR in questa immagine → elemento codice",
     "ja": "この画像の QR コード → コード素材",
     "pt-BR": "Código QR nesta imagem → elemento de código"
+  },
+  "QR code linking to %@": {
+    "ar": "رمز QR يربط إلى %@",
+    "de": "QR-Code mit Link zu %@",
+    "es": "Código QR que enlaza a %@",
+    "fr": "Code QR menant à %@",
+    "it": "Codice QR che rimanda a %@",
+    "ja": "%@ へのリンクの QR コード",
+    "pt-BR": "Código QR com link para %@"
   },
   "Qty": {
     "ar": "الكمية",
@@ -24958,6 +25138,15 @@
     "it": "Scatta di nuovo",
     "ja": "撮り直す",
     "pt-BR": "Tirar de novo"
+  },
+  "Retouch brush": {
+    "ar": "فرشاة التنقيح",
+    "de": "Retuschierpinsel",
+    "es": "Pincel de retoque",
+    "fr": "Pinceau de retouche",
+    "it": "Pennello di ritocco",
+    "ja": "レタッチブラシ",
+    "pt-BR": "Pincel de retoque"
   },
   "Retro": {
     "ar": "عتيق",
@@ -26447,6 +26636,15 @@
     "ja": "セット",
     "pt-BR": "Conjunto"
   },
+  "Set as background": {
+    "ar": "تعيين كخلفية",
+    "de": "Als Hintergrund festlegen",
+    "es": "Establecer como fondo",
+    "fr": "Définir comme arrière-plan",
+    "it": "Imposta come sfondo",
+    "ja": "背景に設定",
+    "pt-BR": "Definir como fundo"
+  },
   "Set video as background": {
     "ar": "تعيين الفيديو خلفية",
     "de": "Video als Hintergrund festlegen",
@@ -27520,6 +27718,15 @@
     "it": "Zoom lento durante la riproduzione",
     "ja": "再生時にゆっくりズーム",
     "pt-BR": "Zoom lento ao reproduzir"
+  },
+  "Small": {
+    "ar": "صغير",
+    "de": "Klein",
+    "es": "Pequeño",
+    "fr": "Petit",
+    "it": "Piccolo",
+    "ja": "小",
+    "pt-BR": "Pequeno"
   },
   "Small business": {
     "ar": "شركة صغيرة",
@@ -28598,6 +28805,15 @@
     "ja": "強さ",
     "pt-BR": "Intensidade"
   },
+  "Stretch": {
+    "ar": "تمديد",
+    "de": "Strecken",
+    "es": "Estirar",
+    "fr": "Étirer",
+    "it": "Allunga",
+    "ja": "引き伸ばし",
+    "pt-BR": "Esticar"
+  },
   "Strikethrough": {
     "ar": "يتوسطه خط",
     "de": "Durchgestrichen",
@@ -29246,6 +29462,15 @@
     "ja": "文字サイズ",
     "pt-BR": "Tamanho do texto"
   },
+  "Text size: %@": {
+    "ar": "حجم النص: %@",
+    "de": "Textgröße: %@",
+    "es": "Tamaño del texto: %@",
+    "fr": "Taille du texte : %@",
+    "it": "Dimensione del testo: %@",
+    "ja": "文字サイズ: %@",
+    "pt-BR": "Tamanho do texto: %@"
+  },
   "Text, photos, shapes, stickers, charts and QR codes. Draw freehand with the pen, or drop pictures in from other apps.": {
     "ar": "نصوص وصور وأشكال وملصقات ومخططات ورموز QR. ارسم بحرية بالقلم، أو أفلت الصور من تطبيقات أخرى.",
     "de": "Text, Fotos, Formen, Sticker, Diagramme und QR-Codes. Zeichne freihändig mit dem Stift oder ziehe Bilder aus anderen Apps hinein.",
@@ -29824,6 +30049,15 @@
     "it": "Il conteggio delle pagine in basso mostra ogni pagina, con note e durata. Organizza pagine, in ⋮, le sposta, copia ed elimina; una pagina può essere il master del design, disegnato dietro alle altre.",
     "ja": "下部のページ数には、すべてのページがノートとタイミング付きで表示されます。⋮ にある「ページを整理」で移動、コピー、削除ができます。ページをデザインのマスターにすると、他のページの背面に描画されます。",
     "pt-BR": "O contador de páginas embaixo mostra todas as páginas, com as anotações e o tempo delas. Organizar páginas, em ⋮, move, copia e exclui páginas; uma página pode ser a mestre do design, desenhada atrás das demais."
+  },
+  "The photo already has that shape": {
+    "ar": "للصورة هذا الشكل بالفعل",
+    "de": "Das Foto hat diese Form bereits",
+    "es": "La foto ya tiene esa forma",
+    "fr": "La photo a déjà cette forme",
+    "it": "La foto ha già questa forma",
+    "ja": "写真はすでにその形です",
+    "pt-BR": "A foto já tem esse formato"
   },
   "The photo goes inside the letters of the selected text, or stays on the page as it is.": {
     "ar": "تدخل الصورة في حروف النص المحدد، أو تبقى على الصفحة كما هي.",
@@ -31535,6 +31769,15 @@
     "ja": "元に戻すで復元できます。",
     "pt-BR": "Desfazer os traz de volta."
   },
+  "Undo expand": {
+    "ar": "التراجع عن التوسيع",
+    "de": "Erweitern rückgängig",
+    "es": "Deshacer expansión",
+    "fr": "Annuler l’agrandissement",
+    "it": "Annulla espansione",
+    "ja": "拡張を元に戻す",
+    "pt-BR": "Desfazer expansão"
+  },
   "Undo stroke": {
     "ar": "التراجع عن الضربة",
     "de": "Strich rückgängig machen",
@@ -32000,6 +32243,15 @@
     "ja": "このページをマスターとして使用",
     "pt-BR": "Usar esta página como mestre"
   },
+  "Use: %@": {
+    "ar": "استخدام: %@",
+    "de": "Verwenden: %@",
+    "es": "Usar: %@",
+    "fr": "Utiliser : %@",
+    "it": "Usa: %@",
+    "ja": "使用: %@",
+    "pt-BR": "Usar: %@"
+  },
   "Used in %d design and your brand kit|Used in %d designs and your brand kit": {
     "ar": {
       "few": "مستخدم في %d تصاميم وفي مجموعة العلامة التجارية",
@@ -32320,6 +32572,48 @@
     "it": "Video %d di %d",
     "ja": "動画 %d / %d",
     "pt-BR": "Vídeo %d de %d"
+  },
+  "Video clip": {
+    "ar": "مقطع فيديو",
+    "de": "Videoclip",
+    "es": "Clip de vídeo",
+    "fr": "Clip vidéo",
+    "it": "Clip video",
+    "ja": "ビデオクリップ",
+    "pt-BR": "Clipe de vídeo"
+  },
+  "Video clip, %d second|Video clip, %d seconds": {
+    "ar": {
+      "few": "مقطع فيديو، %d ثوانٍ",
+      "many": "مقطع فيديو، %d ثانية",
+      "one": "مقطع فيديو، %d ثانية",
+      "other": "مقطع فيديو، %d ثانية",
+      "two": "مقطع فيديو، %d ثانيتان",
+      "zero": "مقطع فيديو، %d ثانية"
+    },
+    "de": {
+      "one": "Videoclip, %d Sekunde",
+      "other": "Videoclip, %d Sekunden"
+    },
+    "es": {
+      "one": "Clip de vídeo, %d segundo",
+      "other": "Clip de vídeo, %d segundos"
+    },
+    "fr": {
+      "one": "Clip vidéo, %d seconde",
+      "other": "Clip vidéo, %d secondes"
+    },
+    "it": {
+      "one": "Clip video, %d secondo",
+      "other": "Clip video, %d secondi"
+    },
+    "ja": {
+      "other": "ビデオクリップ、%d 秒"
+    },
+    "pt-BR": {
+      "one": "Clipe de vídeo, %d segundo",
+      "other": "Clipe de vídeo, %d segundos"
+    }
   },
   "Video has no alt text": {
     "ar": "الفيديو بلا نص بديل",
@@ -32653,6 +32947,15 @@
     "it": "Cosa crei",
     "ja": "作るもの",
     "pt-BR": "O que você cria"
+  },
+  "What you say is captioned in the video and saved beside it as an .srt.": {
+    "ar": "يُعرض ما تقوله كتسميات توضيحية في الفيديو ويُحفظ بجانبه كملف ‎.srt.",
+    "de": "Was Sie sagen, wird im Video untertitelt und daneben als .srt gespeichert.",
+    "es": "Lo que dices aparece subtitulado en el vídeo y se guarda junto a él como .srt.",
+    "fr": "Ce que vous dites est sous-titré dans la vidéo et enregistré à côté au format .srt.",
+    "it": "Ciò che dici viene sottotitolato nel video e salvato accanto come .srt.",
+    "ja": "話した内容が動画に字幕として入り、.srt として一緒に保存されます。",
+    "pt-BR": "O que você diz aparece legendado no vídeo e é salvo junto como .srt."
   },
   "What's on this page": {
     "ar": "محتوى هذه الصفحة",
