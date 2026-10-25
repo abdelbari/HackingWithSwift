@@ -2925,13 +2925,10 @@ struct CanvasView: View {
         store.typeWords(words, into: id)
     }
 
-    /// ⇧⌘L, C, R or J while typing: the box typed in aligned, as the Align
-    /// button aligns it.
+    /// ⇧⌘L, C, R or J while typing: the lines the choice touches aligned,
+    /// as the Align button aligns them.
     private func alignTyped(_ align: String) {
-        store.updateSelected { e in
-            guard ShapeText.carriesWords(e) else { return }
-            e.align = align
-        }
+        store.alignText(align)
     }
 
     /// The typing field's caret, its bursts and their Undo, kept by the

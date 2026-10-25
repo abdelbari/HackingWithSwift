@@ -694,7 +694,9 @@ enum Docs {
     ///  - every other text by its role — a title or first-level heading h2,
     ///    a second- or third-level heading h3, a quote a quote, a caption a
     ///    caption, anything else a paragraph — its words in their RichText
-    ///    markup and its spans kept; a text with list lines a block a line,
+    ///    markup and its spans kept; a text with list lines, or lines
+    ///    aligned on their own (each block aligned as its line), a block a
+    ///    line,
     ///    each listed line a bullet, or a number (lettered lines too), at its
     ///    level, and the others paragraphs;
     ///  - a table a table block of its words (DataGraphics.tableGrid), its
@@ -773,7 +775,8 @@ enum Docs {
     }
 
     /// A text box's blocks: one, in the type its role gives it, or a block a
-    /// line when it has list lines.
+    /// line when it has list lines or lines aligned on their own — each
+    /// such block aligned as its line is (TextLists.alignOf).
     private static func textBlocks(_ el: Element, design: Design) -> [DocBlock] {
         let type: String
         switch TextRoles.of(el, in: design) {
@@ -785,7 +788,9 @@ enum Docs {
         }
         let spans = el.liveSpans
         let lines = TextLists.lines(el)
-        guard lines.contains(where: \.isListed) else { return [withSpans(DocBlock(type: type, text: el.text ?? ""), spans)] }
+        let listed = lines.contains(where: \.isListed)
+        let aligned = lines.contains { $0.align != nil }
+        guard listed || aligned else { return [withSpans(DocBlock(type: type, text: el.text ?? ""), spans)] }
         // A line at a time: its words, styles and spans cut from the box's.
         let raw = el.text ?? ""
         let chars = Array(RichText.strip(raw))
@@ -805,12 +810,16 @@ enum Docs {
             }
             let para = i < lines.count ? lines[i] : TextParagraph()
             let level = para.level > 0 ? para.level : nil
+            var block: DocBlock
             switch para.list {
-            case "none": out.append(withSpans(DocBlock(type: p, text: text), own))
-            case "bullet": out.append(withSpans(DocBlock(type: bullet, text: text, level: level), own))
+            // Split for its alignment alone, a line keeps the box's type.
+            case "none": block = DocBlock(type: listed ? p : type, text: text)
+            case "bullet": block = DocBlock(type: bullet, text: text, level: level)
             // Numbers and letters alike are an ordered list.
-            default: out.append(withSpans(DocBlock(type: number, text: text, level: level), own))
+            default: block = DocBlock(type: number, text: text, level: level)
             }
+            if aligned { block.align = keptAlign(TextLists.alignOf(el, i)) }
+            out.append(withSpans(block, own))
             at += count + 1
             start = end + 1
         }

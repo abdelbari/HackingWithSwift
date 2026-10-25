@@ -550,6 +550,17 @@ enum FontLibrary {
         }
     }
 
+    /// A box's or a line's align as the paragraph style sets it, centred
+    /// for none.
+    static func textAlignment(_ align: String?) -> NSTextAlignment {
+        switch align ?? "center" {
+        case "left": return .left
+        case "right": return .right
+        case "justify": return .justified
+        default: return .center
+        }
+    }
+
     /// Attributes shared by canvas rendering, measurement and export.
     static func attributes(for el: Element) -> [NSAttributedString.Key: Any] {
         memoized(TypographyKey(el), &attrCache) { buildAttributes(for: el) }
@@ -560,14 +571,7 @@ enum FontLibrary {
         let font = uiFont(family: el.fontFamily, size: size,
                           weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
         let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = {
-            switch el.align ?? "center" {
-            case "left": return .left
-            case "right": return .right
-            case "justify": return .justified
-            default: return .center
-            }
-        }()
+        paragraph.alignment = textAlignment(el.align)
         paragraph.paragraphSpacing = size * max(0, el.paragraphSpacing ?? 0)
         let lineHeight = size * (el.lineHeight ?? 1.25)
         paragraph.minimumLineHeight = lineHeight
@@ -753,7 +757,8 @@ enum FontLibrary {
     }
 
     /// Each line of `text` — the words of `el`, markers in or out, a line
-    /// for each of its own — pushed in by its own level, a list item's
+    /// for each of its own — aligned as it is (TextLists.alignOf), pushed
+    /// in by its own level, a list item's
     /// marker hanging so wrapped lines start where the words after it do,
     /// over the paragraph style each run already has (the box's, or one
     /// made roomier for a larger word): the Android twin's LeadingMarginSpan
@@ -781,6 +786,9 @@ enum FontLibrary {
                     let paragraph = (had.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
                     paragraph.firstLineHeadIndent = indent
                     paragraph.headIndent = hang
+                    // A line aligned on its own, by the box's own rule —
+                    // right-to-left words too.
+                    if let own = line.align { paragraph.alignment = textAlignment(own) }
                     text.addAttribute(.paragraphStyle, value: paragraph.copy(), range: part)
                 }
             }

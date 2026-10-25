@@ -90,7 +90,8 @@ struct InlineTextField: UIViewRepresentable {
     /// F5 and ⇧F5: Present from "start" or "current" (PresentFrom), the
     /// typing ended first (TextKeys.present).
     var onPresent: (String) -> Void = { _ in }
-    /// ⇧⌘L, C, R and J: the whole box aligned, as a step of its own.
+    /// ⇧⌘L, C, R and J: the lines the choice touches aligned, as a step of
+    /// its own.
     var onAlign: (String) -> Void = { _ in }
     /// ⌥⌘ and an arrow, ⌥⌘C and ⌥⌘V: the whole box's line or letter
     /// spacing a step tighter or looser, or its look copied or pasted, as
@@ -199,7 +200,7 @@ struct InlineTextField: UIViewRepresentable {
         [el.fontFamily ?? "", "\(el.fontSize ?? 42)", "\(FontLibrary.weight(of: el))", "\(FontLibrary.isItalic(el))",
          "\(el.underline == true)", el.align ?? "", "\(el.lineHeight ?? 1.25)", "\(el.letterSpacing ?? 0)",
          el.color ?? "", "\(el.paragraphSpacing ?? 0)", "\(el.indent ?? 0)", el.listStyle ?? "",
-         (el.paragraphs ?? []).map { "\($0.list)\($0.level)" }.joined(separator: ",")]
+         (el.paragraphs ?? []).map { "\($0.list)\($0.level)\($0.align ?? "")" }.joined(separator: ",")]
             .joined(separator: "|")
     }
 

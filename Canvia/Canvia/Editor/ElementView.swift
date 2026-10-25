@@ -1118,7 +1118,6 @@ struct TextElementView: View {
         let string = attributed.string as NSString
         // Paragraph spacing, as FontLibrary sets it: after each line break.
         let gap = (el.fontSize ?? 42) * max(0, el.paragraphSpacing ?? 0)
-        let justified = el.align == "justify"
         var lineTop = top
         var fragments: [LineFragment] = []
         for (i, line) in lines.enumerated() {
@@ -1141,6 +1140,9 @@ struct TextElementView: View {
             let inked = full - CTLineGetTrailingWhitespaceWidth(line)
             guard inked > 0.5 else { continue }
             let x = Double(origins[i].x)
+            // Justified as its own paragraph is: a line may be aligned on
+            // its own (TextLists.alignOf).
+            let justified = style.map { $0.alignment == .justified } ?? (el.align == "justify")
             let lineWidth = justified && !endsParagraph ? max(inked, width - x) : inked
             fragments.append(LineFragment(rect: CGRect(x: x, y: topY, width: lineWidth, height: pitch)))
         }

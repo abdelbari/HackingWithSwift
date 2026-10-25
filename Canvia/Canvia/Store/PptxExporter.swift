@@ -998,7 +998,7 @@ enum PptxExporter {
     static func paragraphs(of el: Element) -> [[TextRun]] {
         var unlisted = el
         if TextLists.isList(el) {
-            unlisted.setLines(TextLists.lines(el).map { TextParagraph(level: $0.level) })
+            unlisted.setLines(TextLists.lines(el).map { TextParagraph(level: $0.level, align: $0.align) })
         }
         let marked = FontLibrary.markedDisplayText(for: unlisted, pageNumber: nil, pageCount: nil)
         let parsed = RichText.parse(marked)
@@ -1252,7 +1252,8 @@ enum PptxExporter {
             + "\(color(colour, opacity: alpha))</a:outerShdw>"
     }
 
-    /// Each line's paragraph properties: aligned as the box is, at its list
+    /// Each line's paragraph properties: aligned as the line is
+    /// (TextLists.alignOf — the box's, unless it has its own), at its list
     /// level, pushed in a level's ems (`em` a type size on the slide) and
     /// its item's bullet or number hanging in the marker's room before its
     /// words, as PowerPoint's own — a bullet by its character, a number,
@@ -1260,18 +1261,19 @@ enum PptxExporter {
     /// left-aligned plain line. The Android twin's PptxWriter, attribute
     /// for attribute.
     static func paragraphProperties(_ el: Element, em: Double) -> [String] {
-        let align: String
-        switch el.align ?? "center" {
-        case "left": align = ""
-        case "right": align = " algn=\"r\""
-        case "justify": align = " algn=\"just\""
-        default: align = " algn=\"ctr\""
+        func algn(_ align: String) -> String {
+            switch align {
+            case "left": return ""
+            case "right": return " algn=\"r\""
+            case "justify": return " algn=\"just\""
+            default: return " algn=\"ctr\""
+            }
         }
         let items = TextLists.items(el)
         return TextLists.lines(el).enumerated().map { line, paragraph -> String in
             let indent = Double(paragraph.level) * FontLibrary.indentEm * em
             let hang = paragraph.isListed ? FontLibrary.markerEm * em : 0
-            var attributes = align
+            var attributes = algn(TextLists.alignOf(el, line))
             if paragraph.level > 0 { attributes += " lvl=\"\(paragraph.level)\"" }
             if indent + hang > 0 { attributes += " marL=\"\(emu(indent + hang))\"" }
             if hang > 0 { attributes += " indent=\"\(emu(-hang))\"" }

@@ -714,6 +714,19 @@ final class PptxReaderTests: XCTestCase {
         return try archive(files)
     }
 
+    /// Shared (paragraph-align.json): each paragraph's algn comes back as
+    /// its line's own alignment.
+    func testEachParagraphsAlignmentReadsBack() throws {
+        let fixture = try SharedFixture.object("paragraph-align")
+        let pptx = try XCTUnwrap(fixture["pptx"] as? [String: Any])
+        var el = try JSONDecoder().decode(Element.self, from: SharedFixture.encoded(XCTUnwrap(pptx["element"])))
+        el.h = 200
+        var design = Design(title: "Deck", width: 800, height: 600)
+        design.pages = [Page(id: "p1", elements: [el])]
+        let back = try XCTUnwrap(read(exported(design)).design.pages.first?.elements.first)
+        XCTAssertEqual(TextLists.alignments(back), ["center", "left", "right"])
+    }
+
     func testADeckTheExporterMadeReadsBackWithItsWordsPlacesAndNotes() throws {
         var hello = Element.text("Hello **world**", fontSize: 32, w: 400)
         hello.id = "t1"

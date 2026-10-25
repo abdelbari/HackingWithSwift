@@ -421,15 +421,14 @@ struct ContextToolbar: View {
 
     /// Left, centre, right, justify in turn — and which it is now, for
     /// VoiceOver, which otherwise heard only "Align". Several texts aligned
-    /// differently all go to the first.
+    /// differently all go to the first. While a box is typed in, only the
+    /// lines its choice touches (DesignStore.alignText), Mixed when they
+    /// differ.
     private var alignButton: some View {
-        let shared = store.sharedText { $0.align ?? "center" }
+        let shared = store.alignShown
         return toolButton(alignIcon(shared), "Align") {
             let next = shared.map { TypeReadouts.nextAlignment(after: $0) } ?? "left"
-            store.updateSelected { e in
-                guard e.type == .text else { return }
-                e.align = next
-            }
+            store.styleWhileTyping { store.alignText(next) }
         }
         .accessibilityValue(shared.map { TypeReadouts.alignment($0) } ?? TypeReadouts.mixed)
     }

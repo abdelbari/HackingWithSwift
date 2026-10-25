@@ -104,7 +104,7 @@ struct ShapeTextSheet: View {
                                 styleToggle(.uppercase, tr("Uppercase"), glyph: Text(verbatim: "aA"), words: words)
                             }
                             Picker("Align", selection: Binding(get: { words.align ?? "center" },
-                                                               set: { align in write { $0.align = align } })) {
+                                                               set: { align in write { $0.setAlign(align) } })) {
                                 ForEach(Self.alignments, id: \.self) { align in
                                     Image(systemName: Self.alignIcon(align))
                                         .accessibilityLabel(TypeReadouts.alignment(align))
