@@ -1,5 +1,5 @@
 {
-  "about": "Safe zones on both phones, read with SafeZones.json. matching: the zones a 1080 x 1920 page can show, in the Snapping and guides sheet's order. shown: the zone a page of size shows for a design whose safeZone is given (null, no key): none for \"none\" or a size no zone is for; the zone named when it is for that size; else - no key, or an id this build does not know or that is not for that size - the first zone the size matches. edges: each zone's inner edges on a 1080 x 1920 page, the snap lines, across (x) and down (y), in the order inset left, right (x) or top, bottom (y), then each rail's left, right (x) or top, bottom (y), those on the page's own edges left out, each once. rows: whether a text box [x, y, w, h] on that page is under the app's buttons - more than 0.2 of its area covered by the bands and rails together, counted once where they overlap - and where Move inside puts its top left [x, y]: the least shift into the part inside the insets, each axis on its own (flush with the top or left edge when it is bigger), then, still more than 0.2 under a rail, left of the rail when it fits there.",
+  "about": "Safe zones on both phones, read with SafeZones.json. matching: the zones a 1080 x 1920 page can show, in the Snapping and guides sheet's order. shown: the zone a page of size shows for a design whose safeZone is given (null, no key): none for \"none\" or a size no zone is for; the zone named when it is for that size; else - no key, or an id this build does not know or that is not for that size - the first zone the size matches. A size is a zone's when each side is within 0.5 px of it. edges: each zone's inner edges on a 1080 x 1920 page, the snap lines, across (x) and down (y), in the order inset left, right (x) or top, bottom (y), then each rail's left, right (x) or top, bottom (y), those on the page's own edges left out, each once. rows: whether a text box [x, y, w, h] on that page is under the app's buttons - more than 0.2 of its area covered by the bands and rails together, counted once where they overlap - and where Move inside puts its top left [x, y]: the least shift into the part inside the insets, each axis on its own (flush with the top or left edge when it is bigger), then, still more than 0.2 under a rail, left of the rail when it fits there.",
   "size": [1080, 1920],
   "matching": ["instagram-story", "instagram-reel", "tiktok", "youtube-short", "facebook-story", "whatsapp-status"],
   "shown": [
@@ -9,7 +9,10 @@
     {"size": [1080, 1920], "safeZone": "none", "shown": null},
     {"size": [1080, 1920], "safeZone": "not-a-zone", "shown": "instagram-story"},
     {"size": [1080, 1080], "safeZone": null, "shown": null},
-    {"size": [1080, 1350], "safeZone": "tiktok", "shown": null}
+    {"size": [1080, 1350], "safeZone": "tiktok", "shown": null},
+    {"size": [1080.3, 1920], "safeZone": null, "shown": "instagram-story"},
+    {"size": [1079.7, 1920.2], "safeZone": "tiktok", "shown": "tiktok"},
+    {"size": [1080.6, 1920], "safeZone": null, "shown": null}
   ],
   "edges": [
     {"zone": "instagram-story", "x": [], "y": [268.8, 1574.4]},

@@ -50,9 +50,12 @@ enum SafeZones {
         var insets: ZoneInsets
         var rails: [Rail]
 
-        /// Whether the zone is for a page of `size`, exactly.
+        /// Whether the zone is for a page of `size`: each side within half
+        /// a pixel of one of its sizes, as on the Android twin.
         func fits(_ size: CGSize) -> Bool {
-            sizes.contains { $0.count == 2 && $0[0] == Double(size.width) && $0[1] == Double(size.height) }
+            sizes.contains { s in
+                s.count == 2 && abs(s[0] - Double(size.width)) < 0.5 && abs(s[1] - Double(size.height)) < 0.5
+            }
         }
     }
 
