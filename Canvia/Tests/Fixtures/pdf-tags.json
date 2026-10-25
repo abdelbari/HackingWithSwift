@@ -72,5 +72,6 @@
     "  Caption"
   ],
   "roles": {"e1": "h1", "e2": "h2", "e3": "body", "e7": "body", "e8": "quote", "e9": "h1", "e10": "h2", "e15": "caption", "e20": "h1"},
-  "textLayer": "<div class=\"sr\"><h1>Annual report</h1><h2>The year in short</h2><p>We grew in every region.</p><ul><li>Apples</li><li>Pears</li></ul><blockquote>Said the chair</blockquote></div>"
+  "textLayer": "<div class=\"sr\"><h1>Annual report</h1><h2>The year in short</h2><p>We grew in every region.</p><ul><li>Apples</li><li>Pears</li></ul><blockquote>Said the chair</blockquote></div>",
+  "scripted": {"note": "Raised and lowered words (a span's script) in the web page's text layer: <sup> and <sub> round them, so a screen reader or a copy keeps m² and H₂O.", "design": {"id": "d-scripts", "title": "Scripts", "width": 1080, "height": 1080, "createdAt": 0, "updatedAt": 0, "pages": [{"id": "p1", "background": {"type": "color", "value": "#ffffff"}, "elements": [{"id": "s1", "type": "text", "text": "Water is H2O, the room is 10 m2 & it came 1st.", "x": 100, "y": 100, "w": 880, "h": 40, "fontSize": 32, "color": "#111111", "textRole": "body", "spans": [{"start": 10, "end": 11, "script": "sub"}, {"start": 30, "end": 31, "script": "super"}, {"start": 43, "end": 45, "script": "super"}], "spansText": "Water is H2O, the room is 10 m2 & it came 1st."}]}]}, "textLayer": "<div class=\"sr\"><p>Water is H<sub>2</sub>O, the room is 10 m<sup>2</sup> &amp; it came 1<sup>st</sup>.</p></div>"}
 }

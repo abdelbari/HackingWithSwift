@@ -60,12 +60,17 @@ struct BrushBar: View {
     /// Clear a colour's Tolerance, 0 to 100, and Everywhere: each redoes the
     /// last tap, live.
     private var keySliders: some View {
-        HStack(spacing: 14) {
-            slider(tr("Tolerance"), value: session.tolerance * 100, in: 0...100,
-                   readout: "\(Int((session.tolerance * 100).rounded()))") { store.setKeyTolerance($0 / 100) }
-            Toggle("Everywhere", isOn: Binding(get: { session.everywhere }, set: { store.setKeyEverywhere($0) }))
-                .font(.subheadline)
-                .fixedSize()
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Tap a colour on the photo to clear it.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 14) {
+                slider(tr("Tolerance"), value: session.tolerance * 100, in: 0...100,
+                       readout: "\(Int((session.tolerance * 100).rounded()))") { store.setKeyTolerance($0 / 100) }
+                Toggle("Everywhere", isOn: Binding(get: { session.everywhere }, set: { store.setKeyEverywhere($0) }))
+                    .font(.subheadline)
+                    .fixedSize()
+            }
         }
     }
 

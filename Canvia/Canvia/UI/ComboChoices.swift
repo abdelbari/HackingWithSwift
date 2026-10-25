@@ -87,8 +87,8 @@ struct ComboChoices: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(combo.name) font combination")
-        .accessibilityValue(TextCombos.isAnimated(combo) ? tr("Animated") : "")
+        .accessibilityLabel(TextCombos.isAnimated(combo) ? tr("%@ font combination, animated", combo.name)
+                                                         : tr("%@ font combination", combo.name))
         .accessibilityAddTraits(.isButton)
     }
 

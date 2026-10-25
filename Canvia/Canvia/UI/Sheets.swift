@@ -784,6 +784,10 @@ struct FiltersSheet: View {
             }
             if !isCode { applyToRow }
             if !isCode { adjustLayerList }
+            if !whole && store.adjustAreaShown == .painted {
+                Button("Paint more") { if store.paintMoreOnAdjustArea() { dismiss() } }
+                    .font(.callout)
+            }
             // The dials in Canva's three groups, each in its order.
             dialGroup(tr("Light", context: "photo adjustments"), .light) {
                 dial(tr("Brightness"), \.brightness, in: -1...1)

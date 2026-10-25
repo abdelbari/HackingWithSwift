@@ -343,33 +343,35 @@ enum HTMLExporter {
     /// as <h1>–<h3>, /P as <p>, /BlockQuote as <blockquote>, a /Caption as
     /// a <figure>'s <figcaption>, a list as <ul> and a table as <table>
     /// with <th> and <td>. Figures are left to the picture's own labels.
-    /// Nothing for a page with no words. The Android twin's
-    /// HtmlWriter.textLayer, tag for tag.
+    /// Nothing for a page with no words. Raised and lowered words (a span's
+    /// script) are in <sup> and <sub>, so a screen reader or a copy keeps m²
+    /// and H₂O (scripted). The Android twin's HtmlWriter.textLayer, tag for
+    /// tag.
     static func textLayer(_ design: Design, page: Page) -> String {
         let all = design.masterElements(behind: page) + page.elements
         let byId = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let numbering = design.pageNumbering(shownOn: page)
+        func esc(_ s: String) -> String { SVGExporter.escape(s).replacingOccurrences(of: "\n", with: "<br>") }
         func words(_ node: PdfTags.StructNode) -> String {
-            if let text = node.text { return text }
+            if let text = node.text { return esc(text) }
             return node.ids.compactMap { byId[$0] }.map { el in
-                var raw = el.text ?? ""
-                if let numbering {
-                    raw = raw.replacingOccurrences(of: "{page}", with: String(numbering.number))
+                var shown = el
+                if let numbering, let raw = el.text {
+                    shown.text = raw.replacingOccurrences(of: "{page}", with: String(numbering.number))
                         .replacingOccurrences(of: "{pages}", with: String(numbering.count))
                 }
-                return RichText.strip(raw).trimmingCharacters(in: .whitespacesAndNewlines)
+                return scripted(shown, esc)
             }.joined(separator: " ")
         }
-        func esc(_ s: String) -> String { SVGExporter.escape(s).replacingOccurrences(of: "\n", with: "<br>") }
         var out = ""
         for node in PdfTags.page(design, page) {
             switch node.role {
             case PdfTags.h1, PdfTags.h2, PdfTags.h3:
                 let tag = node.role.lowercased()
-                out += "<\(tag)>" + esc(words(node)) + "</\(tag)>"
-            case PdfTags.p: out += "<p>" + esc(words(node)) + "</p>"
-            case PdfTags.blockQuote: out += "<blockquote>" + esc(words(node)) + "</blockquote>"
-            case PdfTags.caption: out += "<figure><figcaption>" + esc(words(node)) + "</figcaption></figure>"
+                out += "<\(tag)>" + words(node) + "</\(tag)>"
+            case PdfTags.p: out += "<p>" + words(node) + "</p>"
+            case PdfTags.blockQuote: out += "<blockquote>" + words(node) + "</blockquote>"
+            case PdfTags.caption: out += "<figure><figcaption>" + words(node) + "</figcaption></figure>"
             case PdfTags.l:
                 let items = node.kids.map { "<li>" + esc($0.kids.first?.text ?? "") + "</li>" }
                 out += "<ul>" + items.joined() + "</ul>"
@@ -386,6 +388,29 @@ enum HTMLExporter {
             }
         }
         return out.isEmpty ? "" : "<div class=\"sr\">" + out + "</div>"
+    }
+
+    /// `el`'s plain words, trimmed, through `esc` — each raised or lowered
+    /// run (a span's script) wrapped in <sup> or <sub>. The Android twin's
+    /// HtmlWriter.scripted, tag for tag (the shared pdf-tags.json).
+    static func scripted(_ el: Element, _ esc: (String) -> String) -> String {
+        let plain = RichText.strip(el.text ?? "") as NSString
+        let blank = CharacterSet.whitespacesAndNewlines
+        var at = 0, end = plain.length
+        while at < end, let u = UnicodeScalar(plain.character(at: at)), blank.contains(u) { at += 1 }
+        while end > at, let u = UnicodeScalar(plain.character(at: end - 1)), blank.contains(u) { end -= 1 }
+        guard at < end else { return "" }
+        func piece(_ from: Int, _ to: Int) -> String { esc(plain.substring(with: NSRange(location: from, length: to - from))) }
+        var out = ""
+        for span in el.liveSpans {
+            let tag = span.script == Spans.raised ? "sup" : (span.script == Spans.lowered ? "sub" : "")
+            let from = min(max(span.start, at), end), to = min(max(span.end, from), end)
+            guard !tag.isEmpty, from < to else { continue }
+            out += piece(at, from)
+            out += "<\(tag)>" + piece(from, to) + "</\(tag)>"
+            at = to
+        }
+        return out + piece(at, end)
     }
 
     /// A clip over its place in the page, a share of the page's size so it

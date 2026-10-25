@@ -110,6 +110,17 @@ extension DesignStore {
         }
     }
 
+    /// Paint more: the brush taken up again on the chosen painted area,
+    /// its strokes added to that layer's (`true`: the sheet goes) — the
+    /// Android twin's Paint more.
+    @discardableResult
+    func paintMoreOnAdjustArea() -> Bool {
+        guard let photo = singleSelection, let at = adjustTargetIndex(of: photo),
+              photo.retouch?[at].paintsArea == true, beginBrush(photo.id, kind: .adjust) else { return false }
+        brushing?.layer = at
+        return true
+    }
+
     private func refuseAdjustArea() -> Bool {
         buzz(.reject)
         announce(Self.adjustAreasFullNote, undoable: false)

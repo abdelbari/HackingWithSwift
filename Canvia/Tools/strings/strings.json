@@ -449,6 +449,15 @@
     "ja": "%@ フォントの組み合わせ",
     "pt-BR": "Combinação de fontes %@"
   },
+  "%@ font combination, animated": {
+    "ar": "تشكيلة خطوط %@، متحركة",
+    "de": "Schriftkombination %@, animiert",
+    "es": "Combinación de fuentes %@, animada",
+    "fr": "Combinaison de polices %@, animée",
+    "it": "Combinazione di font %@, animata",
+    "ja": "%@ フォントの組み合わせ（アニメーションあり）",
+    "pt-BR": "Combinação de fontes %@, animada"
+  },
   "%@ font, missing": {
     "ar": "خط %@، غير متوفر",
     "de": "Schrift %@, fehlt",
@@ -21287,6 +21296,15 @@
     "ja": "ペイントモードがオンです。もう一度タップすると終了します",
     "pt-BR": "O modo pintura está ativado. Toque de novo para parar"
   },
+  "Paint more": {
+    "ar": "رسم المزيد",
+    "de": "Mehr malen",
+    "es": "Pintar más",
+    "fr": "Peindre davantage",
+    "it": "Dipingi ancora",
+    "ja": "さらに塗る",
+    "pt-BR": "Pintar mais"
+  },
   "Paint over something to take it out of the photo.": {
     "ar": "اطلِ فوق شيء لإزالته من الصورة.",
     "de": "Male über etwas, um es aus dem Foto zu entfernen.",
@@ -28042,6 +28060,15 @@
     "it": "Tocca Aggiungi per inserirvi qualcosa, oppure parti da un design finito.",
     "ja": "「追加」をタップして何かを配置するか、完成したデザインから始めましょう。",
     "pt-BR": "Toque em Adicionar para colocar algo nela ou comece com um design pronto."
+  },
+  "Tap a colour on the photo to clear it.": {
+    "ar": "اضغط على لون في الصورة لمسحه.",
+    "de": "Tippe auf eine Farbe im Foto, um sie zu entfernen.",
+    "es": "Toca un color de la foto para borrarlo.",
+    "fr": "Touchez une couleur de la photo pour l'effacer.",
+    "it": "Tocca un colore della foto per rimuoverlo.",
+    "ja": "写真の色をタップすると消えます。",
+    "pt-BR": "Toque em uma cor da foto para removê-la."
   },
   "Tap one to change only that colour.": {
     "ar": "انقر على أحدها لتغيير ذلك اللون فقط.",
