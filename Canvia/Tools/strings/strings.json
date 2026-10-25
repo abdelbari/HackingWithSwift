@@ -1157,7 +1157,7 @@
     "es": "%@ · Reemplazar",
     "fr": "%@ · Remplacer",
     "it": "%@ · Sostituisci",
-    "ja": "%@ · 置き換え",
+    "ja": "%@ · 置換",
     "pt-BR": "%@ · Substituir"
   },
   "%@ · holds %@ s": {
@@ -2935,12 +2935,12 @@
   },
   "%d item is missing from this design|%d items are missing from this design": {
     "ar": {
-      "few": "%d عناصر مفقودة من هذا التصميم",
-      "many": "%d عنصرًا مفقودًا من هذا التصميم",
-      "one": "عنصر واحد مفقود من هذا التصميم (%d)",
-      "other": "%d عنصر مفقود من هذا التصميم",
-      "two": "عنصران مفقودان من هذا التصميم (%d)",
-      "zero": "لا توجد عناصر مفقودة من هذا التصميم (%d)"
+      "few": "تنقص %d عناصر من هذا التصميم",
+      "many": "ينقص %d عنصرًا من هذا التصميم",
+      "one": "ينقص عنصر واحد (%d) من هذا التصميم",
+      "other": "ينقص %d عنصر من هذا التصميم",
+      "two": "ينقص عنصران (%d) من هذا التصميم",
+      "zero": "لا ينقص أي عنصر (%d) من هذا التصميم"
     },
     "de": {
       "one": "%d Element fehlt in diesem Design",
@@ -2959,11 +2959,11 @@
       "other": "Mancano %d elementi in questo design"
     },
     "ja": {
-      "other": "このデザインには見つからない項目が %d 件あります"
+      "other": "このデザインで %d 個の項目が見つかりません"
     },
     "pt-BR": {
-      "one": "%d item está faltando neste design",
-      "other": "%d itens estão faltando neste design"
+      "one": "Falta %d item neste design",
+      "other": "Faltam %d itens neste design"
     }
   },
   "%d item, each on a page of its own after the last.|%d items, each on a page of its own after the last.": {
@@ -7415,6 +7415,15 @@
     "ja": "棒",
     "pt-BR": "Barras"
   },
+  "Bar\u0004caption style": {
+    "ar": "شريط",
+    "de": "Leiste",
+    "es": "Barra",
+    "fr": "Bandeau",
+    "it": "Fascia",
+    "ja": "帯",
+    "pt-BR": "Faixa"
+  },
   "Bar\u0004line end": {
     "ar": "شَرطة",
     "de": "Balken",
@@ -10007,7 +10016,7 @@
     "es": "Convirtiendo vídeo HDR…",
     "fr": "Conversion de la vidéo HDR…",
     "it": "Conversione del video HDR…",
-    "ja": "HDR動画を変換中…",
+    "ja": "HDR 動画を変換中…",
     "pt-BR": "Convertendo vídeo HDR…"
   },
   "Cool": {
@@ -23117,6 +23126,15 @@
     "ja": "動画を一時停止",
     "pt-BR": "Pausar vídeo"
   },
+  "Pause video, %@": {
+    "ar": "إيقاف الفيديو مؤقتًا، %@",
+    "de": "Video anhalten, %@",
+    "es": "Pausar vídeo, %@",
+    "fr": "Mettre la vidéo en pause, %@",
+    "it": "Metti in pausa il video, %@",
+    "ja": "動画を一時停止、%@",
+    "pt-BR": "Pausar vídeo, %@"
+  },
   "Paused": {
     "ar": "متوقف مؤقتًا",
     "de": "Pausiert",
@@ -23339,7 +23357,7 @@
     "es": "Falta la foto",
     "fr": "Photo manquante",
     "it": "Foto mancante",
-    "ja": "写真がありません",
+    "ja": "写真が見つかりません",
     "pt-BR": "Foto ausente"
   },
   "Photo or video…": {
@@ -23890,6 +23908,15 @@
     "it": "Riproduci video",
     "ja": "動画を再生",
     "pt-BR": "Reproduzir vídeo"
+  },
+  "Play video, %@": {
+    "ar": "تشغيل الفيديو، %@",
+    "de": "Video abspielen, %@",
+    "es": "Reproducir vídeo, %@",
+    "fr": "Lire la vidéo, %@",
+    "it": "Riproduci video, %@",
+    "ja": "動画を再生、%@",
+    "pt-BR": "Reproduzir vídeo, %@"
   },
   "Playful": {
     "ar": "مرح",
@@ -26262,7 +26289,7 @@
     "pt-BR": "SMS"
   },
   "Safe": {
-    "ar": "آمنة",
+    "ar": "آمن",
     "de": "Sicher",
     "es": "Segura",
     "fr": "Sûre",
@@ -26686,6 +26713,15 @@
     "it": "Salvataggio nelle tue foto",
     "ja": "写真に保存中",
     "pt-BR": "Salvando nas suas fotos"
+  },
+  "Say it out loud": {
+    "ar": "قلها بصوت عالٍ",
+    "de": "Sag es laut",
+    "es": "Dilo en voz alta",
+    "fr": "Dites-le à voix haute",
+    "it": "Dillo ad alta voce",
+    "ja": "声に出して言おう",
+    "pt-BR": "Diga em voz alta"
   },
   "Scale": {
     "ar": "تحجيم",
@@ -28910,7 +28946,7 @@
     "es": "Falta el sonido",
     "fr": "Son manquant",
     "it": "Audio mancante",
-    "ja": "サウンドがありません",
+    "ja": "サウンドが見つかりません",
     "pt-BR": "Som ausente"
   },
   "Sound off": {
@@ -31353,12 +31389,12 @@
     "pt-BR": "Esta versão do Android mostra sombras só em texto reto. As exportações e outros celulares mostram esta."
   },
   "This HDR video couldn't be converted; it may look washed out": {
-    "ar": "تعذّر تحويل فيديو HDR هذا؛ قد يبدو باهت الألوان",
+    "ar": "تعذّر تحويل فيديو HDR هذا؛ قد تبدو ألوانه باهتة",
     "de": "Dieses HDR-Video konnte nicht konvertiert werden; es kann blass aussehen",
-    "es": "No se pudo convertir este vídeo HDR; puede verse desvaído",
-    "fr": "Impossible de convertir cette vidéo HDR ; elle risque de paraître délavée",
+    "es": "No se ha podido convertir este vídeo HDR; puede verse desvaído",
+    "fr": "Cette vidéo HDR n'a pas pu être convertie ; elle peut paraître délavée",
     "it": "Impossibile convertire questo video HDR; potrebbe apparire sbiadito",
-    "ja": "このHDR動画を変換できませんでした。色が薄く見えることがあります",
+    "ja": "この HDR 動画を変換できませんでした。色あせて見える場合があります",
     "pt-BR": "Não foi possível converter este vídeo HDR; ele pode parecer desbotado"
   },
   "This backup was made by a newer Canvia. Update Canvia to restore it.": {
@@ -33734,7 +33770,7 @@
     "es": "Falta el vídeo",
     "fr": "Vidéo manquante",
     "it": "Video mancante",
-    "ja": "動画がありません",
+    "ja": "動画が見つかりません",
     "pt-BR": "Vídeo ausente"
   },
   "Video position": {
@@ -33773,14 +33809,14 @@
     "ja": "動画",
     "pt-BR": "Vídeos"
   },
-  "Videos set not to autoplay play as their page plays in the video and GIF.": {
-    "ar": "تُشغَّل مقاطع الفيديو غير المضبوطة على التشغيل التلقائي مع صفحتها في الفيديو وملف GIF.",
-    "de": "Videos ohne automatische Wiedergabe laufen im Video und im GIF mit ihrer Seite ab.",
-    "es": "Los vídeos sin reproducción automática se reproducen con su página en el vídeo y el GIF.",
-    "fr": "Les vidéos sans lecture automatique sont lues avec leur page dans la vidéo et le GIF.",
-    "it": "I video senza riproduzione automatica vengono riprodotti con la loro pagina nel video e nella GIF.",
-    "ja": "自動再生をオフにした動画も、ビデオとGIFではページと一緒に再生されます。",
-    "pt-BR": "Vídeos sem reprodução automática são reproduzidos com a página no vídeo e no GIF."
+  "Videos that don't autoplay play by themselves in a video or GIF.": {
+    "ar": "تُشغَّل مقاطع الفيديو التي لا تعمل تلقائيًا من تلقاء نفسها في فيديو أو GIF.",
+    "de": "Videos ohne automatische Wiedergabe laufen in einem Video oder GIF von selbst.",
+    "es": "Los vídeos sin reproducción automática se reproducen solos en un vídeo o GIF.",
+    "fr": "Les vidéos sans lecture automatique se lisent d'elles-mêmes dans une vidéo ou un GIF.",
+    "it": "I video senza riproduzione automatica partono da soli in un video o in una GIF.",
+    "ja": "自動再生しない動画も、動画や GIF では自動で再生されます。",
+    "pt-BR": "Vídeos sem reprodução automática tocam sozinhos em um vídeo ou GIF."
   },
   "Videos you add show here.": {
     "ar": "تظهر هنا مقاطع الفيديو التي تضيفها.",

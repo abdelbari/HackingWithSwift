@@ -6827,7 +6827,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ · 置き換え"
+            "value" : "%@ · 置換"
           }
         },
         "pt-BR" : {
@@ -15967,37 +15967,37 @@
               "few" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld عناصر مفقودة من هذا التصميم"
+                  "value" : "تنقص %lld عناصر من هذا التصميم"
                 }
               },
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld عنصرًا مفقودًا من هذا التصميم"
+                  "value" : "ينقص %lld عنصرًا من هذا التصميم"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "عنصر واحد مفقود من هذا التصميم (%lld)"
+                  "value" : "ينقص عنصر واحد (%lld) من هذا التصميم"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld عنصر مفقود من هذا التصميم"
+                  "value" : "ينقص %lld عنصر من هذا التصميم"
                 }
               },
               "two" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "عنصران مفقودان من هذا التصميم (%lld)"
+                  "value" : "ينقص عنصران (%lld) من هذا التصميم"
                 }
               },
               "zero" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "لا توجد عناصر مفقودة من هذا التصميم (%lld)"
+                  "value" : "لا ينقص أي عنصر (%lld) من هذا التصميم"
                 }
               }
             }
@@ -16099,7 +16099,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "このデザインには見つからない項目が %lld 件あります"
+                  "value" : "このデザインで %lld 個の項目が見つかりません"
                 }
               }
             }
@@ -16111,13 +16111,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld item está faltando neste design"
+                  "value" : "Falta %lld item neste design"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld itens estão faltando neste design"
+                  "value" : "Faltam %lld itens neste design"
                 }
               }
             }
@@ -40876,6 +40876,59 @@
         }
       }
     },
+    "Bar [caption style]" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شريط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leiste"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bar"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barra"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandeau"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fascia"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "帯"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faixa"
+          }
+        }
+      }
+    },
     "Bar [line end]" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -55798,7 +55851,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "HDR動画を変換中…"
+            "value" : "HDR 動画を変換中…"
           }
         },
         "pt-BR" : {
@@ -132284,6 +132337,59 @@
         }
       }
     },
+    "Pause video, %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إيقاف الفيديو مؤقتًا، %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video anhalten, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause video, %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar vídeo, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mettre la vidéo en pause, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metti in pausa il video, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を一時停止、%@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar vídeo, %@"
+          }
+        }
+      }
+    },
     "Paused" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -133598,7 +133704,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "写真がありません"
+            "value" : "写真が見つかりません"
           }
         },
         "pt-BR" : {
@@ -136838,6 +136944,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reproduzir vídeo"
+          }
+        }
+      }
+    },
+    "Play video, %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تشغيل الفيديو، %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video abspielen, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play video, %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproducir vídeo, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lire la vidéo, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riproduci video, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を再生、%@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduzir vídeo, %@"
           }
         }
       }
@@ -150668,7 +150827,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "آمنة"
+            "value" : "آمن"
           }
         },
         "de" : {
@@ -153112,6 +153271,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Salvando nas suas fotos"
+          }
+        }
+      }
+    },
+    "Say it out loud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قلها بصوت عالٍ"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sag es laut"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Say it out loud"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dilo en voz alta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dites-le à voix haute"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dillo ad alta voce"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声に出して言おう"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diga em voz alta"
           }
         }
       }
@@ -166077,7 +166289,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サウンドがありません"
+            "value" : "サウンドが見つかりません"
           }
         },
         "pt-BR" : {
@@ -180375,7 +180587,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تعذّر تحويل فيديو HDR هذا؛ قد يبدو باهت الألوان"
+            "value" : "تعذّر تحويل فيديو HDR هذا؛ قد تبدو ألوانه باهتة"
           }
         },
         "de" : {
@@ -180393,13 +180605,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo convertir este vídeo HDR; puede verse desvaído"
+            "value" : "No se ha podido convertir este vídeo HDR; puede verse desvaído"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impossible de convertir cette vidéo HDR ; elle risque de paraître délavée"
+            "value" : "Cette vidéo HDR n'a pas pu être convertie ; elle peut paraître délavée"
           }
         },
         "it" : {
@@ -180411,7 +180623,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このHDR動画を変換できませんでした。色が薄く見えることがあります"
+            "value" : "この HDR 動画を変換できませんでした。色あせて見える場合があります"
           }
         },
         "pt-BR" : {
@@ -194239,7 +194451,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "動画がありません"
+            "value" : "動画が見つかりません"
           }
         },
         "pt-BR" : {
@@ -194462,55 +194674,55 @@
         }
       }
     },
-    "Videos set not to autoplay play as their page plays in the video and GIF." : {
+    "Videos that don't autoplay play by themselves in a video or GIF." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تُشغَّل مقاطع الفيديو غير المضبوطة على التشغيل التلقائي مع صفحتها في الفيديو وملف GIF."
+            "value" : "تُشغَّل مقاطع الفيديو التي لا تعمل تلقائيًا من تلقاء نفسها في فيديو أو GIF."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Videos ohne automatische Wiedergabe laufen im Video und im GIF mit ihrer Seite ab."
+            "value" : "Videos ohne automatische Wiedergabe laufen in einem Video oder GIF von selbst."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Videos set not to autoplay play as their page plays in the video and GIF."
+            "value" : "Videos that don't autoplay play by themselves in a video or GIF."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Los vídeos sin reproducción automática se reproducen con su página en el vídeo y el GIF."
+            "value" : "Los vídeos sin reproducción automática se reproducen solos en un vídeo o GIF."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les vidéos sans lecture automatique sont lues avec leur page dans la vidéo et le GIF."
+            "value" : "Les vidéos sans lecture automatique se lisent d'elles-mêmes dans une vidéo ou un GIF."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I video senza riproduzione automatica vengono riprodotti con la loro pagina nel video e nella GIF."
+            "value" : "I video senza riproduzione automatica partono da soli in un video o in una GIF."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自動再生をオフにした動画も、ビデオとGIFではページと一緒に再生されます。"
+            "value" : "自動再生しない動画も、動画や GIF では自動で再生されます。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vídeos sem reprodução automática são reproduzidos com a página no vídeo e no GIF."
+            "value" : "Vídeos sem reprodução automática tocam sozinhos em um vídeo ou GIF."
           }
         }
       }

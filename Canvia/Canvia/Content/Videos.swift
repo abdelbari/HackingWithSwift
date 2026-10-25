@@ -137,14 +137,15 @@ enum Videos {
         }
     }
 
-    static var exportNote: String { tr("Videos set not to autoplay play as their page plays in the video and GIF.") }
+    static var exportNote: String { tr("Videos that don't autoplay play by themselves in a video or GIF.") }
 
     /// What VoiceOver offers on a clip in Present: "Play video, <alt text>"
     /// — "Pause video, …" while it moves — or the words alone when it has
-    /// no description.
+    /// no description, as the Android twin's clipAction says them.
     static func spokenAction(_ el: Element, moving: Bool) -> String {
-        let verb = moving ? tr("Pause video") : tr("Play video")
-        guard let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty else { return verb }
-        return verb + ", " + alt
+        guard let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty else {
+            return moving ? tr("Pause video") : tr("Play video")
+        }
+        return moving ? tr("Pause video, %@", alt) : tr("Play video, %@", alt)
     }
 }
