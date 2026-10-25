@@ -2033,9 +2033,9 @@ struct CanvasView: View {
             // A position lock asks first (DesignStore.askingDelete).
             Button("Delete") { store.select(el.id); store.deleteSelected() }
         }
-        // Select behind, from the selected thing's middle (Layers.hitStack).
-        if store.selection.contains(el.id) {
-            Button("Select what is behind") { store.selectWhatIsBehind(el.id) }
+        // Select behind, as Alt+Tab steps, offered only when it can step.
+        if store.selection.contains(el.id) && store.canSelectBehind {
+            Button("Select what is behind") { store.selectBehind() }
         }
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
         Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }

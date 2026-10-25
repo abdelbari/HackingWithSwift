@@ -462,6 +462,47 @@ extension Layers {
         return next.id == stack[at].id ? nil : next
     }
 
+    /// Whether `selection` is one whole row of the page's Layers list: one
+    /// loose element, or every member of one outermost group, hidden ones
+    /// too. Alt+Tab and Select what is behind step only from such a
+    /// selection and are refused otherwise — the Android twin's
+    /// Layers.isOneRow, with the shared fixture's oneRow rows.
+    static func isOneRow(_ elements: [Element], selection: Set<String>) -> Bool {
+        guard !selection.isEmpty else { return false }
+        return LayerRows.rows(elements, expanded: []).contains { row in
+            Set(row.elements.map(\.id)) == selection
+        }
+    }
+
+    /// Where Alt+Tab and Select what is behind look for what lies under
+    /// `selection`: the last tap, when anything selected lies under it
+    /// there, else the middle of the selection's box (every selected
+    /// thing's turned bounds, hidden ones too); nil with nothing selected.
+    /// The Android twin's Layers.behindPoint, with the shared fixture's
+    /// behindPoint rows.
+    static func behindPoint(_ elements: [Element], selection: Set<String>, lastTap: CGPoint?,
+                            touchRadius: Double) -> CGPoint? {
+        if let tap = lastTap {
+            let stack = hitStack(elements, tap, touchRadius: touchRadius)
+            if stack.contains(where: { row in row.elements.contains { selection.contains($0.id) } }) {
+                return tap
+            }
+        }
+        let chosen = elements.filter { selection.contains($0.id) }
+        guard !chosen.isEmpty else { return nil }
+        let box = Geometry.union(chosen.map(Geometry.aabb))
+        return CGPoint(x: box.midX, y: box.midY)
+    }
+
+    /// Whether Alt+Tab can step from `selection` at `point`: the selection
+    /// is one whole row (isOneRow) and two or more rows lie there. The
+    /// Android twin's Layers.canStepBehind.
+    static func canStepBehind(_ elements: [Element], selection: Set<String>, at point: CGPoint,
+                              touchRadius: Double) -> Bool {
+        guard isOneRow(elements, selection: selection) else { return false }
+        return hitStack(elements, point, touchRadius: touchRadius).count >= 2
+    }
+
     /// A row's name, as the Layers sheet shows it: "Group (3)", or the
     /// element's own (ElementNames).
     static func rowName(_ row: LayerRows.Row) -> String {

@@ -16,6 +16,7 @@ final class SelectBehindTests: XCTestCase {
         let elements: [Element]
         let probes: [[String: Any]]
         let behind: [[String: Any]]
+        let oneRow: [[String: Any]]
     }
 
     private func fixture() throws -> Fixture {
@@ -23,7 +24,8 @@ final class SelectBehindTests: XCTestCase {
         let elements = try JSONDecoder().decode([Element].self, from: SharedFixture.encoded(root["elements"] ?? [Any]()))
         return Fixture(radius: try XCTUnwrap(root["touchRadius"] as? Double), elements: elements,
                        probes: try XCTUnwrap(root["probes"] as? [[String: Any]]),
-                       behind: try XCTUnwrap(root["behind"] as? [[String: Any]]))
+                       behind: try XCTUnwrap(root["behind"] as? [[String: Any]]),
+                       oneRow: try XCTUnwrap(root["oneRow"] as? [[String: Any]]))
     }
 
     private func point(_ probe: [String: Any]) throws -> CGPoint {
@@ -94,5 +96,67 @@ final class SelectBehindTests: XCTestCase {
         XCTAssertEqual(store.selection, ["backdrop"])
         store.selectBehind()
         XCTAssertEqual(store.selection, ["tiny"])
+    }
+
+    func testSelectBehindStepsOnlyFromOneWholeRowOfTheLayersList() throws {
+        let f = try fixture()
+        for row in f.oneRow {
+            let selection = Set(try XCTUnwrap(row["selection"] as? [String]))
+            let want = try XCTUnwrap(row["oneRow"] as? Bool)
+            XCTAssertEqual(Layers.isOneRow(f.elements, selection: selection), want, "\(selection)")
+        }
+    }
+
+    /// A fixture point, [x, y], or nil where the row has none (or null).
+    private func pair(_ value: Any?) -> CGPoint? {
+        guard let xy = value as? [Double], xy.count == 2 else { return nil }
+        return CGPoint(x: xy[0], y: xy[1])
+    }
+
+    func testSelectBehindLooksAtTheLastTapOnTheSelectionElseItsMiddle() throws {
+        let f = try fixture()
+        let root = try SharedFixture.object("hit-stack")
+        let rows = try XCTUnwrap(root["behindPoint"] as? [[String: Any]])
+        for row in rows {
+            let selection = Set(try XCTUnwrap(row["selection"] as? [String]))
+            let tap = pair(row["tap"])
+            let at = Layers.behindPoint(f.elements, selection: selection, lastTap: tap, touchRadius: f.radius)
+            XCTAssertEqual(at, pair(row["at"]), "\(selection) tap \(String(describing: tap))")
+            let steps = at.map { Layers.canStepBehind(f.elements, selection: selection, at: $0, touchRadius: f.radius) } ?? false
+            let want = try XCTUnwrap(row["steps"] as? Bool)
+            XCTAssertEqual(steps, want, "\(selection)")
+        }
+    }
+
+    func testAHoldOnALockedBackdropOverAShapeListsBothUnderSelectBehind() throws {
+        let f = try fixture()
+        let lid = try XCTUnwrap(f.elements.first { $0.id == "lid" })
+        XCTAssertTrue(CanvasGestures.isBackdrop(lid, page: CGSize(width: 1080, height: 1080), selection: []))
+        XCTAssertGreaterThanOrEqual(Layers.hitStack(f.elements, CGPoint(x: 650, y: 350), touchRadius: f.radius).count, 2)
+    }
+
+    func testAltTabIsRefusedWithTwoLooseThingsSelected() throws {
+        let f = try fixture()
+        var d = Design(title: "behind", width: 1080, height: 1080)
+        d.pages = [Page(id: "p1", elements: f.elements)]
+        let store = DesignStore(design: d)
+        store.zoom = 1
+        store.selectLayers(["tiny", "cover"])
+        store.lastTapAt = CGPoint(x: 320, y: 320)
+        XCTAssertFalse(store.canSelectBehind)
+        store.selectBehind()
+        XCTAssertEqual(store.selection, ["tiny", "cover"])
+    }
+
+    func testASelectBehindRowTakesTheWholeGroupHiddenMembersToo() throws {
+        let f = try fixture()
+        var d = Design(title: "behind", width: 1080, height: 1080)
+        d.pages = [Page(id: "p1", elements: f.elements)]
+        let store = DesignStore(design: d)
+        store.zoom = 1
+        let row = try XCTUnwrap(store.hitStack(at: CGPoint(x: 850, y: 150)).first)
+        XCTAssertEqual(row.id, "pair-a")
+        store.selectStackRow(row)
+        XCTAssertEqual(store.selection, ["pair-a", "pair-b"])
     }
 }
