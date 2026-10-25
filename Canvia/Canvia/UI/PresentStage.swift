@@ -132,9 +132,18 @@ final class PresentSession {
     private func liftInk() {
         guard let last = ink.strokes.last, last.liftedAt == nil else { return }
         ink = ink.lifted(at: Self.inkClock)
-        guard Self.inkFades else { return }
+        letGoOfFadedInk()
+    }
+
+    /// With Fade ink on, the lifted strokes let go of once the last lifted
+    /// has faded — after a lift, and when Fade ink is turned on over ink
+    /// already lifted — so the ink layer's clock stops once nothing is
+    /// left to fade.
+    func letGoOfFadedInk() {
+        guard Self.inkFades, let lastLift = ink.strokes.compactMap(\.liftedAt).max() else { return }
+        let wait = max(lastLift + PresentInk.fadeAfter + PresentInk.fadeSeconds - Self.inkClock, 0) + 0.05
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(PresentInk.fadeAfter + PresentInk.fadeSeconds + 0.05))
+            try? await Task.sleep(for: .seconds(wait))
             guard let self else { return }
             self.ink = self.ink.kept(at: PresentSession.inkClock, fade: PresentSession.inkFades)
         }

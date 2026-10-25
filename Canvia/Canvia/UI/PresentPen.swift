@@ -85,6 +85,7 @@ struct PresentPenBar: View {
                 Button("Clear") { session.ink = PresentInk.Ink() }
                     .padding(.horizontal, 8)
                 Toggle("Fade ink", isOn: $fade)
+                    .onChange(of: fade) { _, _ in session.letGoOfFadedInk() }
                     .fixedSize()
                     .padding(.horizontal, 8)
             }

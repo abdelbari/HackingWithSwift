@@ -45,6 +45,9 @@ struct BrandKitSheet: View {
     @State private var ownTemplates: [UserTemplate] = []
     /// The colours a logo suggests, while they are offered.
     @State private var fromLogo: LogoColours?
+    /// The logo whose colours were asked for last, so a slow read of an
+    /// earlier one does not replace its offer.
+    @State private var logoAsked: String?
 
     private enum ImportKind {
         case kit, svg
@@ -99,7 +102,7 @@ struct BrandKitSheet: View {
                 // photos — offers its colours; switching kits does not.
                 guard old.activeId == changed.activeId,
                       let added = changed.active.logos.last(where: { !old.active.logos.contains($0) }) else { return }
-                fromLogo = LogoColours.of(added)
+                offerColours(of: added)
             }
             .onChange(of: kits.activeId) { openedWithLogos = kits.active.logos }
             .onChange(of: pickedPhotos) { _, items in bringIn(items, to: .photos) }
@@ -426,7 +429,7 @@ struct BrandKitSheet: View {
             .accessibilityLabel("Picture \(index + 1) of \(count), a brand logo")
             if kit.logos.contains(src) {
                 Menu {
-                    Button("Colours from this logo") { fromLogo = LogoColours.of(src) }
+                    Button("Colours from this logo") { offerColours(of: src) }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -544,6 +547,16 @@ struct BrandKitSheet: View {
             editKit { kit in
                 for src in added { kit.add(src, to: keyPath) }
             }
+        }
+    }
+
+    /// `src`'s colours offered as chips once they are read, off the main
+    /// thread (LogoColours.of); the last logo asked about wins.
+    private func offerColours(of src: String) {
+        logoAsked = src
+        Task { @MainActor in
+            let offer = await LogoColours.of(src)
+            if logoAsked == src { fromLogo = offer }
         }
     }
 

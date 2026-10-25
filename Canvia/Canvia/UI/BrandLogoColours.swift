@@ -14,14 +14,22 @@ struct LogoColours: Equatable {
     var colors: [String]
 
     /// `src`'s colours, read from its pixels, and its name from the
-    /// uploads, its extension dropped.
+    /// uploads, its extension dropped. The reading — the uploads list, the
+    /// full-size decode, the 128-pixel redraw and the extraction — is done
+    /// off the main actor, so the brand kit does not stall on a large logo,
+    /// as on the Android twin. A library picture is drawn by the app, here,
+    /// as DesignExporter draws one.
     @MainActor
-    static func of(_ src: String) -> LogoColours {
+    static func of(_ src: String) async -> LogoColours {
         let id = src.hasPrefix("media:") ? String(src.dropFirst("media:".count)) : src
-        let file = Uploads.all().first { $0.id == id }?.fileName
-        let name = file.map { ($0 as NSString).deletingPathExtension }.flatMap { $0.isEmpty ? nil : $0 }
-        let colors = PhotoLibrary.resolve(src).map(PhotoPalette.logo(from:)) ?? []
-        return LogoColours(src: src, name: name, colors: colors)
+        let drawn = src.hasPrefix("asset:") ? PhotoLibrary.resolve(src) : nil
+        let read = await Task.detached(priority: .userInitiated) { () -> (name: String?, colors: [String]) in
+            let file = Uploads.all().first { $0.id == id }?.fileName
+            let name = file.map { ($0 as NSString).deletingPathExtension }.flatMap { $0.isEmpty ? nil : $0 }
+            let colors = (drawn ?? PhotoLibrary.resolve(src)).map(PhotoPalette.logo(from:)) ?? []
+            return (name, colors)
+        }.value
+        return LogoColours(src: src, name: read.name, colors: read.colors)
     }
 }
 

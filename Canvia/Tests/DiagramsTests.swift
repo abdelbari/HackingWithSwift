@@ -249,4 +249,26 @@ final class DiagramsTests: XCTestCase {
         XCTAssertNotEqual(copied.first?.diagram?.id, spec.id)
         XCTAssertEqual(Set(copied.compactMap(\.diagram?.id)).count, 1)
     }
+
+    func testACopiedDiagramIsADiagramOfItsOwn() throws {
+        let spec = Diagrams.starter(.cycle)
+        let made = Diagrams.make(spec, in: CGRect(x: 0, y: 0, width: 400, height: 400), palette: palette)
+        let copied = Copies.of(made, offset: 24)
+        let ids = Array(Set(copied.compactMap(\.diagram?.id)))
+        XCTAssertEqual(ids.count, 1)
+        let id = try XCTUnwrap(ids.first)
+        XCTAssertNotEqual(id, spec.id)
+        XCTAssertTrue(id.hasPrefix("dia_"))
+        // Each is whole, so Edit diagram on the copy leaves the original be.
+        var page = Page()
+        page.elements = made + copied
+        XCTAssertEqual(Diagrams.members(page, id: spec.id).map(\.id), made.map(\.id))
+        XCTAssertEqual(Diagrams.members(page, id: id).map(\.id), copied.map(\.id))
+        // A component's diagram, put in twice, is two diagrams.
+        let component = try XCTUnwrap(Components.make(named: "Cycle", from: made))
+        let first = try XCTUnwrap(Diagrams.of(Components.instance(of: component, width: 200, at: .zero))).id
+        let second = try XCTUnwrap(Diagrams.of(Components.instance(of: component, width: 200, at: CGPoint(x: 300, y: 0)))).id
+        XCTAssertNotEqual(first, second)
+        XCTAssertNotEqual(first, spec.id)
+    }
 }
