@@ -100,6 +100,11 @@ final class DesignStore {
     /// Keeping the selection in view waits for it to lift, so the page never
     /// slides out from under a drag.
     var canvasTouchActive = false
+    /// The side the turn and move handles took when a turn or a resize of
+    /// this element began, held while the finger is down so the handle
+    /// never jumps across mid-gesture (SelectionOverlay.turnSide), as the
+    /// Android twin's heldTurnSide.
+    var heldTurnSide: HeldTurnSide?
     /// True while the view itself moves — a pan, a pinch, the glide after
     /// one — so what floats over the selection on screen waits for it.
     var canvasMoving = false

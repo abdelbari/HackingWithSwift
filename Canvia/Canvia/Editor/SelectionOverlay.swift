@@ -6,6 +6,13 @@
 
 import SwiftUI
 
+/// The side the turn and move handles took when a turn or a resize of the
+/// element `id` began (DesignStore.heldTurnSide).
+struct HeldTurnSide: Equatable {
+    var id: String
+    var side: Geometry.TurnSide
+}
+
 struct SelectionOverlay: View {
     @Bindable var store: DesignStore
     var onHandleDrag: (Handle, CGPoint) -> Void
@@ -334,19 +341,22 @@ struct SelectionOverlay: View {
     /// above the top edge instead when below is out of reach, where no
     /// finger could take it (turnSide).
     private func rotatePoint(_ el: Element, outsetY: Double) -> CGPoint {
-        Self.rotatePoint(el, outsetY: outsetY, iz: iz, reach: Self.reachable(store))
+        Self.rotatePoint(el, outsetY: outsetY, iz: iz, store: store)
     }
 
-    private static func rotatePoint(_ el: Element, outsetY: Double, iz: Double, reach: CGRect) -> CGPoint {
+    private static func rotatePoint(_ el: Element, outsetY: Double, iz: Double, store: DesignStore) -> CGPoint {
         Geometry.rotateHandlePosition(el, offset: outsetY + 28 * iz,
-                                      above: turnSide(el, outsetY: outsetY, iz: iz, reach: reach) == .above)
+                                      above: turnSide(el, outsetY: outsetY, iz: iz, store: store) == .above)
     }
 
     /// The side the turn and move handles take, 28 points beyond the ring
     /// (Geometry.turnHandleSide): below unless below is out of reach and
-    /// above is not.
-    private static func turnSide(_ el: Element, outsetY: Double, iz: Double, reach: CGRect) -> Geometry.TurnSide {
-        Geometry.turnHandleSide(el, outsetY: outsetY, offset: 28 * iz, reachable: reach)
+    /// above is not. While a turn or a resize is under way, the side it
+    /// began with (DesignStore.heldTurnSide), so the handle under the thumb
+    /// never jumps across mid-gesture — as the Android twin holds it.
+    private static func turnSide(_ el: Element, outsetY: Double, iz: Double, store: DesignStore) -> Geometry.TurnSide {
+        if store.hasPendingChanges, let held = store.heldTurnSide, held.id == el.id { return held.side }
+        return Geometry.turnHandleSide(el, outsetY: outsetY, offset: 28 * iz, reachable: reachable(store))
     }
 
     /// The side the turn and move handles are on for what is selected, for
@@ -355,7 +365,7 @@ struct SelectionOverlay: View {
     static func handlesSide(_ store: DesignStore) -> Geometry.TurnSide {
         guard let drawn = ring(store) else { return .below }
         let out = outsets(for: drawn.el, zoom: store.zoom, page: reachablePage(store))
-        return turnSide(drawn.el, outsetY: out.y, iz: 1 / max(store.zoom, 0.01), reach: reachable(store))
+        return turnSide(drawn.el, outsetY: out.y, iz: 1 / max(store.zoom, 0.01), store: store)
     }
 
     /// What the handle ring is drawn round, and the handles it offers, as
@@ -383,7 +393,7 @@ struct SelectionOverlay: View {
         if GeometryHandles.takes(point, store: store) { return true }
         guard let drawn = ring(store) else { return false }
         let out = outsets(for: drawn.el, zoom: store.zoom, page: reachablePage(store))
-        let rotateAt = rotatePoint(drawn.el, outsetY: out.y, iz: 1 / max(store.zoom, 0.01), reach: reachable(store))
+        let rotateAt = rotatePoint(drawn.el, outsetY: out.y, iz: 1 / max(store.zoom, 0.01), store: store)
         return Touch.grab(at: point, el: drawn.el, handles: drawn.handles,
                           outsetX: out.x, outsetY: out.y, rotateAt: rotateAt,
                           reach: Touch.pageUnits(Touch.handleReach, zoom: store.zoom),
@@ -418,7 +428,7 @@ struct SelectionOverlay: View {
               Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) else { return false }
         let iz = 1 / max(store.zoom, 0.01)
         let outsetY = outsets(for: el, zoom: store.zoom, page: reachablePage(store)).y
-        let above = turnSide(el, outsetY: outsetY, iz: iz, reach: reachable(store)) == .above
+        let above = turnSide(el, outsetY: outsetY, iz: iz, store: store) == .above
         let at = Geometry.moveHandlePosition(el, offset: outsetY + 28 * iz, above: above)
         let reach = Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
         return hypot(Double(point.x - at.x), Double(point.y - at.y)) <= reach
@@ -563,6 +573,7 @@ struct SelectionOverlay: View {
                         // stale grip.
                         if let old = held, old.start != value.startLocation {
                             held = nil
+                            store.heldTurnSide = nil
                             end(old.grab)
                         }
                         if held == nil {
@@ -580,6 +591,10 @@ struct SelectionOverlay: View {
                             }
                             held = Held(grab: grab, offset: offset, outsetX: outsetX, outsetY: outsetY,
                                         start: value.startLocation)
+                            // The handles' side, held for the whole turn or
+                            // resize (turnSide).
+                            store.heldTurnSide = nil
+                            store.heldTurnSide = HeldTurnSide(id: el.id, side: Self.turnSide(el, outsetY: outsetY, iz: iz, store: store))
                         }
                         guard let held else { return }
                         switch held.grab {
@@ -593,6 +608,7 @@ struct SelectionOverlay: View {
                     .onEnded { _ in
                         let grab = held?.grab
                         held = nil
+                        store.heldTurnSide = nil
                         if let grab { end(grab) }
                     }
             )
@@ -739,19 +755,23 @@ struct SelectionOverlay: View {
 
     // MARK: quick flow
 
-    /// Where each side's + sits: 20 points beyond the handle ring, which on
-    /// the turn handle's side reaches past the turn handle (28 points out,
+    /// Where each side's + sits: on the sides of the shape's page-axis box
+    /// (Geometry.aabb), as on the Android twin, so each + is on the side
+    /// its copy goes however the shape is turned; 20 points beyond the
+    /// handle ring, which on the side the turn handle stands
+    /// (QuickFlow.turnedSide) reaches past the turn handle (28 points out,
     /// 12 across its half), so the + never covers it.
     private static func flowPoints(_ el: Element, store: DesignStore) -> [FlowPoint] {
         let iz = 1 / max(store.zoom, 0.01)
         let out = outsets(for: el, zoom: store.zoom, page: reachablePage(store))
-        let turn: QuickFlow.Side = turnSide(el, outsetY: out.y, iz: iz, reach: reachable(store)) == .above ? .top : .bottom
+        let box = Geometry.aabb(el)
+        let turn = QuickFlow.turnedSide(box, handle: rotatePoint(el, outsetY: out.y, iz: iz, store: store))
         let beyond = (QuickFlow.discGap + QuickFlow.discSize / 2) * iz
         return QuickFlow.Side.allCases.map { side in
             let across = side == .left || side == .right
             var distance = (across ? out.x : out.y) + beyond
             if side == turn { distance += (28 + 12) * iz }
-            return FlowPoint(side: side, at: QuickFlow.discPoint(el, side: side, distance: distance))
+            return FlowPoint(side: side, at: QuickFlow.discPoint(box, side: side, distance: distance))
         }
     }
 
@@ -759,12 +779,14 @@ struct SelectionOverlay: View {
     /// connected copy that way (DesignStore.addConnected); a drag draws the
     /// connector to the finger, let go on an element to tie to it or on
     /// empty space to put the copy there (DesignStore.quickFlowDrop).
+    /// While one is dragged, the line starts on the shape's box edge facing
+    /// the finger (Connectors.anchor), as on Android.
     /// VoiceOver has the same as actions on the shape.
     private func quickFlow(_ el: Element) -> some View {
         let points = Self.flowPoints(el, store: store)
         return ZStack {
             if let drag = flowDrag {
-                flowLine(from: QuickFlow.discPoint(el, side: drag.side, distance: 0), to: drag.at)
+                flowLine(from: Connectors.anchor(of: Geometry.aabb(el), toward: drag.at), to: drag.at)
             }
             ForEach(points) { point in flowDisc(point.side, at: point.at) }
         }
@@ -851,7 +873,7 @@ struct SelectionOverlay: View {
     private func moveHandle(_ el: Element) -> some View {
         let outsetY = outsets(for: el).y
         let offset = outsetY + 28 * iz
-        let above = Self.turnSide(el, outsetY: outsetY, iz: iz, reach: Self.reachable(store)) == .above
+        let above = Self.turnSide(el, outsetY: outsetY, iz: iz, store: store) == .above
         let size = Touch.moveHandleSize * iz
         return Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
             .font(.system(size: 12 * iz, weight: .semibold))

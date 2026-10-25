@@ -95,6 +95,9 @@ extension DesignStore {
         buzz(.confirm)
     }
 
+    /// The copy, then the connector, on top of the page: the connector over
+    /// the copy, its ends drawn over the shapes it ties, as Connect lays one
+    /// and as the Android twin adds them.
     private func addConnectedCopy(of source: Element, at box: CGRect) {
         let copy = QuickFlow.copy(of: source, at: box)
         let line = QuickFlow.connector(from: source, to: copy, style: QuickFlow.lastConnector(on: page))

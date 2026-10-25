@@ -1,0 +1,297 @@
+{
+  "about": "QuickFlow.dropTarget on both phones: what a + dragged out of the shape source and let go at point ties to. elements are bottom to top: id, box (x, y, w, h), and line, locked or hidden when true. It is the topmost shown element under the point (a finger's reach of 4 units either side) that is neither the source nor a line; a locked one counts, since a connector tied to it does not move it, and a line on top is passed over for what lies under it. target is its id, or null over empty space, where the copy goes instead.",
+  "rows": [
+    {
+      "name": "on another shape: tie to it",
+      "source": "a",
+      "elements": [
+        {
+          "id": "a",
+          "box": [
+            0,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "b",
+          "box": [
+            300,
+            0,
+            100,
+            100
+          ]
+        }
+      ],
+      "point": [
+        350,
+        50
+      ],
+      "target": "b"
+    },
+    {
+      "name": "on the source itself: nothing",
+      "source": "a",
+      "elements": [
+        {
+          "id": "a",
+          "box": [
+            0,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "b",
+          "box": [
+            300,
+            0,
+            100,
+            100
+          ]
+        }
+      ],
+      "point": [
+        50,
+        50
+      ],
+      "target": null
+    },
+    {
+      "name": "on empty space: nothing",
+      "source": "a",
+      "elements": [
+        {
+          "id": "a",
+          "box": [
+            0,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "b",
+          "box": [
+            300,
+            0,
+            100,
+            100
+          ]
+        }
+      ],
+      "point": [
+        700,
+        700
+      ],
+      "target": null
+    },
+    {
+      "name": "on a locked shape: tie to it",
+      "source": "a",
+      "elements": [
+        {
+          "id": "a",
+          "box": [
+            0,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "b",
+          "box": [
+            300,
+            0,
+            100,
+            100
+          ],
+          "locked": true
+        }
+      ],
+      "point": [
+        350,
+        50
+      ],
+      "target": "b"
+    },
+    {
+      "name": "a line on top: the shape under it",
+      "source": "a",
+      "elements": [
+        {
+          "id": "a",
+          "box": [
+            0,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "b",
+          "box": [
+            300,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "l",
+          "box": [
+            300,
+            40,
+            100,
+            20
+          ],
+          "line": true
+        }
+      ],
+      "point": [
+        350,
+        50
+      ],
+      "target": "b"
+    },
+    {
+      "name": "a hidden shape on top: the shape under it",
+      "source": "a",
+      "elements": [
+        {
+          "id": "a",
+          "box": [
+            0,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "b",
+          "box": [
+            300,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "h",
+          "box": [
+            320,
+            20,
+            60,
+            60
+          ],
+          "hidden": true
+        }
+      ],
+      "point": [
+        350,
+        50
+      ],
+      "target": "b"
+    },
+    {
+      "name": "two stacked: the topmost",
+      "source": "a",
+      "elements": [
+        {
+          "id": "a",
+          "box": [
+            0,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "b",
+          "box": [
+            300,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "c",
+          "box": [
+            340,
+            40,
+            100,
+            100
+          ]
+        }
+      ],
+      "point": [
+        360,
+        60
+      ],
+      "target": "c"
+    },
+    {
+      "name": "only a hidden shape there: nothing",
+      "source": "a",
+      "elements": [
+        {
+          "id": "a",
+          "box": [
+            0,
+            0,
+            100,
+            100
+          ]
+        },
+        {
+          "id": "h",
+          "box": [
+            300,
+            0,
+            100,
+            100
+          ],
+          "hidden": true
+        }
+      ],
+      "point": [
+        350,
+        50
+      ],
+      "target": null
+    },
+    {
+      "name": "the source on top of another: the one under it",
+      "source": "a",
+      "elements": [
+        {
+          "id": "u",
+          "box": [
+            0,
+            0,
+            200,
+            200
+          ]
+        },
+        {
+          "id": "a",
+          "box": [
+            50,
+            50,
+            100,
+            100
+          ]
+        }
+      ],
+      "point": [
+        100,
+        100
+      ],
+      "target": "u"
+    }
+  ]
+}
