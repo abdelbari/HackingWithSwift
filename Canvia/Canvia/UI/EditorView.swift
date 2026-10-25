@@ -161,7 +161,7 @@ struct EditorView: View {
             if saveFailed { saveFailedBanner }
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
-                CanvasView(store: store, onBackground: openBackground)
+                CanvasView(store: store, onBackground: openBackground, onPresent: { present(from: $0) })
                     .overlay { if rulers { RulersView(store: store).allowsHitTesting(!pageTaken) } }
                     .overlay { SelectionBubble(store: store) { activeSheet = .similar } }
                     .overlay { HoldMenuPill(store: store, openBackground: openBackground) }

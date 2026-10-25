@@ -54,11 +54,14 @@ final class PresentFromTests: XCTestCase {
     }
 
     /// F5 from the beginning, ⇧F5 from this page — the Android twin's
-    /// EditorKeys rows — named in the keyboard's list and in Help.
+    /// PresentFrom rows — typing or not, named in the keyboard's list and
+    /// in Help.
     func testF5PresentsFromTheBeginningAndShiftF5FromThisPage() throws {
         XCTAssertEqual(PresentFrom.choice(shift: false), PresentFrom.start)
         XCTAssertEqual(PresentFrom.choice(shift: true), PresentFrom.current)
         XCTAssertEqual(PresentFrom.keys.map(\.name), ["Present from the beginning", "Present from this page"])
+        // The typing field's table has them too, as the Android twin's does.
+        XCTAssertEqual(TextKeys.present, PresentFrom.keys)
         let keyboard = try XCTUnwrap(HelpTopics.all.first { $0.id == "keyboard" })
         XCTAssertTrue(keyboard.body.contains("⇧F5"))
     }

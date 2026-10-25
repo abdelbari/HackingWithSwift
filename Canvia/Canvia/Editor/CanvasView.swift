@@ -17,6 +17,9 @@ struct CanvasView: View {
     /// Opens the page background panel: the hold menu's Background, from
     /// VoiceOver's actions on the page.
     var onBackground: () -> Void = {}
+    /// F5 and ⇧F5 while words are typed in place: Present from "start" or
+    /// "current" (PresentFrom), as the editor's own keys do.
+    var onPresent: (String) -> Void = { _ in }
     @State private var gesture = GestureState()
     /// The edge scroll for drags on the canvas (ZoomableCanvas).
     @State private var edges = EdgeScroller()
@@ -2699,6 +2702,7 @@ struct CanvasView: View {
                                onWordLink: { store.chooseWordLink(id, range: $0) },
                                onWordHighlight: { store.chooseWordHighlight(id, range: $0) },
                                onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
+                               onPresent: presentTyped,
                                onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onBoxKey: { store.typingBoxKey($0) },
                                onLines: { store.changeLines(id, covering: $0, $1) },
@@ -2732,6 +2736,7 @@ struct CanvasView: View {
                                onDone: { commitTextEditIfAny() },
                                onStyled: { store.styleWhileTyping($0) },
                                onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
+                               onPresent: presentTyped,
                                onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onBoxKey: { store.typingBoxKey($0) },
                                onPaste: { _ = store.pasteTyped(id, selection: $0, clip: $1, plainText: $2) },
@@ -2747,6 +2752,16 @@ struct CanvasView: View {
             .background(Color.clear.contentShape(Rectangle()).onTapGesture {})
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
+    }
+
+    /// F5 or ⇧F5 in the typing field (TextKeys.present): the typing kept as
+    /// its own step, as Done keeps it, then Present — once the key is done
+    /// with, as the field goes.
+    private func presentTyped(_ choice: String) {
+        DispatchQueue.main.async {
+            commitTextEditIfAny()
+            onPresent(choice)
+        }
     }
 
     /// Tab, and the typing bar's arrow, in a table's cell: typing goes on in

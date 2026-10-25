@@ -72,7 +72,8 @@ final class UndoHostView: UIView {
     let designUndo = DesignUndo()
     /// F5 and ⇧F5, which SwiftUI's shortcuts cannot name: Present from
     /// the beginning or from this page (PresentFrom.keys), heard while this
-    /// view has the keys — while no text field has the keyboard.
+    /// view has the keys — while words are typed in place, the typing
+    /// field's own (TextKeys.present) hear them.
     var onPresent: (String) -> Void = { _ in }
 
     override var canBecomeFirstResponder: Bool { true }

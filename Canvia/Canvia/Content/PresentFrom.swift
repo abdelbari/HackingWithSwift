@@ -82,9 +82,10 @@ enum PresentFrom {
 
     // MARK: keys
 
-    /// A slideshow's keys, as the Android twin's EditorKeys has them: F5
+    /// A slideshow's keys, as the Android twin's PresentFrom has them: F5
     /// from the beginning, ⇧F5 from this page — each named as the
-    /// keyboard's list of shortcuts says it.
+    /// keyboard's list of shortcuts says it — in the editor's keys and,
+    /// ending the typing first, in the typing field's (TextKeys.present).
     struct Shortcut: Equatable {
         var shift: Bool
         var choice: String

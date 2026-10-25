@@ -30,8 +30,10 @@ enum ExportJobs {
     /// `render`'s files handed to `target`, the export sheet's Share to
     /// (ShareTargets): saved to Photos and the app opened on its library,
     /// where it has a URL for one; else to the share sheet, the files in
-    /// it. Nothing saved is said: "Couldn't share to Instagram".
-    static func sharedTo(_ target: ShareTargets.Target, render: @escaping Work) -> Work {
+    /// it. Nothing saved is said: "Couldn't share to Instagram". What went
+    /// to the app is design `designId`'s last export, as on the Android
+    /// twin, though nothing is left to share.
+    static func sharedTo(_ target: ShareTargets.Target, designId: String, render: @escaping Work) -> Work {
         { report in
             let made = try await render(report)
             guard let library = target.library.flatMap({ URL(string: $0) }) else { return made }
@@ -39,6 +41,7 @@ enum ExportJobs {
             guard outcome.anySaved else {
                 return ExportQueue.Result(failed: tr("Couldn't share to %@", target.name))
             }
+            ExportQueue.noteFiles(designId, made.urls)
             _ = await UIApplication.shared.open(library)
             return ExportQueue.Result()
         }

@@ -45,6 +45,26 @@ enum AudioTracks {
     /// What a new voice-over is called first.
     static let firstVoiceOver = tr("Voice-over")
 
+    /// What Record calls a voice-over on either phone, in any of the app's
+    /// languages — this phone names one in the language it runs in:
+    /// "Voice-over" and the catalogue's seven translations of it, the
+    /// Android twin's AudioTracks.VOICE_OVER_NAMES.
+    static let voiceOverNames = [
+        "Voice-over", "Voz en off", "Voix off", "Sprachaufnahme", "Narração", "Voce fuori campo", "ナレーション", "التعليق الصوتي",
+    ]
+
+    /// Whether `name` is one Record gives, whatever the language the app
+    /// runs in now: one of `voiceOverNames`, or one with " 2" and on after
+    /// it.
+    static func isVoiceOverName(_ name: String) -> Bool {
+        var base = Substring(name)
+        if let space = name.lastIndex(of: " "), space > name.startIndex {
+            let number = name[name.index(after: space)...]
+            if !number.isEmpty, number.allSatisfy({ ("0"..."9").contains($0) }) { base = name[..<space] }
+        }
+        return voiceOverNames.contains(String(base))
+    }
+
     /// The name a new voice-over takes, as the Android twin names it:
     /// "Voice-over", then "Voice-over 2" and on — the first that none of
     /// the design's tracks has.

@@ -76,6 +76,24 @@ final class CaptionsAuditTests: XCTestCase {
         XCTAssertTrue(AccessibilityAudit.isNarration(AudioTrack(src: "audio:r2", name: "Voice-over 3")))
         XCTAssertFalse(AccessibilityAudit.isNarration(AudioTrack(src: "audio:r3", volume: 0, name: "Voice-over")))
         XCTAssertFalse(AccessibilityAudit.isNarration(AudioTrack(src: "music:sunny", name: "Song")))
+        // Recorded in another language, on either phone, whatever this one
+        // runs in now.
+        XCTAssertTrue(AccessibilityAudit.isNarration(AudioTrack(src: "audio:r4", name: "Voix off")))
+        XCTAssertTrue(AccessibilityAudit.isNarration(AudioTrack(src: "audio:r5", name: "Voz en off 3")))
+        XCTAssertTrue(AccessibilityAudit.isNarration(AudioTrack(src: "audio:r6", name: "ナレーション 12")))
+        XCTAssertFalse(AccessibilityAudit.isNarration(AudioTrack(src: "audio:r7", name: "Voice-over take")))
+        XCTAssertFalse(AccessibilityAudit.isNarration(AudioTrack(src: "audio:r8", name: "Voice-over ")))
+    }
+
+    /// The names are "Voice-over" and its seven translations in the shared
+    /// catalogue, read from beside this file as LocalisationTests reads it.
+    func testTheVoiceOverNamesAreTheCataloguesTranslations() throws {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("../Tools/strings/strings.json").standardized
+        let catalogue = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let translations = try XCTUnwrap(catalogue["Voice-over"] as? [String: String])
+        XCTAssertEqual(translations.count, 7)
+        XCTAssertEqual(Set(AudioTracks.voiceOverNames), Set(["Voice-over"] + translations.values))
     }
 
     func testMp4AndGifExportsMentionTheCaptionsFindingsAlone() {

@@ -1,5 +1,5 @@
 {
-  "note": "Check accessibility's captions rule: a heard clip with no caption box for it (video:<id>, with a cue) on its page, and a voice-over track with none (audio:<trackId>) on the shown page its start falls on in the film. The clips in silentClips have no sound of their own. Each phone lists exactly these findings, in this order. Both phones read this file.",
+  "note": "Check accessibility's captions rule: a heard clip with no caption box for it (video:<id>, with a cue) on its page, and a voice-over track with none (audio:<trackId>) on the shown page its start falls on in the film. A voice-over is a heard track named \"Voice-over\" or one of its seven translations, with or without a number after it, whichever phone or language recorded it. The clips in silentClips have no sound of their own. Each phone lists exactly these findings, in this order. Both phones read this file.",
   "design": {
     "id": "d-captions",
     "title": "Captions",
@@ -286,6 +286,28 @@
         "fadeOut": 0,
         "loop": false,
         "name": "Voice-over 4"
+      },
+      {
+        "id": "vo5",
+        "src": "audio:rec5",
+        "start": 9,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": false,
+        "name": "Voix off"
+      },
+      {
+        "id": "take",
+        "src": "audio:rec6",
+        "start": 9,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": false,
+        "name": "Voice-over take"
       }
     ]
   },
@@ -332,6 +354,14 @@
       "message": "Narration has no captions",
       "fix": "Add captions",
       "source": "audio:vo4"
+    },
+    {
+      "kind": "captions",
+      "page": 3,
+      "id": null,
+      "message": "Narration has no captions",
+      "fix": "Add captions",
+      "source": "audio:vo5"
     },
     {
       "kind": "captions",

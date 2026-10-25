@@ -34,10 +34,11 @@
 //  - captions: a clip that is heard — not muted, its volume above 0 and its
 //    file with a sound of its own — with no caption box for it ("video:<id>",
 //    with a cue) on its page ("Video has sound but no captions"), and a
-//    voice-over — a track the Audio sheet's Record made, named "Voice-over"
-//    and on — with none for it ("audio:<trackId>") on the shown page its
-//    start falls on in the film ("Narration has no captions"), said as the
-//    page's, before the page's clips. Add captions opens the captions rows
+//    voice-over — a track the Audio sheet's Record made, named as Record
+//    names one on either phone, in any language
+//    (AudioTracks.isVoiceOverName) — with none for it ("audio:<trackId>")
+//    on the shown page its start falls on in the film ("Narration has no
+//    captions"), said as the page's, before the page's clips. Add captions opens the captions rows
 //    for it. A Present and record talk is a film of its own, not checked.
 //  - missingLetters: words — a text's or a shape's — with letters their font
 //    does not have (FontLibrary.covers), which the phone draws in a
@@ -209,17 +210,12 @@ enum AccessibilityAudit {
         return !captioned(page, source: VideoStore.src(parts.id, at: nil))
     }
 
-    /// Whether `track` is a heard voice-over: named as Record names one —
-    /// "Voice-over", or the name in the language it was recorded in, and
-    /// "Voice-over 2" and on — with its volume above 0.
+    /// Whether `track` is a heard voice-over: named as Record names one on
+    /// either phone, in any language (AudioTracks.isVoiceOverName), with
+    /// its volume above 0.
     static func isNarration(_ track: AudioTrack) -> Bool {
-        let named = track.name.hasPrefix(voiceOverName) || track.name.hasPrefix(AudioTracks.firstVoiceOver)
-        return named && track.volume > 0
+        AudioTracks.isVoiceOverName(track.name) && track.volume > 0
     }
-
-    /// The name Record gives a voice-over on the Android twin, whatever the
-    /// language.
-    static let voiceOverName = "Voice-over"
 
     /// Each heard voice-over with no captions, as "audio:<trackId>", by the
     /// index of the shown page its start falls on in the film — the page

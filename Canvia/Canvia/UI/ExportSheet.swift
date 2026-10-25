@@ -831,12 +831,13 @@ struct ExportSheet: View {
         let snapshot = designSnapshot
         let settings = movieSettings
         let quality = jpegQuality
+        let designId = store.design.id
         run(tr("Sharing to %@", target.name), format: nil) {
             let render: ExportQueue.Work = format == "mp4"
                 ? ExportJobs.movie(snapshot, settings: settings)
                 : ExportJobs.pictures(snapshot, format: format == "jpg" ? .jpeg : .png, scale: scale, longEdge: 0,
                                       quality: quality, transparent: false)
-            return ExportJobs.sharedTo(target, render: render)
+            return ExportJobs.sharedTo(target, designId: designId, render: render)
         }
     }
 
