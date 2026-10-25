@@ -882,5 +882,138 @@
    ],
    "connectors": []
   }
+ ],
+ "syncedNote": "Diagrams.synced, the rule both phones share: each case's diagram made in [0, 0, 600, 400], then the words (as stored, markers and all) and font of the parts in edits set, then read back. Each item takes its label:<n>'s words, else its item:<n> shape's when the shape has words, split at the first line break into text and note (a blank note is none); the diagram's font becomes the first of those parts' font that differs from its own. An item with no words on the page keeps its own.",
+ "synced": [
+  {
+   "name": "typed into a cycle's circle, with a second line and a new font",
+   "kind": "cycle",
+   "items": [
+    {
+     "text": "Plan"
+    },
+    {
+     "text": "Do"
+    },
+    {
+     "text": "Check"
+    },
+    {
+     "text": "Act"
+    }
+   ],
+   "edits": [
+    {
+     "part": "item:0",
+     "text": "Research\nWeek 1",
+     "font": "serif"
+    }
+   ],
+   "expect": [
+    {
+     "text": "Research",
+     "note": "Week 1"
+    },
+    {
+     "text": "Do"
+    },
+    {
+     "text": "Check"
+    },
+    {
+     "text": "Act"
+    }
+   ],
+   "font": "serif"
+  },
+  {
+   "name": "a timeline's label read, its markers undone",
+   "kind": "timeline",
+   "items": [
+    {
+     "text": "2023"
+    },
+    {
+     "text": "2024"
+    },
+    {
+     "text": "2025"
+    }
+   ],
+   "edits": [
+    {
+     "part": "label:1",
+     "text": "Ship \\*now\\*"
+    },
+    {
+     "part": "label:2",
+     "text": "**Launch**\n "
+    }
+   ],
+   "expect": [
+    {
+     "text": "2023"
+    },
+    {
+     "text": "Ship *now*"
+    },
+    {
+     "text": "Launch"
+    }
+   ],
+   "font": null
+  },
+  {
+   "name": "a Venn label wins over its bare circle; a note taken away",
+   "kind": "venn2",
+   "items": [
+    {
+     "text": "Ours",
+     "note": "Fast"
+    },
+    {
+     "text": "Theirs"
+    }
+   ],
+   "edits": [
+    {
+     "part": "label:0",
+     "text": "Us"
+    }
+   ],
+   "expect": [
+    {
+     "text": "Us"
+    },
+    {
+     "text": "Theirs"
+    }
+   ],
+   "font": null
+  },
+  {
+   "name": "nothing typed: as it was",
+   "kind": "process",
+   "items": [
+    {
+     "text": "Idea",
+     "note": "Day 1"
+    },
+    {
+     "text": "Build"
+    }
+   ],
+   "edits": [],
+   "expect": [
+    {
+     "text": "Idea",
+     "note": "Day 1"
+    },
+    {
+     "text": "Build"
+    }
+   ],
+   "font": null
+  }
  ]
 }

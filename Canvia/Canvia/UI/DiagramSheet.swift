@@ -278,12 +278,18 @@ private struct DiagramPalettes: View {
         let brand = BrandKit.load().palettes.filter { $0.colors.count >= 2 }
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                choice(tr("Page"), chosen: nil, shown: store.newChartPalette)
+                choice(tr("Page"), chosen: nil, shown: pagePalette)
                 ForEach(Array(brand.enumerated()), id: \.offset) { _, palette in
                     choice(palette.name, chosen: palette.colors, shown: palette.colors)
                 }
             }
         }
+    }
+
+    /// The page's colours as Edit diagram takes them, the diagram's own not
+    /// counted (Diagrams.palette(updating:)).
+    private var pagePalette: [String] {
+        Diagrams.palette(updating: spec.id, design: store.design, page: store.page, brand: BrandKit.load())
     }
 
     private func choice(_ name: String, chosen: [String]?, shown: [String]) -> some View {

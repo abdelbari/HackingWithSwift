@@ -73,6 +73,83 @@ final class DiagramsTests: XCTestCase {
         XCTAssertNil(Diagrams.remade(on: Page(), Diagrams.starter(.cycle), palette: palette))
     }
 
+    func testWordsTypedOnThePageAreWhatEditDiagramStartsFromAsTheFixtureSays() throws {
+        let cases = try XCTUnwrap(try SharedFixture.object("diagrams")["synced"] as? [[String: Any]])
+        XCTAssertFalse(cases.isEmpty)
+        for row in cases {
+            let name = row["name"] as? String ?? ""
+            let items = try XCTUnwrap(row["items"] as? [[String: Any]]).map { o in
+                DiagramItem(text: o["text"] as? String ?? "", note: o["note"] as? String)
+            }
+            let kind = try XCTUnwrap(DiagramKind(rawValue: try XCTUnwrap(row["kind"] as? String)))
+            let spec = DiagramSpec(id: "dia_t", kind: kind, items: items)
+            var made = Diagrams.make(spec, in: CGRect(x: 0, y: 0, width: 600, height: 400), palette: palette)
+            for edit in try XCTUnwrap(row["edits"] as? [[String: Any]]) {
+                let part = edit["part"] as? String
+                for i in made.indices where made[i].diagramPart == part {
+                    made[i].text = edit["text"] as? String
+                    if let font = edit["font"] as? String { made[i].fontFamily = font }
+                }
+            }
+            let synced = Diagrams.synced(spec, members: made)
+            let expect = try XCTUnwrap(row["expect"] as? [[String: Any]])
+            XCTAssertEqual(synced.items.map(\.text), expect.map { $0["text"] as? String ?? "" }, name)
+            XCTAssertEqual(synced.items.map(\.note), expect.map { $0["note"] as? String }, name)
+            XCTAssertEqual(synced.font, row["font"] as? String, name)
+        }
+    }
+
+    func testMadeAgainADiagramKeepsItsTurnGroupsFadeLinkAndHiding() throws {
+        let spec = DiagramSpec(id: "dia_t", kind: .cycle, items: ["Plan", "Do", "Check", "Act"].map { DiagramItem(text: $0) })
+        let made = Diagrams.make(spec, in: CGRect(x: 100, y: 100, width: 400, height: 400), palette: palette, group: "g")
+        let box = made.dropFirst().reduce(made[0].frame) { $0.union($1.frame) }
+        let turned = Geometry.rotate(made, around: CGPoint(x: box.midX, y: box.midY), by: 30).map { el -> Element in
+            var out = Groups.withChain(el, ["outer", "g"])
+            out.groupTurn = 30
+            out.link = "https://example.com"
+            out.opacity = 0.5
+            return out
+        }
+        var page = Page()
+        page.elements = turned
+        let renamed = Diagrams.editing(spec, at: 0, text: "Research", note: nil)
+        let again = try XCTUnwrap(Diagrams.remade(on: page, renamed, palette: palette))
+        XCTAssertEqual(turned.count, again.count)
+        for (was, now) in zip(turned, again) {
+            XCTAssertEqual(was.x, now.x, accuracy: 1e-6)
+            XCTAssertEqual(was.y, now.y, accuracy: 1e-6)
+            XCTAssertEqual(was.w, now.w, accuracy: 1e-6)
+            XCTAssertEqual(was.h, now.h, accuracy: 1e-6)
+            XCTAssertEqual(was.rotation, now.rotation, accuracy: 1e-6)
+            XCTAssertEqual(Groups.chain(now), ["outer", "g"])
+            XCTAssertEqual(now.groupTurn, 30)
+            XCTAssertEqual(now.opacity, 0.5)
+            XCTAssertEqual(now.link, "https://example.com")
+            XCTAssertFalse(now.isHidden)
+        }
+        let first = try XCTUnwrap(again.first { $0.diagramPart == "item:0" })
+        XCTAssertEqual(RichText.strip(first.text ?? ""), "Research")
+        // Hidden whole, it stays hidden.
+        page.elements = made.map { el -> Element in
+            var out = el
+            out.hidden = true
+            return out
+        }
+        let hidden = try XCTUnwrap(Diagrams.remade(on: page, spec, palette: palette))
+        XCTAssertTrue(hidden.allSatisfy(\.isHidden))
+    }
+
+    func testThePagesColoursForAnEditDoNotCountTheDiagramsOwn() {
+        let blank = Design(title: "Blank", width: 1080, height: 1080)
+        let fresh = DataGraphics.palette(for: blank, page: blank.pages[0], brand: nil)
+        let spec = DiagramSpec(id: "dia_t", kind: .process, items: ["A", "B", "C"].map { DiagramItem(text: $0) })
+        var design = blank
+        design.pages[0].elements = Diagrams.make(spec, in: CGRect(x: 0, y: 0, width: 600, height: 200), palette: palette)
+        let page = design.pages[0]
+        XCTAssertNotEqual(DataGraphics.palette(for: design, page: page, brand: nil), fresh)
+        XCTAssertEqual(Diagrams.palette(updating: "dia_t", design: design, page: page, brand: nil), fresh)
+    }
+
     func testVennCirclesAreSeeThroughAndMultipliedAndStylesPaintAsTheySay() throws {
         let venn = Diagrams.make(Diagrams.starter(.venn3), in: CGRect(x: 0, y: 0, width: 600, height: 600), palette: palette)
         let circles = parts(venn, "item:")

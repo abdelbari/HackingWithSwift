@@ -10,9 +10,11 @@ import Foundation
 extension DesignStore {
 
     /// The diagram the selection is part of, when it is one Edit diagram
-    /// can make again; nil for anything else.
+    /// can make again, with the words its parts show now (Diagrams.synced);
+    /// nil for anything else.
     var selectedDiagram: DiagramSpec? {
-        Diagrams.of(selectedElements)
+        guard let spec = Diagrams.of(selectedElements) else { return nil }
+        return Diagrams.synced(spec, members: Diagrams.members(page, id: spec.id))
     }
 
     /// Whether any part of diagram `id` on the page is locked: Edit diagram
@@ -51,7 +53,8 @@ extension DesignStore {
         let members = Diagrams.members(page, id: spec.id)
         guard !members.isEmpty, !members.contains(where: \.locked) else { return false }
         let kept = repaint ? spec : Diagrams.pinned(spec, members: members)
-        guard let made = Diagrams.remade(on: page, kept, palette: newChartPalette, ink: DataGraphics.ink(for: page)),
+        let palette = Diagrams.palette(updating: spec.id, design: design, page: page, brand: BrandKit.load())
+        guard let made = Diagrams.remade(on: page, kept, palette: palette, ink: DataGraphics.ink(for: page)),
               !made.isEmpty else { return false }
         applyToPage { $0 = Diagrams.replacing($0, id: spec.id, with: made) }
         selection = Set(made.map(\.id))

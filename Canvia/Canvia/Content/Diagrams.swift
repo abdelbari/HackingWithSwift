@@ -290,6 +290,42 @@ enum Diagrams {
         return out
     }
 
+    /// `spec` with each item's words and second line, and the diagram's
+    /// font, as its parts on the page (`members`) read now: an item's
+    /// "label:<n>", else the words in its "item:<n>" shape — typed there on
+    /// the canvas, or changed by Find and replace — split at the first line
+    /// break; the font the first of those has when it is not `spec`'s. What
+    /// Edit diagram and VoiceOver start from, so a change there keeps what
+    /// was typed on the page. An item with no words on the page keeps its
+    /// own. The Android twin's `synced`.
+    static func synced(_ spec: DiagramSpec, members: [Element]) -> DiagramSpec {
+        var labels: [Int: Element] = [:]
+        var shapes: [Int: Element] = [:]
+        for el in members {
+            if let n = index(el.diagramPart, "label:"), labels[n] == nil { labels[n] = el }
+            if let n = index(el.diagramPart, "item:"), shapes[n] == nil { shapes[n] = el }
+        }
+        let font = spec.font ?? "sans"
+        var newFont: String?
+        var out = spec
+        for i in out.items.indices {
+            let shape = shapes[i].flatMap { $0.text == nil ? nil : $0 }
+            guard let part = labels[i] ?? shape else { continue }
+            if newFont == nil, let family = part.fontFamily, !family.isEmpty, family != font { newFont = family }
+            let words = RichText.strip(part.text ?? "")
+            if let cut = words.firstIndex(of: "\n") {
+                out.items[i].text = String(words[..<cut])
+                let note = String(words[words.index(after: cut)...])
+                out.items[i].note = note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note
+            } else {
+                out.items[i].text = words
+                out.items[i].note = nil
+            }
+        }
+        if let newFont { out.font = newFont }
+        return out
+    }
+
     /// `spec` in `palette` — nil for the page's or brand's colours — each
     /// item's own colour let go, so all of them take the palette.
     static func repainted(_ spec: DiagramSpec, palette: [String]?) -> DiagramSpec {
@@ -650,15 +686,56 @@ enum Diagrams {
         return parts.dropFirst().reduce(first.frame) { $0.union($1.frame) }
     }
 
-    /// Diagram `spec` made again where `spec.id`'s parts stand on `page`: in
-    /// the box they fill (`frame`) and in their group. The colours the
-    /// person gave its items stay with them when `spec` was `pinned` to the
-    /// parts first, as charts keep theirs (DataGraphics.keepingPalette). Nil
-    /// when it is not on the page.
+    /// Diagram `spec` made again where `spec.id`'s parts stand on `page`, as
+    /// a chart is made again (DesignStore.updateChart): in the box its items
+    /// and labels fill, measured with them upright; in the groups, at every
+    /// level, of its lowest grouped part, and that group's turn; turned,
+    /// faded, linked and animated as they all were (DataGraphics.carrying);
+    /// still hidden when the whole of it was. The colours the person gave
+    /// its items stay with them when `spec` was `pinned` to the parts first.
+    /// Nil when it is not on the page. The Android twin's `remade`.
     static func remade(on page: Page, _ spec: DiagramSpec, palette: [String], ink: String = ShapeText.darkInk) -> [Element]? {
-        guard let box = frame(of: spec.id, on: page) else { return nil }
-        let group = members(page, id: spec.id).lazy.compactMap(\.group).first ?? UID.make("grp")
-        return make(spec, in: box, palette: palette, ink: ink, group: group)
+        let members = Diagrams.members(page, id: spec.id)
+        func shapes(_ of: [Element]) -> [Element] { of.filter { !($0.diagramPart ?? "").hasPrefix("connector:") } }
+        guard let firstMember = members.first, !shapes(members).isEmpty else { return nil }
+        // Its turn is its items' and labels': a connector lies along its
+        // own way.
+        let turn = DataGraphics.turn(of: shapes(members))
+        let whole = members.dropFirst().reduce(firstMember.frame) { $0.union($1.frame) }
+        let pivot = CGPoint(x: whole.midX, y: whole.midY)
+        let upright = turn != 0 ? Geometry.rotate(members, around: pivot, by: -turn) : members
+        let parts = shapes(upright)
+        guard let firstPart = parts.first else { return nil }
+        let box = parts.dropFirst().reduce(firstPart.frame) { $0.union($1.frame) }
+        let grouped = members.first { $0.group != nil }
+        var made = make(spec, in: box, palette: palette, ink: ink, group: grouped?.group ?? UID.make("grp"))
+        if let grouped {
+            for i in made.indices {
+                made[i] = Groups.withChain(made[i], Groups.chain(grouped))
+                made[i].groupTurn = grouped.groupTurn
+            }
+        }
+        made = DataGraphics.carrying(members, into: made, pivot: pivot, turn: turn)
+        if members.allSatisfy(\.isHidden) {
+            for i in made.indices { made[i].hidden = true }
+        }
+        return made
+    }
+
+    /// The colours Edit diagram makes diagram `id` in on `page` of `design`
+    /// when it takes the page's: DataGraphics.palette(for:page:brand:) the
+    /// design as it is without the diagram, so its own colours are not
+    /// counted as the design's, as charts do. The Android twin's
+    /// `paletteForUpdate`.
+    static func palette(updating id: String, design: Design, page: Page, brand: BrandKit?) -> [String] {
+        func bare(_ p: Page) -> Page {
+            var out = p
+            out.elements.removeAll { $0.diagram?.id == id }
+            return out
+        }
+        var without = design
+        without.pages = design.pages.map { $0.id == page.id ? bare($0) : $0 }
+        return DataGraphics.palette(for: without, page: bare(page), brand: brand)
     }
 
     /// `page` with diagram `id`'s parts replaced by `made`, which take the
