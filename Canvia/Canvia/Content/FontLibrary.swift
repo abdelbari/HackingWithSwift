@@ -731,8 +731,21 @@ enum FontLibrary {
     /// measured and what plain drawing shows — in capitals, when the box is
     /// set in them.
     static func displayText(for el: Element, pageNumber: Int?, pageCount: Int?) -> String {
-        let plain = RichText.strip(markedDisplayText(for: el, pageNumber: pageNumber, pageCount: pageCount))
-        return el.uppercase == true ? plain.uppercased() : plain
+        let marked = markedDisplayText(for: el, pageNumber: pageNumber, pageCount: pageCount)
+        let plain = RichText.strip(marked)
+        if el.uppercase == true { return plain.uppercased() }
+        // Words in capitals of their own (Spans' caps), the rest as typed.
+        let caps = capsRanges(for: el, marked: marked)
+        guard !caps.isEmpty else { return plain }
+        return RichText.inCapitals(RichText.Parsed(plain: plain, runs: []), spans: [], only: caps).parsed.plain
+    }
+
+    /// The stretches of `el`'s display text (`marked`'s plain words) its
+    /// words' own caps set in capitals (Spans), moved past a list's
+    /// markers; none in a box set in capitals whole, which takes them all.
+    static func capsRanges(for el: Element, marked: String) -> [NSRange] {
+        guard el.uppercase != true, el.liveSpans.contains(where: { $0.caps == true }) else { return [] }
+        return Spans.capsRanges(displaySpans(for: el, marked: marked))
     }
 
     /// The text as drawn with its inline styles applied: the plain display
@@ -747,12 +760,26 @@ enum FontLibrary {
         return styledWords(marked, of: el, capitals: el.uppercase == true, spans: displaySpans(for: el, marked: marked))
     }
 
+    /// `el`'s display text (`plain`, before capitals) with `spans` on it
+    /// moved as the capitals it is drawn in move them: the box's own, or
+    /// its words' (capsRanges). Unchanged when nothing is in capitals.
+    static func capitalised(_ el: Element, marked: String, spans: [TextSpan]) -> (plain: String, spans: [TextSpan]) {
+        let plain = RichText.strip(marked)
+        let caps = capsRanges(for: el, marked: marked)
+        guard el.uppercase == true || !caps.isEmpty else { return (plain, spans) }
+        let moved = RichText.inCapitals(RichText.Parsed(plain: plain, runs: []), spans: spans,
+                                        only: el.uppercase == true ? nil : caps)
+        return (moved.parsed.plain, moved.spans)
+    }
+
     /// The words as the field typed in on the canvas lays them out: as they
     /// read, styled as the canvas draws them, but neither in capitals nor
     /// after a list's markers, as the field types the words as they are
     /// kept (InlineTextField). Where a tap puts the caret is found in it.
     static func typedAttributedString(for el: Element) -> NSAttributedString {
-        let spans = paintsLetters(el) ? Spans.withoutColours(el.liveSpans) : el.liveSpans
+        // As typed: words' own capitals left out too.
+        let live = Spans.withoutCaps(el.liveSpans)
+        let spans = paintsLetters(el) ? Spans.withoutColours(live) : live
         return styledWords(el.text ?? "", of: el, capitals: false, spans: spans)
     }
 
@@ -987,9 +1014,8 @@ enum FontLibrary {
             return (span.color ?? linked).map { TextSpan(start: span.start, end: span.end, color: $0) }
         }
         guard !colours.isEmpty else { return [] }
-        guard el.uppercase == true else { return colours }
-        let capitals = RichText.inCapitals(RichText.Parsed(plain: RichText.strip(marked), runs: []), spans: colours)
-        return capitals.parsed.plain == displayText(for: el) ? capitals.spans : []
+        let capitals = capitalised(el, marked: marked, spans: colours)
+        return capitals.plain == displayText(for: el) ? capitals.spans : []
     }
 
     /// `text` with the colours of `spans` on it, each moved by `shift`.

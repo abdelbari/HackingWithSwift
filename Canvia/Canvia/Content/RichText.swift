@@ -337,8 +337,15 @@ enum RichText {
 
     /// The same, with colours and sizes on words (see Spans) over the plain
     /// text: their ends are cut at too, and they move with the capitals as
-    /// the runs do — the Android twin maps them the same way.
+    /// the runs do — the Android twin maps them the same way. With `only`,
+    /// just the stretches it covers are set in capitals — words' own caps
+    /// (Spans) in a box not set in them — the rest kept as typed.
     static func inCapitals(_ parsed: Parsed, spans: [TextSpan]) -> (parsed: Parsed, spans: [TextSpan]) {
+        inCapitals(parsed, spans: spans, only: nil)
+    }
+
+    static func inCapitals(_ parsed: Parsed, spans: [TextSpan],
+                           only: [NSRange]?) -> (parsed: Parsed, spans: [TextSpan]) {
         let ns = parsed.plain as NSString
         var cuts: Set<Int> = [0]
         cuts.insert(ns.length)
@@ -350,12 +357,18 @@ enum RichText {
             cuts.insert(min(max(span.start, 0), ns.length))
             cuts.insert(min(max(span.end, 0), ns.length))
         }
+        for range in only ?? [] {
+            cuts.insert(min(max(range.location, 0), ns.length))
+            cuts.insert(min(max(NSMaxRange(range), 0), ns.length))
+        }
         let sorted = cuts.sorted()
         var plain = ""
         // Where each cut lands once the stretches before it are capitals.
         var moved: [Int: Int] = [0: 0]
         for (from, to) in zip(sorted, sorted.dropFirst()) {
-            plain += ns.substring(with: NSRange(location: from, length: to - from)).uppercased()
+            let piece = ns.substring(with: NSRange(location: from, length: to - from))
+            let capital = only.map { ranges in ranges.contains { $0.location <= from && to <= NSMaxRange($0) } } ?? true
+            plain += capital ? piece.uppercased() : piece
             moved[to] = plain.utf16.count
         }
         let runs = parsed.runs.map { run -> Run in
@@ -499,7 +512,8 @@ enum RichText {
     }
 
     /// The plain text with the base attributes, and each run's style on top;
-    /// in capitals when `uppercase`, each run still on its own words. Then
+    /// in capitals when `uppercase`, or where a span's caps are, each run
+    /// still on its own words. Then
     /// the colours, sizes, fonts and links on words, `spans` over the plain
     /// text before capitals (see Spans): a face of its own from `face` —
     /// for a span with a font, a weight or a slant of its own — bold and
@@ -515,8 +529,10 @@ enum RichText {
                            font: (_ bold: Bool, _ italic: Bool) -> UIFont) -> NSAttributedString {
         var parsed = parse(marked)
         var spans = spans
-        if uppercase {
-            let capitals = inCapitals(parsed, spans: spans)
+        // Words' own capitals (Spans' caps) where the box is not in them.
+        let caps = uppercase ? [] : Spans.capsRanges(spans)
+        if uppercase || !caps.isEmpty {
+            let capitals = inCapitals(parsed, spans: spans, only: uppercase ? nil : caps)
             parsed = capitals.parsed
             spans = capitals.spans
         }

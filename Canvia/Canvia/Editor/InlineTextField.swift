@@ -84,9 +84,12 @@ struct InlineTextField: UIViewRepresentable {
     /// Words typed while x² or x₂ waited at the caret: raised or lowered
     /// with the typing, in its own step.
     var onTypedScript: (NSRange, String) -> Void = { _, _ in }
-    /// ⇧⌘K: capitals on or off for the whole box, as a step of its own
-    /// (TextKeys).
+    /// ⇧⌘K: capitals on or off for the words chosen, or the whole box with
+    /// none chosen, as a step of its own (TextKeys).
     var onToggle: (TextToggle) -> Void = { _ in }
+    /// Change case on the bar: the words chosen, or the whole box with none
+    /// chosen, rewritten in that case as a step of its own.
+    var onChangeCase: (ChangeCase.Casing) -> Void = { _ in }
     /// F5 and ⇧F5: Present from "start" or "current" (PresentFrom), the
     /// typing ended first (TextKeys.present).
     var onPresent: (String) -> Void = { _ in }
@@ -709,6 +712,13 @@ struct InlineTextField: UIViewRepresentable {
             indent.tag = 1
             indent.accessibilityLabel = tr("Indent")
             lineItems = parent.lineStyles ? [list, outdent, indent] : []
+            // Change case, its four from a menu.
+            let cases = ChangeCase.Casing.allCases.map { kind in
+                UIAction(title: kind.label) { [weak self] _ in self?.changeCase(kind) }
+            }
+            let changeCase = UIBarButtonItem(title: nil, image: UIImage(systemName: "textformat"), primaryAction: nil,
+                                             menu: UIMenu(title: tr("Change case"), children: cases))
+            changeCase.accessibilityLabel = tr("Change case")
             // A table's cell: first, the arrow to the next cell.
             var cellItems: [UIBarButtonItem] = []
             if parent.onNextCell != nil {
@@ -717,13 +727,20 @@ struct InlineTextField: UIViewRepresentable {
                 next.accessibilityLabel = tr("Next cell")
                 cellItems = [next]
             }
-            bar.items = cellItems + styleItems + wordItems + scriptItems + lineItems
+            bar.items = cellItems + styleItems + wordItems + scriptItems + lineItems + [changeCase]
             bar.sizeToFit()
             return bar
         }
 
         @objc private func finish() {
             parent.onDone()
+        }
+
+        /// Change case chosen from the bar: the burst typed before it ends.
+        private func changeCase(_ kind: ChangeCase.Casing) {
+            guard let view, view.markedTextRange == nil else { return }
+            coalescer.close()
+            parent.onChangeCase(kind)
         }
 
         @objc private func nextCell() {

@@ -8,7 +8,9 @@
 // weight and a slant of their own (the family's cut, as the box's
 // fontWeight and italic choose one), a link (a web address, email or phone
 // number, as Links reads one), raised or lowered letters (a `script`,
-// "super" or "sub": footnote marks, m², H₂O) or several.
+// "super" or "sub": footnote marks, m², H₂O), capitals (`caps`, true —
+// drawn in capitals as a box set in them is, the words kept as typed) or
+// several.
 // Beside them `spansText` holds the very words the offsets were made for:
 // should the words have been changed by a build that does not carry spans
 // along, the two no longer agree and the spans are ignored — never a colour
@@ -48,10 +50,13 @@ struct TextSpan: Codable, Equatable, Hashable {
     /// "super" for raised letters, "sub" for lowered ones; nil is on the
     /// line, as typed.
     var script: String?
+    /// True to draw the words in capitals, over the box's own `uppercase`;
+    /// nil is as typed. Written only when true.
+    var caps: Bool?
 
     init(start: Int, end: Int, color: String? = nil, scale: Double? = nil,
          font: String? = nil, link: String? = nil, weight: Int? = nil, italic: Bool? = nil,
-         highlight: String? = nil, script: String? = nil) {
+         highlight: String? = nil, script: String? = nil, caps: Bool? = nil) {
         self.start = start
         self.end = end
         self.color = color
@@ -62,10 +67,11 @@ struct TextSpan: Codable, Equatable, Hashable {
         self.italic = italic
         self.highlight = highlight
         self.script = script
+        self.caps = caps
     }
 
     private enum CodingKeys: String, CodingKey {
-        case start, end, color, scale, font, link, weight, italic, highlight, script
+        case start, end, color, scale, font, link, weight, italic, highlight, script, caps
     }
 
     // Each key on its own: a stretch missing its ends reads as empty and is
@@ -84,6 +90,7 @@ struct TextSpan: Codable, Equatable, Hashable {
         italic = try? c.decodeIfPresent(Bool.self, forKey: .italic)
         highlight = try? c.decodeIfPresent(String.self, forKey: .highlight)
         script = try? c.decodeIfPresent(String.self, forKey: .script)
+        caps = (try? c.decodeIfPresent(Bool.self, forKey: .caps)) == true ? true : nil
     }
 
     func encode(to encoder: Encoder) throws {
@@ -98,15 +105,16 @@ struct TextSpan: Codable, Equatable, Hashable {
         try c.encodeIfPresent(italic, forKey: .italic)
         try c.encodeIfPresent(highlight, forKey: .highlight)
         try c.encodeIfPresent(script, forKey: .script)
+        if caps == true { try c.encode(true, forKey: .caps) }
     }
 
     var range: NSRange { NSRange(location: start, length: max(0, end - start)) }
 
     /// Whether it says anything: a colour, a size, a font, a weight, a
-    /// slant, a link, a highlight or a script.
+    /// slant, a link, a highlight, a script or capitals.
     var says: Bool {
         color != nil || scale != nil || font != nil || link != nil || weight != nil || italic != nil
-            || highlight != nil || script != nil
+            || highlight != nil || script != nil || caps == true
     }
 
     /// Whether its letters are set in a face of their own: a font, a weight
@@ -126,7 +134,7 @@ struct TextSpan: Codable, Equatable, Hashable {
     func looksLike(_ other: TextSpan) -> Bool {
         color == other.color && scale == other.scale && font == other.font && link == other.link
             && weight == other.weight && italic == other.italic && highlight == other.highlight
-            && script == other.script
+            && script == other.script && caps == other.caps
     }
 }
 
@@ -203,6 +211,7 @@ enum Spans {
             if let script = span.script {
                 out.script = Spans.scripts.contains(script) ? script : nil
             }
+            if span.caps != true { out.caps = nil }
             guard out.end > out.start, out.says else { return nil }
             return out
         }
@@ -341,6 +350,20 @@ enum Spans {
         restyled(spans, range) { $0.script = script }
     }
 
+    /// The words in `range` in capitals, or as typed with nil — keeping
+    /// everything else they have.
+    static func capping(_ spans: [TextSpan], range: NSRange, caps: Bool?) -> [TextSpan] {
+        restyled(spans, range) { $0.caps = caps == true ? true : nil }
+    }
+
+    /// What aA (⇧⌘K) does to the words in `range` while some are chosen:
+    /// capitals on them all when not all of them already have them, and as
+    /// typed again when they do — the toggle both phones share.
+    static func toggledCaps(_ spans: [TextSpan], range: NSRange) -> [TextSpan] {
+        let now = caps(of: spans, in: range)
+        return capping(spans, range: range, caps: now.shared && now.caps == true ? nil : true)
+    }
+
     /// The words in `range` slanted or upright — or back as the box is,
     /// with nil: the font sheet's Italic toggle for the selected words.
     static func italicising(_ spans: [TextSpan], range: NSRange, italic: Bool?) -> [TextSpan] {
@@ -373,10 +396,27 @@ enum Spans {
     }
 
     /// Whether some words have a colour, a size, a font, a weight, a slant,
-    /// a highlight or a script of their own — what Clear word colours and
-    /// sizes takes off.
+    /// a highlight, a script or capitals of their own — what Clear word
+    /// colours and sizes takes off.
     static func hasStyles(_ spans: [TextSpan]) -> Bool {
-        spans.contains { $0.color != nil || $0.scale != nil || $0.setsFace || $0.highlight != nil || $0.script != nil }
+        spans.contains {
+            $0.color != nil || $0.scale != nil || $0.setsFace || $0.highlight != nil || $0.script != nil || $0.caps == true
+        }
+    }
+
+    /// The spans with no capitals: what the field typed in shows, the words
+    /// as they are kept.
+    static func withoutCaps(_ spans: [TextSpan]) -> [TextSpan] {
+        normalised(spans.map { span -> TextSpan in
+            var out = span
+            out.caps = nil
+            return out
+        })
+    }
+
+    /// The stretches of `spans` in capitals.
+    static func capsRanges(_ spans: [TextSpan]) -> [NSRange] {
+        spans.filter { $0.caps == true }.map(\.range)
     }
 
     /// The words in `range` a step smaller or larger: each one's size times
@@ -455,6 +495,12 @@ enum Spans {
     /// The same for the highlight: nil for none.
     static func highlight(of spans: [TextSpan], in range: NSRange) -> (highlight: String?, shared: Bool) {
         let shared = sharing(spans, range, \.highlight)
+        return (shared.value, shared.shared)
+    }
+
+    /// The same for capitals: nil for as typed.
+    static func caps(of spans: [TextSpan], in range: NSRange) -> (caps: Bool?, shared: Bool) {
+        let shared = sharing(spans, range, \.caps)
         return (shared.value, shared.shared)
     }
 

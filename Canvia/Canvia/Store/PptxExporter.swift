@@ -975,6 +975,8 @@ enum PptxExporter {
         var highlight: String? = nil
         /// Raised or lowered (Spans' script); nil is on the line.
         var script: String? = nil
+        /// In capitals of its own (Spans' caps); nil is as typed.
+        var caps: Bool? = nil
     }
 
     /// The a:rPr baseline a script is written with: raised 30%, lowered
@@ -1040,11 +1042,13 @@ enum PptxExporter {
             let linked = span?.link != nil ? Spans.linkColour : nil
             let run = TextRun(text: piece, style: style, color: span?.color ?? linked, scale: span?.scale,
                               font: span?.font, link: Links.followable(span?.link) ?? Links.pageId(span?.link).map(Links.pageLink),
-                              weight: span?.weight, highlight: span?.highlight, script: span?.script)
+                              weight: span?.weight, highlight: span?.highlight, script: span?.script,
+                              caps: span?.caps)
             let last = paragraphs.count - 1
             if var before = paragraphs[last].last, before.style == run.style, before.color == run.color,
                before.scale == run.scale, before.font == run.font, before.link == run.link,
-               before.weight == run.weight, before.highlight == run.highlight, before.script == run.script {
+               before.weight == run.weight, before.highlight == run.highlight, before.script == run.script,
+               before.caps == run.caps {
                 before.text += piece
                 paragraphs[last][paragraphs[last].count - 1] = before
             } else {
@@ -1299,7 +1303,7 @@ enum PptxExporter {
     }
 
     /// One run: bold, italic, underlined or struck as its style is, in
-    /// capitals with the box, its letter spacing as spc (px × 75), its
+    /// capitals with the box or of its own, its letter spacing as spc (px × 75), its
     /// colour — its own or the box's — faded by the element's opacity, its
     /// face, and its link (`link`, a relationship id) on a click; the
     /// styling's line before the fill, its own fill in place of the
@@ -1312,7 +1316,7 @@ enum PptxExporter {
         if run.style.underline { attributes += " u=\"sng\"" }
         if run.style.strike { attributes += " strike=\"sngStrike\"" }
         if let shift = baseline(run.script) { attributes += " baseline=\"\(shift)\"" }
-        if el.uppercase == true { attributes += " cap=\"all\"" }
+        if el.uppercase == true || run.caps == true { attributes += " cap=\"all\"" }
         let tracking = (el.letterSpacing ?? 0) * unit
         let spacing = tracking.isFinite ? Int((min(max(tracking, -1000), 1000) * 75).rounded()) : 0
         if spacing != 0 { attributes += " spc=\"\(spacing)\"" }

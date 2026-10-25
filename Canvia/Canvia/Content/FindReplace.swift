@@ -191,11 +191,9 @@ enum FindReplace {
         var probe = drawn
         probe.setSpans([TextSpan(start: range.location, end: NSMaxRange(range), scale: 2)])
         let marked = FontLibrary.markedDisplayText(for: probe, pageNumber: nil, pageCount: nil)
-        var shown = FontLibrary.displaySpans(for: probe, marked: marked)
-        if el.uppercase == true {
-            let words = RichText.Parsed(plain: RichText.strip(marked), runs: [])
-            shown = RichText.inCapitals(words, spans: shown).spans
-        }
+        // In capitals as the box draws them: its own, or its words' (caps).
+        let shown = FontLibrary.capitalised(drawn, marked: marked,
+                                            spans: FontLibrary.displaySpans(for: probe, marked: marked)).spans
         let text = NSMutableAttributedString(attributedString: FontLibrary.attributedString(for: drawn))
         text.removeAttribute(Spans.linkKey, range: NSRange(location: 0, length: text.length))
         for span in shown {

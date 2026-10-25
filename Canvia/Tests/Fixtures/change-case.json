@@ -1,0 +1,36 @@
+{
+  "about": "Change case on both phones (Android TextCase, iOS ChangeCase): each row's words as they read, the design's language, the UTF-16 range changed (start, end; null for all of the words) and what each of the four makes of it. Each letter is cased on its own in the language's locale. Title Case: a letter starts a word when the character before it is not a letter, a digit or an apostrophe (' or ’); it is upper case and every other letter lower case. Sentence case: every letter lower case but the first of the words, of each line, and the first after '.', '!' or '?' and then a space; a digit before any letter starts nothing. Where words and sentences start is read from all of the words, not only the range. `caps` gives boxes with a span's \"caps\" and the words they are drawn as.",
+  "rows": [
+    {"text": "hello WORLD. this is it", "language": "en", "range": null,
+     "upper": "HELLO WORLD. THIS IS IT", "lower": "hello world. this is it",
+     "title": "Hello World. This Is It", "sentence": "Hello world. This is it"},
+    {"text": "the QUICK brown fox", "language": "en", "range": [4, 15],
+     "upper": "the QUICK BROWN fox", "lower": "the quick brown fox",
+     "title": "the Quick Brown fox", "sentence": "the quick brown fox"},
+    {"text": "istanbul IŞIK", "language": "tr", "range": null,
+     "upper": "İSTANBUL IŞIK", "lower": "istanbul ışık",
+     "title": "İstanbul Işık", "sentence": "İstanbul ışık"},
+    {"text": "straße", "language": "de", "range": null,
+     "upper": "STRASSE", "lower": "straße", "title": "Straße", "sentence": "Straße"},
+    {"text": "first line\nsecond LINE", "language": "en", "range": null,
+     "upper": "FIRST LINE\nSECOND LINE", "lower": "first line\nsecond line",
+     "title": "First Line\nSecond Line", "sentence": "First line\nSecond line"},
+    {"text": "don't STOP the 3RD time! ok?", "language": "en", "range": null,
+     "upper": "DON'T STOP THE 3RD TIME! OK?", "lower": "don't stop the 3rd time! ok?",
+     "title": "Don't Stop The 3rd Time! Ok?", "sentence": "Don't stop the 3rd time! Ok?"}
+  ],
+  "caps": [
+    {"element": {"id": "a", "type": "text", "text": "Big sale today",
+       "spans": [{"start": 4, "end": 8, "caps": true}], "spansText": "Big sale today"},
+     "shown": "Big SALE today"},
+    {"element": {"id": "b", "type": "text", "text": "Big straße",
+       "spans": [{"start": 4, "end": 10, "caps": true, "color": "#ff0000"}], "spansText": "Big straße"},
+     "shown": "Big STRASSE"},
+    {"element": {"id": "c", "type": "text", "text": "Big sale", "uppercase": true,
+       "spans": [{"start": 4, "end": 8, "caps": true}], "spansText": "Big sale"},
+     "shown": "BIG SALE"},
+    {"element": {"id": "d", "type": "text", "text": "One\nTwo", "listStyle": "bullet",
+       "spans": [{"start": 4, "end": 7, "caps": true}], "spansText": "One\nTwo"},
+     "shown": "•  One\n•  TWO"}
+  ]
+}
