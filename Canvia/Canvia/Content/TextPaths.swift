@@ -189,11 +189,14 @@ struct PathWalker {
 ///     its first glyph's start to its last's end, pad more along the
 ///     baseline at each end; a path's the strip from descent + pad below the
 ///     baseline to ascent + pad above it, pad past either end; a column's
-///     the rectangle of its letters' cells, pad round it — one closed path
-///     a line (a curve or a path is one line, a column each column)
+///     the upright box round its letters' quads, pad round it on all four
+///     sides — one closed path a line (a curve or a path is one line, a
+///     column each column)
 ///   • ascent and descent are the box's own type's; pad is Highlight's
 ///     spread rule (0.18 em × spread / 50), and the corners are rounded by
-///     roundness / 100 of half the band's thickness
+///     roundness / 100 of half the band's thickness; a word's own marker
+///     reaches Spans.highlightPadEm past its letters and is
+///     Spans.highlightRadiusEm round, as on straight lines
 extension TextPaths {
 
     /// One letter of bent words as it stands in the box: `index` its place
@@ -228,7 +231,7 @@ extension TextPaths {
         var to: Double
     }
 
-    /// A letter's cell down a column.
+    /// A letter down a column: `rect` the upright box round its quad.
     struct Cell: Equatable {
         var index: Int
         var column: Int
@@ -424,7 +427,7 @@ extension TextPaths {
         return path
     }
 
-    /// A column's band: its letters' cells, pad round them.
+    /// A column's band: the box round its letters, pad round it.
     static func columnBand(_ box: CGRect, pad: Double) -> CGPath {
         CGPath(rect: box.insetBy(dx: CGFloat(-pad), dy: CGFloat(-pad)), transform: nil)
     }

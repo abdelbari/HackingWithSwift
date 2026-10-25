@@ -687,7 +687,14 @@ enum TextOutliner {
                 }
             }
         }
-        ink.spines = [.columns(cells)]
+        // A column's band is round its letters themselves (their quads), as
+        // on the Android twin, not their cells.
+        let placed = Dictionary(grouping: ink.placements, by: \.index)
+        ink.spines = [.columns(cells.map { cell in
+            var out = cell
+            if let glyphs = placed[cell.index] { out.rect = WordLinks.bounds(of: glyphs.map(\.quad)) }
+            return out
+        })]
         return ink.isEmpty ? nil : ink
     }
 
