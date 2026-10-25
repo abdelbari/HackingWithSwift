@@ -5,6 +5,11 @@
 // (p:animMotion) along its points. Exits, loops and a kind with no near
 // effect are left out; the shapes are simply there. The Android twin's
 // PptxAnimations, rule for rule.
+//
+// A clip goes out as a video PowerPoint plays on a click on it (`videoNvPr`,
+// `videoClick`): its own interactive sequence in the timing, which toggles
+// it playing and paused, and a media node for it — the same markup on both
+// phones, character for character.
 
 import Foundation
 
@@ -52,10 +57,27 @@ enum PptxAnimations {
         return steps.joined(separator: " ") + " E"
     }
 
+    /// A clip's relationships: the video it shows, and the media it plays.
+    static let videoRel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/video"
+    static let mediaRel = "http://schemas.microsoft.com/office/2007/relationships/media"
+
+    /// A clip's click, in its cNvPr's hlinkClick: play or pause the media.
+    static let videoClick = "r:id=\"\" action=\"ppaction://media\""
+
+    /// A clip's p:nvPr: the video (`video`, its relationship id) and, as
+    /// PowerPoint 2010 on keeps it, the media embedded (`media`).
+    static func videoNvPr(video: String, media: String) -> String {
+        let ext = "<p:ext uri=\"{DAA4B4D4-6D71-4841-9C94-3DA1E494A21F}\">"
+            + "<p14:media xmlns:p14=\"http://schemas.microsoft.com/office/powerpoint/2010/main\" r:embed=\"\(media)\"/></p:ext>"
+        return "<p:nvPr><a:videoFile r:link=\"\(video)\"/><p:extLst>" + ext + "</p:extLst></p:nvPr>"
+    }
+
     /// The <p:timing> for `shapes` — each shape's id on the slide and the
-    /// element it is — on a slide `slideW` by `slideH` page units; empty
-    /// when none of them comes in by an effect PowerPoint has.
-    static func timing(_ shapes: [(id: Int, el: Element)], slideW: Double, slideH: Double) -> String {
+    /// element it is — on a slide `slideW` by `slideH` page units, and the
+    /// `clips` on it by shape id, each played and paused by a click on it;
+    /// empty when none of them comes in by an effect PowerPoint has and
+    /// there is no clip.
+    static func timing(_ shapes: [(id: Int, el: Element)], slideW: Double, slideH: Double, clips: [Int] = []) -> String {
         var node = 4
         var effects = ""
         for (spid, el) in shapes {
@@ -91,9 +113,33 @@ enum PptxAnimations {
             }
             effects += "</p:childTnLst></p:cTn></p:par>"
         }
-        guard !effects.isEmpty else { return "" }
+        guard !effects.isEmpty || !clips.isEmpty else { return "" }
         // One click group, begun with the slide itself.
         let root = "<p:timing><p:tnLst><p:par><p:cTn id=\"1\" dur=\"indefinite\" restart=\"never\" nodeType=\"tmRoot\"><p:childTnLst>"
+        var main = ""
+        if effects.isEmpty {
+            node = 1
+        } else {
+            main = mainSequence(effects)
+        }
+        // Each clip's click sequence, then each clip's media node.
+        var triggers = ""
+        for spid in clips {
+            triggers += clickSequence(spid, from: node)
+            node += 5
+        }
+        for spid in clips {
+            node += 1
+            triggers += "<p:video><p:cMediaNode vol=\"80000\"><p:cTn id=\"\(node)\" fill=\"hold\" display=\"0\">"
+            triggers += "<p:stCondLst><p:cond delay=\"indefinite\"/></p:stCondLst></p:cTn><p:tgtEl><p:spTgt spid=\"\(spid)\"/></p:tgtEl></p:cMediaNode></p:video>"
+        }
+        let closeRoot = "</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>"
+        return root + main + triggers + closeRoot
+    }
+
+    /// The slide's one click group of entrances, `effects`, begun with the
+    /// slide itself.
+    private static func mainSequence(_ effects: String) -> String {
         let sequence = "<p:seq concurrent=\"1\" nextAc=\"seek\"><p:cTn id=\"2\" dur=\"indefinite\" nodeType=\"mainSeq\"><p:childTnLst>"
         let click = "<p:par><p:cTn id=\"3\" fill=\"hold\"><p:stCondLst><p:cond delay=\"indefinite\"/>"
             + "<p:cond evt=\"onBegin\" delay=\"0\"><p:tn val=\"2\"/></p:cond></p:stCondLst><p:childTnLst>"
@@ -102,8 +148,26 @@ enum PptxAnimations {
         let prev = "<p:prevCondLst><p:cond evt=\"onPrev\" delay=\"0\"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst>"
         let next = "<p:nextCondLst><p:cond evt=\"onNext\" delay=\"0\"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst>"
         let closeSequence = "</p:childTnLst></p:cTn>" + prev + next + "</p:seq>"
-        let closeRoot = "</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>"
-        return [root, sequence, click, together, effects, closeGroups, closeSequence, closeRoot].joined()
+        return [sequence, click, together, effects, closeGroups, closeSequence].joined()
+    }
+
+    /// Clip `spid`'s click sequence, its nodes numbered on from `node`:
+    /// a click on it toggles it playing and paused.
+    private static func clickSequence(_ spid: Int, from node: Int) -> String {
+        let target = "<p:tgtEl><p:spTgt spid=\"\(spid)\"/></p:tgtEl>"
+        let click = "<p:cond evt=\"onClick\" delay=\"0\">\(target)</p:cond>"
+        let now = "<p:stCondLst><p:cond delay=\"0\"/></p:stCondLst>"
+        var out = "<p:seq concurrent=\"1\" nextAc=\"seek\"><p:cTn id=\"\(node + 1)\" restart=\"whenNotActive\" fill=\"hold\" "
+        out += "evtFilter=\"cancelBubble\" nodeType=\"interactiveSeq\">"
+        out += "<p:stCondLst>\(click)</p:stCondLst><p:endSync evt=\"end\" delay=\"0\"><p:rtn val=\"all\"/></p:endSync><p:childTnLst>"
+        out += "<p:par><p:cTn id=\"\(node + 2)\" fill=\"hold\">\(now)<p:childTnLst>"
+        out += "<p:par><p:cTn id=\"\(node + 3)\" fill=\"hold\">\(now)<p:childTnLst>"
+        out += "<p:par><p:cTn id=\"\(node + 4)\" presetID=\"2\" presetClass=\"mediacall\" presetSubtype=\"0\" fill=\"hold\" nodeType=\"clickEffect\">"
+        out += "\(now)<p:childTnLst><p:cmd type=\"call\" cmd=\"togglePause\">"
+        out += "<p:cBhvr><p:cTn id=\"\(node + 5)\" dur=\"1\" fill=\"hold\"/>\(target)</p:cBhvr></p:cmd>"
+        out += "</p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par>"
+        out += "</p:childTnLst></p:cTn><p:nextCondLst>\(click)</p:nextCondLst></p:seq>"
+        return out
     }
 
     private static func ms(_ seconds: Double) -> Int {

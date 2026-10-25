@@ -16,7 +16,60 @@ final class PresentSession {
     /// players go (ClipPlayers) — its own only, so a page playing in
     /// another window plays on.
     var index = 0 {
-        didSet { if index != oldValue { ClipPlayers.shared.close(elements: clipElements(onPage: oldValue)) } }
+        didSet {
+            guard index != oldValue else { return }
+            ClipPlayers.shared.close(elements: clipElements(onPage: oldValue))
+            // What was done to the last page's clips stays there.
+            clipOverrides = [:]
+            controlsClip = nil
+            focusedClip = nil
+        }
+    }
+
+    /// What the presenter did to the page's clips, by element id
+    /// (Videos.Override); none on a page just come up.
+    var clipOverrides: [String: Videos.Override] = [:]
+    /// The clip whose Play/Pause and scrubber are up; nil when none is.
+    var controlsClip: String?
+    /// The clip Space plays or pauses: the last one tapped on this page.
+    var focusedClip: String?
+
+    /// Seconds since the page up came up: the moment its clips play from.
+    var pageMoment: Double { max(0, Date().timeIntervalSince(shownAt)) }
+
+    /// Whether a clip is being played by hand, which holds autoplay on the
+    /// page until it is paused.
+    var playingByHand: Bool { Videos.playingByHand(clipOverrides) }
+
+    /// The page's clips as drawn, the front one last.
+    var clips: [Element] {
+        design.drawnElements(on: page).filter { VideoStore.isVideo($0.src) }
+    }
+
+    /// The length of clip `el`'s file, as far as it is known yet.
+    static func length(of el: Element) -> Double? {
+        el.src.flatMap(VideoStore.split).flatMap { VideoStore.knownLength($0.id) }
+    }
+
+    /// Play or Pause on clip `id` of the page up.
+    func toggleClip(_ id: String) {
+        guard let el = clips.first(where: { $0.id == id }) else { return }
+        clipOverrides[id] = Videos.toggled(el, override: clipOverrides[id], pageMoment: pageMoment,
+                                           duration: Self.length(of: el))
+        focusedClip = id
+    }
+
+    /// Clip `id` of the page up scrubbed to `seconds` into its file.
+    func scrubClip(_ id: String, to seconds: Double) {
+        guard let el = clips.first(where: { $0.id == id }) else { return }
+        clipOverrides[id] = Videos.scrubbed(el, to: seconds, override: clipOverrides[id], pageMoment: pageMoment,
+                                            duration: Self.length(of: el))
+    }
+
+    /// Whether clip `id` of the page up is moving.
+    func clipMoves(_ id: String) -> Bool {
+        guard let el = clips.first(where: { $0.id == id }) else { return false }
+        return Videos.moves(el, override: clipOverrides[id])
     }
 
     /// The ids of the elements showing a clip on page `index` — the
@@ -180,6 +233,7 @@ struct PresentStage: View {
                 // decode on the main thread each time made it stutter.
                 .environment(\.liveVideo, true)
                 .environment(\.clipsPlay, true)
+                .environment(\.clipOverrides, session.clipOverrides)
                 .environment(\.onScreen, true)
         }
         // Settings ▸ Accessibility's Underline links, never in an export.

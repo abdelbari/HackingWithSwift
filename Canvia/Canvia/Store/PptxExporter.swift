@@ -58,6 +58,11 @@
 //   • pictures are ppt/media/imageN.png, a background imageN.jpeg,
 //     numbered across the deck as they are drawn; one that cannot be drawn
 //     is left out of its slide and takes no number
+//   • a clip is its poster, as any picture, and its file whole after it,
+//     ppt/media/mediaN.mp4 on the same count, played and paused by a click
+//     on it (PptxAnimations: videoClick, videoNvPr, timing's clips) — its
+//     rels the poster, then the video, then the media; a clip whose file is
+//     not on the phone is its poster alone
 //   • the file holds the fixed parts first, then for each slide its
 //     pictures, the slide and its relationships, then its notes slide and
 //     theirs
@@ -312,6 +317,8 @@ enum PptxExporter {
             case element(Element)
             case background
             case photo(String)
+            /// A clip's file as it is stored, by its unstamped "video:<id>".
+            case clip(String)
         }
 
         /// Its file under ppt/media: "image3.png".
@@ -332,12 +339,15 @@ enum PptxExporter {
     struct Relationships {
         private(set) var entries: [String] = []
 
+        /// `type` is a name under the package's own relationships, or a
+        /// whole address (a clip's media, PptxAnimations.mediaRel).
         @discardableResult
         mutating func add(_ type: String, _ target: String, external: Bool = false) -> String {
             let id = "rId\(entries.count + 1)"
             let mode = external ? " TargetMode=\"External\"" : ""
             let target = SVGExporter.escape(target)
-            entries.append("<Relationship Id=\"\(id)\" Type=\"\(PptxExporter.relationshipBase)\(type)\" Target=\"\(target)\"\(mode)/>")
+            let full = type.contains("://") ? type : PptxExporter.relationshipBase + type
+            entries.append("<Relationship Id=\"\(id)\" Type=\"\(full)\" Target=\"\(target)\"\(mode)/>")
             return id
         }
 
@@ -439,7 +449,15 @@ enum PptxExporter {
         case .background: return "image\(number).jpeg"
         case .element: return "image\(number).png"
         case .photo(let src): return "image\(number).\(photos.type(src))"
+        case .clip: return "media\(number).mp4"
         }
+    }
+
+    /// The clip `el` shows, unstamped ("video:<id>"), or nil for any other
+    /// element.
+    static func clipSource(_ el: Element) -> String? {
+        guard el.type == .image, let src = el.src, let parts = VideoStore.split(src) else { return nil }
+        return VideoStore.src(parts.id, at: nil)
     }
 
     /// The photo `el`'s letters are full of, when the effect lets it
@@ -466,6 +484,8 @@ enum PptxExporter {
         }
         for el in drawn where form(of: el, styled: styled) == .picture && el.w > 0 && el.h > 0 {
             add(.element(el))
+            // A clip's file, after its poster.
+            if let clip = clipSource(el) { add(.clip(clip)) }
         }
         return parts
     }
@@ -559,8 +579,10 @@ enum PptxExporter {
         // Whose each shape is, so groups go out as grpSp (Groups.nested).
         var owners: [Element?] = []
         var nextId = 2
-        // Each element's shape id, for its entrance in the slide's timing.
+        // Each element's shape id, for its entrance in the slide's timing,
+        // and each clip's, for its click.
         var timed: [(id: Int, el: Element)] = []
+        var played: [Int] = []
         if let backdrop {
             let size = design.size(for: page)
             let box = xfrm(x: 0, y: 0, w: Double(size.width), h: Double(size.height), rotation: 0, frame: frame)
@@ -574,15 +596,23 @@ enum PptxExporter {
             defer { while owners.count < shapes.count { owners.append(el) } }
             let kind = form(of: el, styled: styled)
             var picture: MediaPart?
+            var clip: MediaPart?
             if kind == .picture {
                 picture = take(.element(el))
                 if picture == nil { continue }
+                clip = clipSource(el).flatMap { take(.clip($0)) }
             }
             let id = nextId
             nextId += 1
             // An edge laid under its shape enters with it, as Present plays them.
             timed.append((id: id, el: el))
-            let link = el.edgeOnly ? nil : clickAttributes(el.link, design: design, slides: slides, rels: &rels)
+            // A clip's click plays it, in place of any link.
+            var link: String?
+            if clip != nil {
+                link = PptxAnimations.videoClick
+            } else if !el.edgeOnly {
+                link = clickAttributes(el.link, design: design, slides: slides, rels: &rels)
+            }
             switch kind {
             case .text:
                 // Letters full of a photo: the picture, cropped to the
@@ -656,7 +686,14 @@ enum PptxExporter {
                 let pad = margin(el)
                 let box = xfrm(x: el.x - pad, y: el.y - pad, w: el.w + 2 * pad, h: el.h + 2 * pad,
                                rotation: el.rotation, frame: frame)
-                shapes.append(pictureXML(el, id: id, link: link, embed: embed, box: box))
+                var nvPr = "<p:nvPr/>"
+                if let clip {
+                    played.append(id)
+                    let video = rels.add(PptxAnimations.videoRel, "../media/\(clip.name)")
+                    let media = rels.add(PptxAnimations.mediaRel, "../media/\(clip.name)")
+                    nvPr = PptxAnimations.videoNvPr(video: video, media: media)
+                }
+                shapes.append(pictureXML(el, id: id, link: link, embed: embed, box: box, nvPr: nvPr))
             }
         }
 
@@ -676,7 +713,7 @@ enum PptxExporter {
         // A motion path's moves are shares of the slide, in the page's units
         // as it is fitted onto the slide.
         let timing = PptxAnimations.timing(timed, slideW: design.width / placed.factor,
-                                           slideH: design.height / placed.factor)
+                                           slideH: design.height / placed.factor, clips: played)
         let xml = [declaration, "<p:sld \(namespaces)>", "<p:cSld>", background, tree, "</p:cSld>",
                    masterColours, transitionXML(after: previous, in: design), timing, "</p:sld>"].joined()
         return SlideParts(xml: xml, rels: rels.xml, media: drawn, notes: notes)
@@ -744,8 +781,9 @@ enum PptxExporter {
         return "<p:cNvPr \(attributes)><a:hlinkClick \(link)/></p:cNvPr>"
     }
 
-    private static func pictureXML(_ el: Element, id: Int, link: String?, embed: String, box: String) -> String {
-        let properties = "<p:nvPicPr>\(cNvPr(el, id: id, link: link))<p:cNvPicPr/><p:nvPr/></p:nvPicPr>"
+    private static func pictureXML(_ el: Element, id: Int, link: String?, embed: String, box: String,
+                                   nvPr: String = "<p:nvPr/>") -> String {
+        let properties = "<p:nvPicPr>\(cNvPr(el, id: id, link: link))<p:cNvPicPr/>\(nvPr)</p:nvPicPr>"
         let fill = "<p:blipFill><a:blip r:embed=\"\(embed)\"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>"
         return "<p:pic>\(properties)\(fill)<p:spPr>\(box)\(geometry("rect"))</p:spPr></p:pic>"
     }
@@ -1623,6 +1661,7 @@ enum PptxExporter {
             "<Default Extension=\"xml\" ContentType=\"application/xml\"/>",
             "<Default Extension=\"png\" ContentType=\"image/png\"/>",
             "<Default Extension=\"jpeg\" ContentType=\"image/jpeg\"/>",
+            "<Default Extension=\"mp4\" ContentType=\"video/mp4\"/>",
             part("ppt/presentation.xml", "\(main).presentation.main+xml"),
             part("ppt/presProps.xml", "\(main).presProps+xml"),
             part("ppt/viewProps.xml", "\(main).viewProps+xml"),
@@ -1807,10 +1846,17 @@ enum PptxExporter {
                 try await pacer.breathe()
                 let number = n + 1
                 var drawn: [MediaPart] = []
+                // A clip's file goes only after the poster it plays from.
+                var posterDrew = false
                 for planned in media(design: design, page: page, firstImage: image, styled: styled) {
                     try autoreleasepool {
+                        let isClip: Bool
+                        if case .clip = planned.source { isClip = true } else { isClip = false }
+                        if isClip && !posterDrew { return }
                         // One that will not draw is left out, and takes no number.
-                        guard let data = render(planned.source, design: design, page: page) else { return }
+                        let rendered = render(planned.source, design: design, page: page)
+                        if case .element = planned.source { posterDrew = rendered != nil }
+                        guard let data = rendered else { return }
                         let part = MediaPart(name: fileName(image, for: planned.source), source: planned.source)
                         try zip.add("ppt/media/\(part.name)", data)
                         drawn.append(part)
@@ -1849,6 +1895,10 @@ enum PptxExporter {
         switch source {
         case .photo(let src):
             return PhotoFills.stored(src)?.data
+        case .clip(let src):
+            // The file as it is stored, mapped rather than read whole.
+            guard let id = VideoStore.split(src)?.id, let url = VideoStore.url(for: id) else { return nil }
+            return try? Data(contentsOf: url, options: .alwaysMapped)
         case .background:
             let size = design.size(for: page)
             let renderer = ImageRenderer(content: PageBackgroundView(design: design, page: page))

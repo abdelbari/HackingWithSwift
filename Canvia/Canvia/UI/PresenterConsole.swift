@@ -4,7 +4,8 @@
 // "End of presentation"), the page's title, the time on it beside its hold,
 // the notes in large type made larger or smaller with A− and A+, the talk's
 // timer (tap to pause, hold to reset), the count, and Previous, Pages and
-// Next. Clips play on the screen only: here the pages are drawn still.
+// Next. Clips play on the screen only: here the pages are drawn still, and
+// a Videos row under the heading plays or pauses each of the page's clips.
 
 import SwiftUI
 
@@ -23,6 +24,8 @@ struct PresenterConsole<Controls: View>: View {
     let next: () -> Void
     let end: () -> Void
     let showPages: () -> Void
+    /// Play or Pause on one of the page's clips, by element id.
+    let toggleClip: (String) -> Void
     /// The sound, autoplay, loop and effects buttons, as the phone's own
     /// bar has them.
     @ViewBuilder let controls: Controls
@@ -33,6 +36,7 @@ struct PresenterConsole<Controls: View>: View {
             topBar
             slides
             heading
+            videos
             notes
             bottomBar
         }
@@ -136,6 +140,38 @@ struct PresenterConsole<Controls: View>: View {
                 .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.white.opacity(0.8))
         }
+    }
+
+    /// The page's clips, each with Play or Pause, when it has any.
+    @ViewBuilder
+    private var videos: some View {
+        let clips = session.clips
+        if !clips.isEmpty {
+            HStack(spacing: 8) {
+                caption(tr("Videos"))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(clips.enumerated()), id: \.element.id) { n, el in
+                            videoButton(el, number: n + 1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func videoButton(_ el: Element, number: Int) -> some View {
+        let moving = session.clipMoves(el.id)
+        let name = el.altText.flatMap { $0.isEmpty ? nil : $0 } ?? tr("Video %d", number)
+        return Button { toggleClip(el.id) } label: {
+            Label(name, systemImage: moving ? "pause.fill" : "play.fill")
+                .font(.subheadline)
+                .lineLimit(1)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .background(Color.white.opacity(0.15), in: Capsule())
+        }
+        .accessibilityLabel(Videos.spokenAction(el, moving: moving))
     }
 
     private var notes: some View {

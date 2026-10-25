@@ -678,6 +678,8 @@ struct CanvasView: View {
                 .environment(\.playsPictures, playAnimated)
                 // A caption box at rest shows the cue at the playhead.
                 .environment(\.captionTime, store.playheadInPage)
+                // A picture or clip whose file is gone says so here alone.
+                .environment(\.missingFiles, store.missingFiles)
                 // Carries the document edge in dark mode, where a shadow on a
                 // dark workspace is invisible.
                 .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * iz))
@@ -1884,7 +1886,9 @@ struct CanvasView: View {
                                 perform: { elementHold(el) }, onPressingChanged: pressed)
             .gesture(moveGesture(el))
             .accessibilityElement()
-            .accessibilityLabel(CanvasAccessibility.label(for: el, on: store.page.elements))
+            // ", missing" after a picture or clip whose file is gone.
+            .accessibilityLabel(MissingMedia.spoken(CanvasAccessibility.label(for: el, on: store.page.elements),
+                                                    missing: store.missingKind(el) != nil))
             .accessibilityValue(spokenValue(of: el))
             .accessibilityAddTraits(readerTraits(el))
             .accessibilityHint(el.type == .text ? tr("Double tap to select; double tap and hold to edit")

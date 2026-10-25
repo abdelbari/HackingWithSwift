@@ -144,21 +144,23 @@ enum ExportPlan {
 
     /// What the row counts for an export as `format`: every finding for a
     /// type in checkedFormats, the captions ones for a film
-    /// (captionFormats), none for anything else.
+    /// (captionFormats) — and, for any file, a photo or clip whose file is
+    /// gone (missingMedia), which goes out missing whatever the type, as
+    /// the Android twin's nudgeFindings counts it.
     static func nudgeFindings(_ findings: [AccessibilityAudit.Finding], format: String) -> [AccessibilityAudit.Finding] {
         if checkedFormats.contains(format) { return findings }
-        if captionFormats.contains(format) { return findings.filter { $0.kind == .captions } }
-        return []
+        if captionFormats.contains(format) { return findings.filter { $0.kind == .captions || $0.kind == .missingMedia } }
+        return findings.filter { $0.kind == .missingMedia }
     }
 
     /// Whether the sheet shows the accessibility row for `format`: the
     /// setting on (`remind`), something found that it counts
-    /// (`nudgeFindings`, already counted for a film), a type people read or
-    /// a film, and not put away since the design last changed
-    /// (`dismissed`, the revision it was put away at).
+    /// (`nudgeFindings`, already counted for the type — for most types,
+    /// only what is missing), and not put away since the design last
+    /// changed (`dismissed`, the revision it was put away at). The Android
+    /// twin's showsNudge.
     static func showsA11yNudge(format: String, findings: Int, remind: Bool, revision: Int64,
                                dismissed: Int64?) -> Bool {
-        let counted = checkedFormats.contains(format) || captionFormats.contains(format)
-        return remind && findings > 0 && counted && dismissed != revision
+        remind && findings > 0 && dismissed != revision
     }
 }

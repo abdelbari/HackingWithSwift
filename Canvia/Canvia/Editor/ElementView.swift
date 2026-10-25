@@ -42,9 +42,11 @@ struct ElementView: View {
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.clipsPlay) private var clipsPlay
     @Environment(\.pausedClips) private var pausedClips
+    @Environment(\.clipOverrides) private var clipOverrides
     @Environment(\.playsPictures) private var playsPictures
     @Environment(\.captionTime) private var captionTime
     @Environment(\.captionsPlay) private var captionsPlay
+    @Environment(\.captionPage) private var captionPage
     @Environment(\.onScreen) private var onScreen
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -57,7 +59,8 @@ struct ElementView: View {
     private var resolved: Element {
         var el = element
         if el.captions != nil {
-            el = Captions.shown(el, at: animationTime?.time ?? captionTime, still: animationTime == nil && !captionsPlay)
+            el = Captions.shown(el, at: animationTime?.time ?? captionTime, still: animationTime == nil && !captionsPlay,
+                                palette: captionPage?.palette ?? [])
         }
         guard let pageNumber, el.text?.contains("{page") == true else { return el }
         el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
@@ -121,7 +124,12 @@ struct ElementView: View {
             let clip = el.clip ?? ClipPlayback()
             if let clock = animationTime, !pausedClips.contains(el.id) {
                 let length = liveVideo ? VideoStore.knownLength(parts.id) : VideoStore.duration(of: parts.id)
-                el.src = VideoStore.src(parts.id, at: VideoStore.clipTime(clock.time, clip: clip, duration: length))
+                // In Present, where the presenter played, paused or
+                // scrubbed it, or waiting with its Autoplay off.
+                let at = clipOverrides.map {
+                    Videos.presentTime(el, pageMoment: clock.time, override: $0[el.id], duration: length)
+                } ?? VideoStore.clipTime(clock.time, clip: clip, duration: length)
+                el.src = VideoStore.src(parts.id, at: at)
             } else {
                 el.src = VideoStore.atRest(el)
             }
@@ -136,6 +144,13 @@ struct ElementView: View {
             el.src = MotionLibrary.playing(el.src, at: clock.time)
         }
         return el
+    }
+
+    /// Whether clip `el` moves now: in Present, as the presenter left it
+    /// (Videos.moves); anywhere else, always.
+    private func clipMoves(_ el: Element) -> Bool {
+        guard let clipOverrides else { return true }
+        return Videos.moves(el, override: clipOverrides[el.id])
     }
 
     /// `el` as it shows at `date` on a picture's own clock, which goes
@@ -259,6 +274,21 @@ struct ElementView: View {
         }
     }
 
+    /// A "bar" caption's band (Captions.barRect): across the page from the
+    /// box's own top, its height, drawn in the box's space — the box's
+    /// width where no page is drawn round it.
+    @ViewBuilder
+    private func captionBar(_ el: Element) -> some View {
+        if el.text?.isEmpty == false,
+           let band = Captions.barRect(el, pageWidth: captionPage?.width ?? el.x * 2 + el.w) {
+            let across = captionPage != nil
+            Color.black.opacity(Captions.barAlpha)
+                .frame(width: across ? band.width : el.w, height: band.height)
+                .offset(x: across ? band.minX - el.x : 0)
+                .allowsHitTesting(false)
+        }
+    }
+
     @ViewBuilder
     private func typeContent(drawing: Double) -> some View {
         let el = shown
@@ -269,7 +299,12 @@ struct ElementView: View {
             } else {
                 ShapeElementView(element: el)
             }
-        case .text: TextElementView(element: el, units: motion.unitClock)
+        case .text:
+            // A caption box in Bar style lies on a band across the page's
+            // whole width, black at 0.6, while it has words to show.
+            TextElementView(element: el, units: motion.unitClock)
+                .frame(width: el.w, height: el.h)
+                .background(alignment: .topLeading) { captionBar(el) }
         case .image:
             if playsPictures && animationTime == nil && (AnimStore.isAnim(el.src) || MotionLibrary.isMotion(el.src)) {
                 // Play in the editor: the picture on a clock of its own, going
@@ -281,7 +316,8 @@ struct ElementView: View {
                 // Whether the page's clock runs, read here once so a photo
                 // is not drawn again on every tick of it — not for a scrub,
                 // whose time stands still between drags.
-                ImageElementView(element: el, clipPlays: clipsPlay && animationTime != nil && !pausedClips.contains(el.id))
+                ImageElementView(element: el, clipPlays: clipsPlay && animationTime != nil && !pausedClips.contains(el.id)
+                                 && clipMoves(el))
             }
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
@@ -1359,6 +1395,7 @@ struct ImageElementView: View {
     var clipPlays = false
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.onScreen) private var onScreen
+    @Environment(\.missingFiles) private var missingFiles
     @Environment(\.clipsInOrder) private var clipsInOrder
 
     var body: some View {
@@ -1415,6 +1452,10 @@ struct ImageElementView: View {
                 // the photo would be.
                 colour.fillView()
                     .frame(width: element.w, height: element.h)
+            } else if onScreen, let file = MissingMedia.missingFile(of: element, among: missingFiles) {
+                // Its file is gone: said on the canvas, scaled to the
+                // frame — an export keeps its plain placeholder.
+                MissingPlaceholder(element: element, kind: MissingMedia.fileKind(file))
             } else {
                 Color(hex: "#e3e6ea")
                     .overlay(Image(systemName: "photo").font(.largeTitle).foregroundStyle(.secondary))
@@ -1534,6 +1575,31 @@ struct ImageElementView: View {
             key = element.src.map { AnimStore.isAnim($0) ? AnimStore.shownKey($0) : $0 } ?? ""
         }
         return (base, key)
+    }
+}
+
+/// A photo's or a clip's place when its file is gone (MissingMedia): the
+/// grey placeholder with a broken picture and "Photo missing" or "Video
+/// missing", sized to the frame.
+private struct MissingPlaceholder: View {
+    let element: Element
+    let kind: MissingMedia.MediaKind
+
+    var body: some View {
+        let side = max(1, min(element.w, element.h))
+        Color(hex: "#e3e6ea")
+            .overlay {
+                VStack(spacing: side * 0.04) {
+                    Image(systemName: kind == .video ? "video.slash" : "photo.badge.exclamationmark")
+                        .font(.system(size: side * 0.22))
+                    Text(MissingMedia.saying(kind))
+                        .font(.system(size: max(6, side * 0.09), weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                }
+                .foregroundStyle(Color(hex: "#5f6670"))
+                .padding(side * 0.05)
+            }
     }
 }
 
@@ -1814,9 +1880,11 @@ struct PageRenderView: View {
         .designDirection()
     }
 
-    @ViewBuilder
     private var drawn: some View {
-        if sentinels { sentinelled } else { plain }
+        Group {
+            if sentinels { sentinelled } else { plain }
+        }
+        .environment(\.captionPage, CaptionPage.of(design, page))
     }
 
     /// What `plain` draws, sentinel k before the kth element drawn —

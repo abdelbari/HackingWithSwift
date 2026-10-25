@@ -22,9 +22,12 @@ extension DesignStore {
             announce(tr("This photo is locked. Tap Unlock to replace it."), undoable: false)
             return false
         }
+        let missing = MissingMedia.isMissing(photo)
         applyToPage { page in
             if let i = page.elements.firstIndex(where: { $0.id == id }) {
-                page.elements[i] = Crop.replaced(page.elements[i], src: src)
+                // A picture whose file is gone keeps its look (MissingMedia).
+                page.elements[i] = missing ? MissingMedia.replaced(page.elements[i], src: src)
+                    : Crop.replaced(page.elements[i], src: src)
             }
         }
         return true

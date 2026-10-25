@@ -107,7 +107,9 @@ struct ClipSheet: View {
         }
     }
 
-    /// Speed, from a quarter to twice as fast, and Loop.
+    /// Speed, from a quarter to twice as fast, Loop, and Autoplay — off, the
+    /// clip waits for Play in Present (Videos); the MP4 and GIF play it
+    /// either way.
     private func playSection(_ clip: ClipPlayback) -> some View {
         Section {
             Picker("Speed", selection: Binding(
@@ -121,6 +123,13 @@ struct ClipSheet: View {
             Toggle("Loop", isOn: Binding(
                 get: { clip.loop },
                 set: { on in write { $0.loop = on } }))
+            Toggle("Autoplay", isOn: Binding(
+                get: { clip.autoplay },
+                set: { on in write { $0.autoplay = on } }))
+        } footer: {
+            if !clip.autoplay {
+                Text("When presenting, it waits for a tap on Play.")
+            }
         }
     }
 

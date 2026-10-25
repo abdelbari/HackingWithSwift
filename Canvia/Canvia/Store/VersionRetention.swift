@@ -120,13 +120,18 @@ extension DesignLibrary {
         /// Version file stem → its name; "" is pinned without one.
         var pinned: [String: String] = [:]
         var a11yNudgeDismissed: Int64?
+        /// The revision at which the editor's "N items are missing from
+        /// this design" was put away (MissingMediaBanner), written only
+        /// once it has been, as the nudge's is.
+        var missingNoteDismissed: Int64?
 
-        init(pinned: [String: String] = [:], a11yNudgeDismissed: Int64? = nil) {
+        init(pinned: [String: String] = [:], a11yNudgeDismissed: Int64? = nil, missingNoteDismissed: Int64? = nil) {
             self.pinned = pinned
             self.a11yNudgeDismissed = a11yNudgeDismissed
+            self.missingNoteDismissed = missingNoteDismissed
         }
 
-        private enum CodingKeys: String, CodingKey { case version, pinned, a11yNudgeDismissed }
+        private enum CodingKeys: String, CodingKey { case version, pinned, a11yNudgeDismissed, missingNoteDismissed }
 
         /// Lenient: a name that is not text is passed over, and a file from
         /// another build keeps what it can.
@@ -136,6 +141,7 @@ extension DesignLibrary {
             let raw = (try? c.decode([String: PinnedName].self, forKey: .pinned)) ?? [:]
             pinned = raw.compactMapValues(\.name)
             a11yNudgeDismissed = try? c.decodeIfPresent(Int64.self, forKey: .a11yNudgeDismissed)
+            missingNoteDismissed = try? c.decodeIfPresent(Int64.self, forKey: .missingNoteDismissed)
         }
 
         private struct PinnedName: Decodable {
@@ -163,6 +169,15 @@ extension DesignLibrary {
     static func dismissA11yNudge(_ id: String, revision: Int64) -> Bool {
         var meta = versionMeta(for: id)
         meta.a11yNudgeDismissed = revision
+        return saveVersionMeta(meta, for: id)
+    }
+
+    /// The editor's missing-media line put away for design `id` at
+    /// `revision`, kept in its meta.json with its pins.
+    @discardableResult
+    static func dismissMissingNote(_ id: String, revision: Int64) -> Bool {
+        var meta = versionMeta(for: id)
+        meta.missingNoteDismissed = revision
         return saveVersionMeta(meta, for: id)
     }
 

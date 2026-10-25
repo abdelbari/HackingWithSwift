@@ -46,6 +46,13 @@ struct PausedClipsKey: EnvironmentKey {
     static let defaultValue: Set<String> = []
 }
 
+/// What the presenter did to the page's clips (Videos.Override), by
+/// element id, in Present; nil anywhere else, where every clip plays on
+/// the page's clock — an export's included, Autoplay off or not.
+struct ClipOverridesKey: EnvironmentKey {
+    static let defaultValue: [String: Videos.Override]? = nil
+}
+
 /// Whether clips are asked for frame after frame, in order — a video
 /// export — so each is read on from its last frame by a reader of its own
 /// (ClipReader) rather than sought for every one.
@@ -85,7 +92,45 @@ struct CaptionsPlayKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// What a caption box needs of its page (CaptionPage), nil where no page
+/// is drawn round it.
+struct CaptionPageKey: EnvironmentKey {
+    static let defaultValue: CaptionPage? = nil
+}
+
+/// The page a caption box is drawn on: its width, which a "bar" caption's
+/// band runs across (Captions.barRect), and its palette, which a
+/// "gradient" caption's letters take (Captions.gradientFill) — worked out
+/// only for a page with a gradient caption on it.
+struct CaptionPage: Equatable {
+    var width: Double
+    var palette: [String]
+
+    static func of(_ design: Design, _ page: Page) -> CaptionPage {
+        let graded = page.elements.contains { $0.captions?.style == Captions.gradient }
+        let palette = graded ? ContentLibrary.suggestedPalette(for: page)?.colors ?? [] : []
+        return CaptionPage(width: Double(design.size(for: page).width), palette: palette)
+    }
+}
+
+/// The stored files the editor found gone (DesignStore.missingFiles): a
+/// picture or clip among them is drawn saying so, on screen. Empty
+/// anywhere else, so an export keeps its plain grey placeholder.
+struct MissingFilesKey: EnvironmentKey {
+    static let defaultValue: Set<String> = []
+}
+
 extension EnvironmentValues {
+    var missingFiles: Set<String> {
+        get { self[MissingFilesKey.self] }
+        set { self[MissingFilesKey.self] = newValue }
+    }
+
+    var captionPage: CaptionPage? {
+        get { self[CaptionPageKey.self] }
+        set { self[CaptionPageKey.self] = newValue }
+    }
+
     var captionTime: Double? {
         get { self[CaptionTimeKey.self] }
         set { self[CaptionTimeKey.self] = newValue }
@@ -124,6 +169,11 @@ extension EnvironmentValues {
     var pausedClips: Set<String> {
         get { self[PausedClipsKey.self] }
         set { self[PausedClipsKey.self] = newValue }
+    }
+
+    var clipOverrides: [String: Videos.Override]? {
+        get { self[ClipOverridesKey.self] }
+        set { self[ClipOverridesKey.self] = newValue }
     }
 
     /// The readers a video export reads the page's clips with, in order;

@@ -1,0 +1,52 @@
+{
+  "about": "HDR to SDR tone mapping on both phones (HdrToneMap): HLG's inverse OETF then the BT.2100 system gamma 1.2 on each channel of a 1000-nit display (peak x scene^1.2, as AVFoundation converts HLG), or PQ's EOTF, in nits; into BT.709 primaries (BT.2087: 1.6605 -0.5876 -0.0728 / -0.1246 1.1329 -0.0083 / -0.0182 -0.1006 1.1187), below 0 cut to 0; each channel rolled off by BT.2390's EETF in PQ space from 1000 nits onto 203 (reference white, BT.2408); divided by 203; BT.709's OETF. Curves: pq [signal, nits], hlg [signal, scene light], rolloff [nits, nits], oetf709 [light, signal], to 1e-3 (nits) or 1e-5. rows: a BT.2020 R'G'B' signal in, BT.709 R'G'B' out, each 0 to 1, within tolerance. pixels: a 10-bit video-range Y'CbCr sample read with BT.2020's matrix (Kr 0.2627, Kb 0.0593), out times 255 rounded, exact; a frame's look-up table within 2.",
+  "tolerance": 0.002,
+  "peakNits": 1000,
+  "whiteNits": 203,
+  "curves": {
+    "pq": [[0, 0.0], [0.25, 5.1542], [0.5, 92.2457], [0.58, 201.6663], [0.75, 983.3779], [1, 10000.0]],
+    "hlg": [[0, 0.0], [0.25, 0.020833], [0.5, 0.083333], [0.75, 0.264963], [1, 1.0]],
+    "rolloff": [[0, 0.0], [50, 50.0], [100, 99.3611], [150, 135.2356], [203, 159.0419], [400, 193.6091], [1000, 203.0], [4000, 203.0]],
+    "oetf709": [[0, 0.0], [0.01, 0.045], [0.018, 0.081248], [0.5, 0.705515], [1, 1.0]]
+  },
+  "rows": [
+    {"transfer": "hlg", "in": [0, 0, 0], "out": [0.0, 0.0, 0.0]},
+    {"transfer": "hlg", "in": [1, 1, 1], "out": [1.0, 1.0, 1.0]},
+    {"transfer": "hlg", "in": [0.5, 0.5, 0.5], "out": [0.4897, 0.4897, 0.4896]},
+    {"transfer": "hlg", "in": [0.75, 0.75, 0.75], "out": [0.8859, 0.8859, 0.8858]},
+    {"transfer": "hlg", "in": [0.58, 0.58, 0.58], "out": [0.608, 0.6079, 0.6079]},
+    {"transfer": "hlg", "in": [0.25, 0.25, 0.25], "out": [0.1795, 0.1795, 0.1794]},
+    {"transfer": "hlg", "in": [0.9, 0.2, 0.1], "out": [0.9999, 0.0, 0.0]},
+    {"transfer": "hlg", "in": [0.1, 0.6, 0.3], "out": [0.0, 0.6841, 0.1587]},
+    {"transfer": "hlg", "in": [0.3, 0.3, 0.8], "out": [0.0, 0.2168, 0.9517]},
+    {"transfer": "hlg", "in": [0.65, 0.55, 0.4], "out": [0.8094, 0.5334, 0.3262]},
+    {"transfer": "pq", "in": [0, 0, 0], "out": [0.0, 0.0, 0.0]},
+    {"transfer": "pq", "in": [1, 1, 1], "out": [1.0, 1.0, 1.0]},
+    {"transfer": "pq", "in": [0.5, 0.5, 0.5], "out": [0.6714, 0.6713, 0.6713]},
+    {"transfer": "pq", "in": [0.75, 0.75, 0.75], "out": [1.0, 1.0, 1.0]},
+    {"transfer": "pq", "in": [0.58, 0.58, 0.58], "out": [0.8844, 0.8844, 0.8844]},
+    {"transfer": "pq", "in": [0.25, 0.25, 0.25], "out": [0.1114, 0.1114, 0.1114]},
+    {"transfer": "pq", "in": [0.9, 0.2, 0.1], "out": [1.0, 0.0, 0.0]},
+    {"transfer": "pq", "in": [0.1, 0.6, 0.3], "out": [0.0, 0.9378, 0.0]},
+    {"transfer": "pq", "in": [0.3, 0.3, 0.8], "out": [0.0, 0.0, 1.0]},
+    {"transfer": "pq", "in": [0.65, 0.55, 0.4], "out": [0.9939, 0.7597, 0.2309]}
+  ],
+  "pixels": [
+    {"transfer": "hlg", "ycbcr": [64, 512, 512], "rgb": [0, 0, 0]},
+    {"transfer": "hlg", "ycbcr": [940, 512, 512], "rgb": [255, 255, 255]},
+    {"transfer": "hlg", "ycbcr": [502, 512, 512], "rgb": [125, 125, 125]},
+    {"transfer": "hlg", "ycbcr": [721, 512, 512], "rgb": [226, 226, 226]},
+    {"transfer": "hlg", "ycbcr": [400, 300, 700], "rgb": [232, 0, 0]},
+    {"transfer": "hlg", "ycbcr": [600, 700, 400], "rgb": [0, 188, 255]},
+    {"transfer": "hlg", "ycbcr": [300, 512, 512], "rgb": [52, 52, 52]},
+    {"transfer": "hlg", "ycbcr": [800, 600, 450], "rgb": [0, 251, 255]},
+    {"transfer": "pq", "ycbcr": [64, 512, 512], "rgb": [0, 0, 0]},
+    {"transfer": "pq", "ycbcr": [940, 512, 512], "rgb": [255, 255, 255]},
+    {"transfer": "pq", "ycbcr": [502, 512, 512], "rgb": [171, 171, 171]},
+    {"transfer": "pq", "ycbcr": [721, 512, 512], "rgb": [255, 255, 255]},
+    {"transfer": "pq", "ycbcr": [400, 300, 700], "rgb": [255, 0, 0]},
+    {"transfer": "pq", "ycbcr": [600, 700, 400], "rgb": [0, 246, 255]},
+    {"transfer": "pq", "ycbcr": [300, 512, 512], "rgb": [35, 35, 35]},
+    {"transfer": "pq", "ycbcr": [800, 600, 450], "rgb": [0, 255, 255]}
+  ]
+}

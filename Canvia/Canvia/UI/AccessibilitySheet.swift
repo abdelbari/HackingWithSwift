@@ -4,7 +4,8 @@
 // "Use: …" for what the app already knows of the picture),
 // Mark decorative, Make it 12, Fix heading level, Make it a heading, Add
 // captions — which opens the clip's or the voice-over's captions over the
-// editor (DesignStore.captionsAsked). Clips filmed without sound are not
+// editor (DesignStore.captionsAsked) — and Replace, for a photo or clip
+// whose file is gone (DesignStore.replaceAsked). Clips filmed without sound are not
 // asked about, once their files are read.
 // Contrast is a section of its own, with Fix all contrast as one undo
 // step, as Check contrast had it. Show reading
@@ -122,7 +123,8 @@ struct AccessibilitySheet: View {
     }
 
     private func refresh() {
-        let all = AccessibilityAudit.findings(store.design, silentClips: silentClips)
+        let all = AccessibilityAudit.findings(store.design, silentClips: silentClips,
+                                              missingMedia: store.missingMedia)
         findings = pages.map { AccessibilityAudit.onPages(all, $0) } ?? all
     }
 
@@ -199,6 +201,7 @@ struct AccessibilitySheet: View {
         case .captions: return "captions.bubble"
         case .missingLetters: return "character.textbox"
         case .safeZone: return "rectangle.inset.filled"
+        case .missingMedia: return "photo.badge.exclamationmark"
         }
     }
 
@@ -225,6 +228,13 @@ struct AccessibilitySheet: View {
             // On its page, the clip selected; the editor opens its captions.
             store.reveal(elementId: f.elementId, onPage: f.pageIndex)
             store.captionsAsked = f.source
+        case .replace:
+            // On its page, the picture selected; the editor opens Add to
+            // replace it, its look kept (MissingMedia.replaced) — or, for
+            // a background, Background.
+            store.reveal(elementId: f.elementId, onPage: f.pageIndex)
+            store.replaceTargetId = f.elementId
+            store.replaceAsked = true
         case .fixColour, .makeIt12, .fixHeadingLevel, .makeHeading, .moveInside:
             let next = AccessibilityAudit.fixed(store.design, f)
             guard next != store.design else { return }

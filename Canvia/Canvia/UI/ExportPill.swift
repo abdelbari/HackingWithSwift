@@ -95,7 +95,8 @@ struct ExportPill: View {
     /// A clip brought in being made light (ClipOptimiser), with Keep
     /// original, which stops it and keeps the clip as it came.
     private func optimising(_ clip: ClipOptimiser.Running) -> some View {
-        let text = tr("Optimising video %d%%", Int((clip.progress * 100).rounded()))
+        // An HDR clip says it is being brought to ordinary colours.
+        let text = clip.hdr ? VideoImport.convertingHDR : tr("Optimising video %d%%", Int((clip.progress * 100).rounded()))
         return HStack(spacing: 10) {
             ProgressView(value: min(max(clip.progress, 0), 1))
                 .progressViewStyle(.circular)

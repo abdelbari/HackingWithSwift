@@ -1,7 +1,9 @@
 // Captions on a clip or a voice-over: Generate, from the phone's own speech
 // recognition where it has it (CaptionSpeech), Import .srt, and Edit — a
-// list of the cues with their times and words — then the three styles once
-// there are captions. The cues go on this page's caption box for `source`
+// list of the cues with their times and words — then, once there are
+// captions, a row of the nine styles, each tile playing its sample words in
+// its style, and where the box sits (top, middle, bottom or inside the
+// page's safe zone). The cues go on this page's caption box for `source`
 // ("video:<id>" or "audio:<trackId>"), or a new one across the lower part of
 // the page (DesignStore.setCaptions), one undo step each time. The Android
 // twin's CaptionsRows, the same words.
@@ -72,19 +74,37 @@ struct CaptionsSheet: View {
         }
     }
 
-    /// The three styles, as the text-effect pipeline draws them: plain
-    /// words, a bar behind them, the word being said lit.
+    /// The nine styles as tiles, each drawn live; then the place. Each a
+    /// step of its own, the cues kept.
     private var styleSection: some View {
         Section {
-            Picker("Style", selection: Binding(
-                get: { captions?.style ?? Captions.plain },
-                set: { store.setCaptionStyle(source, $0) })) {
-                Text("Plain").tag(Captions.plain)
-                Text("Box").tag(Captions.box)
-                Text("Highlight word").tag(Captions.highlightWord)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Captions.styles, id: \.self) { style in
+                        CaptionStyleTile(style: style, ink: captions?.highlightInk ?? Captions.highlightColour,
+                                         chosen: (captions?.style ?? Captions.plain) == style) {
+                            store.setCaptionStyle(source, style)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
             }
-            .pickerStyle(.segmented)
+            placePicker
+        } header: {
+            Text("Style")
         }
+    }
+
+    /// Top, Middle, Bottom or Safe — inside the page's safe zone.
+    private var placePicker: some View {
+        Picker("Position", selection: Binding(
+            get: { captions?.place ?? "" },
+            set: { store.setCaptionPlace(source, $0) })) {
+            ForEach(Captions.places, id: \.self) { place in
+                Text(CaptionStyleTile.placeName(place)).tag(place)
+            }
+        }
+        .pickerStyle(.segmented)
     }
 
     private func put(_ cues: [CaptionCue]) {
@@ -218,5 +238,77 @@ struct CaptionsEditorView: View {
     private func set(_ index: Int, _ cue: CaptionCue) {
         guard cues.indices.contains(index) else { return }
         cues[index] = cue
+    }
+}
+
+/// One caption style as a tile: sample words drawn in it on a dark card,
+/// playing through on a loop, and its name; chosen, outlined.
+struct CaptionStyleTile: View {
+    let style: String
+    let ink: String
+    let chosen: Bool
+    let choose: () -> Void
+
+    /// The sample's cue and how long a turn of it lasts.
+    private static var sample: CaptionCue { CaptionCue(start: 0, end: 1.2, text: tr("Say it out loud")) }
+    private static let turn = 1.8
+
+    var body: some View {
+        Button(action: choose) {
+            VStack(spacing: 6) {
+                TimelineView(.animation(minimumInterval: 1.0 / 20)) { context in
+                    TextElementView(element: frame(at: context.date))
+                        .frame(width: 96, height: 44)
+                }
+                .frame(width: 104, height: 56)
+                .background(Color(hex: "#1f2430"), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.accent, lineWidth: chosen ? 3 : 0))
+                Text(Self.name(style))
+                    .font(.caption)
+                    .lineLimit(1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Self.name(style))
+        .accessibilityAddTraits(chosen ? [.isButton, .isSelected] : .isButton)
+    }
+
+    /// The sample box drawn as `style` draws it at `date`, round its turn.
+    private func frame(at date: Date) -> Element {
+        var box = Element.text("", fontSize: 16, w: 96)
+        box.h = 44
+        box.fontWeight = 700
+        box.align = "center"
+        box.vAlign = "middle"
+        box.color = "#ffffff"
+        let sample = Self.sample
+        box = Captions.on(box, Captions(cues: [sample], style: style, highlight: ink))
+        let t = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: Self.turn)
+        return Captions.shown(box, at: min(t, sample.end - 0.001))
+    }
+
+    /// A style's name in the sheet.
+    static func name(_ style: String) -> String {
+        switch style {
+        case Captions.box: return tr("Box")
+        case Captions.highlightWord: return tr("Highlight word")
+        case Captions.outline: return tr("Outline")
+        case Captions.pop: return tr("Pop")
+        case Captions.karaoke: return tr("Karaoke")
+        case Captions.typewriter: return tr("Typewriter")
+        case Captions.bar: return tr("Bar", context: "caption style")
+        case Captions.gradient: return tr("Gradient")
+        default: return tr("Plain")
+        }
+    }
+
+    /// A place's name in the sheet.
+    static func placeName(_ place: String) -> String {
+        switch place {
+        case Captions.top: return tr("Top")
+        case Captions.middle: return tr("Middle")
+        case Captions.safe: return tr("Safe")
+        default: return tr("Bottom")
+        }
     }
 }

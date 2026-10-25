@@ -1,0 +1,52 @@
+{
+  "about": "Caption styles on both phones. frames: Captions.frameFor(style, t, span) - a word t seconds after it started (below 0 before it) when it takes span seconds: its scale, alpha and fill. pop: unseen at 0.6 before it starts, then 0.6 to 1.08 over the first 0.09 s and back to 1 over the next 0.09 s, straight lines. karaoke and typewriter: filled (typed) t/span of the way, 0 before, 1 after. highlightWord: 1 while said. Others: 1, 1, 0. progress: Captions.wordProgress(cue, t) - each word's seconds since it started and its span, the words sharing the cue's time evenly. letters: how many of count letters a fill covers, rounded up (less 1e-9). shown: the spans Captions.shown draws on a white caption box with the one cue, playing at t (no still), as [start, end, colour or null, scale or null]; a typewriter word's untyped letters and a pop word not yet said are the box colour at alpha 0, written alpha last. placed: Captions.placed for a box w x h on a 1080 x 1920 page - x centred; top 6% down, middle centred, bottom 6% up from the bottom, safe resting on the safe area's bottom [x, y, w, h] or as bottom with none.",
+  "frames": [
+    {"style": "pop", "t": -0.1, "span": 0.5, "scale": 0.6, "alpha": 0, "fill": 0},
+    {"style": "pop", "t": 0, "span": 0.5, "scale": 0.6, "alpha": 1, "fill": 0},
+    {"style": "pop", "t": 0.045, "span": 0.5, "scale": 0.84, "alpha": 1, "fill": 0},
+    {"style": "pop", "t": 0.09, "span": 0.5, "scale": 1.08, "alpha": 1, "fill": 0},
+    {"style": "pop", "t": 0.135, "span": 0.5, "scale": 1.04, "alpha": 1, "fill": 0},
+    {"style": "pop", "t": 0.18, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "pop", "t": 2, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "karaoke", "t": -0.1, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "karaoke", "t": 0.25, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0.5},
+    {"style": "karaoke", "t": 0.6, "span": 0.5, "scale": 1, "alpha": 1, "fill": 1},
+    {"style": "typewriter", "t": 0.1, "span": 0.4, "scale": 1, "alpha": 1, "fill": 0.25},
+    {"style": "typewriter", "t": -0.2, "span": 0.4, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "highlightWord", "t": 0.2, "span": 0.5, "scale": 1, "alpha": 1, "fill": 1},
+    {"style": "highlightWord", "t": 0.5, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "highlightWord", "t": -0.1, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "plain", "t": 0.2, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "box", "t": 0.2, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "outline", "t": 0.2, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "bar", "t": 0.2, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0},
+    {"style": "gradient", "t": 0.2, "span": 0.5, "scale": 1, "alpha": 1, "fill": 0}
+  ],
+  "progress": [
+    {"cue": [1.0, 2.2, "one two three"], "t": 1.5, "since": [0.5, 0.1, -0.3], "span": 0.4},
+    {"cue": [0.0, 1.0, "solo"], "t": 0.25, "since": [0.25], "span": 1.0},
+    {"cue": [0.0, 1.0, "  "], "t": 0.5, "since": [], "span": 0}
+  ],
+  "letters": [
+    {"fill": 0.25, "count": 5, "letters": 2},
+    {"fill": 0.2, "count": 5, "letters": 1},
+    {"fill": 0, "count": 5, "letters": 0},
+    {"fill": 1, "count": 5, "letters": 5},
+    {"fill": 0.5, "count": 4, "letters": 2}
+  ],
+  "shown": [
+    {"style": "karaoke", "cue": [1.0, 2.0, "Hello world"], "t": 1.25, "spans": [[0, 3, "#ffd60a", null]]},
+    {"style": "karaoke", "cue": [1.0, 2.0, "Hello world"], "t": 1.75, "spans": [[0, 5, "#ffd60a", null], [6, 9, "#ffd60a", null]]},
+    {"style": "typewriter", "cue": [1.0, 2.0, "Hello world"], "t": 1.25, "spans": [[3, 5, "#ffffff00", null], [6, 11, "#ffffff00", null]]},
+    {"style": "pop", "cue": [1.0, 2.0, "Hello world"], "t": 1.045, "spans": [[0, 5, null, 0.84], [6, 11, "#ffffff00", null]]},
+    {"style": "pop", "cue": [1.0, 2.0, "Hello world"], "t": 1.9, "spans": []}
+  ],
+  "placed": [
+    {"box": [864, 100], "place": "top", "safe": null, "frame": [108, 115.2]},
+    {"box": [864, 100], "place": "middle", "safe": null, "frame": [108, 910]},
+    {"box": [864, 100], "place": "bottom", "safe": null, "frame": [108, 1704.8]},
+    {"box": [864, 100], "place": "safe", "safe": [0, 268.8, 1080, 1305.6], "frame": [108, 1474.4]},
+    {"box": [864, 100], "place": "safe", "safe": null, "frame": [108, 1704.8]},
+    {"box": [600, 1500], "place": "safe", "safe": [0, 268.8, 1080, 1305.6], "frame": [240, 268.8]}
+  ]
+}

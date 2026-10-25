@@ -1151,6 +1151,15 @@
     "ja": "%@ · ページ %d / %d",
     "pt-BR": "%@ · Página %d de %d"
   },
+  "%@ · Replace": {
+    "ar": "%@ · استبدال",
+    "de": "%@ · Ersetzen",
+    "es": "%@ · Reemplazar",
+    "fr": "%@ · Remplacer",
+    "it": "%@ · Sostituisci",
+    "ja": "%@ · 置換",
+    "pt-BR": "%@ · Substituir"
+  },
   "%@ · holds %@ s": {
     "ar": "%@ · يثبت %@ ث",
     "de": "%@ · hält %@ s",
@@ -1666,6 +1675,15 @@
     "it": "%@, bloccato",
     "ja": "%@、ロック中",
     "pt-BR": "%@, bloqueado"
+  },
+  "%@, missing": {
+    "ar": "%@، مفقود",
+    "de": "%@, fehlt",
+    "es": "%@, falta",
+    "fr": "%@, manquant",
+    "it": "%@, mancante",
+    "ja": "%@、見つかりません",
+    "pt-BR": "%@, ausente"
   },
   "%@, music %d of %d": {
     "ar": "%@، الموسيقى %d من %d",
@@ -2913,6 +2931,39 @@
     "pt-BR": {
       "one": "%d item não pôde ser trazido (%@).",
       "other": "%d itens não puderam ser trazidos (%@)."
+    }
+  },
+  "%d item is missing from this design|%d items are missing from this design": {
+    "ar": {
+      "few": "تنقص %d عناصر من هذا التصميم",
+      "many": "ينقص %d عنصرًا من هذا التصميم",
+      "one": "ينقص عنصر واحد (%d) من هذا التصميم",
+      "other": "ينقص %d عنصر من هذا التصميم",
+      "two": "ينقص عنصران (%d) من هذا التصميم",
+      "zero": "لا ينقص أي عنصر (%d) من هذا التصميم"
+    },
+    "de": {
+      "one": "%d Element fehlt in diesem Design",
+      "other": "%d Elemente fehlen in diesem Design"
+    },
+    "es": {
+      "one": "Falta %d elemento en este diseño",
+      "other": "Faltan %d elementos en este diseño"
+    },
+    "fr": {
+      "one": "%d élément manque dans ce design",
+      "other": "%d éléments manquent dans ce design"
+    },
+    "it": {
+      "one": "Manca %d elemento in questo design",
+      "other": "Mancano %d elementi in questo design"
+    },
+    "ja": {
+      "other": "このデザインで %d 個の項目が見つかりません"
+    },
+    "pt-BR": {
+      "one": "Falta %d item neste design",
+      "other": "Faltam %d itens neste design"
     }
   },
   "%d item, each on a page of its own after the last.|%d items, each on a page of its own after the last.": {
@@ -7454,6 +7505,15 @@
     "ja": "棒",
     "pt-BR": "Barras"
   },
+  "Bar\u0004caption style": {
+    "ar": "شريط",
+    "de": "Leiste",
+    "es": "Barra",
+    "fr": "Bandeau",
+    "it": "Fascia",
+    "ja": "帯",
+    "pt-BR": "Faixa"
+  },
   "Bar\u0004line end": {
     "ar": "شَرطة",
     "de": "Balken",
@@ -10084,6 +10144,15 @@
     "it": "Converti in design",
     "ja": "デザインに変換",
     "pt-BR": "Converter em design"
+  },
+  "Converting HDR video…": {
+    "ar": "جارٍ تحويل فيديو HDR…",
+    "de": "HDR-Video wird konvertiert …",
+    "es": "Convirtiendo vídeo HDR…",
+    "fr": "Conversion de la vidéo HDR…",
+    "it": "Conversione del video HDR…",
+    "ja": "HDR 動画を変換中…",
+    "pt-BR": "Convertendo vídeo HDR…"
   },
   "Cool": {
     "ar": "بارد",
@@ -15728,6 +15797,15 @@
     "ja": "ゴールドシマー",
     "pt-BR": "Cintilar dourado"
   },
+  "Gradient": {
+    "ar": "تدرّج",
+    "de": "Verlauf",
+    "es": "Degradado",
+    "fr": "Dégradé",
+    "it": "Sfumatura",
+    "ja": "グラデーション",
+    "pt-BR": "Degradê"
+  },
   "Gradient %d": {
     "ar": "التدرّج %d",
     "de": "Verlauf %d",
@@ -17473,6 +17551,15 @@
     "it": "Caleidoscopio",
     "ja": "万華鏡",
     "pt-BR": "Caleidoscópio"
+  },
+  "Karaoke": {
+    "ar": "كاريوكي",
+    "de": "Karaoke",
+    "es": "Karaoke",
+    "fr": "Karaoké",
+    "it": "Karaoke",
+    "ja": "カラオケ",
+    "pt-BR": "Karaokê"
   },
   "Keep": {
     "ar": "الاحتفاظ",
@@ -23210,6 +23297,24 @@
     "ja": "タイマーを一時停止",
     "pt-BR": "Pausar cronômetro"
   },
+  "Pause video": {
+    "ar": "إيقاف الفيديو مؤقتًا",
+    "de": "Video anhalten",
+    "es": "Pausar vídeo",
+    "fr": "Mettre la vidéo en pause",
+    "it": "Metti in pausa il video",
+    "ja": "動画を一時停止",
+    "pt-BR": "Pausar vídeo"
+  },
+  "Pause video, %@": {
+    "ar": "إيقاف الفيديو مؤقتًا، %@",
+    "de": "Video anhalten, %@",
+    "es": "Pausar vídeo, %@",
+    "fr": "Mettre la vidéo en pause, %@",
+    "it": "Metti in pausa il video, %@",
+    "ja": "動画を一時停止、%@",
+    "pt-BR": "Pausar vídeo, %@"
+  },
   "Paused": {
     "ar": "متوقف مؤقتًا",
     "de": "Pausiert",
@@ -23425,6 +23530,15 @@
     "it": "Foto nella cornice lettera %@",
     "ja": "文字 %@ のフレーム内の写真",
     "pt-BR": "Foto na moldura da letra %@"
+  },
+  "Photo missing": {
+    "ar": "الصورة مفقودة",
+    "de": "Foto fehlt",
+    "es": "Falta la foto",
+    "fr": "Photo manquante",
+    "it": "Foto mancante",
+    "ja": "写真が見つかりません",
+    "pt-BR": "Foto ausente"
   },
   "Photo or video…": {
     "ar": "صورة أو فيديو…",
@@ -23930,6 +24044,15 @@
     "ja": "エディタで再生",
     "pt-BR": "Reproduzir no editor"
   },
+  "Play or pause video": {
+    "ar": "تشغيل الفيديو أو إيقافه مؤقتًا",
+    "de": "Video abspielen oder anhalten",
+    "es": "Reproducir o pausar vídeo",
+    "fr": "Lire ou mettre en pause la vidéo",
+    "it": "Riproduci o metti in pausa il video",
+    "ja": "動画を再生または一時停止",
+    "pt-BR": "Reproduzir ou pausar vídeo"
+  },
   "Play original": {
     "ar": "تشغيل الأصلي",
     "de": "Original abspielen",
@@ -23965,6 +24088,24 @@
     "it": "Riproduci la parte tagliata",
     "ja": "トリミングした部分を再生",
     "pt-BR": "Reproduzir trecho cortado"
+  },
+  "Play video": {
+    "ar": "تشغيل الفيديو",
+    "de": "Video abspielen",
+    "es": "Reproducir vídeo",
+    "fr": "Lire la vidéo",
+    "it": "Riproduci video",
+    "ja": "動画を再生",
+    "pt-BR": "Reproduzir vídeo"
+  },
+  "Play video, %@": {
+    "ar": "تشغيل الفيديو، %@",
+    "de": "Video abspielen, %@",
+    "es": "Reproducir vídeo, %@",
+    "fr": "Lire la vidéo, %@",
+    "it": "Riproduci video, %@",
+    "ja": "動画を再生、%@",
+    "pt-BR": "Reproduzir vídeo, %@"
   },
   "Playful": {
     "ar": "مرح",
@@ -26381,6 +26522,15 @@
     "ja": "SMS",
     "pt-BR": "SMS"
   },
+  "Safe": {
+    "ar": "آمن",
+    "de": "Sicher",
+    "es": "Segura",
+    "fr": "Sûre",
+    "it": "Sicura",
+    "ja": "セーフ",
+    "pt-BR": "Segura"
+  },
   "Safe zone": {
     "ar": "المنطقة الآمنة",
     "de": "Sicherer Bereich",
@@ -26797,6 +26947,15 @@
     "it": "Salvataggio nelle tue foto",
     "ja": "写真に保存中",
     "pt-BR": "Salvando nas suas fotos"
+  },
+  "Say it out loud": {
+    "ar": "قلها بصوت عالٍ",
+    "de": "Sag es laut",
+    "es": "Dilo en voz alta",
+    "fr": "Dites-le à voix haute",
+    "it": "Dillo ad alta voce",
+    "ja": "声に出して言おう",
+    "pt-BR": "Diga em voz alta"
   },
   "Scale": {
     "ar": "تحجيم",
@@ -29023,6 +29182,15 @@
     "it": "Effetti sonori",
     "ja": "効果音",
     "pt-BR": "Efeitos sonoros"
+  },
+  "Sound missing": {
+    "ar": "الصوت مفقود",
+    "de": "Ton fehlt",
+    "es": "Falta el sonido",
+    "fr": "Son manquant",
+    "it": "Audio mancante",
+    "ja": "サウンドが見つかりません",
+    "pt-BR": "Som ausente"
   },
   "Sound off": {
     "ar": "الصوت متوقف",
@@ -31472,6 +31640,15 @@
     "ja": "この Android バージョンでは、影は直線のテキストにのみ表示されます。書き出しや他のスマートフォンではこの影が表示されます。",
     "pt-BR": "Esta versão do Android mostra sombras só em texto reto. As exportações e outros celulares mostram esta."
   },
+  "This HDR video couldn't be converted; it may look washed out": {
+    "ar": "تعذّر تحويل فيديو HDR هذا؛ قد تبدو ألوانه باهتة",
+    "de": "Dieses HDR-Video konnte nicht konvertiert werden; es kann blass aussehen",
+    "es": "No se ha podido convertir este vídeo HDR; puede verse desvaído",
+    "fr": "Cette vidéo HDR n'a pas pu être convertie ; elle peut paraître délavée",
+    "it": "Impossibile convertire questo video HDR; potrebbe apparire sbiadito",
+    "ja": "この HDR 動画を変換できませんでした。色あせて見える場合があります",
+    "pt-BR": "Não foi possível converter este vídeo HDR; ele pode parecer desbotado"
+  },
   "This backup was made by a newer Canvia. Update Canvia to restore it.": {
     "ar": "أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من Canvia. حدّث Canvia لاستعادتها.",
     "de": "Diese Sicherung wurde mit einer neueren Canvia-Version erstellt. Aktualisiere Canvia, um sie wiederherzustellen.",
@@ -33770,6 +33947,15 @@
     "ja": "動画",
     "pt-BR": "Vídeo"
   },
+  "Video %d": {
+    "ar": "الفيديو %d",
+    "de": "Video %d",
+    "es": "Vídeo %d",
+    "fr": "Vidéo %d",
+    "it": "Video %d",
+    "ja": "動画 %d",
+    "pt-BR": "Vídeo %d"
+  },
   "Video %d of %d": {
     "ar": "الفيديو %d من %d",
     "de": "Video %d von %d",
@@ -33848,6 +34034,24 @@
     "ja": "動画に音声がありますが字幕がありません",
     "pt-BR": "O vídeo tem som, mas não tem legendas"
   },
+  "Video missing": {
+    "ar": "الفيديو مفقود",
+    "de": "Video fehlt",
+    "es": "Falta el vídeo",
+    "fr": "Vidéo manquante",
+    "it": "Video mancante",
+    "ja": "動画が見つかりません",
+    "pt-BR": "Vídeo ausente"
+  },
+  "Video position": {
+    "ar": "موضع الفيديو",
+    "de": "Videoposition",
+    "es": "Posición del vídeo",
+    "fr": "Position dans la vidéo",
+    "it": "Posizione del video",
+    "ja": "動画の再生位置",
+    "pt-BR": "Posição do vídeo"
+  },
   "Video size": {
     "ar": "حجم الفيديو",
     "de": "Videogröße",
@@ -33874,6 +34078,15 @@
     "it": "Video",
     "ja": "動画",
     "pt-BR": "Vídeos"
+  },
+  "Videos that don't autoplay play by themselves in a video or GIF.": {
+    "ar": "تُشغَّل مقاطع الفيديو التي لا تعمل تلقائيًا من تلقاء نفسها في فيديو أو GIF.",
+    "de": "Videos ohne automatische Wiedergabe laufen in einem Video oder GIF von selbst.",
+    "es": "Los vídeos sin reproducción automática se reproducen solos en un vídeo o GIF.",
+    "fr": "Les vidéos sans lecture automatique se lisent d'elles-mêmes dans une vidéo ou un GIF.",
+    "it": "I video senza riproduzione automatica partono da soli in un video o in una GIF.",
+    "ja": "自動再生しない動画も、動画や GIF では自動で再生されます。",
+    "pt-BR": "Vídeos sem reprodução automática tocam sozinhos em um vídeo ou GIF."
   },
   "Videos you add show here.": {
     "ar": "تظهر هنا مقاطع الفيديو التي تضيفها.",
@@ -34207,6 +34420,15 @@
     "it": "Quando",
     "ja": "タイミング",
     "pt-BR": "Quando"
+  },
+  "When presenting, it waits for a tap on Play.": {
+    "ar": "عند العرض التقديمي، ينتظر النقر على تشغيل.",
+    "de": "Beim Präsentieren wartet es, bis Abspielen getippt wird.",
+    "es": "Al presentar, espera a que toques Reproducir.",
+    "fr": "En présentation, elle attend un appui sur Lire.",
+    "it": "Durante la presentazione, attende un tocco su Riproduci.",
+    "ja": "プレゼンテーション中は、再生をタップするまで待機します。",
+    "pt-BR": "Ao apresentar, ele espera um toque em Reproduzir."
   },
   "While dragging, hold ⇧ to keep a move to one direction or to turn in 15° steps, hold ⌘ to stop snapping for a moment, and hold ⌥ as you start to drag a copy. ⇧ on a corner of a text box or shape changes whether it keeps its proportions.": {
     "ar": "أثناء السحب، اضغط باستمرار على ⇧ لإبقاء الحركة في اتجاه واحد أو للتدوير بخطوات 15°، وعلى ⌘ لإيقاف الالتصاق مؤقتًا، وعلى ⌥ عند البدء لسحب نسخة. يغيّر ⇧ على زاوية مربع نص أو شكل ما إذا كان يحافظ على تناسبه.",

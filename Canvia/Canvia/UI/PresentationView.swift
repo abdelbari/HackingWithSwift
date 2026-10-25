@@ -25,6 +25,10 @@
 // C, O, Q, U and X, or the sparkle button's grid, and show on both screens.
 // Live captions (LiveCaptions.swift) — the button beside Loop, or Shift-C —
 // show what the presenter says over the slide on both screens too.
+// A tap on a clip brings up its own Play/Pause and scrubber
+// (PresentClipControls), and Space plays or pauses the clip last tapped;
+// while one is played by hand, autoplay waits on the page, and the arrows
+// and a clicker still turn it.
 
 import SwiftUI
 
@@ -54,6 +58,8 @@ struct PresentationView: View {
     @State private var autoplayTask: Task<Void, Never>?
     @State private var settleTask: Task<Void, Never>?
     @State private var exitTask: Task<Void, Never>?
+    /// Puts a clip's controls away three seconds after the last touch.
+    @State private var controlsTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var systemReducesMotion
     /// Settings ▸ Accessibility's Reduce motion, over the phone's own
     /// (AccessibilityPrefs).
@@ -199,19 +205,26 @@ struct PresentationView: View {
                 .onTapGesture { location in
                     // A linked element opens its link, as a click on it
                     // does in the PDF — where the page is fitted, so not
-                    // while a whiteboard is pinched in.
+                    // while a whiteboard is pinched in. A clip shows its
+                    // own controls, or puts them away.
                     if !zoomedIn, let url = link(at: location, in: size) { follow(url) }
+                    else if !zoomedIn, let tappedClip = clip(at: location, in: size) { tapped(clip: tappedClip) }
                     else if location.x > size.width * 0.66 { go(1) }
                     else if location.x < size.width * 0.33 { go(-1) }
                     else { withAnimation { showingChrome.toggle() } }
                 }
                 .accessibilityLabel(spokenPlace)
                 .accessibilityActions { pageActions }
+            if !zoomedIn {
+                PresentClipControls(session: session, size: size) { showControls(session.controlsClip) }
+            }
             if showingChrome { chrome }
             if showingChrome && onBoard { zoomToFit }
             if let linkRefused { refusedNote(linkRefused) }
         }
         .onChange(of: session.index) { _, _ in fitBoard() }
+        // A clip played, paused or scrubbed is heard from where it now is.
+        .onChange(of: session.clipOverrides) { _, _ in soundClips() }
         // Ended or cancelled, the touch is over, and the next starts clean.
         .onChange(of: touching) { _, down in
             if !down { pinchedThisTouch = false }
@@ -330,6 +343,52 @@ struct PresentationView: View {
                 follow(url)
             }
         }
+        // "Play video, <its description>" for each clip on the page.
+        ForEach(session.clips, id: \.id) { el in
+            Button(Videos.spokenAction(el, moving: session.clipMoves(el.id))) { session.toggleClip(el.id) }
+        }
+    }
+
+    // MARK: clips
+
+    /// The clip under `location`, in a view of `size` that fits the page
+    /// as PresentStage does; nil where there is none.
+    private func clip(at location: CGPoint, in size: CGSize) -> Element? {
+        let pageSize = design.size(for: page)
+        let scale: CGFloat = min(size.width / max(pageSize.width, 1), size.height / max(pageSize.height, 1))
+        guard scale > 0 else { return nil }
+        let dx: CGFloat = (size.width - pageSize.width * scale) / 2
+        let dy: CGFloat = (size.height - pageSize.height * scale) / 2
+        let point = CGPoint(x: (location.x - dx) / scale, y: (location.y - dy) / scale)
+        return Videos.clip(at: point, in: session.clips)
+    }
+
+    /// A tap on a clip: its controls up, or away when they already are.
+    private func tapped(clip: Element) {
+        session.focusedClip = clip.id
+        showControls(session.controlsClip == clip.id ? nil : clip.id)
+    }
+
+    /// Clip `id`'s controls up for `Videos.controlsSeconds`, or none.
+    private func showControls(_ id: String?) {
+        controlsTask?.cancel()
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { session.controlsClip = id }
+        guard let id else { return }
+        controlsTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Videos.controlsSeconds))
+            guard !Task.isCancelled, session.controlsClip == id else { return }
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { session.controlsClip = nil }
+        }
+    }
+
+    /// Space: the clip last tapped played or paused; with none, the next
+    /// page, as before.
+    private func space() {
+        if let id = session.focusedClip, session.clips.contains(where: { $0.id == id }) {
+            session.toggleClip(id)
+        } else {
+            go(1)
+        }
     }
 
     /// The presenter's console, the slides being on the screen attached.
@@ -344,7 +403,8 @@ struct PresentationView: View {
                          previous: { go(-1) },
                          next: { go(1) },
                          end: { dismiss() },
-                         showPages: { showingPages = true }) {
+                         showPages: { showingPages = true },
+                         toggleClip: { session.toggleClip($0) }) {
             soundButton
             autoplayButton
             loopButton
@@ -582,8 +642,17 @@ struct PresentationView: View {
             return
         }
         sound.tracks(design: design, offset: musicFrom, since: started, film: .infinity)
+        soundClips()
+    }
+
+    /// The page's clips heard as the presenter left them (Videos.heard):
+    /// played by hand from where they were played, paused or waiting not
+    /// at all.
+    private func soundClips() {
+        guard soundOn, !away else { return }
         let length = Self.clipPageLength(autoplay: autoplay, hold: session.holdSeconds(page))
-        sound.page(AudioMix.clips(design: design, page: page), since: session.shownAt, length: length)
+        let heard = Videos.heard(design: design, page: page, overrides: session.clipOverrides)
+        sound.page(heard.map(\.clip), since: session.shownAt, length: length, shifts: heard.map(\.shift))
     }
 
     /// How long a page's clips are heard for, for their fades: its hold
@@ -737,7 +806,7 @@ struct PresentationView: View {
                 arrowKey(.right)
                 key(.downArrow, tr("Next page")) { go(1) }
                 key(.pageDown, tr("Next page")) { go(1) }
-                key(.space, tr("Next page")) { go(1) }
+                key(.space, session.focusedClip == nil ? tr("Next page") : tr("Play or pause video")) { space() }
                 key(.return, tr("Next page")) { go(1) }
             }
             Group {
@@ -871,6 +940,10 @@ struct PresentationView: View {
         let delay = wait ?? max(session.holdSeconds(page), 0.5)
         autoplayTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(delay))
+            // A clip played by hand holds the page until it is paused.
+            while !Task.isCancelled, session.playingByHand {
+                try? await Task.sleep(for: .seconds(0.5))
+            }
             guard !Task.isCancelled, autoplay else { return }
             if Presenter.next(after: index, in: design.visiblePageIndices, loop: session.loop) != nil {
                 go(1)

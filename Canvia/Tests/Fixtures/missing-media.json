@@ -1,0 +1,54 @@
+{
+  "about": "Missing media on both phones (MissingMedia.missing): the design below, as the iPhone writes it, on a phone holding only the stored files in exists (a song as audio:<id>, a clip unstamped). Each stored source (media:, video:, anim:, a track's audio: and video:) is asked of once; asset:, motion:, qr:, barcode:, music: and sfx: never count. Listed page by page - the page's background (its page id, kind background) then its elements in layer order, each by its own picture or clip, else by the photo or clip its fill holds (kind photo, video or anim by the source; a photo-filled shape is a photo) - then the sound tracks in order (kind audio, pageIndex null). Check accessibility lists a page's missingMedia findings first on it, each with Replace (a background's opens Background).",
+  "exists": ["media:here", "video:clip-here", "audio:song-here"],
+  "design": {
+    "id": "d-missing",
+    "title": "Missing media",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 1700000000000,
+    "updatedAt": 1700000000000,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {"type": "image", "value": "media:bg-gone"},
+        "elements": [
+          {"id": "e1", "type": "image", "src": "media:here", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e2", "type": "image", "src": "media:gone", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e3", "type": "image", "src": "asset:mountain", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e4", "type": "image", "src": "video:clip-gone@2.50", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e5", "type": "image", "src": "qr:https://example.com", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e6", "type": "image", "src": "motion:waves", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e11", "type": "shape", "shape": "circle", "fill": {"kind": "image", "src": "media:fill-gone"}, "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e7", "type": "text", "text": "media:gone", "x": 0, "y": 0, "w": 100, "h": 40}
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {"type": "color", "value": "#ffffff"},
+        "elements": [
+          {"id": "e8", "type": "image", "src": "anim:spin-gone", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e9", "type": "image", "src": "video:clip-here", "x": 0, "y": 0, "w": 100, "h": 100},
+          {"id": "e10", "type": "image", "src": "media:gone", "x": 0, "y": 0, "w": 100, "h": 100}
+        ]
+      }
+    ],
+    "audio": [
+      {"id": "t1", "src": "audio:song-gone", "name": "Song"},
+      {"id": "t2", "src": "sfx:pop", "name": "Pop"},
+      {"id": "t3", "src": "music:big-idea", "name": "Big idea"},
+      {"id": "t4", "src": "audio:song-here", "name": "Here"},
+      {"id": "t5", "src": "video:clip-gone", "name": "Clip sound"}
+    ]
+  },
+  "missing": [
+    {"elementId": "p1", "pageIndex": 0, "kind": "background"},
+    {"elementId": "e2", "pageIndex": 0, "kind": "photo"},
+    {"elementId": "e4", "pageIndex": 0, "kind": "video"},
+    {"elementId": "e11", "pageIndex": 0, "kind": "photo"},
+    {"elementId": "e8", "pageIndex": 1, "kind": "anim"},
+    {"elementId": "e10", "pageIndex": 1, "kind": "photo"},
+    {"elementId": "t1", "pageIndex": null, "kind": "audio"},
+    {"elementId": "t5", "pageIndex": null, "kind": "audio"}
+  ]
+}

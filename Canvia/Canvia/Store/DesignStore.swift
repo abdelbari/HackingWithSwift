@@ -1840,6 +1840,17 @@ final class DesignStore {
     /// captions of "video:<id>" — the Clip sheet's — or "audio:<trackId>" —
     /// the track's in Audio; the sheet that opens them takes it.
     var captionsAsked: String?
+    /// Check accessibility's Replace on a picture or clip whose file is
+    /// gone, asking the editor for Add in Replace mode (replaceTargetId) —
+    /// or, with none, for Background.
+    var replaceAsked = false
+    /// What this design shows whose file is gone from this phone, and
+    /// those stored files, looked for off the main thread as the design
+    /// opens and changes (checkMissing, MissingFiles.swift); empty until
+    /// then. The canvas, the toolbar and the sheets read these rather than
+    /// the disk.
+    var missingMedia: [MissingMedia.Absent] = []
+    var missingFiles: Set<String> = []
     /// The photo whose faces Face retouch is looking for, and the one it
     /// found none in, which the Filters sheet says so of
     /// (FaceRetouching.swift).
@@ -3277,9 +3288,10 @@ final class DesignStore {
                 let el = page.elements[i]
                 if self.selection.contains(el.id), VideoStore.isVideo(el.src), !el.locked {
                     page.elements[i].clip = clip.isDefault ? nil : clip
-                } else if let c = el.captions, let source = c.source, let was = retimed[source] {
-                    page.elements[i] = Captions.on(el, Captions(source: source, cues: Captions.retimed(c.cues, from: was, to: clip),
-                                                               style: c.style))
+                } else if var c = el.captions, let source = c.source, let was = retimed[source] {
+                    // Its style, place and colour kept with it.
+                    c.cues = Captions.retimed(c.cues, from: was, to: clip)
+                    page.elements[i] = Captions.on(el, c)
                 }
             }
         }

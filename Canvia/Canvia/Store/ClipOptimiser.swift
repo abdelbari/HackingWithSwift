@@ -6,7 +6,11 @@
 // time, the rest waiting their turn; the export pill shows the one under
 // way, with Keep original, which stops it and keeps the clip as it came.
 // A failure keeps the original and says so in a line. The upload records
-// {"optimised": true, "originalBytes"} (Uploads.markOptimised).
+// {"optimised": true, "originalBytes"} (Uploads.markOptimised), and
+// "toneMapped" for an HDR clip. An HDR clip is converted with the setting
+// off too (VideoImport.converts), its colours brought to BT.709 on the way
+// — the pill says "Converting HDR video…" — and one kept original is tone
+// mapped as it is read (ClipReader.sdrSettings).
 
 import AVFoundation
 import Foundation
@@ -29,6 +33,8 @@ final class ClipOptimiser {
     struct Running: Equatable {
         var id: String
         var progress: Double
+        /// An HDR clip, brought to SDR as it is converted.
+        var hdr = false
     }
 
     private(set) var running: Running?
@@ -52,9 +58,33 @@ final class ClipOptimiser {
         var audioCodec: String?
         if let audio { audioCodec = await codec(of: audio) }
         let bytes = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
-        return VideoImport.Probe(bytes: Int64(bytes), width: Int(abs(shown.width).rounded()),
-                                 height: Int(abs(shown.height).rounded()),
-                                 videoCodec: videoCodec, audioCodec: audioCodec, container: url.pathExtension)
+        var probe = VideoImport.Probe(bytes: Int64(bytes), width: Int(abs(shown.width).rounded()),
+                                      height: Int(abs(shown.height).rounded()),
+                                      videoCodec: videoCodec, audioCodec: audioCodec, container: url.pathExtension)
+        if let formats = try? await video.load(.formatDescriptions), let first = formats.first {
+            colour(of: first, into: &probe)
+        }
+        return probe
+    }
+
+    /// A picture's transfer, bit depth and primaries, as VideoImport names
+    /// them, from its format's extensions.
+    nonisolated private static func colour(of format: CMFormatDescription, into probe: inout VideoImport.Probe) {
+        func string(_ key: CFString) -> String? {
+            CMFormatDescriptionGetExtension(format, extensionKey: key) as? String
+        }
+        switch string(kCMFormatDescriptionExtension_TransferFunction) {
+        case .some(kCMFormatDescriptionTransferFunction_ITU_R_2100_HLG as String): probe.transfer = HdrToneMap.hlg
+        case .some(kCMFormatDescriptionTransferFunction_SMPTE_ST_2084_PQ as String): probe.transfer = HdrToneMap.pq
+        default: break
+        }
+        if string(kCMFormatDescriptionExtension_ColorPrimaries) == kCMFormatDescriptionColorPrimaries_ITU_R_2020 as String {
+            probe.primaries = VideoImport.bt2020
+        }
+        if let bits = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_BitsPerComponent)
+            as? NSNumber {
+            probe.bitDepth = bits.intValue
+        }
     }
 
     /// A track's codec as VideoImport names it, from its first format.
@@ -68,9 +98,10 @@ final class ClipOptimiser {
     // MARK: converting
 
     /// Clip `id`, just brought in, converted when it needs it and the
-    /// setting is on; nothing otherwise. Its turn waits for the one before.
+    /// setting is on, or when it is HDR (VideoImport.converts); nothing
+    /// otherwise. Its turn waits for the one before.
     func imported(_ id: String) {
-        guard Self.isOn, running?.id != id, !waiting.contains(id) else { return }
+        guard running?.id != id, !waiting.contains(id) else { return }
         waiting.append(id)
         if running == nil { next() }
     }
@@ -98,10 +129,11 @@ final class ClipOptimiser {
             next()
         }
         guard let source = VideoStore.url(for: id), let clip = await Self.probe(source),
-              VideoImport.needsOptimising(clip) else { return }
+              VideoImport.converts(clip, settingOn: Self.isOn) else { return }
+        running?.hdr = clip.hdr
         let asset = AVURLAsset(url: source)
         guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPreset1920x1080) else {
-            failed()
+            failed(hdr: clip.hdr)
             return
         }
         let out = FileManager.default.temporaryDirectory.appendingPathComponent("\(id)-light.mp4")
@@ -112,9 +144,17 @@ final class ClipOptimiser {
         // Faster than 30 frames a second, held to 30 (VideoImport.targetFps).
         let track = try? await asset.loadTracks(withMediaType: .video).first
         let fps = Double((try? await track?.load(.nominalFrameRate)) ?? 0)
-        if fps > Double(VideoImport.maxFps) {
+        if fps > Double(VideoImport.maxFps) || clip.hdr {
             let composition = AVMutableVideoComposition(propertiesOf: asset)
-            composition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(VideoImport.targetFps(fps)))
+            if fps > Double(VideoImport.maxFps) {
+                composition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(VideoImport.targetFps(fps)))
+            }
+            // An HDR clip's colours brought to SDR's, BT.709 throughout.
+            if clip.hdr {
+                composition.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+                composition.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+                composition.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
+            }
             session.videoComposition = composition
         }
         self.session = session
@@ -139,15 +179,17 @@ final class ClipOptimiser {
         }
         guard session.status == .completed, VideoStore.replace(id, with: out) else {
             try? FileManager.default.removeItem(at: out)
-            failed()
+            failed(hdr: clip.hdr)
             return
         }
-        Uploads.markOptimised(id, originalBytes: clip.bytes)
+        Uploads.markOptimised(id, originalBytes: clip.bytes, toneMapped: clip.toneMapped)
     }
 
-    /// The original kept, said in a line in the pill.
-    private func failed() {
-        ExportQueue.shared.note = tr("The video couldn't be optimised, so the original is kept.")
+    /// The original kept, said in a line in the pill — for an HDR clip,
+    /// that it may look washed out.
+    private func failed(hdr: Bool = false) {
+        ExportQueue.shared.note = hdr ? VideoImport.hdrFailed
+            : tr("The video couldn't be optimised, so the original is kept.")
     }
 }
 

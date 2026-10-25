@@ -55,7 +55,7 @@ final class CaptionsTests: XCTestCase {
         let none = try json(Captions.on(Element.text("x"), Captions(cues: [CaptionCue(start: 0, end: 1, text: "a")])))
         XCTAssertTrue(try XCTUnwrap(none["captions"] as? [String: Any])["source"] is NSNull)
         let loose = #"{"id":"t","type":"text","text":"x","captions":{"source":null,"cues":[{"start":3,"end":4,"text":"b"},"#
-            + #"{"start":"1","end":2,"text":"bad"},{"start":2,"end":1,"text":"backwards"},{"start":0,"end":1,"text":"a"}],"style":"karaoke"}}"#
+            + #"{"start":"1","end":2,"text":"bad"},{"start":2,"end":1,"text":"backwards"},{"start":0,"end":1,"text":"a"}],"style":"sparkle"}}"#
         let read = try JSONDecoder().decode(Element.self, from: Data(loose.utf8))
         XCTAssertEqual(read.captions, Captions(source: nil, cues: [CaptionCue(start: 0, end: 1, text: "a"),
                                                                    CaptionCue(start: 3, end: 4, text: "b")], style: Captions.plain))
