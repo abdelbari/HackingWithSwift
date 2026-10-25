@@ -99,6 +99,34 @@ enum PageOrder {
         width < 400 ? 2 : width < 700 ? 3 : 4
     }
 
+    /// Where a pinch in the organiser keeps its column count, as the
+    /// Android twin's Prefs key `organiserColumns`; unset (0) until the
+    /// first pinch, when the width decides (columns(forWidth:)).
+    static let columnsKey = "canvia.organiserColumns"
+    /// The fewest and the most columns a pinch gives.
+    static let columnRange = 2...6
+    /// One column fewer for each time the fingers end this many times as
+    /// far apart, one more for each time they end this many times closer.
+    static let columnStep = 1.25
+
+    /// The organiser's columns after a pinch that ended `scale` times as
+    /// far apart as it began, from `current`: spreading the fingers makes
+    /// the thumbnails larger, so fewer across — one column for each
+    /// columnStep, the count of steps rounded to the nearest whole one
+    /// (log(scale) / log(1.25), half away from zero) — held to 2…6. A
+    /// scale of 0 or less, or not a number, changes nothing.
+    static func columnsAfterPinch(_ current: Int, scale: Double) -> Int {
+        guard scale > 0, scale.isFinite else { return current }
+        let steps = Int((log(scale) / log(columnStep)).rounded())
+        return min(max(current - steps, columnRange.lowerBound), columnRange.upperBound)
+    }
+
+    /// The organiser's columns: those a pinch kept, when within 2…6, else
+    /// what the width gives.
+    static func shownColumns(kept: Int, forWidth width: Double) -> Int {
+        columnRange.contains(kept) ? kept : columns(forWidth: width)
+    }
+
     /// Which way a drag scrolls at the ends of a strip or a grid `length`
     /// long, the finger at `position` along it: -1 within `margin` of the
     /// start, 1 within it of the end, else 0.

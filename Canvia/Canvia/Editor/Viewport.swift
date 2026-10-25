@@ -135,4 +135,27 @@ enum Viewport {
     static func isSmall(_ box: CGRect, zoom: Double) -> Bool {
         Double(max(box.width, box.height)) * zoom < smallSelection
     }
+
+    // MARK: pinch out to every page
+
+    /// A pinch on the canvas below this share of the fit shows "Release
+    /// for all pages"; let go below gridOpen, it opens the page organiser.
+    static let gridHint = 0.75
+    static let gridOpen = 0.6
+
+    /// How far a pinch out has gone toward every page: not near, near
+    /// (the hint shows), or past the threshold (let go, the organiser
+    /// opens). Never on a whiteboard, which zooms out over its own room.
+    enum GridPinch: Equatable { case none, near, release }
+
+    /// Where a pinch at `zoom` stands, the page fitting at `fit`: release
+    /// below gridOpen × fit, near below gridHint × fit, else none — and
+    /// none on a whiteboard or with no fit. The hint shows for near and
+    /// release alike, since letting go then is what it asks for; the
+    /// threshold is felt once, crossing into release.
+    static func gridPinch(zoom: Double, fit: Double, whiteboard: Bool) -> GridPinch {
+        guard !whiteboard, fit > 0 else { return .none }
+        let share = zoom / fit
+        return share < gridOpen ? .release : share < gridHint ? .near : .none
+    }
 }

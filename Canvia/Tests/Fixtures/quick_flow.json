@@ -1,0 +1,333 @@
+{
+  "about": "QuickFlow.place on both phones: where the copy of a shape at source (x, y, w, h) goes, side of it (top, right, bottom or left). It is the source's size, with a gap of max(40, half the source's side along that way) between them. While it overlaps one of obstacles (sharing area; touching edges do not count) it moves on that way by its own size, up to 3 times, and stays where it got to. Then it is kept inside bounds (the page, or a whiteboard's bounds): pushed back in on each axis, its left or top on the bounds' when it is the wider. box is the result.",
+  "rows": [
+    {
+      "name": "right of a small shape: the 40 gap",
+      "source": [
+        100,
+        400,
+        60,
+        60
+      ],
+      "side": "right",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        200,
+        400,
+        60,
+        60
+      ]
+    },
+    {
+      "name": "below a tall box: half its height",
+      "source": [
+        400,
+        100,
+        200,
+        300
+      ],
+      "side": "bottom",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        400.0,
+        550.0,
+        200,
+        300
+      ]
+    },
+    {
+      "name": "above, with room",
+      "source": [
+        400,
+        600,
+        200,
+        100
+      ],
+      "side": "top",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        400.0,
+        450.0,
+        200,
+        100
+      ]
+    },
+    {
+      "name": "left, with room",
+      "source": [
+        600,
+        400,
+        200,
+        100
+      ],
+      "side": "left",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        300.0,
+        400.0,
+        200,
+        100
+      ]
+    },
+    {
+      "name": "right, something in the way: one move on",
+      "source": [
+        100,
+        400,
+        200,
+        100
+      ],
+      "side": "right",
+      "obstacles": [
+        [
+          420,
+          420,
+          100,
+          60
+        ]
+      ],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        600.0,
+        400.0,
+        200,
+        100
+      ]
+    },
+    {
+      "name": "below, blocked twice: two moves on",
+      "source": [
+        400,
+        50,
+        100,
+        100
+      ],
+      "side": "bottom",
+      "obstacles": [
+        [
+          400,
+          200,
+          100,
+          100
+        ],
+        [
+          420,
+          320,
+          60,
+          60
+        ]
+      ],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        400.0,
+        400.0,
+        100,
+        100
+      ]
+    },
+    {
+      "name": "blocked every time: three moves, then kept on the page",
+      "source": [
+        100,
+        100,
+        200,
+        200
+      ],
+      "side": "right",
+      "obstacles": [
+        [
+          400,
+          100,
+          200,
+          200
+        ],
+        [
+          600,
+          100,
+          200,
+          200
+        ],
+        [
+          800,
+          100,
+          200,
+          200
+        ],
+        [
+          1000,
+          100,
+          80,
+          200
+        ]
+      ],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        880,
+        100.0,
+        200,
+        200
+      ]
+    },
+    {
+      "name": "touching an edge is not overlapping",
+      "source": [
+        100,
+        400,
+        100,
+        100
+      ],
+      "side": "right",
+      "obstacles": [
+        [
+          350,
+          400,
+          100,
+          100
+        ]
+      ],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        250.0,
+        400.0,
+        100,
+        100
+      ]
+    },
+    {
+      "name": "off the right edge: pushed back in",
+      "source": [
+        900,
+        400,
+        150,
+        100
+      ],
+      "side": "right",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        930,
+        400.0,
+        150,
+        100
+      ]
+    },
+    {
+      "name": "above the top: pushed down onto the page",
+      "source": [
+        400,
+        20,
+        200,
+        100
+      ],
+      "side": "top",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        1080,
+        1080
+      ],
+      "box": [
+        400.0,
+        0,
+        200,
+        100
+      ]
+    },
+    {
+      "name": "on a whiteboard: kept inside its bounds",
+      "source": [
+        1200,
+        400,
+        200,
+        200
+      ],
+      "side": "right",
+      "obstacles": [],
+      "bounds": [
+        -300,
+        -200,
+        1800,
+        1400
+      ],
+      "box": [
+        1300,
+        400.0,
+        200,
+        200
+      ]
+    },
+    {
+      "name": "wider than the bounds: its left on theirs",
+      "source": [
+        100,
+        100,
+        600,
+        100
+      ],
+      "side": "left",
+      "obstacles": [],
+      "bounds": [
+        0,
+        0,
+        500,
+        500
+      ],
+      "box": [
+        0,
+        100.0,
+        600,
+        100
+      ]
+    }
+  ]
+}

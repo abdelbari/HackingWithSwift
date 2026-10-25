@@ -1,0 +1,426 @@
+{
+  "about": "LineRoutes.bendHandlePoint and LineRoutes.bendFor on both phones. line is the element (its existing lineType, ends and bend keys); handle is the page point where the bend handle sits (null for a straight line, which has none); point is a finger on the page and bend what LineRoutes.bendFor gives for it. A curve's handle is the point the quadratic passes through halfway along; its bend is the finger's distance from the middle of the ends along the normal there (to the right, running start to end) over the distance between the ends. An elbow's handle is the middle of its middle segment; since its bend is where its corner sits across, its bend is the finger's distance across from the ends' middle over half the distance across. Both are held to -1..1, then 0 when within 0.03.",
+  "rows": [
+    {
+      "name": "curve at rest, the point on its handle",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 100,
+        "y": 100,
+        "w": 200,
+        "h": 40,
+        "thickness": 4,
+        "lineType": "curve",
+        "ends": [
+          0,
+          0.5,
+          1,
+          0.5
+        ],
+        "bend": 0.25
+      },
+      "handle": [
+        200.0,
+        170.0
+      ],
+      "point": [
+        200.0,
+        170.0
+      ],
+      "bend": 0.25
+    },
+    {
+      "name": "curve with no bend, pulled 30 down: right of left-to-right",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 100,
+        "y": 100,
+        "w": 200,
+        "h": 40,
+        "thickness": 4,
+        "lineType": "curve",
+        "ends": [
+          0,
+          0.5,
+          1,
+          0.5
+        ]
+      },
+      "handle": [
+        200.0,
+        120.0
+      ],
+      "point": [
+        200.0,
+        150.0
+      ],
+      "bend": 0.15
+    },
+    {
+      "name": "curve pulled 4 off its middle: snaps straight",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 100,
+        "y": 100,
+        "w": 200,
+        "h": 40,
+        "thickness": 4,
+        "lineType": "curve",
+        "ends": [
+          0,
+          0.5,
+          1,
+          0.5
+        ],
+        "bend": 0.25
+      },
+      "handle": [
+        200.0,
+        170.0
+      ],
+      "point": [
+        200,
+        124
+      ],
+      "bend": 0
+    },
+    {
+      "name": "curve pulled far below: held at 1",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 100,
+        "y": 100,
+        "w": 200,
+        "h": 40,
+        "thickness": 4,
+        "lineType": "curve",
+        "ends": [
+          0,
+          0.5,
+          1,
+          0.5
+        ]
+      },
+      "handle": [
+        200.0,
+        120.0
+      ],
+      "point": [
+        200.0,
+        520.0
+      ],
+      "bend": 1
+    },
+    {
+      "name": "curve turned 45",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 100,
+        "y": 100,
+        "w": 200,
+        "h": 40,
+        "thickness": 4,
+        "lineType": "curve",
+        "ends": [
+          0,
+          0.5,
+          1,
+          0.5
+        ],
+        "bend": 0.2,
+        "rotation": 45
+      },
+      "handle": [
+        171.715728753,
+        148.284271247
+      ],
+      "point": [
+        181.715728753,
+        138.284271247
+      ],
+      "bend": 0.129289322
+    },
+    {
+      "name": "curve turned 90, bowing left",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 100,
+        "y": 100,
+        "w": 200,
+        "h": 40,
+        "thickness": 4,
+        "lineType": "curve",
+        "ends": [
+          0,
+          0.5,
+          1,
+          0.5
+        ],
+        "bend": -0.3,
+        "rotation": 90
+      },
+      "handle": [
+        260.0,
+        120.0
+      ],
+      "point": [
+        260.0,
+        120.0
+      ],
+      "bend": -0.3
+    },
+    {
+      "name": "curve with its ends flipped: right of right-to-left is up",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 100,
+        "y": 100,
+        "w": 200,
+        "h": 40,
+        "thickness": 4,
+        "lineType": "curve",
+        "ends": [
+          1,
+          0.5,
+          0,
+          0.5
+        ]
+      },
+      "handle": [
+        200.0,
+        120.0
+      ],
+      "point": [
+        200.0,
+        150.0
+      ],
+      "bend": -0.15
+    },
+    {
+      "name": "diagonal curve",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 100,
+        "thickness": 4,
+        "lineType": "curve",
+        "ends": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "bend": 0.1
+      },
+      "handle": [
+        40.0,
+        60.0
+      ],
+      "point": [
+        20.0,
+        80.0
+      ],
+      "bend": 0.3
+    },
+    {
+      "name": "elbow, its corner pulled right",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 100,
+        "thickness": 4,
+        "lineType": "elbow",
+        "ends": [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      "handle": [
+        100.0,
+        50.0
+      ],
+      "point": [
+        140.0,
+        50.0
+      ],
+      "bend": 0.4
+    },
+    {
+      "name": "elbow, pulled along its middle: no change across",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 100,
+        "thickness": 4,
+        "lineType": "elbow",
+        "ends": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "bend": 0.5
+      },
+      "handle": [
+        150.0,
+        50.0
+      ],
+      "point": [
+        150.0,
+        80.0
+      ],
+      "bend": 0.5
+    },
+    {
+      "name": "elbow turned 90",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 100,
+        "thickness": 4,
+        "lineType": "elbow",
+        "ends": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "bend": 0,
+        "rotation": 90
+      },
+      "handle": [
+        100.0,
+        50.0
+      ],
+      "point": [
+        100.0,
+        90.0
+      ],
+      "bend": 0.4
+    },
+    {
+      "name": "elbow with its ends flipped",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 100,
+        "thickness": 4,
+        "lineType": "elbow",
+        "ends": [
+          1,
+          0,
+          0,
+          1
+        ],
+        "bend": 0.5
+      },
+      "handle": [
+        50.0,
+        50.0
+      ],
+      "point": [
+        30.0,
+        50.0
+      ],
+      "bend": 0.7
+    },
+    {
+      "name": "elbow pulled 2 across: snaps to the middle",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 100,
+        "thickness": 4,
+        "lineType": "elbow",
+        "ends": [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      "handle": [
+        100.0,
+        50.0
+      ],
+      "point": [
+        102.0,
+        50.0
+      ],
+      "bend": 0
+    },
+    {
+      "name": "elbow pulled far past its end: held at -1",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 100,
+        "thickness": 4,
+        "lineType": "elbow",
+        "ends": [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      "handle": [
+        100.0,
+        50.0
+      ],
+      "point": [
+        -400.0,
+        50.0
+      ],
+      "bend": -1
+    },
+    {
+      "name": "straight line: no handle, no bend",
+      "line": {
+        "id": "l",
+        "type": "line",
+        "x": 0,
+        "y": 96,
+        "w": 200,
+        "h": 8,
+        "thickness": 4
+      },
+      "handle": null,
+      "point": [
+        100.0,
+        130.0
+      ],
+      "bend": 0
+    }
+  ]
+}

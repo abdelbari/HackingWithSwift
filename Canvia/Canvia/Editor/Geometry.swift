@@ -192,6 +192,25 @@ enum Geometry {
         return rotate(CGPoint(x: c.x, y: c.y + (above ? -reach : reach)), around: c, degrees: el.rotation)
     }
 
+    /// Which side of a selected element its turn handle — and the move
+    /// handle beside it — sit on.
+    enum TurnSide: Equatable { case below, above }
+
+    /// The side for the turn and move handles of `el`, whose handle ring
+    /// stands `outsetY` off its top and bottom, the turn handle `offset`
+    /// beyond that: below, unless the point below falls outside `reachable`
+    /// and the point above falls inside it. `reachable` is what a finger
+    /// can reach, in page units: on this phone the part of the page in the
+    /// canvas — which already stops at the top bar, the bottom bar and the
+    /// safe area — since only the page takes a touch. The Android twin's
+    /// Geometry.turnHandleSide, with the same rows
+    /// (Fixtures/turn_handle_side.json).
+    static func turnHandleSide(_ el: Element, outsetY: Double, offset: Double, reachable: CGRect) -> TurnSide {
+        let reach = outsetY + offset
+        guard !reachable.contains(rotateHandlePosition(el, offset: reach)) else { return .below }
+        return reachable.contains(rotateHandlePosition(el, offset: reach, above: true)) ? .above : .below
+    }
+
     /// The move handle, beside the rotate handle: as far beyond the same
     /// edge, and that same `offset` along the element's own "left" of it —
     /// so the two never sit on each other, and the move handle stays on the
@@ -1221,12 +1240,16 @@ enum Geometry {
     /// handles — or as far below them when that would leave the bubble
     /// within bubbleTopRoom of the canvas's top, kept bubbleTopRoom up from
     /// the canvas's bottom (over the selection, when nothing else fits).
-    /// Across, its middle is kept on the canvas. All in screen points; the
-    /// Android twin's Geometry.bubbleAnchor, with the same tests.
-    static func bubbleAnchor(_ selection: CGRect, viewport: CGRect, handleOutset: Double) -> BubbleAnchor {
+    /// Across, its middle is kept on the canvas. With the turn and move
+    /// handles above (`handles`, Geometry.turnHandleSide), the bubble goes
+    /// to the side they are not on: below, placed as it is when there is
+    /// no room above. All in screen points; the Android twin's
+    /// Geometry.bubbleAnchor, with the same tests.
+    static func bubbleAnchor(_ selection: CGRect, viewport: CGRect, handleOutset: Double,
+                             handles: TurnSide = .below) -> BubbleAnchor {
         let x = Double(min(max(selection.midX, viewport.minX), viewport.maxX))
         let above = Double(selection.minY) - handleOutset - bubbleGap
-        if above - Double(viewport.minY) >= bubbleTopRoom {
+        if handles == .below && above - Double(viewport.minY) >= bubbleTopRoom {
             return BubbleAnchor(point: CGPoint(x: x, y: above), side: .above)
         }
         let below = min(Double(selection.maxY) + handleOutset + bubbleGap, Double(viewport.maxY) - bubbleTopRoom)

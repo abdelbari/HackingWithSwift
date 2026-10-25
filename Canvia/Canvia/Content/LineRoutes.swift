@@ -250,9 +250,15 @@ enum LineRoutes {
     /// point `bend` of their distance to the right of their middle.
     static func control(_ a: CGPoint, _ b: CGPoint, bend: Double) -> CGPoint {
         let mid = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
-        let throughX = Double(mid.x) - Double(b.y - a.y) * bend
-        let throughY = Double(mid.y) + Double(b.x - a.x) * bend
-        return CGPoint(x: 2 * throughX - Double(mid.x), y: 2 * throughY - Double(mid.y))
+        let p = through(a, b, bend: bend)
+        return CGPoint(x: 2 * Double(p.x) - Double(mid.x), y: 2 * Double(p.y) - Double(mid.y))
+    }
+
+    /// The point `bend` of the distance from `a` to `b` to the right of
+    /// their middle: where a curve between them passes halfway along.
+    static func through(_ a: CGPoint, _ b: CGPoint, bend: Double) -> CGPoint {
+        let mid = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
+        return CGPoint(x: Double(mid.x) - Double(b.y - a.y) * bend, y: Double(mid.y) + Double(b.x - a.x) * bend)
     }
 
     /// The way an end's arrowhead points: from the nearest other point of
@@ -286,6 +292,69 @@ enum LineRoutes {
     /// so its head, not the line, is what shows there.
     static func strokeBack(_ el: Element, cap: String?) -> Double {
         LineEnds.back(LineEnds.kind(cap), thickness: max(el.thickness ?? 4, 0.5), scale: LineEnds.scale(of: el))
+    }
+
+    // MARK: the bend handle
+
+    /// Within this of 0, a bend dragged by its handle settles on 0: a
+    /// straight middle, felt as a detent.
+    static let bendSnap = 0.03
+    /// How far VoiceOver's Bend more and Bend less move a bend.
+    static let bendStep = 0.1
+
+    /// Where the handle in the middle of a curved or elbowed line sits, on
+    /// the page: on a curve, the point the quadratic passes through halfway
+    /// along (through); on an elbow, the middle of its middle segment. Nil
+    /// for a straight line, which has none. The Android twin's
+    /// LineRoutes.bendHandlePoint, with the same rows
+    /// (Fixtures/line_bend.json).
+    static func bendHandlePoint(_ el: Element) -> CGPoint? {
+        let type = routeType(of: el)
+        guard type != .straight else { return nil }
+        let local = localEnds(el)
+        let a = local.start, b = local.end
+        let amount = bend(of: el)
+        guard type == .elbow else { return toPage(el, through(a, b, bend: amount)) }
+        let x = Double(a.x) + Double(b.x - a.x) * (1 + amount) / 2
+        return toPage(el, CGPoint(x: x, y: Double(a.y + b.y) / 2))
+    }
+
+    /// The bend a finger at `point` on the page asks of `el` through its
+    /// handle. On a curve: how far the point lies from the middle of its
+    /// ends along the normal there (to the right, running start to end),
+    /// as a share of the distance between the ends. On an elbow, whose bend
+    /// is where its corner sits across (-1 at the start's x, 1 at the
+    /// end's), the same projection is taken across: how far the point lies
+    /// from the ends' middle along x, as a share of half the distance
+    /// across — so the corner follows the finger. Held to -1…1, then 0
+    /// within bendSnap; 0 for a straight line or ends on each other.
+    static func bendFor(_ el: Element, _ point: CGPoint) -> Double {
+        let type = routeType(of: el)
+        guard type != .straight else { return 0 }
+        let local = localEnds(el)
+        let a = local.start, b = local.end
+        let p = toLocal(el, point)
+        let dx = Double(b.x - a.x), dy = Double(b.y - a.y)
+        let fromX = Double(p.x) - Double(a.x + b.x) / 2
+        let fromY = Double(p.y) - Double(a.y + b.y) / 2
+        var raw = 0.0
+        if type == .elbow {
+            guard abs(dx) > 1e-9 else { return 0 }
+            raw = 2 * fromX / dx
+        } else {
+            let length2 = dx * dx + dy * dy
+            guard length2 > 1e-9 else { return 0 }
+            raw = (fromY * dx - fromX * dy) / length2
+        }
+        let held = min(max(raw.isFinite ? raw : 0, -1), 1)
+        return abs(held) <= bendSnap ? 0 : held
+    }
+
+    /// `el` bent `delta` further — VoiceOver's Bend more (+bendStep) and
+    /// Bend less (-bendStep) — held to -1…1, kept to hundredths so steps
+    /// land on round numbers, none written at 0.
+    static func bentBy(_ el: Element, _ delta: Double) -> Element {
+        withBend(el, ((bend(of: el) + delta) * 100).rounded() / 100)
     }
 
     // MARK: dragging an end
