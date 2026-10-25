@@ -117,7 +117,8 @@ enum QuickFlow {
 
     /// The copy: the same kind of shape with the same fill, border, corners
     /// and type, at `box`, under a new id and with no words — nor the
-    /// source's group, ties, link, name or description, which are its own.
+    /// source's group, ties, link, name, description or diagram, which are
+    /// its own.
     static func copy(of source: Element, at box: CGRect) -> Element {
         var copy = ShapeText.withoutWords(source, was: nil)
         copy.id = UID.make()
@@ -137,6 +138,10 @@ enum QuickFlow {
         copy.altTextSource = nil
         copy.layerName = nil
         copy.bulkField = nil
+        // A copy of a diagram's box is a shape of its own, which Edit
+        // diagram neither stretches into the diagram nor deletes.
+        copy.diagram = nil
+        copy.diagramPart = nil
         return copy
     }
 

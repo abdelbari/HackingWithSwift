@@ -99,7 +99,7 @@ extension CanvasAccessibility {
     /// 4: Do" (Diagrams.stops).
     static func values(ofChart id: String, in elements: [Element]) -> [String] {
         if let diagram = elements.lazy.compactMap(\.diagram).first(where: { $0.id == id }) {
-            return Diagrams.stops(diagram)
+            return Diagrams.stops(Diagrams.synced(diagram, members: elements.filter { $0.diagram?.id == id }))
         }
         return ChartSpeech.stops(elements.filter { $0.chart?.id == id })
     }

@@ -65,7 +65,9 @@ enum PresentSpeech {
     ///   it would be otherwise (a picture with no words of its own by its
     ///   name), with the link it opens — as a tap on it opens it, so only a
     ///   link a tap follows (Links.isFollowable).
-    /// - Shapes with no words and lines say nothing.
+    /// - A line with words (LineLabels.label(of:)): a "text" stop of them,
+    ///   their markers removed.
+    /// - Shapes with no words and lines with none say nothing.
     static func items(_ page: Page, in design: Design) -> [Stop] {
         let elements = page.elements.filter { $0.hidden != true }
         let byId = Dictionary(elements.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -111,6 +113,11 @@ enum PresentSpeech {
         if AccessibilityAudit.isPicture(el) || el.type == .image {
             if el.decorative == true && !AccessibilityAudit.hasAltText(el) { return nil }
             return Stop(id: el.id, kind: image, label: AltText.spoken(el))
+        }
+        // A line's words are read as text — a link when it has one.
+        if let words = LineLabels.label(of: el) {
+            let label = RichText.strip(words.text).trimmingCharacters(in: .whitespacesAndNewlines)
+            return Stop(id: el.id, kind: text, label: label)
         }
         // A linked shape or line still opens its link.
         if let url = el.link, Links.isFollowable(url, in: design) {

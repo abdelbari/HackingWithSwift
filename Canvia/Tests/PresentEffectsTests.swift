@@ -43,6 +43,9 @@ final class PresentEffectsTests: XCTestCase {
             XCTAssertEqual(effect.seconds, Presenter.seconds(of: id), accuracy: 0.001, id)
         }
         XCTAssertFalse(Presenter.sounds("confetti"))
+        // Sound off is offered with nothing else to hear, so they can be silenced.
+        XCTAssertTrue(Presenter.offersSound(heard: false))
+        XCTAssertTrue(Presenter.offersSound(heard: true))
         // Up for its whole sound, then gone.
         let start = Date(timeIntervalSince1970: 1_000)
         let shown = Presenter.showing([], adding: "drumroll", at: start)
