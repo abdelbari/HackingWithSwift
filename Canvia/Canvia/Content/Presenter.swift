@@ -107,8 +107,10 @@ enum Presenter {
     }
 
     /// Every effect, in the grid's order: a 1 to 9 minute countdown on the
-    /// keys 1 to 9, then B blur, C confetti, O bubbles, Q quiet, U curtain
-    /// and X to clear — the Android twin's Presenter.effects, names and all.
+    /// keys 1 to 9, then B blur, C confetti, O bubbles, Q quiet, U curtain,
+    /// D drumroll, M mic drop and X to clear — the Android twin's
+    /// Presenter.effects, names and all. Present's own keys L, P and E
+    /// (PresentInk) are none of these.
     static let effects: [Effect] = timers + others
 
     private static let timers: [Effect] = (1...9).map { (minutes: Int) -> Effect in
@@ -121,6 +123,8 @@ enum Presenter {
         Effect(id: "bubbles", key: "o", name: tr("Bubbles"), symbol: "bubbles.and.sparkles"),
         Effect(id: "quiet", key: "q", name: tr("Quiet"), symbol: "hand.raised"),
         Effect(id: "curtain", key: "u", name: tr("Curtain"), symbol: "theatermasks"),
+        Effect(id: "drumroll", key: "d", name: tr("Drumroll"), symbol: "music.quarternote.3"),
+        Effect(id: "micdrop", key: "m", name: tr("Mic drop"), symbol: "mic.fill"),
         Effect(id: "clear", key: "x", name: tr("Clear"), symbol: "xmark.circle"),
     ]
 
@@ -132,6 +136,23 @@ enum Presenter {
 
     /// How long confetti, bubbles and quiet stay up, in seconds.
     static let effectSeconds = 3.0
+
+    /// How long `id` plays before it passes: the drumroll and the mic drop
+    /// as long as their sounds (sfx drumroll.wav and micdrop.wav, the same
+    /// ids), the rest `effectSeconds` — the Android twin's effectSeconds(id).
+    static func seconds(of id: String) -> Double {
+        switch id {
+        case "drumroll": return drumrollSeconds
+        case "micdrop": return micDropSeconds
+        default: return effectSeconds
+        }
+    }
+
+    /// Whether `id` is heard: its sound is the sound effect of the same id
+    /// (SoundEffects), played as it comes up unless the talk's sound is off.
+    static func sounds(_ id: String) -> Bool {
+        id == "drumroll" || id == "micdrop"
+    }
     /// How long the curtain takes to close.
     static let curtainSeconds = 1.0
 
@@ -172,9 +193,9 @@ enum Presenter {
     }
 
     /// Those still up at `date`: every lasting one, and the rest within
-    /// their three seconds.
+    /// their seconds (`seconds(of:)`).
     static func live(_ shown: [Shown], at date: Date) -> [Shown] {
-        shown.filter { lasts($0.id) || date.timeIntervalSince($0.since) < effectSeconds }
+        shown.filter { lasts($0.id) || date.timeIntervalSince($0.since) < seconds(of: $0.id) }
     }
 
     /// A piece of confetti or a bubble at a moment, in the page's unit
@@ -211,13 +232,9 @@ enum Presenter {
         case "bubbles": count = bubbleCount
         default: return []
         }
-        var seed: Int64 = 26
-        func draw() -> Double {
-            seed = (seed &* 1_103_515_245 &+ 12_345) & 0x7fff_ffff
-            return Double(seed >> 15) / 65_536
-        }
+        var seeded = Seeded(26)
         return (0..<count).map { (n: Int) -> Particle in
-            let across = draw(), start = draw(), speed = draw(), size = draw()
+            let across = seeded.draw(), start = seeded.draw(), speed = seeded.draw(), size = seeded.draw()
             let colour = n % effectColours.count
             guard id == "confetti" else {
                 let y = 1.05 + start * 0.3 - (0.25 + speed * 0.2) * t
@@ -233,6 +250,167 @@ enum Presenter {
     /// The moment the still stand-in shows, with Reduce Motion on:
     /// confetti and bubbles as they are a second and a half in.
     static let stillTime = 1.5
+
+    /// The effects' generator: a linear congruential one with the C
+    /// library's constants, each draw the top 16 bits over 65536.
+    private struct Seeded {
+        var seed: Int64
+
+        init(_ seed: Int64) { self.seed = seed }
+
+        mutating func draw() -> Double {
+            seed = (seed &* 1_103_515_245 &+ 12_345) & 0x7fff_ffff
+            return Double(seed >> 15) / 65_536
+        }
+    }
+}
+
+// MARK: drumroll and mic drop
+
+extension Presenter {
+
+    /// The drumroll's length, and when its roll ends in the crash.
+    static let drumrollSeconds = 2.5
+    static let rollEnd = 1.9
+
+    /// The roll's first gap between strokes, how much shorter each next one
+    /// is, and the shortest it gets, in seconds.
+    static let rollGap = 0.14
+    static let rollSpeedup = 0.93
+    static let rollMinGap = 0.03
+
+    /// When each stroke of the roll falls, from 0 until `rollEnd`: the gaps
+    /// shortening by `rollSpeedup` down to `rollMinGap`. The sound is
+    /// synthesised on the same times (Tools/generate_sounds.py).
+    static func rollStrokes() -> [Double] {
+        var out: [Double] = []
+        var t = 0.0
+        var gap = rollGap
+        while t < rollEnd - 1e-9 {
+            out.append(t)
+            t += gap
+            gap = max(rollMinGap, gap * rollSpeedup)
+        }
+        return out
+    }
+
+    /// The drumroll's spotlight: its middle in the slide's 0 to 1 across and
+    /// down, its radius as a share of the slide's shorter side, and how dark
+    /// the slide is outside it, 0 to 1.
+    struct Spotlight: Equatable {
+        var x: Double
+        var y: Double
+        var radius: Double
+        var dim: Double
+    }
+
+    /// The darkest the slide's edges get round the spotlight.
+    static let spotlightDim = 0.7
+
+    /// The spotlight `t` seconds into the drumroll. It closes in with the
+    /// roll — its radius 0.9 to 0.3 of the shorter side, eased in, (t / 1.9)²
+    /// — darkening the edges to `spotlightDim` over the first 0.3 s; at the
+    /// crash it opens out to 1.5 and the dark lifts, by `drumrollSeconds`.
+    /// It jumps a little at each stroke: two draws per stroke from seed 36,
+    /// (draw − 0.5) × 0.02 across and down, held until the next stroke and
+    /// still from the crash. The Android twin's Presenter.spotlight.
+    static func spotlight(_ t: Double) -> Spotlight {
+        var seeded = Seeded(36)
+        var dx = 0.0, dy = 0.0
+        for at in rollStrokes() {
+            let jx = (seeded.draw() - 0.5) * 0.02
+            let jy = (seeded.draw() - 0.5) * 0.02
+            if at > t { break }
+            dx = jx
+            dy = jy
+        }
+        if t >= rollEnd {
+            dx = 0
+            dy = 0
+        }
+        let radius: Double
+        let dim: Double
+        if t < rollEnd {
+            let u = min(max(t / rollEnd, 0), 1)
+            radius = 0.9 - 0.6 * u * u
+            dim = spotlightDim * min(max(t / 0.3, 0), 1)
+        } else {
+            let u = min(max((t - rollEnd) / (drumrollSeconds - rollEnd), 0), 1)
+            radius = 0.3 + 1.2 * u
+            dim = spotlightDim * (1 - u)
+        }
+        return Spotlight(x: 0.5 + dx, y: 0.5 + dy, radius: radius, dim: dim)
+    }
+
+    /// The mic drop's length; when the microphone lands, and when the slide
+    /// has gone to black.
+    static let micDropSeconds = 2.5
+    static let micLands = 0.5
+    static let micBlackFrom = 1.2
+    static let micBlackBy = 2.2
+
+    /// Where the microphone rests, its middle as a share of the slide's
+    /// height, and its size as a share of the shorter side.
+    static let micFloor = 0.8
+    static let micSize = 0.22
+
+    /// The dust the landing raises.
+    static let dustCount = 12
+
+    /// The mic drop at a moment: the microphone's middle down the slide (0
+    /// to 1; it stays in the middle across), its turn in degrees, how black
+    /// the slide has gone, 0 to 1, and the dust.
+    struct MicDrop: Equatable {
+        var y: Double
+        var turn: Double
+        var black: Double
+        var dust: [Particle]
+    }
+
+    /// The mic drop `t` seconds in. The microphone falls from −0.15 to
+    /// `micFloor` by `micLands`, speeding up, (t / 0.5)², turning 0 to 30°;
+    /// then lies at 90° and bounces twice, 0.12 high over 0.3 s and 0.04
+    /// high over 0.15 s, each 4·h·u·(1 − u); and rests. From `micBlackFrom`
+    /// to `micBlackBy` the slide goes to black. The dust flies from the
+    /// landing for 0.6 s: for each of `dustCount` specks three draws from
+    /// seed 46 — way, speed, size — at u = (t − 0.5) / 0.6, x = 0.5 +
+    /// (2·way − 1)·(0.1 + 0.2·speed)·u, y = 0.85 − 0.15·(0.5 + speed)·sin(π·u),
+    /// size 0.006 + 0.01·size, turn 0, colour its number round
+    /// `effectColours`; none before the landing or after it settles. The
+    /// Android twin's Presenter.micDrop.
+    static func micDrop(_ t: Double) -> MicDrop {
+        let fall = micFall(t)
+        let black = min(max((t - micBlackFrom) / (micBlackBy - micBlackFrom), 0), 1)
+        guard t >= micLands, t <= micLands + 0.6 else {
+            return MicDrop(y: fall.y, turn: fall.turn, black: black, dust: [])
+        }
+        let u = (t - micLands) / 0.6
+        var seeded = Seeded(46)
+        let dust = (0..<dustCount).map { (n: Int) -> Particle in
+            let way = seeded.draw(), speed = seeded.draw(), size = seeded.draw()
+            return Particle(x: 0.5 + (2 * way - 1) * (0.1 + 0.2 * speed) * u,
+                            y: 0.85 - 0.15 * (0.5 + speed) * sin(Double.pi * u),
+                            size: 0.006 + 0.01 * size, colour: n % effectColours.count, turn: 0)
+        }
+        return MicDrop(y: fall.y, turn: fall.turn, black: black, dust: dust)
+    }
+
+    /// The microphone's height and turn `t` seconds into the mic drop.
+    private static func micFall(_ t: Double) -> (y: Double, turn: Double) {
+        if t < micLands {
+            let u = min(max(t / micLands, 0), 1)
+            return (-0.15 + (micFloor + 0.15) * u * u, 30 * u)
+        }
+        if t < micLands + 0.3 {
+            let u = (t - micLands) / 0.3
+            return (micFloor - 0.12 * 4 * u * (1 - u), 90)
+        }
+        if t < micLands + 0.45 {
+            let u = (t - micLands - 0.3) / 0.15
+            return (micFloor - 0.04 * 4 * u * (1 - u), 90)
+        }
+        return (micFloor, 90)
+    }
 }
 
 /// The talk's timer, which the presenter can pause and set back to 0:00.

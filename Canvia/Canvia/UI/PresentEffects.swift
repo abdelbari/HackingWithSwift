@@ -1,6 +1,7 @@
 // The presenter's effects (Presenter.effects) as Present draws them over the
-// page up: a countdown, confetti, bubbles, a call for quiet and a curtain —
-// blur is the page's own, in PresentStage. Drawn by PresentStage, so the
+// page up: a countdown, confetti, bubbles, a call for quiet, a curtain, a
+// drumroll's spotlight and a mic drop — blur is the page's own, in
+// PresentStage. Drawn by PresentStage, so the
 // phone and the screen the room sees show the same, from the same seeded
 // particles. With Reduce Motion on, each moving one is a still stand-in.
 // Only Present draws them: they are never in a design or an export. And the
@@ -67,6 +68,11 @@ private struct PresentEffectsFrame: View {
             quiet
         case "curtain":
             PresentCurtain(closed: still ? 1 : min(1, t / Presenter.curtainSeconds))
+        case "drumroll":
+            // With animations off, the sound alone and its glyph, still.
+            if still { glyph(Self.drum) } else { PresentSpotlight(light: Presenter.spotlight(t)) }
+        case "micdrop":
+            if still { glyph(Self.mic) } else { PresentMicDrop(drop: Presenter.micDrop(t), t: t) }
         default:
             if let minutes = Presenter.timerMinutes(effect.id) {
                 countdown(Presenter.countdown(minutes: minutes, elapsed: t))
@@ -80,6 +86,17 @@ private struct PresentEffectsFrame: View {
     private var quiet: some View {
         Text("\u{1F92B}")
             .font(.system(size: side * 0.35))
+    }
+
+    /// The drumroll's and the mic drop's glyphs, as the Android twin's.
+    static let drum = "\u{1F941}"
+    static let mic = "\u{1F3A4}"
+
+    /// A glyph, still in the middle: the drumroll and the mic drop under
+    /// Reduce Motion.
+    private func glyph(_ text: String) -> some View {
+        Text(verbatim: text)
+            .font(.system(size: side * 0.3))
     }
 
     /// The time left, in a dark pill low on the page, in the middle — where
@@ -131,6 +148,58 @@ private struct PresentParticles: View {
         turned.translateBy(x: centre.x, y: centre.y)
         turned.rotate(by: .degrees(turn))
         turned.fill(Path(CGRect(x: -r / 2, y: -r, width: r, height: 2 * r)), with: .color(colour))
+    }
+}
+
+/// The drumroll's spotlight (Presenter.spotlight): the slide's edges dimmed
+/// round a circle that closes in with the roll and opens at the crash, its
+/// edge soft over the last fifth of its radius — as the Android twin draws
+/// it.
+private struct PresentSpotlight: View {
+    let light: Presenter.Spotlight
+
+    var body: some View {
+        Canvas { context, size in
+            let side = Double(min(size.width, size.height))
+            let centre = CGPoint(x: light.x * Double(size.width), y: light.y * Double(size.height))
+            let dark = Color.black.opacity(light.dim)
+            let gradient = Gradient(stops: [
+                .init(color: .clear, location: 0),
+                .init(color: .clear, location: 0.8),
+                .init(color: dark, location: 1),
+            ])
+            context.fill(Path(CGRect(origin: .zero, size: size)),
+                         with: .radialGradient(gradient, center: centre, startRadius: 0,
+                                               endRadius: max(light.radius * side, 1)))
+        }
+    }
+}
+
+/// The mic drop (Presenter.micDrop): the microphone falling from the top,
+/// bouncing where it lands, the dust it raises and the slide going to
+/// black — as the Android twin draws it.
+private struct PresentMicDrop: View {
+    let drop: Presenter.MicDrop
+    let t: Double
+
+    var body: some View {
+        Canvas { context, size in
+            let side = Double(min(size.width, size.height))
+            var turned = context
+            turned.translateBy(x: size.width / 2, y: drop.y * Double(size.height))
+            turned.rotate(by: .degrees(drop.turn))
+            let mic = turned.resolve(Text(verbatim: PresentEffectsFrame.mic).font(.system(size: Presenter.micSize * side)))
+            turned.draw(mic, at: .zero)
+            // The dust settles as it falls.
+            let settle = min(max((t - Presenter.micLands) / 0.6, 0), 1)
+            let dust = Color(white: 200.0 / 255).opacity(200.0 / 255 * (1 - settle))
+            for p in drop.dust {
+                let r = p.size * side
+                let at = CGRect(x: p.x * Double(size.width) - r, y: p.y * Double(size.height) - r, width: 2 * r, height: 2 * r)
+                context.fill(Path(ellipseIn: at), with: .color(dust))
+            }
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color.black.opacity(drop.black)))
+        }
     }
 }
 

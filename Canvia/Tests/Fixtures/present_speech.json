@@ -1,0 +1,50 @@
+{
+  "note": "What a screen reader finds on a slide in Present (PresentSpeech.items): the page's own shown elements in reading order, a heading, body text with its markers removed, a picture by its alt text, a chart as one stop with its summary, a table a stop a cell row by row (Tables.spokenCell), and a link with where it goes. The hidden text, the decorative picture with no alt text the shape with no words and the cells' rectangles say nothing. header is what the page's header says, and announcement what a page change says. Both phones read this file.",
+  "design": {
+    "id": "d-present",
+    "title": "Quarterly review",
+    "width": 1920,
+    "height": 1080,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "pages": [
+      {
+        "id": "p1",
+        "title": "Results",
+        "background": {"type": "color", "value": "#ffffff"},
+        "elements": [
+          {"id": "e0", "type": "shape", "shapeId": "rect", "x": 0, "y": 0, "w": 1920, "h": 40, "fill": {"kind": "solid", "color": "#2255aa"}},
+          {"id": "e1", "type": "text", "text": "Quarterly results", "x": 100, "y": 60, "w": 1200, "h": 100, "fontSize": 80, "fontWeight": 700, "color": "#111111"},
+          {"id": "e2", "type": "text", "text": "Sales grew in **every** region.", "x": 100, "y": 200, "w": 1200, "h": 40, "fontSize": 28, "color": "#111111"},
+          {"id": "e8", "type": "text", "text": "Speaker cue", "x": 1400, "y": 200, "w": 400, "h": 40, "fontSize": 28, "color": "#111111", "hidden": true},
+          {"id": "e3", "type": "image", "src": "img-a", "x": 100, "y": 320, "w": 600, "h": 400, "altText": "Team at the launch"},
+          {"id": "k1", "type": "shape", "shapeId": "rect", "x": 800, "y": 320, "w": 200, "h": 400, "fill": {"kind": "solid", "color": "#3366cc"}, "chart": {"id": "chart_1", "kind": "column", "data": "North, 12\nSouth, 8"}, "chartPart": "series:0"},
+          {"id": "k2", "type": "shape", "shapeId": "rect", "x": 1050, "y": 420, "w": 200, "h": 300, "fill": {"kind": "solid", "color": "#3366cc"}, "chart": {"id": "chart_1", "kind": "column", "data": "North, 12\nSouth, 8"}, "chartPart": "series:0"},
+          {"id": "e4", "type": "image", "src": "img-b", "x": 1400, "y": 320, "w": 400, "h": 400, "decorative": true},
+          {"id": "r1", "type": "shape", "shapeId": "rect", "x": 100, "y": 760, "w": 300, "h": 40, "fill": {"kind": "solid", "color": "#f2f2f2"}, "table": {"id": "t1", "row": 0, "col": 0}},
+          {"id": "r2", "type": "shape", "shapeId": "rect", "x": 400, "y": 760, "w": 300, "h": 40, "fill": {"kind": "solid", "color": "#f2f2f2"}, "table": {"id": "t1", "row": 0, "col": 1}},
+          {"id": "r3", "type": "shape", "shapeId": "rect", "x": 100, "y": 800, "w": 300, "h": 40, "fill": {"kind": "solid", "color": "#f2f2f2"}, "table": {"id": "t1", "row": 1, "col": 0}},
+          {"id": "r4", "type": "shape", "shapeId": "rect", "x": 400, "y": 800, "w": 300, "h": 40, "fill": {"kind": "solid", "color": "#f2f2f2"}, "table": {"id": "t1", "row": 1, "col": 1}},
+          {"id": "c1", "type": "text", "text": "Region", "x": 100, "y": 760, "w": 300, "h": 40, "fontSize": 24, "fontWeight": 700, "color": "#111111", "table": {"id": "t1", "row": 0, "col": 0}},
+          {"id": "c2", "type": "text", "text": "Sales", "x": 400, "y": 760, "w": 300, "h": 40, "fontSize": 24, "fontWeight": 700, "color": "#111111", "table": {"id": "t1", "row": 0, "col": 1}},
+          {"id": "c3", "type": "text", "text": "North", "x": 100, "y": 800, "w": 300, "h": 40, "fontSize": 24, "color": "#111111", "table": {"id": "t1", "row": 1, "col": 0}},
+          {"id": "c4", "type": "text", "text": "12", "x": 400, "y": 800, "w": 300, "h": 40, "fontSize": 24, "color": "#111111", "table": {"id": "t1", "row": 1, "col": 1}},
+          {"id": "e9", "type": "text", "text": "Read the full report", "x": 100, "y": 960, "w": 600, "h": 40, "fontSize": 24, "color": "#2255aa", "link": "https://example.com/report"}
+        ]
+      }
+    ]
+  },
+  "header": "Page 1 of 1, Results",
+  "announcement": "Page 1 of 1, Results, Quarterly results",
+  "items": [
+    {"id": "e1", "kind": "heading", "label": "Quarterly results"},
+    {"id": "e2", "kind": "text", "label": "Sales grew in every region."},
+    {"id": "e3", "kind": "image", "label": "Team at the launch"},
+    {"id": "chart_1", "kind": "chart", "label": "Column chart, 1 series, 2 categories, values 8 to 12"},
+    {"id": "c1", "kind": "table", "label": "Row 1 of 2, Column 1 of 2, Region"},
+    {"id": "c2", "kind": "table", "label": "Row 1 of 2, Column 2 of 2, Sales"},
+    {"id": "c3", "kind": "table", "label": "Row 2 of 2, Column 1 of 2, Region: North"},
+    {"id": "c4", "kind": "table", "label": "Row 2 of 2, Column 2 of 2, Sales: 12"},
+    {"id": "e9", "kind": "link", "label": "Read the full report", "url": "https://example.com/report"}
+  ]
+}

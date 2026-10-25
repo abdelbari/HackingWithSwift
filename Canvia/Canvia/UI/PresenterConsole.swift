@@ -5,6 +5,9 @@
 // the notes in large type made larger or smaller with A− and A+, the talk's
 // timer (tap to pause, hold to reset), the count, and Previous, Pages and
 // Next. Clips play on the screen only: here the pages are drawn still.
+// With the pen on, a finger on the page up draws on the screen instead, and
+// VoiceOver finds the page up's header and its stops there, as on the
+// phone's own stage (PresentSpeech).
 
 import SwiftUI
 
@@ -23,6 +26,8 @@ struct PresenterConsole<Controls: View>: View {
     let next: () -> Void
     let end: () -> Void
     let showPages: () -> Void
+    /// A link on the page followed, as a tap on it in Present follows it.
+    let follow: (String) -> Void
     /// The sound, autoplay, loop and effects buttons, as the phone's own
     /// bar has them.
     @ViewBuilder let controls: Controls
@@ -31,6 +36,7 @@ struct PresenterConsole<Controls: View>: View {
     var body: some View {
         VStack(spacing: 12) {
             topBar
+            if session.penOn { PresentPenBar(session: session) }
             slides
             heading
             notes
@@ -80,7 +86,7 @@ struct PresenterConsole<Controls: View>: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 caption(tr("Now"))
-                PresenterPreview(session: session)
+                PresenterPreview(session: session, follow: follow)
             }
             .frame(maxWidth: .infinity)
             VStack(alignment: .leading, spacing: 4) {
@@ -199,31 +205,52 @@ struct PresenterConsole<Controls: View>: View {
 }
 
 /// The page up, small and still, fitted to the space it has; a press and
-/// hold on it points at the same place on the page on the screen.
+/// hold on it points at the same place on the page on the screen, and with
+/// the pen on a finger draws there. To VoiceOver, the page's header and then
+/// its stops (PresentSlideReader).
 struct PresenterPreview: View {
     let session: PresentSession
+    let follow: (String) -> Void
+    /// A finger is down: a touch the system cancels lets the dot and the
+    /// stroke go all the same.
+    @GestureState private var touching = false
 
     var body: some View {
         GeometryReader { geo in
-            let design = session.design
-            let page = session.page
-            let pageSize = design.size(for: page)
-            let scale = min(geo.size.width / max(pageSize.width, 1), geo.size.height / max(pageSize.height, 1))
             ZStack {
-                PageRenderView(design: design, page: page)
-                    .environment(\.onScreen, true)
-                    .overlay(alignment: .topLeading) { PointerDot(point: session.pointer, page: pageSize) }
-                    .scaleEffect(scale)
-                    .frame(width: pageSize.width * scale, height: pageSize.height * scale)
-                    .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                preview(in: geo.size)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(PresentSpeech.header(session.design, index: session.index))
+                    .accessibilityHint("Press and hold to point at the screen")
+                    .accessibilitySortPriority(2)
+                PresentSlideReader(design: session.design, page: session.page, size: geo.size, follow: follow)
+                    .accessibilitySortPriority(1)
             }
-            .contentShape(Rectangle())
-            .gesture(PresenterPointing.gesture(session: session, in: geo.size))
+            .accessibilityElement(children: .contain)
         }
         // Where the finger points is where the pointer goes, in any language.
         .designDirection()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Page up")
-        .accessibilityHint("Press and hold to point at the screen")
+        .onChange(of: touching) { _, down in
+            if !down { session.released() }
+        }
+    }
+
+    private func preview(in size: CGSize) -> some View {
+        let design = session.design
+        let page = session.page
+        let pageSize = design.size(for: page)
+        let scale = min(size.width / max(pageSize.width, 1), size.height / max(pageSize.height, 1))
+        return ZStack {
+            PageRenderView(design: design, page: page)
+                .environment(\.onScreen, true)
+                .overlay(alignment: .topLeading) { PresentInkLayer(ink: session.ink, page: pageSize) }
+                .overlay(alignment: .topLeading) { PointerDot(point: session.pointer, page: pageSize) }
+                .scaleEffect(scale)
+                .frame(width: pageSize.width * scale, height: pageSize.height * scale)
+                .position(x: size.width / 2, y: size.height / 2)
+        }
+        .contentShape(Rectangle())
+        .gesture(PresenterPointing.gesture(session: session, in: size)
+            .updating($touching) { _, state, _ in state = true })
     }
 }

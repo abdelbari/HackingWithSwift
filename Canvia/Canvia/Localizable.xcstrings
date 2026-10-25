@@ -9117,6 +9117,59 @@
         }
       }
     },
+    "%@, in %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@، في %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, in %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, in %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, en %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, dans %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, in %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@、%@ 内"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, em %@"
+          }
+        }
+      }
+    },
     "%@, in %@. Double tap to take it out." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9378,6 +9431,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@, degradê linear"
+          }
+        }
+      }
+    },
+    "%@, link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@، رابط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, Link"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, link"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, enlace"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, lien"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, link"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@、リンク"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, link"
           }
         }
       }
@@ -30469,6 +30575,59 @@
         }
       }
     },
+    "Add as a palette" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إضافة كلوحة ألوان"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als Palette hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add as a palette"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir como paleta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter comme palette"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi come tavolozza"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パレットとして追加"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar como paleta"
+          }
+        }
+      }
+    },
     "Add as a track" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32055,6 +32214,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adicionar as cores deste design"
+          }
+        }
+      }
+    },
+    "Add to %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إضافة إلى %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu %@ hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir a %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter à %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi a %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ に追加"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar a %@"
           }
         }
       }
@@ -53612,6 +53824,59 @@
         }
       }
     },
+    "Colours from this logo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ألوان من هذا الشعار"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farben aus diesem Logo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colours from this logo"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colores de este logotipo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couleurs de ce logo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colori da questo logo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このロゴの色"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cores deste logotipo"
+          }
+        }
+      }
+    },
     "Colours in selection" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -72091,6 +72356,59 @@
         }
       }
     },
+    "Drumroll" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قرع الطبول"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trommelwirbel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drumroll"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redoble de tambor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roulement de tambour"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rullo di tamburi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドラムロール"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rufar de tambores"
+          }
+        }
+      }
+    },
     "Dry brush" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -81113,6 +81431,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aparecer gradualmente"
+          }
+        }
+      }
+    },
+    "Fade ink" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تلاشي الحبر"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinte ausblenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fade ink"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desvanecer la tinta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estomper l'encre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dissolvi l'inchiostro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インクをフェード"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esmaecer a tinta"
           }
         }
       }
@@ -100041,6 +100412,59 @@
         }
       }
     },
+    "Laser lock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قفل الليزر"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laser fixieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laser lock"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloquear láser"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verrouiller le laser"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocca laser"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レーザーを固定"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Travar laser"
+          }
+        }
+      }
+    },
     "Last backed up %@ · %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -103906,6 +104330,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Logotipo e área de proteção"
+          }
+        }
+      }
+    },
+    "Logo options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خيارات الشعار"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logo-Optionen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logo options"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opciones del logotipo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Options du logo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opzioni del logo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロゴのオプション"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opções do logotipo"
           }
         }
       }
@@ -108186,6 +108663,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mensagem"
+          }
+        }
+      }
+    },
+    "Mic drop" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إسقاط الميكروفون"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mic-Drop"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mic drop"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soltar el micro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lâcher de micro"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancio del microfono"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイクドロップ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largar o microfone"
           }
         }
       }
@@ -116523,6 +117053,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nenhum código encontrado nesta imagem"
+          }
+        }
+      }
+    },
+    "No colours to take from this logo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا توجد ألوان يمكن أخذها من هذا الشعار."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus diesem Logo lassen sich keine Farben übernehmen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No colours to take from this logo."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este logotipo no tiene colores que tomar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune couleur à tirer de ce logo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun colore da prendere da questo logo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このロゴから取り出せる色はありません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não há cores para tirar deste logotipo."
           }
         }
       }
@@ -125961,6 +126544,59 @@
         }
       }
     },
+    "Open link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فتح الرابط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open link"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir enlace"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir le lien"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri link"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンクを開く"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir link"
+          }
+        }
+      }
+    },
     "Open now" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -128342,6 +128978,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Página %lld de %lld"
+          }
+        }
+      }
+    },
+    "Page %lld of %lld, %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الصفحة %lld من %lld، %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite %lld von %lld, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %lld of %lld, %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Página %lld de %lld, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %lld sur %lld, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagina %lld di %lld, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ %lld / %lld、%@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Página %lld de %lld, %@"
           }
         }
       }
@@ -138053,6 +138742,112 @@
         }
       }
     },
+    "Present shows the design full screen: tap the right or left side, or swipe, to change page. Press and hold on the slide to point at it with a red laser dot that follows your finger. Pen draws on the slide in red, yellow or white at three widths; Clear wipes it, and with Fade ink on each stroke fades 3 seconds after you lift your finger. Ink is never saved. With a keyboard, L locks the laser on, P turns the pen on and off and E clears the ink; the magic shortcuts' keys play a countdown, blur, confetti, bubbles, quiet, a curtain, D a drumroll and M a mic drop. With TalkBack, each page says its number and title, then its headings, text, pictures, charts, tables and links in reading order." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعرض العرض التقديمي التصميم بملء الشاشة: انقر على الجانب الأيمن أو الأيسر، أو اسحب، لتغيير الصفحة. اضغط مطولًا على الشريحة للإشارة إليها بنقطة ليزر حمراء تتبع إصبعك. يرسم القلم على الشريحة بالأحمر أو الأصفر أو الأبيض بثلاثة سماكات؛ ويمحوه زر مسح، ومع تشغيل تلاشي الحبر يتلاشى كل خط بعد 3 ثوانٍ من رفع إصبعك. لا يُحفظ الحبر أبدًا. باستخدام لوحة المفاتيح، يثبّت L الليزر، ويشغّل P القلم ويوقفه، ويمسح E الحبر؛ وتشغّل مفاتيح الاختصارات السحرية عدًّا تنازليًا وتمويهًا وقصاصات ملونة وفقاعات وهدوءًا وستارة، وD قرع الطبول وM إسقاط الميكروفون. مع TalkBack، تذكر كل صفحة رقمها وعنوانها، ثم عناوينها ونصوصها وصورها ومخططاتها وجداولها وروابطها بترتيب القراءة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Präsentieren zeigt das Design im Vollbild: Tippe auf die rechte oder linke Seite oder wische, um die Seite zu wechseln. Halte den Finger auf der Folie, um mit einem roten Laserpunkt darauf zu zeigen, der deinem Finger folgt. Stift zeichnet in Rot, Gelb oder Weiß in drei Stärken auf die Folie; Löschen entfernt es, und mit Tinte ausblenden verblasst jeder Strich 3 Sekunden nachdem du den Finger hebst. Die Tinte wird nie gespeichert. Mit einer Tastatur hält L den Laser an, P schaltet den Stift ein und aus und E löscht die Tinte; die Tasten der magischen Kurzbefehle spielen einen Countdown, Unschärfe, Konfetti, Blasen, Ruhe, einen Vorhang, D einen Trommelwirbel und M einen Mic-Drop. Mit TalkBack nennt jede Seite ihre Nummer und ihren Titel, dann ihre Überschriften, Texte, Bilder, Diagramme, Tabellen und Links in Lesereihenfolge."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Present shows the design full screen: tap the right or left side, or swipe, to change page. Press and hold on the slide to point at it with a red laser dot that follows your finger. Pen draws on the slide in red, yellow or white at three widths; Clear wipes it, and with Fade ink on each stroke fades 3 seconds after you lift your finger. Ink is never saved. With a keyboard, L locks the laser on, P turns the pen on and off and E clears the ink; the magic shortcuts' keys play a countdown, blur, confetti, bubbles, quiet, a curtain, D a drumroll and M a mic drop. With TalkBack, each page says its number and title, then its headings, text, pictures, charts, tables and links in reading order."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presentar muestra el diseño a pantalla completa: toca el lado derecho o izquierdo, o desliza, para cambiar de página. Mantén pulsada la diapositiva para señalarla con un punto láser rojo que sigue tu dedo. Bolígrafo dibuja sobre la diapositiva en rojo, amarillo o blanco con tres grosores; Borrar lo quita y, con Desvanecer la tinta activado, cada trazo se desvanece 3 segundos después de levantar el dedo. La tinta nunca se guarda. Con un teclado, L fija el láser, P activa y desactiva el bolígrafo y E borra la tinta; las teclas de los atajos mágicos ponen una cuenta atrás, desenfoque, confeti, burbujas, silencio, un telón, D un redoble de tambor y M soltar el micro. Con TalkBack, cada página dice su número y su título, y luego sus títulos, texto, imágenes, gráficos, tablas y enlaces en orden de lectura."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Présenter affiche le design en plein écran : touchez le côté droit ou gauche, ou balayez, pour changer de page. Maintenez le doigt sur la diapositive pour la montrer avec un point laser rouge qui suit votre doigt. Stylo dessine sur la diapositive en rouge, jaune ou blanc, en trois épaisseurs ; Effacer l'efface et, avec Estomper l'encre activé, chaque trait s'estompe 3 secondes après que vous levez le doigt. L'encre n'est jamais enregistrée. Avec un clavier, L fixe le laser, P active et désactive le stylo et E efface l'encre ; les touches des raccourcis magiques lancent un compte à rebours, un flou, des confettis, des bulles, le silence, un rideau, D un roulement de tambour et M un lâcher de micro. Avec TalkBack, chaque page annonce son numéro et son titre, puis ses titres, son texte, ses images, ses graphiques, ses tableaux et ses liens dans l'ordre de lecture."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenta mostra il design a schermo intero: tocca il lato destro o sinistro, o scorri, per cambiare pagina. Tieni premuto sulla diapositiva per indicarla con un punto laser rosso che segue il dito. Penna disegna sulla diapositiva in rosso, giallo o bianco con tre spessori; Cancella la toglie e, con Dissolvi l'inchiostro attivo, ogni tratto svanisce 3 secondi dopo che sollevi il dito. L'inchiostro non viene mai salvato. Con una tastiera, L blocca il laser, P attiva e disattiva la penna ed E cancella l'inchiostro; i tasti delle scorciatoie magiche avviano un conto alla rovescia, sfocatura, coriandoli, bolle, silenzio, un sipario, D un rullo di tamburi e M un lancio del microfono. Con TalkBack, ogni pagina dice il suo numero e titolo, poi i titoli, il testo, le immagini, i grafici, le tabelle e i link in ordine di lettura."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレゼンテーションはデザインを全画面で表示します。右側か左側をタップするか、スワイプしてページを切り替えます。スライドを長押しすると、指に合わせて動く赤いレーザーポイントで指し示せます。ペンはスライドに赤・黄・白の3種類の太さで描けます。クリアで消え、インクをフェードがオンなら各ストロークは指を離して3秒後に消えます。インクは保存されません。キーボードでは、L でレーザーを固定、P でペンのオン／オフ、E でインクを消去します。マジックショートカットのキーでカウントダウン、ぼかし、紙吹雪、泡、静粛、カーテン、D でドラムロール、M でマイクドロップを再生します。TalkBack では、各ページの番号とタイトルに続いて、見出し、テキスト、画像、グラフ、表、リンクを読み上げ順に読み上げます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apresentar mostra o design em tela cheia: toque no lado direito ou esquerdo, ou deslize, para mudar de página. Toque e segure no slide para apontar para ele com um ponto de laser vermelho que segue seu dedo. Caneta desenha no slide em vermelho, amarelo ou branco, em três espessuras; Limpar apaga e, com Esmaecer a tinta ativado, cada traço some 3 segundos depois que você levanta o dedo. A tinta nunca é salva. Com um teclado, L fixa o laser, P liga e desliga a caneta e E apaga a tinta; as teclas dos atalhos mágicos tocam uma contagem regressiva, desfoque, confete, bolhas, silêncio, uma cortina, D um rufar de tambores e M largar o microfone. Com o TalkBack, cada página diz seu número e título e depois seus títulos, textos, imagens, gráficos, tabelas e links na ordem de leitura."
+          }
+        }
+      }
+    },
+    "Present shows the design full screen: tap the right or left side, or swipe, to change page. Press and hold on the slide to point at it with a red laser dot that follows your finger. Pen draws on the slide in red, yellow or white at three widths; Clear wipes it, and with Fade ink on each stroke fades 3 seconds after you lift your finger. Ink is never saved. With a keyboard, L locks the laser on, P turns the pen on and off and E clears the ink; the magic shortcuts' keys play a countdown, blur, confetti, bubbles, quiet, a curtain, D a drumroll and M a mic drop. With VoiceOver, each page says its number and title, then its headings, text, pictures, charts, tables and links in reading order." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعرض العرض التقديمي التصميم بملء الشاشة: انقر على الجانب الأيمن أو الأيسر، أو اسحب، لتغيير الصفحة. اضغط مطولًا على الشريحة للإشارة إليها بنقطة ليزر حمراء تتبع إصبعك. يرسم القلم على الشريحة بالأحمر أو الأصفر أو الأبيض بثلاثة سماكات؛ ويمحوه زر مسح، ومع تشغيل تلاشي الحبر يتلاشى كل خط بعد 3 ثوانٍ من رفع إصبعك. لا يُحفظ الحبر أبدًا. باستخدام لوحة المفاتيح، يثبّت L الليزر، ويشغّل P القلم ويوقفه، ويمسح E الحبر؛ وتشغّل مفاتيح الاختصارات السحرية عدًّا تنازليًا وتمويهًا وقصاصات ملونة وفقاعات وهدوءًا وستارة، وD قرع الطبول وM إسقاط الميكروفون. مع VoiceOver، تذكر كل صفحة رقمها وعنوانها، ثم عناوينها ونصوصها وصورها ومخططاتها وجداولها وروابطها بترتيب القراءة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Präsentieren zeigt das Design im Vollbild: Tippe auf die rechte oder linke Seite oder wische, um die Seite zu wechseln. Halte den Finger auf der Folie, um mit einem roten Laserpunkt darauf zu zeigen, der deinem Finger folgt. Stift zeichnet in Rot, Gelb oder Weiß in drei Stärken auf die Folie; Löschen entfernt es, und mit Tinte ausblenden verblasst jeder Strich 3 Sekunden nachdem du den Finger hebst. Die Tinte wird nie gespeichert. Mit einer Tastatur hält L den Laser an, P schaltet den Stift ein und aus und E löscht die Tinte; die Tasten der magischen Kurzbefehle spielen einen Countdown, Unschärfe, Konfetti, Blasen, Ruhe, einen Vorhang, D einen Trommelwirbel und M einen Mic-Drop. Mit VoiceOver nennt jede Seite ihre Nummer und ihren Titel, dann ihre Überschriften, Texte, Bilder, Diagramme, Tabellen und Links in Lesereihenfolge."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Present shows the design full screen: tap the right or left side, or swipe, to change page. Press and hold on the slide to point at it with a red laser dot that follows your finger. Pen draws on the slide in red, yellow or white at three widths; Clear wipes it, and with Fade ink on each stroke fades 3 seconds after you lift your finger. Ink is never saved. With a keyboard, L locks the laser on, P turns the pen on and off and E clears the ink; the magic shortcuts' keys play a countdown, blur, confetti, bubbles, quiet, a curtain, D a drumroll and M a mic drop. With VoiceOver, each page says its number and title, then its headings, text, pictures, charts, tables and links in reading order."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presentar muestra el diseño a pantalla completa: toca el lado derecho o izquierdo, o desliza, para cambiar de página. Mantén pulsada la diapositiva para señalarla con un punto láser rojo que sigue tu dedo. Bolígrafo dibuja sobre la diapositiva en rojo, amarillo o blanco con tres grosores; Borrar lo quita y, con Desvanecer la tinta activado, cada trazo se desvanece 3 segundos después de levantar el dedo. La tinta nunca se guarda. Con un teclado, L fija el láser, P activa y desactiva el bolígrafo y E borra la tinta; las teclas de los atajos mágicos ponen una cuenta atrás, desenfoque, confeti, burbujas, silencio, un telón, D un redoble de tambor y M soltar el micro. Con VoiceOver, cada página dice su número y su título, y luego sus títulos, texto, imágenes, gráficos, tablas y enlaces en orden de lectura."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Présenter affiche le design en plein écran : touchez le côté droit ou gauche, ou balayez, pour changer de page. Maintenez le doigt sur la diapositive pour la montrer avec un point laser rouge qui suit votre doigt. Stylo dessine sur la diapositive en rouge, jaune ou blanc, en trois épaisseurs ; Effacer l'efface et, avec Estomper l'encre activé, chaque trait s'estompe 3 secondes après que vous levez le doigt. L'encre n'est jamais enregistrée. Avec un clavier, L fixe le laser, P active et désactive le stylo et E efface l'encre ; les touches des raccourcis magiques lancent un compte à rebours, un flou, des confettis, des bulles, le silence, un rideau, D un roulement de tambour et M un lâcher de micro. Avec VoiceOver, chaque page annonce son numéro et son titre, puis ses titres, son texte, ses images, ses graphiques, ses tableaux et ses liens dans l'ordre de lecture."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenta mostra il design a schermo intero: tocca il lato destro o sinistro, o scorri, per cambiare pagina. Tieni premuto sulla diapositiva per indicarla con un punto laser rosso che segue il dito. Penna disegna sulla diapositiva in rosso, giallo o bianco con tre spessori; Cancella la toglie e, con Dissolvi l'inchiostro attivo, ogni tratto svanisce 3 secondi dopo che sollevi il dito. L'inchiostro non viene mai salvato. Con una tastiera, L blocca il laser, P attiva e disattiva la penna ed E cancella l'inchiostro; i tasti delle scorciatoie magiche avviano un conto alla rovescia, sfocatura, coriandoli, bolle, silenzio, un sipario, D un rullo di tamburi e M un lancio del microfono. Con VoiceOver, ogni pagina dice il suo numero e titolo, poi i titoli, il testo, le immagini, i grafici, le tabelle e i link in ordine di lettura."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレゼンテーションはデザインを全画面で表示します。右側か左側をタップするか、スワイプしてページを切り替えます。スライドを長押しすると、指に合わせて動く赤いレーザーポイントで指し示せます。ペンはスライドに赤・黄・白の3種類の太さで描けます。クリアで消え、インクをフェードがオンなら各ストロークは指を離して3秒後に消えます。インクは保存されません。キーボードでは、L でレーザーを固定、P でペンのオン／オフ、E でインクを消去します。マジックショートカットのキーでカウントダウン、ぼかし、紙吹雪、泡、静粛、カーテン、D でドラムロール、M でマイクドロップを再生します。VoiceOver では、各ページの番号とタイトルに続いて、見出し、テキスト、画像、グラフ、表、リンクを読み上げ順に読み上げます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apresentar mostra o design em tela cheia: toque no lado direito ou esquerdo, ou deslize, para mudar de página. Toque e segure no slide para apontar para ele com um ponto de laser vermelho que segue seu dedo. Caneta desenha no slide em vermelho, amarelo ou branco, em três espessuras; Limpar apaga e, com Esmaecer a tinta ativado, cada traço some 3 segundos depois que você levanta o dedo. A tinta nunca é salva. Com um teclado, L fixa o laser, P liga e desliga a caneta e E apaga a tinta; as teclas dos atalhos mágicos tocam uma contagem regressiva, desfoque, confete, bolhas, silêncio, uma cortina, D um rufar de tambores e M largar o microfone. Com o VoiceOver, cada página diz seu número e título e depois seus títulos, textos, imagens, gráficos, tabelas e links na ordem de leitura."
+          }
+        }
+      }
+    },
     "Presentations" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -138102,6 +138897,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apresentações"
+          }
+        }
+      }
+    },
+    "Presenting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "العرض التقديمي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Präsentieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenting"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presentar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Présenter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presentare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレゼンテーション"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apresentar"
           }
         }
       }
