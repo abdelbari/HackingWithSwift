@@ -236,15 +236,15 @@ final class TextParagraphsTests: XCTestCase {
         XCTAssertEqual(s.editingTextId, el.id, "the typing stays open")
     }
 
-    /// A text box's bar has List, Outdent and Indent; a shape's words have
-    /// no lists.
+    /// A text box's bar has List, Outdent and Indent, and so do a shape's
+    /// words since round 34, as on Android.
     @MainActor
-    func testATextBoxsBarHasListAndIndentsAndAShapesHasNot() {
+    func testATextBoxsBarAndAShapesHaveListAndIndents() {
         let box = labels(InlineTextField(element: .text("Big sale"), onChange: { _ in }, onDone: {}))
         XCTAssertTrue(["List", "Outdent", "Indent"].allSatisfy { box.contains($0) }, "\(box)")
         let shape = labels(InlineTextField(element: ShapeText.textElement(for: .shape("rect")),
                                            onChange: { _ in }, onDone: {}, wordStyles: false))
-        XCTAssertFalse(shape.contains("List"))
+        XCTAssertTrue(["List", "Outdent", "Indent"].allSatisfy { shape.contains($0) }, "\(shape)")
     }
 
     /// What the buttons on a field's bar are called.
