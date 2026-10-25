@@ -274,7 +274,9 @@ final class TextParagraphsTests: XCTestCase {
     }
 
     /// A larger word in a listed line keeps the room it was given: the
-    /// line's own indents go over that style, not over the box's.
+    /// line's own indents go over that style, not over the box's, and the
+    /// marker takes its first letter's size, so the hang is twice as wide
+    /// (TextLists.markerStyle, as on Android).
     func testALargerWordInAListedLineKeepsItsRoom() throws {
         var el = box("Plan\nShop", [none, bullet()])
         el.fontSize = 20
@@ -284,7 +286,7 @@ final class TextParagraphsTests: XCTestCase {
         let at = (drawn.string as NSString).range(of: "Shop").location
         let style = try XCTUnwrap(drawn.attribute(.paragraphStyle, at: at, effectiveRange: nil) as? NSParagraphStyle)
         XCTAssertEqual(style.maximumLineHeight, 20 * 1.25 * 2, accuracy: 0.001)
-        XCTAssertEqual(style.headIndent, 20 * FontLibrary.markerEm, accuracy: 0.001)
+        XCTAssertEqual(style.headIndent, 20 * 2 * FontLibrary.markerEm, accuracy: 0.001)
         let plan = try XCTUnwrap(drawn.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
         XCTAssertEqual(plan.maximumLineHeight, 20 * 1.25, accuracy: 0.001)
     }

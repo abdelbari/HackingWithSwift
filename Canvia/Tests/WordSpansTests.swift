@@ -352,14 +352,17 @@ final class WordSpansTests: XCTestCase {
         XCTAssertNotEqual((drawn.attribute(.foregroundColor, at: 6, effectiveRange: nil) as? UIColor)?.hexString, red)
     }
 
-    func testAListsMarkersAreNotColoured() {
+    /// A marker takes its item's first letter's colour (TextLists.markerStyle,
+    /// as on Android): the red item's marker is red, the plain one's not.
+    func testAListsMarkerTakesItsItemsFirstLetterColour() {
         var el = Element.text("one\ntwo")
         el.listStyle = "bullet"
         el.setSpans([span(4, 7, red)])
         let drawn = FontLibrary.attributedString(for: el)
         XCTAssertEqual(drawn.string, "•  one\n•  two")
         XCTAssertEqual((drawn.attribute(.foregroundColor, at: 10, effectiveRange: nil) as? UIColor)?.hexString, red)
-        XCTAssertNotEqual((drawn.attribute(.foregroundColor, at: 7, effectiveRange: nil) as? UIColor)?.hexString, red)
+        XCTAssertEqual((drawn.attribute(.foregroundColor, at: 7, effectiveRange: nil) as? UIColor)?.hexString, red)
+        XCTAssertNotEqual((drawn.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor)?.hexString, red)
     }
 
     func testGradientLettersIgnoreWordColoursButKeepSizes() throws {

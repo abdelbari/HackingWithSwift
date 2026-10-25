@@ -18,7 +18,13 @@ final class LastPlaceTests: XCTestCase {
     func testThePlaceIsKeptAsJSONAndCappedAtTwoHundred() {
         let place = LastPlace.Place(page: "p2", zoom: 1.5, scroll: nil, t: 1000)
         let text = LastPlace.encode(["d1": place, "d2": LastPlace.Place(page: "x", zoom: nil, scroll: 0.42, t: 5)])
-        XCTAssertEqual(text, #"{"d1":{"page":"p2","t":1000,"zoom":1.5},"d2":{"page":"x","scroll":0.42,"t":5}}"#)
+        // The same object as Android writes; compared as values, since the
+        // system writer spells 0.42 with all its binary digits.
+        let written = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? NSDictionary
+        let expected = try? JSONSerialization.jsonObject(
+            with: Data(#"{"d1":{"page":"p2","t":1000,"zoom":1.5},"d2":{"page":"x","scroll":0.42,"t":5}}"#.utf8)) as? NSDictionary
+        XCTAssertEqual(written, expected)
+        XCTAssertTrue(text.hasPrefix(#"{"d1":{"page":"p2","t":1000,"zoom":1.5},"d2":{"page":"x","scroll":0.4"#), text)
         XCTAssertEqual(LastPlace.decode(text)["d1"], place)
         XCTAssertEqual(LastPlace.decode(text)["d2"]?.scroll, 0.42)
         XCTAssertTrue(LastPlace.decode("not json").isEmpty)
