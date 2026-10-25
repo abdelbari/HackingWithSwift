@@ -144,7 +144,7 @@ extension DesignStore {
     }
 
     /// `change` made to the dials the sheet shows: the chosen layer's —
-    /// selective colour never kept on it — or the photo's own, back to none
+    /// selective colour and the vignette never kept on it — or the photo's own, back to none
     /// when they are all at rest.
     private func changeDials(live: Bool, _ change: @escaping (inout Adjustments) -> Void) {
         let edit: (inout Element) -> Void = { [self] el in
@@ -152,8 +152,7 @@ extension DesignStore {
             if let at = adjustTargetIndex(of: el), var layers = el.retouch {
                 var dials = layers[at].adjust ?? .neutral
                 change(&dials)
-                dials.hsl = [:]
-                layers[at].adjust = dials
+                layers[at].adjust = RetouchLayer.areaDials(dials)
                 el.retouch = layers
             } else {
                 var dials = el.adjustments ?? .neutral

@@ -1,7 +1,7 @@
 // Adjustments on part of a photo: a retouch layer of kind "adjust" — its
 // dials (no selective colour), strokes and area — read and written as both
-// phones do, the cover and mixing maths (Fixtures/area-adjust.json, the
-// Android twin's rows), and Filters ▸ Adjust's Apply to row in the store.
+// phones do, the cover and mixing maths (Fixtures/area-adjust.json, byte
+// for byte the Android twin's), and Filters ▸ Adjust's Apply to row in the store.
 
 import XCTest
 @testable import Canvia
@@ -38,8 +38,10 @@ final class AreaAdjustTests: XCTestCase {
         dials.brightness = 0.3
         dials.warmth = -0.2
         dials.hsl = ["red": HueShift(h: 0.5, s: 0, l: 0)]
+        dials.vignette = 0.6
         let layer = RetouchLayer(adjustOver: RetouchLayer.subjectArea, adjust: dials)
         XCTAssertTrue(layer.adjust?.hsl.isEmpty == true, "an adjust layer keeps no selective colour")
+        XCTAssertEqual(layer.adjust?.vignette, 0, "nor a vignette, which is never drawn on part of a photo")
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         XCTAssertEqual(String(decoding: try encoder.encode(layer), as: UTF8.self), written)

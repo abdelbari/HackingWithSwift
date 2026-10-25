@@ -288,7 +288,8 @@ struct RetouchStroke: Codable, Equatable, Hashable {
 /// with no stroke, is left out when read.
 ///
 /// Of kind "adjust", the layer is the photo's dials of its own — `adjust`,
-/// the Adjustments fields less selective colour, which it never keeps —
+/// the Adjustments fields less selective colour and the vignette, which it
+/// never keeps (neither is drawn on part of a photo, on either phone) —
 /// laid over `area`: "brush" what its strokes cover (written so; a layer
 /// with none is left out), "subject" the photo's cut-out and "background"
 /// all but it, which need no strokes. It has no amount. A missing or
@@ -328,9 +329,15 @@ struct RetouchLayer: Codable, Equatable, Hashable {
         kind = Self.adjusting
         self.strokes = strokes
         self.area = Self.areas.contains(area) ? area : Self.brushArea
-        var dials = adjust
-        dials.hsl = [:]
-        self.adjust = dials
+        self.adjust = Self.areaDials(adjust)
+    }
+
+    /// `dials` as an area keeps them: no selective colour, no vignette.
+    static func areaDials(_ dials: Adjustments) -> Adjustments {
+        var kept = dials
+        kept.hsl = [:]
+        kept.vignette = 0
+        return kept
     }
 
     init(from decoder: Decoder) throws {
@@ -344,9 +351,7 @@ struct RetouchLayer: Codable, Equatable, Hashable {
         if kind == Self.adjusting {
             let named = try? c.decode(String.self, forKey: .area)
             area = named.flatMap { Self.areas.contains($0) ? $0 : nil } ?? Self.brushArea
-            var dials = (try? c.decode(Adjustments.self, forKey: .adjust)) ?? .neutral
-            dials.hsl = [:]
-            adjust = dials
+            adjust = Self.areaDials((try? c.decode(Adjustments.self, forKey: .adjust)) ?? .neutral)
         } else {
             let amount = (try? c.decode(Double.self, forKey: .amount)).flatMap { $0.isFinite ? $0 : nil } ?? 0.5
             self.amount = min(max(amount, 0), 1)
@@ -360,9 +365,7 @@ struct RetouchLayer: Codable, Equatable, Hashable {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(kind, forKey: .kind)
         if adjusts {
-            var dials = adjust ?? .neutral
-            dials.hsl = [:]
-            try c.encode(dials, forKey: .adjust)
+            try Self.areaDials(adjust ?? .neutral).encodeDials(to: c.superEncoder(forKey: .adjust), keepsVignette: false)
             try c.encode(strokes, forKey: .strokes)
             try c.encode(area ?? Self.brushArea, forKey: .area)
         } else {

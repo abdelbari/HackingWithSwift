@@ -192,13 +192,19 @@ struct Adjustments: Codable, Equatable, Hashable {
     /// later and are written only once moved, so a photo nobody has turned
     /// them on is saved exactly as before.
     func encode(to encoder: Encoder) throws {
+        try encodeDials(to: encoder, keepsVignette: true)
+    }
+
+    /// The dials written; an area's (RetouchLayer) leave the vignette out,
+    /// as it is never drawn on part of a photo — the Android twin's shape.
+    func encodeDials(to encoder: Encoder, keepsVignette: Bool) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(brightness, forKey: .brightness)
         try c.encode(contrast, forKey: .contrast)
         try c.encode(saturation, forKey: .saturation)
         try c.encode(warmth, forKey: .warmth)
         try c.encode(sharpness, forKey: .sharpness)
-        try c.encode(vignette, forKey: .vignette)
+        if keepsVignette { try c.encode(vignette, forKey: .vignette) }
         try c.encodeIfPresent(curve, forKey: .curve)
         let later: [(Double, CodingKeys)] = [
             (tint, .tint), (highlights, .highlights), (shadows, .shadows), (whites, .whites),

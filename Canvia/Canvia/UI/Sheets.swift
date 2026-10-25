@@ -803,7 +803,8 @@ struct FiltersSheet: View {
             dialGroup(tr("Texture"), .texture) {
                 dial(tr("Clarity"), \.clarity, in: -1...1)
                 dial(tr("Sharpness"), \.sharpness, in: -1...1)
-                dial(tr("Vignette"), \.vignette, in: 0...1)
+                // An area is never vignetted, on either phone.
+                if whole { dial(tr("Vignette"), \.vignette, in: 0...1) }
                 dial(tr("Fade"), \.fade, in: 0...1)
             }
             if whole { curveRow }

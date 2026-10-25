@@ -1,5 +1,5 @@
 {
-  "about": "Adjustments on part of a photo (a retouch layer of kind adjust): how much a layer shows at a pixel for its area, from what its strokes cover and the photo's subject covers there, and a channel of the adjusted copy mixed into the picture's by that, rounded half up. Shared with the Android twin row for row.",
+  "about": "Adjustments on part of a photo (a retouch layer of kind adjust), shared byte for byte by both phones' tests. cover: how much a layer shows at a pixel for its area, from what its strokes and the photo's subject cover there (the iPhone's; Android has no subject and uses the strokes' cover). mix: a channel of the adjusted copy mixed into the picture's by that, rounded half up; mixPixels: the same for whole 0xAARRGGBB pixels, alpha too. photos: Android's parity photos (a 16 x 16 ramp, red 16 a column, green 16 a row, blue 8 a step of either, under one layer, FNV-1a over red, green, blue, alpha); the iPhone draws them through Core Image and does not hash them. layer: an adjust layer as both phones write it, keys sorted: no hsl, no vignette, and no curve when there is none.",
   "cover": {
     "columns": ["area", "strokes", "subject", "cover"],
     "rows": [
@@ -26,5 +26,16 @@
       [10, 20, 0.05, 11]
     ]
   },
-  "layer": {"written": "{\"adjust\":{\"brightness\":0.3,\"contrast\":0,\"saturation\":0,\"sharpness\":0,\"vignette\":0,\"warmth\":-0.2},\"area\":\"subject\",\"kind\":\"adjust\",\"strokes\":[]}"}
+  "mixPixels": [
+    {"from": "ff000000", "to": "ffffffff", "t": 0.5, "out": "ff808080"},
+    {"from": "ff0a1428", "to": "ff142850", "t": 0.25, "out": "ff0d1932"},
+    {"from": "00000000", "to": "ff102030", "t": 1.0, "out": "ff102030"},
+    {"from": "ff102030", "to": "00000000", "t": 0.0, "out": "ff102030"}
+  ],
+  "photos": [
+    {"name": "brightened band", "layer": {"kind": "adjust", "adjust": {"brightness": 0.4, "saturation": -1}, "strokes": [{"w": 0.2, "pts": [[0.2, 0.5], [0.8, 0.5]]}], "area": "brush"}, "hash": "b44414b6"},
+    {"name": "warmer corner, part taken off", "layer": {"kind": "adjust", "adjust": {"warmth": 0.8, "contrast": 0.5}, "strokes": [{"w": 0.2, "pts": [[0, 0]]}, {"mode": "erase", "w": 0.05, "pts": [[0.05, 0.05]]}], "area": "brush"}, "hash": "306511c5"},
+    {"name": "subject, on Android the strokes' cover", "layer": {"kind": "adjust", "adjust": {"brightness": -0.5}, "strokes": [{"w": 0.1, "pts": [[0.5, 0.5]]}], "area": "subject"}, "hash": "bd782dc5"}
+  ],
+  "layer": {"written": "{\"adjust\":{\"brightness\":0.3,\"contrast\":0,\"saturation\":0,\"sharpness\":0,\"warmth\":-0.2},\"area\":\"subject\",\"kind\":\"adjust\",\"strokes\":[]}"}
 }
