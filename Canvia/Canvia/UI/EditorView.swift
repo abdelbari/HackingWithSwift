@@ -554,7 +554,8 @@ struct EditorView: View {
 
     /// Keys with no ⌘ to them, only while no text field anywhere could
     /// want them (plainKeysLive): Page Up and Page Down, Tab and Shift-Tab
-    /// through what is on the page, front-most last, Shift-H and Shift-V
+    /// through what is on the page, front-most last, Option-Tab down what
+    /// lies under the selection (Select behind), Shift-H and Shift-V
     /// flipping, and T, a text box in the middle of the page.
     private var plainCommands: some View {
         Group {
@@ -562,6 +563,8 @@ struct EditorView: View {
             shortcut(.pageDown, [], tr("Next page")) { store.setPage(store.pageIndex + 1) }
             shortcut(.tab, [], tr("Select next")) { store.selectNeighbour(forward: true) }
             shortcut(.tab, [.shift], tr("Select previous")) { store.selectNeighbour(forward: false) }
+            // ⌥Tab: what lies under the selection at the last tap.
+            shortcut(.tab, [.option], tr("Select behind")) { store.selectBehind() }
             shortcut("h", [.shift], tr("Flip horizontally")) { store.flipSelected(horizontal: true) }
             shortcut("v", [.shift], tr("Flip vertically")) { store.flipSelected(horizontal: false) }
             // T is Add text: the box centred and selected, not opened for

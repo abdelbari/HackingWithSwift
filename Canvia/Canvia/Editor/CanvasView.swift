@@ -99,6 +99,8 @@ struct CanvasView: View {
     /// The part of the column on screen, kept without redrawing the canvas
     /// on every frame of a scroll.
     @State private var seen = ColumnSeen()
+    /// The page scrubber's thumb is held (PageScrubberView).
+    @State private var scrubbing = false
     /// How long the finger was last down on an element, for telling a quick
     /// tap that types from one on its way to a hold.
     @State private var press = PressClock()
@@ -136,6 +138,10 @@ struct CanvasView: View {
         /// The column's left and right edges on screen, in column units;
         /// nil until the canvas has said.
         var across: ClosedRange<Double>?
+        /// The view's top down the column and its height, in column units:
+        /// read by the page scrubber alone (PageScrubberView).
+        var top = 0.0
+        var height = 0.0
     }
 
     /// When the finger last landed on an element, and how long it stayed
@@ -489,6 +495,7 @@ struct CanvasView: View {
     /// header's questions.
     private var columnAware: some View {
         zoomable
+            .overlay { pageScrubber }
             .background {
                 GeometryReader { proxy in
                     Color.clear
@@ -1522,22 +1529,9 @@ struct CanvasView: View {
     }
 
     /// Whether a finger at `point` takes `el`, its touch target `target`
-    /// across: an elbowed or curved line within half that of its route,
-    /// anything else in its box grown to the target (reach) — as the
-    /// Android twin's elementAt.
+    /// across (Layers.touches) — as the Android twin's elementAt.
     private static func touches(_ el: Element, _ point: CGPoint, _ target: Double) -> Bool {
-        if LineRoutes.keepsLevel(el) { return !el.isHidden && LineRoutes.near(el, point, reach: target / 2) }
-        return Geometry.hits(reach(el, target), point: point)
-    }
-
-    /// `el` grown about its centre to at least `target` across and down —
-    /// its touch target, as its hit area is drawn.
-    private static func reach(_ el: Element, _ target: Double) -> Element {
-        var grown = el
-        let grow = max(0, target - el.w) / 2, rise = max(0, target - el.h) / 2
-        grown.x -= grow; grown.w += grow * 2
-        grown.y -= rise; grown.h += rise * 2
-        return grown
+        Layers.touches(el, point, touchRadius: target / 2)
     }
 
     private func marqueeView(_ band: CGRect) -> some View {
@@ -1756,6 +1750,7 @@ struct CanvasView: View {
     /// it, the caret where the finger was, as in Canva.
     private func elementTap(_ el: Element, at point: CGPoint) {
         dismissHoldMenu()
+        store.lastTapAt = point
         if store.stylePainting {
             store.paintStyle(onto: el.id)
             return
@@ -1831,6 +1826,17 @@ struct CanvasView: View {
         if showDistances && store.selection.contains(el.id) && store.selectionIsMeasurable {
             store.measureSelection(true)
             store.buzz(.tick)
+            return
+        }
+        // Two or more things under the finger, off the selection: the menu
+        // there, with Select behind (CanvasGestures.holdOnElement).
+        if let at = pagePress,
+           CanvasGestures.holdOnElement(stack: store.hitStack(at: at).count,
+                                        onSelected: store.selection.contains(el.id)) == .menu {
+            guard !store.refusesLockedPage() else { return }
+            commitTextEditIfAny()
+            store.buzz(.tick)
+            store.holdMenuAt = at
             return
         }
         store.select(el.id, additive: true)
@@ -1942,10 +1948,12 @@ struct CanvasView: View {
         }
         if !el.locked {
             Button("Duplicate") { store.select(el.id); store.duplicateSelected() }
-        }
-        // A position lock asks first (DesignStore.askingDelete).
-        if !el.locked {
+            // A position lock asks first (DesignStore.askingDelete).
             Button("Delete") { store.select(el.id); store.deleteSelected() }
+        }
+        // Select behind, from the selected thing's middle (Layers.hitStack).
+        if store.selection.contains(el.id) {
+            Button("Select what is behind") { store.selectWhatIsBehind(el.id) }
         }
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
         Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }
@@ -2734,7 +2742,10 @@ struct CanvasView: View {
                                onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
                                onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onBoxKey: { store.typingBoxKey($0) },
+                               // Lists and indents, as a text box's lines.
+                               onLines: { store.changeLines(id, covering: $0, $1) },
                                onPaste: { _ = store.pasteTyped(id, selection: $0, clip: $1, plainText: $2) },
+                               onAutoList: { store.autoStartList(id, line: $0, prefix: $1, list: $2) },
                                wordStyles: false,
                                typing: typingHooks)
             .frame(width: box.width)
@@ -2862,6 +2873,8 @@ struct CanvasView: View {
             return request
         case .frame(let box):
             return CanvasRequest(kind: .frame(slot.columnBox(box)), serial: request.serial)
+        case .columnTop:
+            return request
         }
     }
 
@@ -2875,16 +2888,21 @@ struct CanvasView: View {
             seen.fit = fit
             let across = Double(visible.minX)...Double(max(visible.maxX, visible.minX))
             if seen.across != across { seen.across = across }
+            if seen.top != Double(visible.minY) { seen.top = Double(visible.minY) }
+            if seen.height != Double(visible.height) { seen.height = Double(visible.height) }
             shown = slot.pageBox(visible)
             fitting = fit * slot.scale
             let slots = columnSlots
             let live = Set(PageColumn.livePages(slots, visible: visible))
             if livePages != live { livePages = live }
-            let thumbs = Set(PageColumn.thumbnailPages(slots, visible: visible))
+            // Scrubbing, every page but the one worked is its cached
+            // picture, so far pages are never drawn live as they fly past.
+            var thumbs = Set(PageColumn.thumbnailPages(slots, visible: visible))
+            if scrubbing { thumbs.formUnion(live) }
             if thumbPages != thumbs { thumbPages = thumbs }
             let inView = Set(PageColumn.pages(slots, within: 0, of: visible))
             if pagesInView != inView { pagesInView = inView }
-            let pictures = picturedPages(live, slots: slots, visible: visible, inView: inView.count)
+            let pictures = scrubbing ? live : picturedPages(live, slots: slots, visible: visible, inView: inView.count)
             if picturePages != pictures { picturePages = pictures }
         }
         // Only real changes: every write redraws whatever reads it.
@@ -2958,6 +2976,34 @@ struct CanvasView: View {
             return
         }
         store.requestCanvas(.page)
+    }
+
+    /// The page scrubber at the column's trailing edge, scrolling through
+    /// six pages or more, while nothing holds the view to its page
+    /// (PageScrubber.shows).
+    @ViewBuilder
+    private var pageScrubber: some View {
+        let slots = columnSlots
+        if PageScrubber.shows(pages: slots.count, column: columnOn, busy: pagePinned) {
+            PageScrubberView(store: store, seen: seen, slots: slots,
+                             column: PageColumn.columnHeight(slots, gap: PageColumn.room),
+                             scrubbing: $scrubbing,
+                             onScrub: { top in store.requestCanvas(.columnTop(top)) },
+                             onRelease: { index in scrubbedTo(index) })
+        }
+    }
+
+    /// The scrubber let go over page `index`: the view settles on that
+    /// page's top, and it becomes the one worked; what the scrub drew as
+    /// pictures is drawn live again where it should be.
+    private func scrubbedTo(_ index: Int) {
+        guard store.design.pages.indices.contains(index) else { return }
+        if index != store.pageIndex {
+            pageFromColumn = index
+            store.setPage(index)
+        }
+        store.requestCanvas(.page)
+        republishViewport()
     }
 
     /// The page being worked, its header too, brought into sight.

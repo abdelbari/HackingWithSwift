@@ -20273,6 +20273,15 @@
     "ja": "%@ からページの最後までオン。",
     "pt-BR": "Ativado de %@ até o fim da página."
   },
+  "On top": {
+    "ar": "في الأعلى",
+    "de": "Ganz oben",
+    "es": "Encima",
+    "fr": "Au-dessus",
+    "it": "In cima",
+    "ja": "最前面",
+    "pt-BR": "No topo"
+  },
   "On, tap something to paste the style": {
     "ar": "مفعّل، انقر على شيء للصق النمط",
     "de": "Ein – tippe auf etwas, um den Stil einzufügen",
@@ -22285,6 +22294,15 @@
     "it": "Popolari",
     "ja": "人気",
     "pt-BR": "Populares"
+  },
+  "Portrait": {
+    "ar": "عمودي",
+    "de": "Hochformat",
+    "es": "Vertical",
+    "fr": "Portrait",
+    "it": "Verticale",
+    "ja": "縦向き",
+    "pt-BR": "Retrato"
   },
   "Portuguese (Brazil)": {
     "ar": "البرتغالية (البرازيل)",
@@ -25163,6 +25181,24 @@
     "ja": "すべて選択",
     "pt-BR": "Selecionar tudo"
   },
+  "Select behind": {
+    "ar": "تحديد ما خلفه",
+    "de": "Dahinter auswählen",
+    "es": "Seleccionar lo de detrás",
+    "fr": "Sélectionner derrière",
+    "it": "Seleziona dietro",
+    "ja": "背面を選択",
+    "pt-BR": "Selecionar o que está atrás"
+  },
+  "Select behind ▸": {
+    "ar": "تحديد ما خلفه ◂",
+    "de": "Dahinter auswählen ▸",
+    "es": "Seleccionar lo de detrás ▸",
+    "fr": "Sélectionner derrière ▸",
+    "it": "Seleziona dietro ▸",
+    "ja": "背面を選択 ▸",
+    "pt-BR": "Selecionar o que está atrás ▸"
+  },
   "Select everything": {
     "ar": "تحديد كل شيء",
     "de": "Alles auswählen",
@@ -25306,6 +25342,15 @@
     "it": "Seleziona due elementi da collegare",
     "ja": "つなぐものを 2 つ選択してください",
     "pt-BR": "Selecione dois itens para conectar"
+  },
+  "Select what is behind": {
+    "ar": "تحديد ما يقع خلفه",
+    "de": "Auswählen, was dahinter liegt",
+    "es": "Seleccionar lo que hay detrás",
+    "fr": "Sélectionner ce qui se trouve derrière",
+    "it": "Seleziona ciò che c’è dietro",
+    "ja": "背面にあるものを選択",
+    "pt-BR": "Selecionar o que está por trás"
   },
   "Select what you build again and again — a footer, a price tag — and choose More ▸ Save as a component.": {
     "ar": "حدّد ما تنشئه مرارًا — تذييلًا أو بطاقة سعر — واختر المزيد ▸ حفظ كمكوّن.",
@@ -27709,6 +27754,15 @@
     "it": "Sostituisci con %@",
     "ja": "%@ に置き換え",
     "pt-BR": "Trocar por %@"
+  },
+  "Swap width and height": {
+    "ar": "تبديل العرض والارتفاع",
+    "de": "Breite und Höhe tauschen",
+    "es": "Intercambiar ancho y alto",
+    "fr": "Inverser la largeur et la hauteur",
+    "it": "Scambia larghezza e altezza",
+    "ja": "幅と高さを入れ替え",
+    "pt-BR": "Trocar largura e altura"
   },
   "Swoosh": {
     "ar": "انسياب",

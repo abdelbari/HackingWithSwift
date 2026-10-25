@@ -1,0 +1,30 @@
+{
+  "about": "Several text boxes formatted at once (TextSelection) on both phones: the boxes as a design writes them, what each readout reads for a selection of them (null for Mixed), and which boxes a change of each property reaches. A property is a box's when it is a text box's, or for spacing and a list a shape's with words in it (an effect and a curve never are), transparency anything's; a change reaches the unlocked ones that have it, and a readout reads them too, or all that have it when every one is locked. Boxes read alike when they read alike as shown: letter spacing in whole percent of each box's own type size (a shape's words' size when it has none), line height to a hundredth, paragraph spacing to a tenth of an em, the curve in whole degrees, opacity in whole percent, an effect's settings in whole numbers. A box with no lineHeight reads 1.25, no paragraphSpacing 0, no curve 0.",
+  "elements": [
+    {"id": "a", "type": "text", "text": "One\nTwo", "x": 0, "y": 0, "w": 400, "h": 120, "fontSize": 40, "letterSpacing": 1.6, "lineHeight": 1.4, "paragraphSpacing": 0.5, "listStyle": "bullet", "curve": 60, "opacity": 0.8, "effect": {"type": "shadow", "offset": 30}},
+    {"id": "b", "type": "text", "text": "Three", "x": 0, "y": 200, "w": 400, "h": 60, "fontSize": 20, "letterSpacing": 0.8, "lineHeight": 1.4, "paragraphSpacing": 0.5, "listStyle": "bullet", "curve": 60, "opacity": 0.8, "effect": {"type": "shadow", "offset": 30}},
+    {"id": "near", "type": "text", "text": "Nine", "x": 0, "y": 700, "w": 400, "h": 60, "fontSize": 20, "letterSpacing": 0.86, "lineHeight": 1.401, "paragraphSpacing": 0.52, "listStyle": "bullet", "curve": 60.4, "opacity": 0.801, "effect": {"type": "shadow", "offset": 30}},
+    {"id": "c", "type": "text", "text": "Four", "x": 0, "y": 300, "w": 400, "h": 60, "fontSize": 30, "effect": {"type": "shadow", "offset": 60}},
+    {"id": "d", "type": "text", "text": "Five", "x": 0, "y": 400, "w": 400, "h": 60, "fontSize": 30, "locked": true, "listStyle": "number", "effect": {"type": "neon"}},
+    {"id": "e", "type": "text", "text": "Six\nSeven", "x": 0, "y": 500, "w": 400, "h": 120, "fontSize": 30, "paragraphs": [{"list": "bullet"}, {"list": "number", "level": 1}], "paragraphsText": "Six\nSeven"},
+    {"id": "s", "type": "shape", "shapeId": "rect", "x": 500, "y": 0, "w": 200, "h": 100, "text": "Hi", "fontSize": 30, "letterSpacing": 1.2, "lineHeight": 1.4, "paragraphSpacing": 0.5, "listStyle": "bullet"},
+    {"id": "blank", "type": "shape", "shapeId": "rect", "x": 500, "y": 200, "w": 200, "h": 100}
+  ],
+  "cases": [
+    {"boxes": ["a", "b"], "effect": "shadow", "offset": 30, "letterPercent": 4, "lineHeight": 1.4, "paragraphSpacing": 0.5, "list": "bullet", "curve": 60, "opacityPercent": 80},
+    {"boxes": ["a", "near"], "effect": "shadow", "offset": 30, "letterPercent": 4, "lineHeight": 1.4, "paragraphSpacing": 0.5, "list": "bullet", "curve": 60, "opacityPercent": 80},
+    {"boxes": ["a", "c"], "effect": "shadow", "offset": null, "letterPercent": null, "lineHeight": null, "paragraphSpacing": null, "list": null, "curve": null, "opacityPercent": null},
+    {"boxes": ["a", "b", "d"], "effect": "shadow", "offset": 30, "letterPercent": 4, "lineHeight": 1.4, "paragraphSpacing": 0.5, "list": "bullet", "curve": 60, "opacityPercent": 80},
+    {"boxes": ["c", "d"], "effect": "shadow", "offset": 60, "letterPercent": 0, "lineHeight": 1.25, "paragraphSpacing": 0, "list": "none", "curve": 0, "opacityPercent": 100},
+    {"boxes": ["c", "e"], "effect": null, "offset": null, "letterPercent": 0, "lineHeight": 1.25, "paragraphSpacing": 0, "list": null, "curve": 0, "opacityPercent": 100},
+    {"boxes": ["a", "s"], "effect": "shadow", "offset": 30, "letterPercent": 4, "lineHeight": 1.4, "paragraphSpacing": 0.5, "list": "bullet", "curve": 60, "opacityPercent": null}
+  ],
+  "reaches": {
+    "boxes": ["a", "d", "s", "blank", "c"],
+    "effect": ["a", "c"],
+    "curve": ["a", "c"],
+    "spacing": ["a", "s", "c"],
+    "list": ["a", "s", "c"],
+    "opacity": ["a", "s", "blank", "c"]
+  }
+}

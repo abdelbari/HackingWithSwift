@@ -1,10 +1,11 @@
 // The menu a still hold on the empty page brings up at the finger, as
-// Canva's does: Paste — what was copied, put where you pressed — Paste as
-// plain text — another app's words as they read — Paste page, Select all,
-// Unlock all and Show hidden when the page has locked or hidden things on
-// it, Add text here, Background and Animate, the page's own animations. The
-// Android twin's HoldMenu, with the same items in the same order, and the
-// same words.
+// Canva's does — or a hold on a spot where two or more things lie: Select
+// behind, there only, which lists them; Paste — what was copied, put where
+// you pressed — Paste as plain text — another app's words as they read —
+// Paste page, Select all, Unlock all and Show hidden when the page has
+// locked or hidden things on it, Add text here, Background and Animate, the
+// page's own animations. The Android twin's HoldMenu, with the same items
+// in the same order, and the same words.
 
 import CoreGraphics
 import Foundation
@@ -12,12 +13,13 @@ import Foundation
 enum HoldMenu {
 
     enum HoldItem: String, CaseIterable, Identifiable {
-        case paste, pastePlain, pastePage, selectAll, unlockAll, showHidden, addText, background, animate
+        case selectBehind, paste, pastePlain, pastePage, selectAll, unlockAll, showHidden, addText, background, animate
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
+            case .selectBehind: return tr("Select behind ▸")
             case .paste: return tr("Paste")
             case .pastePlain: return tr("Paste as plain text")
             case .pastePage: return tr("Paste page")
@@ -34,6 +36,7 @@ enum HoldMenu {
 
         var symbol: String {
             switch self {
+            case .selectBehind: return "square.3.layers.3d.down.right"
             case .paste: return "doc.on.clipboard"
             case .pastePlain: return "doc.plaintext"
             case .pastePage: return "doc.badge.plus"
@@ -52,15 +55,18 @@ enum HoldMenu {
     /// first key replaces them.
     static let words = tr("Your text here")
 
-    /// The items offered: Paste when there is something to paste — copied
+    /// The items offered: Select behind when two or more things lie under
+    /// the finger (`behind`, Layers.hitStack), Paste when there is
+    /// something to paste — copied
     /// elements, or a picture another app left — Paste as plain text when
     /// there are words to paste, Paste page when a page was copied, Unlock
     /// all when `locked` things are on a page that is not itself locked,
     /// Show hidden when `hidden` things are, and the rest always.
     static func items(canPaste: Bool, canPastePlain: Bool = false, canPastePage: Bool,
-                      locked: Int = 0, hidden: Int = 0, pageLocked: Bool = false) -> [HoldItem] {
+                      locked: Int = 0, hidden: Int = 0, pageLocked: Bool = false, behind: Int = 0) -> [HoldItem] {
         HoldItem.allCases.filter { item in
             switch item {
+            case .selectBehind: return behind >= 2
             case .paste: return canPaste
             case .pastePlain: return canPastePlain
             case .pastePage: return canPastePage

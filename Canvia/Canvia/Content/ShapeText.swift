@@ -228,6 +228,14 @@ enum ShapeText {
         t.align = el.align ?? "center"
         t.lineHeight = el.lineHeight
         t.letterSpacing = el.letterSpacing
+        // Paragraph spacing and lists, as a text box keeps them: markers and
+        // hanging indents set inside the shape's box (TextLists), and the
+        // shape grown to them as to anything else that makes the words taller.
+        t.paragraphSpacing = el.paragraphSpacing
+        t.listStyle = el.listStyle
+        t.indent = el.indent
+        t.paragraphs = el.paragraphs
+        t.paragraphsText = el.paragraphsText
         t.color = el.color ?? defaultInk(for: el.fill)
         // Top and bottom as the shape says; anything else, an unknown
         // value from another tool included, middled — as on Android.

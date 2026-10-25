@@ -58,7 +58,7 @@ extension DesignStore {
     /// brings the typed characters back. The caret stays where it was among
     /// the words, at the start of the item.
     func autoStartList(_ id: String, line: Int, prefix: Int, list: String) {
-        guard !isPageLocked, let el = element(id), el.type == .text, !el.locked else { return }
+        guard !isPageLocked, let el = element(id), ShapeText.carriesWords(el), !el.locked else { return }
         let next = TextLists.autoStarted(el, line: line, prefix: prefix, list: list)
         guard next != el else { return }
         commit()

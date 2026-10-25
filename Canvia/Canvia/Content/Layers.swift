@@ -396,3 +396,78 @@ enum Layers {
         }
     }
 }
+
+// MARK: select behind
+
+/// What lies under a fingertip, for Select behind: the hold menu's list,
+/// Alt+Tab and VoiceOver's Select what is behind. The Android twin's
+/// Layers.hitStack, with the same fixture (Fixtures/hit-stack.json).
+extension Layers {
+
+    /// The most rows Select behind lists.
+    static let behindRows = 8
+
+    /// Whether a fingertip `touchRadius` round at `point` touches `el`, as
+    /// its hit area on the canvas takes touches: a line or a route within
+    /// the radius of its path (LineRoutes.near); anything else in its hit
+    /// area (Geometry.hits — its turned frame, the part a crop shows, warped
+    /// words' hull) grown about its centre to at least twice the radius
+    /// across and down. Nothing hidden is touched.
+    static func touches(_ el: Element, _ point: CGPoint, touchRadius: Double) -> Bool {
+        guard !el.isHidden else { return false }
+        if LineRoutes.keepsLevel(el) { return LineRoutes.near(el, point, reach: touchRadius) }
+        let target = touchRadius * 2
+        var grown = el
+        let grow = max(0, target - el.w) / 2, rise = max(0, target - el.h) / 2
+        grown.x -= grow; grown.w += grow * 2
+        grown.y -= rise; grown.h += rise * 2
+        return Geometry.hits(grown, point: point)
+    }
+
+    /// Everything shown whose hit area holds `point` (touches), top-most
+    /// first, a group as one row — its outermost group, listed where its
+    /// top-most touched member is, with every shown member of it, as Layers
+    /// lists a folded group. A group with one shown member is that
+    /// element's row. A cropped group's member is touched only where the
+    /// crop shows it, as on the canvas (GraphicClip.shown) and in the
+    /// Android twin's Clips.shows; the rows carry the elements as stored.
+    static func hitStack(_ elements: [Element], _ point: CGPoint, touchRadius: Double) -> [LayerRows.Row] {
+        let front = Array(elements.filter { !$0.isHidden }.reversed())
+        let drawn = GraphicClip.shown(front, in: elements)
+        var out: [LayerRows.Row] = []
+        var seen: Set<String> = []
+        for (el, hit) in zip(front, drawn) where touches(hit, point, touchRadius: touchRadius) {
+            guard let group = el.group else {
+                out.append(.element(el, member: false))
+                continue
+            }
+            guard !seen.contains(group) else { continue }
+            seen.insert(group)
+            let members = front.filter { $0.group == group }
+            out.append(members.count > 1 ? .group(group, members: members) : .element(el, member: false))
+        }
+        return out
+    }
+
+    /// Alt+Tab's Select behind: the row of `stack` just under the one
+    /// holding any of the selection `ids` — round again to the top past
+    /// the bottom, as Tab goes round — or the top row when none holds it.
+    /// nil when there is no other row to go to.
+    static func behind(_ stack: [LayerRows.Row], selection ids: Set<String>) -> LayerRows.Row? {
+        guard let top = stack.first else { return nil }
+        guard let at = stack.firstIndex(where: { row in row.elements.contains { ids.contains($0.id) } }) else {
+            return top
+        }
+        let next = stack[(at + 1) % stack.count]
+        return next.id == stack[at].id ? nil : next
+    }
+
+    /// A row's name, as the Layers sheet shows it: "Group (3)", or the
+    /// element's own (ElementNames).
+    static func rowName(_ row: LayerRows.Row) -> String {
+        switch row {
+        case .element(let el, _, _): return ElementNames.name(of: el)
+        case .group(_, let members, _): return LayerRows.groupName(members.count)
+        }
+    }
+}

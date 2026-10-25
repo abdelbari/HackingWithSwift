@@ -268,15 +268,36 @@ struct ContextToolbar: View {
     }
 
     /// Several texts, or a group of nothing but text: the type they can
-    /// share, set on every one at once and each box measured again, with
-    /// "Mixed" wherever they differ. Lists, effects, curves and the rest
-    /// stay one box's.
+    /// share, its list, effect, spacing and curve, set on every one at once
+    /// and each box measured again, with "Mixed" wherever they differ
+    /// (TextSelection). Transparency is the Opacity slider every selection
+    /// has.
     @ViewBuilder
     private var multiTextControls: some View {
+        let boxes = store.selectedElements
         typeBasics
         HStack(spacing: 14) {
             styleToggles
             alignButton
+            listMenu(shared: TextSelection.list(boxes)) { store.setTextList($0) }
+            let levels = TextSelection.levels(boxes)
+            indentButtons(deepest: levels.deepest, shallowest: levels.shallowest) { store.indentTexts(by: $0) }
+        }
+        HStack(spacing: 14) {
+            toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
+            toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
+            multiCurveSlider(TextSelection.curve(boxes))
+        }
+    }
+
+    /// Curve for several boxes: the one they share, or "Mixed"; moved, the
+    /// same curve on every one, each resized to its ink.
+    private func multiCurveSlider(_ shared: Double?) -> some View {
+        sliderControl("Curve", value: shared ?? 0, in: -TextPaths.maxCurve...TextPaths.maxCurve,
+                      mixed: shared == nil) { raw in
+            let degrees = TextPaths.snappedCurve(raw)
+            if degrees != raw && degrees != shared { store.buzz(.tick) }
+            store.formatTextsLive(.curve) { curve(&$0, to: degrees) }
         }
     }
 
@@ -863,16 +884,21 @@ struct ContextToolbar: View {
     /// menu rather than a toggle because three list kinds through one
     /// button would cycle, and nobody counts taps to reach "letters".
     private func listMenu(_ el: Element) -> some View {
-        let shared = TypeReadouts.shared(TextLists.lines(el).map(\.list))
-        return Menu {
+        listMenu(shared: TypeReadouts.shared(TextLists.lines(el).map(\.list))) { style in
+            store.updateSelected {
+                $0.setListStyle(style)
+                $0.h = FontLibrary.layoutHeight(for: $0)
+            }
+        }
+    }
+
+    /// The List menu over lines that read `shared` — nil while they differ
+    /// — choosing a style with `set`.
+    private func listMenu(shared: String?, set: @escaping (String) -> Void) -> some View {
+        Menu {
             Picker("List", selection: Binding(
                 get: { shared ?? TypeReadouts.mixed },
-                set: { style in
-                    store.updateSelected {
-                        $0.setListStyle(style)
-                        $0.h = FontLibrary.layoutHeight(for: $0)
-                    }
-                })) {
+                set: { style in set(style) })) {
                 Label("No list", systemImage: "text.alignleft").tag("none")
                 Label("Bullets", systemImage: "list.bullet").tag("bullet")
                 Label("Numbers", systemImage: "list.number").tag("number")
@@ -881,7 +907,7 @@ struct ContextToolbar: View {
         } label: {
             let icon = shared == "number" ? "list.number"
                 : shared == "letter" ? "character" : "list.bullet"
-            toolLabel(icon, "List", active: FontLibrary.isList(el))
+            toolLabel(icon, "List", active: shared.map { $0 != "none" } ?? true)
         }
         .accessibilityLabel("List")
         .accessibilityValue(shared.map { TypeReadouts.listStyle($0) } ?? TypeReadouts.mixed)
@@ -889,15 +915,20 @@ struct ContextToolbar: View {
 
     /// Outdent and Indent for every line of the box, each held within the
     /// levels: Outdent while any line is in, Indent while any can go deeper.
-    @ViewBuilder
     private func indentButtons(_ el: Element) -> some View {
         let levels = TextLists.lines(el).map(\.level)
-        let deepest = levels.max() ?? 0
-        toolButton("decrease.indent", "Outdent") { indent(by: -1) }
+        return indentButtons(deepest: levels.max() ?? 0, shallowest: levels.min() ?? 0) { indent(by: $0) }
+    }
+
+    /// Outdent and Indent over lines from `shallowest` to `deepest` deep,
+    /// stepping them all with `step`.
+    @ViewBuilder
+    private func indentButtons(deepest: Int, shallowest: Int, step: @escaping (Int) -> Void) -> some View {
+        toolButton("decrease.indent", "Outdent") { step(-1) }
             .disabled(deepest == 0)
             .accessibilityValue("Level \(deepest)")
-        toolButton("increase.indent", "Indent") { indent(by: 1) }
-            .disabled((levels.min() ?? 0) >= FontLibrary.maxIndent)
+        toolButton("increase.indent", "Indent") { step(1) }
+            .disabled(shallowest >= FontLibrary.maxIndent)
             .accessibilityValue("Level \(deepest)")
     }
 
@@ -1448,7 +1479,9 @@ struct ContextToolbar: View {
             // a bug, and denying a clean fully-transparent value. An element
             // at 0 is still selected, still outlined, and still listed in the
             // Layers sheet, so it cannot be lost.
-            sliderControl("Opacity", value: el.opacity, in: 0...1) { v in
+            // Several that differ read "Mixed" (TextSelection.opacity).
+            let shared = TextSelection.opacity(store.selectedElements)
+            sliderControl("Opacity", value: shared ?? el.opacity, in: 0...1, mixed: shared == nil) { v in
                 store.updateSelectedTransient { $0.opacity = v }
             }
         }
@@ -1757,7 +1790,7 @@ struct ContextToolbar: View {
     }
 
     private func sliderControl(_ label: String, value: Double, in range: ClosedRange<Double>,
-                               onEditing: ((Bool) -> Void)? = nil,
+                               mixed: Bool = false, onEditing: ((Bool) -> Void)? = nil,
                                onChange: @escaping (Double) -> Void) -> some View {
         // A zero-length range makes Slider divide by zero; corner-radius
         // bounds derive from element size, so keep a floor.
@@ -1775,8 +1808,9 @@ struct ContextToolbar: View {
             // Named, with the number shown beside it, so VoiceOver says
             // "Round, 24" rather than an unnamed percentage.
             .accessibilityLabel(tr(label))
-            .accessibilityValue(Self.readoutValue(label, value))
-            Text(readout(label, value))
+            .accessibilityValue(mixed ? TypeReadouts.mixed : Self.readoutValue(label, value))
+            // Several things that differ read "Mixed" until it moves.
+            Text(mixed ? "\(tr(label)) \(TypeReadouts.mixed)" : readout(label, value))
                 .font(Theme.controlLabel)
                 .monospacedDigit()
                 .contentTransition(.numericText())

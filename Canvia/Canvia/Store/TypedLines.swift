@@ -14,7 +14,8 @@ extension DesignStore {
     /// when that changes nothing — Outdent on a line already at the edge.
     @discardableResult
     func changeLines(_ id: String, covering range: NSRange, _ change: (inout TextParagraph) -> Void) -> Bool {
-        guard let el = element(id), el.type == .text, !el.locked else { return false }
+        // A text box's lines, or a shape's words'.
+        guard let el = element(id), ShapeText.carriesWords(el), !el.locked else { return false }
         var next = el
         next.changeLines(TextLists.lineRange(el.text ?? "", range), change)
         guard TextLists.lines(next) != TextLists.lines(el) else {

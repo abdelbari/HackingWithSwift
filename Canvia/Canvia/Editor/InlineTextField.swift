@@ -99,10 +99,12 @@ struct InlineTextField: UIViewRepresentable {
     /// For a table's cell: Tab, or the bar's arrow, goes on to the next
     /// cell, and Shift-Tab (true) back to the one before; nil anywhere else.
     var onNextCell: ((Bool) -> Void)?
-    /// Whether the bar has the colour well, A- and A+, Aa, Link, List,
-    /// Indent and Outdent: not for a shape's words, which take no colours,
-    /// sizes, fonts, links or lists.
+    /// Whether the bar has the colour well, A- and A+, Aa and Link: not for
+    /// a shape's words, which take no colours, sizes, fonts or links.
     var wordStyles = true
+    /// Whether it has List, Indent and Outdent, with Return, Tab and
+    /// Backspace on list items and ⇧⌘7 and ⇧⌘8 — a shape's words too.
+    var lineStyles = true
     /// The typing itself, apart from its words: its caret, its bursts and
     /// their Undo.
     var typing = Typing()
@@ -419,7 +421,7 @@ struct InlineTextField: UIViewRepresentable {
         /// shape's words, a composition under way.
         @discardableResult
         private func changeLines(_ range: NSRange, _ change: (inout TextParagraph) -> Void) -> Bool {
-            guard let view, view.markedTextRange == nil, parent.wordStyles,
+            guard let view, view.markedTextRange == nil, parent.lineStyles,
                   parent.element.text == view.text else { return false }
             coalescer.close()
             return parent.onLines(range, change)
@@ -452,15 +454,15 @@ struct InlineTextField: UIViewRepresentable {
         }
 
         /// Tab, or Shift-Tab to `outdent`, on a hardware keyboard: as Indent
-        /// and Outdent, as Canva nests its items. False for a shape's words,
-        /// which have no lists, and the key is typed as ever.
+        /// and Outdent, as Canva nests its items. False where the words take
+        /// no lists, and the key is typed as ever.
         func tab(outdent: Bool) -> Bool {
             // In a table's cell, Tab goes on to the next cell instead.
             if let next = parent.onNextCell {
                 next(outdent)
                 return true
             }
-            guard let view, parent.wordStyles else { return false }
+            guard let view, parent.lineStyles else { return false }
             indent(view, by: outdent ? -1 : 1)
             return true
         }
@@ -477,7 +479,7 @@ struct InlineTextField: UIViewRepresentable {
         /// line as ever — on any other line.
         private func endsList(at caret: Int, in view: UITextView) -> Bool {
             let words = view.text ?? ""
-            guard parent.wordStyles, parent.element.text == words else { return false }
+            guard parent.lineStyles, parent.element.text == words else { return false }
             let line = TextLists.lineRange(words, NSRange(location: caret, length: 0)).lowerBound
             let raw = words.components(separatedBy: "\n")
             let lines = TextLists.lines(parent.element)
@@ -488,11 +490,11 @@ struct InlineTextField: UIViewRepresentable {
 
         /// The list a space typed at `caret` starts (TextLists.autoStart): on
         /// a line not listed yet, whose words before the caret are a bullet,
-        /// a number or a letter and its stop. Nil anywhere else, for a
-        /// shape's words, and with the setting off.
+        /// a number or a letter and its stop. Nil anywhere else, where the
+        /// words take no lists, and with the setting off.
         private func autoStart(at caret: Int, in view: UITextView) -> (line: Int, prefix: Int, list: String)? {
             let words = view.text ?? ""
-            guard parent.wordStyles, parent.onNextCell == nil, TextLists.autoListsOn,
+            guard parent.lineStyles, parent.onNextCell == nil, TextLists.autoListsOn,
                   parent.element.text == words else { return nil }
             let plain = RichText.strip(words)
             let at = RichText.plainCaret(caret, in: words)
@@ -510,7 +512,7 @@ struct InlineTextField: UIViewRepresentable {
         /// lines not joined. False anywhere else, and the key deletes as
         /// ever.
         func backspace() -> Bool {
-            guard let view, view.markedTextRange == nil, parent.wordStyles, view.selectedRange.length == 0,
+            guard let view, view.markedTextRange == nil, parent.lineStyles, view.selectedRange.length == 0,
                   parent.element.text == view.text else { return false }
             let words = view.text ?? ""
             let plain = RichText.strip(words) as NSString
@@ -661,7 +663,7 @@ struct InlineTextField: UIViewRepresentable {
                                          target: self, action: #selector(indentLines(_:)))
             indent.tag = 1
             indent.accessibilityLabel = tr("Indent")
-            lineItems = parent.wordStyles ? [list, outdent, indent] : []
+            lineItems = parent.lineStyles ? [list, outdent, indent] : []
             // A table's cell: first, the arrow to the next cell.
             var cellItems: [UIBarButtonItem] = []
             if parent.onNextCell != nil {
@@ -778,7 +780,7 @@ struct InlineTextField: UIViewRepresentable {
         /// button for it: the words chosen marked, the box set in capitals
         /// or aligned, the lines listed, the words chosen a step smaller or
         /// larger — with words chosen, as A- and A+ are only then; with
-        /// none, the size keys do nothing. A shape's words take no lists or
+        /// none, the size keys do nothing. A shape's words take lists but no
         /// sizes, as its bar has none.
         func key(_ action: TextKeys.Command) {
             guard let view else { return }

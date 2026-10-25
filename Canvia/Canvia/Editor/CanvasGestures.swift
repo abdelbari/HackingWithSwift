@@ -96,6 +96,15 @@ enum CanvasGestures {
         }
     }
 
+    /// What a still hold on an element, let go without a drag, does where
+    /// `stack` things lie under the finger (Layers.hitStack): on a selected
+    /// thing it toggles it, as ever — Select multiple's meaning, kept only
+    /// there; elsewhere, with two or more under the finger, the menu at the
+    /// finger with Select behind; else it toggles. As on the Android twin.
+    static func holdOnElement(stack: Int, onSelected: Bool) -> Action {
+        !onSelected && stack >= 2 ? .menu : action(.hold, on: .element)
+    }
+
     // MARK: a pinch on the selection
 
     /// Settings ▸ Editing's "Pinch resizes what is selected": on unless

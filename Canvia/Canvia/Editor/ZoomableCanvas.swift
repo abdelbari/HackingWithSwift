@@ -73,6 +73,10 @@ struct CanvasRequest: Equatable {
         /// Zoom to selection: this box, in page units, framed with a margin
         /// round it (Viewport.zoomToBox), animated as typing zoom is.
         case frame(CGRect)
+        /// Scrolling through pages, the view's top this far down the
+        /// column, in column units, at once: the page scrubber dragged
+        /// (PageScrubber).
+        case columnTop(Double)
     }
     var kind: Kind
     var serial: Int
@@ -621,6 +625,10 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 scroll.setContentOffset(clamped(CGPoint(x: scroll.contentOffset.x, y: y), in: scroll), animated: true)
             case .frame(let box):
                 frameBox(box, in: scroll)
+            case .columnTop(let top):
+                guard parent.column != nil else { return }
+                let y = CGFloat(top) * scroll.zoomScale
+                scroll.setContentOffset(clamped(CGPoint(x: scroll.contentOffset.x, y: y), in: scroll), animated: false)
             }
         }
 
