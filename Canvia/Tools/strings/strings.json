@@ -647,6 +647,15 @@
     "ja": "長さ %@",
     "pt-BR": "%@ de duração"
   },
+  "%@ long, AAC at 44.1 kHz.": {
+    "ar": "المدة %@، بصيغة AAC بتردد 44.1 كيلوهرتز.",
+    "de": "%@ lang, AAC mit 44,1 kHz.",
+    "es": "Dura %@, AAC a 44,1 kHz.",
+    "fr": "Durée %@, AAC à 44,1 kHz.",
+    "it": "Durata %@, AAC a 44,1 kHz.",
+    "ja": "長さ %@、AAC 44.1 kHz。",
+    "pt-BR": "Duração de %@, AAC a 44,1 kHz."
+  },
   "%@ mask frame": {
     "ar": "إطار قناع %@",
     "de": "Maskenrahmen %@",
@@ -2493,6 +2502,39 @@
     "pt-BR": {
       "one": "%d elemento",
       "other": "%d elementos"
+    }
+  },
+  "%d file, one a slide, in order|%d files, one a slide, in order": {
+    "ar": {
+      "few": "%d ملفات، ملف لكل شريحة، بالترتيب",
+      "many": "%d ملفًا، ملف لكل شريحة، بالترتيب",
+      "one": "ملف واحد (%d)، ملف لكل شريحة، بالترتيب",
+      "other": "%d ملف، ملف لكل شريحة، بالترتيب",
+      "two": "ملفان (%d)، ملف لكل شريحة، بالترتيب",
+      "zero": "%d ملف، ملف لكل شريحة، بالترتيب"
+    },
+    "de": {
+      "one": "%d Datei, eine pro Folie, in Reihenfolge",
+      "other": "%d Dateien, eine pro Folie, in Reihenfolge"
+    },
+    "es": {
+      "one": "%d archivo, uno por diapositiva, en orden",
+      "other": "%d archivos, uno por diapositiva, en orden"
+    },
+    "fr": {
+      "one": "%d fichier, un par diapositive, dans l’ordre",
+      "other": "%d fichiers, un par diapositive, dans l’ordre"
+    },
+    "it": {
+      "one": "%d file, uno per slide, in ordine",
+      "other": "%d file, uno per slide, in ordine"
+    },
+    "ja": {
+      "other": "%d 個のファイル（スライドごとに1つ、順番どおり）"
+    },
+    "pt-BR": {
+      "one": "%d arquivo, um por slide, em ordem",
+      "other": "%d arquivos, um por slide, em ordem"
     }
   },
   "%d file|%d files": {
@@ -4598,6 +4640,15 @@
     "ja": "Word 文書：見出し、リスト、表、画像を Word で編集できます。",
     "pt-BR": "Um documento do Word: títulos, listas, tabelas e imagens, para editar no Word."
   },
+  "A backup into a folder you choose, daily or weekly, whenever something has changed.": {
+    "ar": "نسخة احتياطية في مجلد تختاره، يوميًا أو أسبوعيًا، كلما تغيّر شيء.",
+    "de": "Eine Sicherung in einen Ordner deiner Wahl, täglich oder wöchentlich, sobald sich etwas geändert hat.",
+    "es": "Una copia de seguridad en la carpeta que elijas, a diario o cada semana, siempre que algo haya cambiado.",
+    "fr": "Une sauvegarde dans le dossier de votre choix, chaque jour ou chaque semaine, dès que quelque chose a changé.",
+    "it": "Un backup in una cartella a tua scelta, ogni giorno o ogni settimana, quando qualcosa è cambiato.",
+    "ja": "何か変更があれば、選んだフォルダに毎日または毎週バックアップします。",
+    "pt-BR": "Um backup numa pasta que você escolher, diário ou semanal, sempre que algo mudar."
+  },
   "A bookmark for each page, by its title, so a reader can jump between them.": {
     "ar": "إشارة مرجعية لكل صفحة باسمها، ليتنقل القارئ بينها.",
     "de": "Ein Lesezeichen je Seite, mit ihrem Titel, damit ein Reader zwischen ihnen springen kann.",
@@ -6647,6 +6698,15 @@
     "ja": "オーディオ（%@）",
     "pt-BR": "Áudio (%@)"
   },
+  "Audio (M4A)": {
+    "ar": "صوت (M4A)",
+    "de": "Audio (M4A)",
+    "es": "Audio (M4A)",
+    "fr": "Audio (M4A)",
+    "it": "Audio (M4A)",
+    "ja": "オーディオ（M4A）",
+    "pt-BR": "Áudio (M4A)"
+  },
   "Audio tracks and voice-over": {
     "ar": "المسارات الصوتية والتعليق الصوتي",
     "de": "Audiospuren und Sprachaufnahme",
@@ -6700,6 +6760,15 @@
     "it": "Colore %@ automatico",
     "ja": "自動の%@色",
     "pt-BR": "Cor %@ automática"
+  },
+  "Automatic backup couldn't run — choose the folder again": {
+    "ar": "تعذّر تشغيل النسخ الاحتياطي التلقائي — اختر المجلد مرة أخرى",
+    "de": "Die automatische Sicherung konnte nicht laufen – wähle den Ordner erneut",
+    "es": "No se pudo hacer la copia automática: vuelve a elegir la carpeta",
+    "fr": "La sauvegarde automatique n’a pas pu se faire — choisissez à nouveau le dossier",
+    "it": "Il backup automatico non è riuscito: scegli di nuovo la cartella",
+    "ja": "自動バックアップを実行できませんでした。フォルダをもう一度選んでください",
+    "pt-BR": "Não foi possível fazer o backup automático — escolha a pasta de novo"
   },
   "Automatic captions aren't available on this phone — import an .srt file or type them": {
     "ar": "التسميات التوضيحية التلقائية غير متاحة على هذا الهاتف — استورد ملف ‎.srt أو اكتبها",
@@ -6773,6 +6842,15 @@
     "ja": "サイズに戻る",
     "pt-BR": "Voltar aos tamanhos"
   },
+  "Back up automatically": {
+    "ar": "النسخ الاحتياطي تلقائيًا",
+    "de": "Automatisch sichern",
+    "es": "Copia de seguridad automática",
+    "fr": "Sauvegarder automatiquement",
+    "it": "Backup automatico",
+    "ja": "自動でバックアップ",
+    "pt-BR": "Fazer backup automaticamente"
+  },
   "Back up everything": {
     "ar": "نسخ كل شيء احتياطيًا",
     "de": "Alles sichern",
@@ -6781,6 +6859,15 @@
     "it": "Fai il backup di tutto",
     "ja": "すべてをバックアップ",
     "pt-BR": "Fazer backup de tudo"
+  },
+  "Back up now": {
+    "ar": "انسخ احتياطيًا الآن",
+    "de": "Jetzt sichern",
+    "es": "Hacer copia ahora",
+    "fr": "Sauvegarder maintenant",
+    "it": "Esegui backup ora",
+    "ja": "今すぐバックアップ",
+    "pt-BR": "Fazer backup agora"
   },
   "Backdrop": {
     "ar": "خلفية",
@@ -8687,6 +8774,15 @@
     "ja": "動画を選択",
     "pt-BR": "Escolher um vídeo"
   },
+  "Choose folder": {
+    "ar": "اختيار مجلد",
+    "de": "Ordner wählen",
+    "es": "Elegir carpeta",
+    "fr": "Choisir un dossier",
+    "it": "Scegli cartella",
+    "ja": "フォルダを選択",
+    "pt-BR": "Escolher pasta"
+  },
   "Choose pages… (%@)": {
     "ar": "اختيار صفحات… (%@)",
     "de": "Seiten auswählen … (%@)",
@@ -9524,6 +9620,15 @@
     "ja": "すでにデザインで使われているコピーはそのままです。",
     "pt-BR": "As cópias que já estão em designs ficam como estão."
   },
+  "Copies to keep": {
+    "ar": "عدد النسخ المحفوظة",
+    "de": "Aufzubewahrende Kopien",
+    "es": "Copias que se conservan",
+    "fr": "Copies à conserver",
+    "it": "Copie da conservare",
+    "ja": "保存するコピー数",
+    "pt-BR": "Cópias a manter"
+  },
   "Copy": {
     "ar": "نسخ",
     "de": "Kopieren",
@@ -9853,6 +9958,15 @@
     "it": "Impossibile creare il documento Word",
     "ja": "Word 文書を作成できませんでした",
     "pt-BR": "Não foi possível criar o documento do Word"
+  },
+  "Couldn't make the audio": {
+    "ar": "تعذّر إنشاء الصوت",
+    "de": "Audio konnte nicht erstellt werden",
+    "es": "No se pudo crear el audio",
+    "fr": "Impossible de créer l’audio",
+    "it": "Impossibile creare l’audio",
+    "ja": "オーディオを作成できませんでした",
+    "pt-BR": "Não foi possível criar o áudio"
   },
   "Couldn't make the brand kit file.": {
     "ar": "تعذّر إنشاء ملف مجموعة العلامة التجارية.",
@@ -10589,6 +10703,15 @@
     "ja": "背景を削除",
     "pt-BR": "Remover fundo"
   },
+  "Daily": {
+    "ar": "يوميًا",
+    "de": "Täglich",
+    "es": "Diaria",
+    "fr": "Chaque jour",
+    "it": "Ogni giorno",
+    "ja": "毎日",
+    "pt-BR": "Diário"
+  },
   "Damaged design": {
     "ar": "تصميم تالف",
     "de": "Beschädigtes Design",
@@ -10687,6 +10810,15 @@
     "it": "Decimali",
     "ja": "小数点以下の桁数",
     "pt-BR": "Casas decimais"
+  },
+  "Decision?": {
+    "ar": "قرار؟",
+    "de": "Entscheidung?",
+    "es": "¿Decisión?",
+    "fr": "Décision ?",
+    "it": "Decisione?",
+    "ja": "判断？",
+    "pt-BR": "Decisão?"
   },
   "Deckled edge": {
     "ar": "حافة مخرّمة",
@@ -13535,6 +13667,15 @@
     "ja": "書き出しを一時停止しました",
     "pt-BR": "Exportação pausada"
   },
+  "Export stopped — open Canvia to finish": {
+    "ar": "توقف التصدير — افتح Canvia للإنهاء",
+    "de": "Export gestoppt – öffne Canvia, um abzuschließen",
+    "es": "Exportación detenida: abre Canvia para terminar",
+    "fr": "Exportation arrêtée : ouvrez Canvia pour terminer",
+    "it": "Esportazione interrotta: apri Canvia per finire",
+    "ja": "書き出しが止まりました — Canvia を開いて完了してください",
+    "pt-BR": "Exportação interrompida — abra o Canvia para terminar"
+  },
   "Exporting": {
     "ar": "جارٍ التصدير",
     "de": "Wird exportiert",
@@ -13543,6 +13684,15 @@
     "it": "Esportazione",
     "ja": "書き出し中",
     "pt-BR": "Exportando"
+  },
+  "Exporting %@": {
+    "ar": "جارٍ تصدير %@",
+    "de": "%@ wird exportiert",
+    "es": "Exportando %@",
+    "fr": "Exportation de %@",
+    "it": "Esportazione di %@",
+    "ja": "%@ を書き出し中",
+    "pt-BR": "Exportando %@"
   },
   "Exporting %d of %d designs": {
     "ar": "جارٍ تصدير التصميم %d من %d",
@@ -13696,6 +13846,15 @@
     "it": "Meno decimali",
     "ja": "小数点以下を減らす",
     "pt-BR": "Menos casas decimais"
+  },
+  "Fewer slides": {
+    "ar": "شرائح أقل",
+    "de": "Weniger Folien",
+    "es": "Menos diapositivas",
+    "fr": "Moins de diapositives",
+    "it": "Meno slide",
+    "ja": "スライドを減らす",
+    "pt-BR": "Menos slides"
   },
   "File type": {
     "ar": "نوع الملف",
@@ -15737,6 +15896,42 @@
     "ja": "アイコン · %@",
     "pt-BR": "Ícones · %@"
   },
+  "Idea 1": {
+    "ar": "فكرة 1",
+    "de": "Idee 1",
+    "es": "Idea 1",
+    "fr": "Idée 1",
+    "it": "Idea 1",
+    "ja": "アイデア1",
+    "pt-BR": "Ideia 1"
+  },
+  "Idea 2": {
+    "ar": "فكرة 2",
+    "de": "Idee 2",
+    "es": "Idea 2",
+    "fr": "Idée 2",
+    "it": "Idea 2",
+    "ja": "アイデア2",
+    "pt-BR": "Ideia 2"
+  },
+  "Idea 3": {
+    "ar": "فكرة 3",
+    "de": "Idee 3",
+    "es": "Idea 3",
+    "fr": "Idée 3",
+    "it": "Idea 3",
+    "ja": "アイデア3",
+    "pt-BR": "Ideia 3"
+  },
+  "Idea 4": {
+    "ar": "فكرة 4",
+    "de": "Idee 4",
+    "es": "Idea 4",
+    "fr": "Idée 4",
+    "it": "Idea 4",
+    "ja": "アイデア4",
+    "pt-BR": "Ideia 4"
+  },
   "Ideas to start from": {
     "ar": "أفكار للبدء",
     "de": "Ideen für den Anfang",
@@ -15932,6 +16127,15 @@
     "ja": "インチ",
     "pt-BR": "Polegadas"
   },
+  "Include clip sound": {
+    "ar": "تضمين صوت المقاطع",
+    "de": "Clip-Ton einbeziehen",
+    "es": "Incluir sonido de los clips",
+    "fr": "Inclure le son des clips",
+    "it": "Includi audio delle clip",
+    "ja": "クリップの音声を含める",
+    "pt-BR": "Incluir som dos clipes"
+  },
   "Include notes": {
     "ar": "تضمين الملاحظات",
     "de": "Notizen einschließen",
@@ -15958,6 +16162,15 @@
     "it": "Includi video",
     "ja": "動画を含める",
     "pt-BR": "Incluir vídeos"
+  },
+  "Include voice-over": {
+    "ar": "تضمين التعليق الصوتي",
+    "de": "Voice-over einbeziehen",
+    "es": "Incluir locución",
+    "fr": "Inclure la voix off",
+    "it": "Includi voce fuori campo",
+    "ja": "ナレーションを含める",
+    "pt-BR": "Incluir narração"
   },
   "Increase letter spacing": {
     "ar": "زيادة تباعد الأحرف",
@@ -16421,6 +16634,15 @@
     "ja": "保持",
     "pt-BR": "Manter"
   },
+  "Keep Canvia open to finish": {
+    "ar": "أبقِ Canvia مفتوحًا حتى ينتهي",
+    "de": "Lass Canvia geöffnet, bis es fertig ist",
+    "es": "Mantén Canvia abierto hasta que termine",
+    "fr": "Gardez Canvia ouvert jusqu’à la fin",
+    "it": "Tieni Canvia aperto finché non finisce",
+    "ja": "完了するまでCanviaを開いたままにしてください",
+    "pt-BR": "Mantenha o Canvia aberto até terminar"
+  },
   "Keep exporting in the background?": {
     "ar": "هل تريد مواصلة التصدير في الخلفية؟",
     "de": "Im Hintergrund weiter exportieren?",
@@ -16501,6 +16723,15 @@
     "it": "Mantieni nitido il soggetto",
     "ja": "被写体をシャープに保つ",
     "pt-BR": "Manter o objeto principal nítido"
+  },
+  "Keeps going if you leave Canvia": {
+    "ar": "يستمر حتى إن غادرت Canvia",
+    "de": "Läuft weiter, wenn du Canvia verlässt",
+    "es": "Continúa aunque salgas de Canvia",
+    "fr": "Continue si vous quittez Canvia",
+    "it": "Continua anche se esci da Canvia",
+    "ja": "Canviaを離れても続きます",
+    "pt-BR": "Continua se você sair do Canvia"
   },
   "Ken Burns drift in video": {
     "ar": "انجراف Ken Burns في الفيديو",
@@ -16636,6 +16867,15 @@
     "it": "Più grandi",
     "ja": "大きい順",
     "pt-BR": "Maiores"
+  },
+  "Last backed up %@ · %@": {
+    "ar": "آخر نسخة احتياطية %@ · %@",
+    "de": "Zuletzt gesichert: %@ · %@",
+    "es": "Última copia: %@ · %@",
+    "fr": "Dernière sauvegarde : %@ · %@",
+    "it": "Ultimo backup: %@ · %@",
+    "ja": "前回のバックアップ：%@ · %@",
+    "pt-BR": "Último backup: %@ · %@"
   },
   "Last edited": {
     "ar": "آخر تعديل",
@@ -17486,6 +17726,15 @@
     "ja": "マジックショートカット",
     "pt-BR": "Atalhos mágicos"
   },
+  "Main idea": {
+    "ar": "الفكرة الرئيسية",
+    "de": "Hauptidee",
+    "es": "Idea principal",
+    "fr": "Idée principale",
+    "it": "Idea principale",
+    "ja": "メインアイデア",
+    "pt-BR": "Ideia principal"
+  },
   "Make %d copy|Make %d copies": {
     "ar": {
       "few": "إنشاء %d نسخ",
@@ -17686,6 +17935,15 @@
     "it": "Creazione del documento Word",
     "ja": "Word 文書を作成中",
     "pt-BR": "Criando o documento do Word"
+  },
+  "Making the audio": {
+    "ar": "جارٍ إنشاء الصوت",
+    "de": "Audio wird erstellt",
+    "es": "Creando el audio",
+    "fr": "Création de l’audio",
+    "it": "Creazione dell’audio",
+    "ja": "オーディオを作成中",
+    "pt-BR": "Criando o áudio"
   },
   "Making the post": {
     "ar": "جارٍ إعداد المنشور",
@@ -18250,6 +18508,15 @@
     "it": "Altre dimensioni",
     "ja": "その他のサイズ",
     "pt-BR": "Mais tamanhos"
+  },
+  "More slides": {
+    "ar": "شرائح أكثر",
+    "de": "Mehr Folien",
+    "es": "Más diapositivas",
+    "fr": "Plus de diapositives",
+    "it": "Più slide",
+    "ja": "スライドを増やす",
+    "pt-BR": "Mais slides"
   },
   "Mosaic": {
     "ar": "فسيفساء",
@@ -19846,6 +20113,15 @@
     "it": "Non animato",
     "ja": "アニメーションなし",
     "pt-BR": "Sem animação"
+  },
+  "Not backed up yet": {
+    "ar": "لم يُنسخ احتياطيًا بعد",
+    "de": "Noch nicht gesichert",
+    "es": "Aún sin copia de seguridad",
+    "fr": "Pas encore sauvegardé",
+    "it": "Nessun backup ancora",
+    "ja": "まだバックアップされていません",
+    "pt-BR": "Ainda sem backup"
   },
   "Not checked, the page on screen": {
     "ar": "لم يتم التحقق، الصفحة المعروضة",
@@ -24878,6 +25154,15 @@
     "ja": "テンプレートとして保存…",
     "pt-BR": "Salvar como modelo…"
   },
+  "Save it to Files or share it: the photos library takes no audio.": {
+    "ar": "احفظه في الملفات أو شاركه: مكتبة الصور لا تقبل الصوت.",
+    "de": "Speichere es in Dateien oder teile es: Die Fotomediathek nimmt keinen Ton auf.",
+    "es": "Guárdalo en Archivos o compártelo: la fototeca no admite audio.",
+    "fr": "Enregistrez-le dans Fichiers ou partagez-le : la photothèque n’accepte pas l’audio.",
+    "it": "Salvalo in File o condividilo: la libreria foto non accetta audio.",
+    "ja": "ファイルに保存するか共有してください。写真ライブラリにはオーディオを保存できません。",
+    "pt-BR": "Salve em Arquivos ou compartilhe: a biblioteca de fotos não aceita áudio."
+  },
   "Save selection as component…": {
     "ar": "حفظ التحديد كمكوّن…",
     "de": "Auswahl als Komponente speichern …",
@@ -26240,6 +26525,15 @@
     "ja": "印刷用 PDF を共有",
     "pt-BR": "Compartilhar um PDF para impressão"
   },
+  "Share audio": {
+    "ar": "مشاركة الصوت",
+    "de": "Audio teilen",
+    "es": "Compartir audio",
+    "fr": "Partager l’audio",
+    "it": "Condividi audio",
+    "ja": "オーディオを共有",
+    "pt-BR": "Compartilhar áudio"
+  },
   "Share it. Export the page as an image, the whole thing as a PDF, or the design itself to open on another phone — Android or iPhone.": {
     "ar": "شاركه. صدِّر الصفحة كصورة، أو كل شيء كملف PDF، أو التصميم نفسه لفتحه على هاتف آخر — Android أو iPhone.",
     "de": "Teile es. Exportiere die Seite als Bild, alles als PDF oder das Design selbst, um es auf einem anderen Telefon zu öffnen – Android oder iPhone.",
@@ -26846,6 +27140,15 @@
     "ja": "スライド",
     "pt-BR": "Slides"
   },
+  "Slides: %d": {
+    "ar": "الشرائح: %d",
+    "de": "Folien: %d",
+    "es": "Diapositivas: %d",
+    "fr": "Diapositives : %d",
+    "it": "Slide: %d",
+    "ja": "スライド: %d",
+    "pt-BR": "Slides: %d"
+  },
   "Slow": {
     "ar": "بطيء",
     "de": "Langsam",
@@ -27358,6 +27661,15 @@
     "it": "Dividi audio",
     "ja": "オーディオを分割",
     "pt-BR": "Dividir áudio"
+  },
+  "Split into slides": {
+    "ar": "التقسيم إلى شرائح",
+    "de": "In Folien aufteilen",
+    "es": "Dividir en diapositivas",
+    "fr": "Découper en diapositives",
+    "it": "Dividi in slide",
+    "ja": "スライドに分割",
+    "pt-BR": "Dividir em slides"
   },
   "Split page": {
     "ar": "تقسيم الصفحة",
@@ -28996,6 +29308,15 @@
     "it": "Del design",
     "ja": "デザインの設定",
     "pt-BR": "A do design"
+  },
+  "The design's sound on its own: its music, voice-over and clip sound, as in the video.": {
+    "ar": "صوت التصميم وحده: موسيقاه وتعليقه الصوتي وصوت مقاطعه، كما في الفيديو.",
+    "de": "Nur der Ton des Designs: Musik, Voice-over und Clip-Ton, wie im Video.",
+    "es": "Solo el sonido del diseño: su música, locución y sonido de los clips, como en el vídeo.",
+    "fr": "Le son du design seul : sa musique, sa voix off et le son des clips, comme dans la vidéo.",
+    "it": "Solo l’audio del design: musica, voce fuori campo e audio delle clip, come nel video.",
+    "ja": "デザインの音声だけ：動画と同じ音楽、ナレーション、クリップの音声。",
+    "pt-BR": "Só o som do design: a música, a narração e o som dos clipes, como no vídeo."
   },
   "The export sheet says when Check accessibility finds something on the pages you're exporting.": {
     "ar": "تُعلمك لوحة التصدير عندما يجد فحص إمكانية الوصول شيئًا في الصفحات التي تصدّرها.",
@@ -31843,6 +32164,15 @@
     "it": "Matrimonio",
     "ja": "ウェディング",
     "pt-BR": "Casamento"
+  },
+  "Weekly": {
+    "ar": "أسبوعيًا",
+    "de": "Wöchentlich",
+    "es": "Semanal",
+    "fr": "Chaque semaine",
+    "it": "Ogni settimana",
+    "ja": "毎週",
+    "pt-BR": "Semanal"
   },
   "Weight": {
     "ar": "الوزن",

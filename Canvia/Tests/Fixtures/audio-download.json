@@ -1,0 +1,88 @@
+{
+  "note": "The audio download (m4a): AudioMix.audioPlan over every shown page. With voice-over and clip sound both on it is the MP4's plan, segment for segment; each switch takes its sources out. 'sources' are the planned segments' sources, sorted, once each; 'audible' whether Audio (M4A) is offered; 'seconds' the timeline's whole length. Durations: clips by id, tracks by their store id (a clip's detached sound by its whole video: source).",
+  "cases": [
+    {
+      "name": "a song, a voice-over, a clip and a clip's detached sound",
+      "clipDurations": {"clip-1": 10.0},
+      "trackDurations": {"song-1": 30.0, "rec-1": 4.0, "video:clip-2": 6.0},
+      "seconds": 5.0,
+      "plans": [
+        {"voice": true, "clips": true, "audible": true, "sources": ["clip-1", "rec-1", "song-1", "video:clip-2"]},
+        {"voice": false, "clips": true, "audible": true, "sources": ["clip-1", "song-1", "video:clip-2"]},
+        {"voice": true, "clips": false, "audible": true, "sources": ["rec-1", "song-1"]},
+        {"voice": false, "clips": false, "audible": true, "sources": ["song-1"]}
+      ],
+      "design": {
+        "id": "d-sound", "title": "Podcast", "width": 1080, "height": 1080, "createdAt": 0, "updatedAt": 0,
+        "pages": [
+          {"id": "p1", "background": {"type": "color", "value": "#ffffff"},
+           "elements": [{"id": "e1", "type": "image", "x": 0, "y": 0, "w": 500, "h": 500, "src": "video:clip-1"}]},
+          {"id": "p2", "background": {"type": "color", "value": "#ffffff"},
+           "elements": [{"id": "e2", "type": "text", "x": 100, "y": 100, "w": 400, "h": 80, "text": "Episode 12"}]}
+        ],
+        "audio": [
+          {"id": "t1", "src": "audio:song-1", "start": 0, "volume": 0.6, "fadeIn": 1, "fadeOut": 1, "loop": true, "name": "Theme"},
+          {"id": "t2", "src": "audio:rec-1", "start": 0.5, "name": "Voice-over"},
+          {"id": "t3", "src": "video:clip-2", "start": 2, "name": "Clip sound"}
+        ]
+      }
+    },
+    {
+      "name": "only a voice-over",
+      "clipDurations": {},
+      "trackDurations": {"rec-1": 3.0},
+      "seconds": 2.5,
+      "plans": [
+        {"voice": true, "clips": true, "audible": true, "sources": ["rec-1"]},
+        {"voice": false, "clips": true, "audible": false, "sources": []}
+      ],
+      "design": {
+        "id": "d-voice", "title": "Talk", "width": 1920, "height": 1080, "createdAt": 0, "updatedAt": 0,
+        "pages": [
+          {"id": "p1", "background": {"type": "color", "value": "#101828"},
+           "elements": [{"id": "e1", "type": "text", "x": 100, "y": 100, "w": 800, "h": 80, "text": "Welcome"}]}
+        ],
+        "audio": [{"id": "t1", "src": "audio:rec-1", "start": 0, "name": "Voice-over 2"}]
+      }
+    },
+    {
+      "name": "voice-overs named in the app's language, as an iPhone in Spanish or Japanese names them",
+      "clipDurations": {},
+      "trackDurations": {"song-1": 30.0, "rec-1": 3.0, "rec-2": 2.0},
+      "seconds": 2.5,
+      "plans": [
+        {"voice": true, "clips": true, "audible": true, "sources": ["rec-1", "rec-2", "song-1"]},
+        {"voice": false, "clips": true, "audible": true, "sources": ["song-1"]}
+      ],
+      "design": {
+        "id": "d-voz", "title": "Charla", "width": 1080, "height": 1080, "createdAt": 0, "updatedAt": 0,
+        "pages": [
+          {"id": "p1", "background": {"type": "color", "value": "#ffffff"},
+           "elements": [{"id": "e1", "type": "text", "x": 100, "y": 100, "w": 400, "h": 80, "text": "Hola"}]}
+        ],
+        "audio": [
+          {"id": "t1", "src": "audio:song-1", "start": 0, "name": "Theme"},
+          {"id": "t2", "src": "audio:rec-1", "start": 0, "name": "Voz en off"},
+          {"id": "t3", "src": "audio:rec-2", "start": 0.5, "name": "ナレーション 2"}
+        ]
+      }
+    },
+    {
+      "name": "a silent song and nothing else: a track at no volume is not laid",
+      "clipDurations": {},
+      "trackDurations": {"song-1": 30.0},
+      "seconds": 2.5,
+      "plans": [
+        {"voice": true, "clips": true, "audible": false, "sources": []}
+      ],
+      "design": {
+        "id": "d-quiet", "title": "Quiet", "width": 1080, "height": 1080, "createdAt": 0, "updatedAt": 0,
+        "pages": [
+          {"id": "p1", "background": {"type": "color", "value": "#ffffff"},
+           "elements": [{"id": "e1", "type": "text", "x": 100, "y": 100, "w": 400, "h": 80, "text": "Shh"}]}
+        ],
+        "audio": [{"id": "t1", "src": "audio:song-1", "start": 0, "volume": 0, "name": "Theme"}]
+      }
+    }
+  ]
+}

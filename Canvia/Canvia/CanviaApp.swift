@@ -292,8 +292,9 @@ struct CanviaApp: App {
                 withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             }
             // An intent or quick action that ran while the app was already
-            // open.
+            // open. Left, a backup is written when one is due (AutoBackups).
             .onChange(of: scenePhase) { _, phase in
+                if phase == .background { AutoBackups.shared.appLeft() }
                 guard phase == .active else { return }
                 serveLaunchRequest()
             }

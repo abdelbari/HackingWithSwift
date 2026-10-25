@@ -3,8 +3,9 @@
 // for rule (ExportPlanTests): the ZIP several files go into and the names
 // inside it, when a compressed PNG is worth keeping and the sizes said
 // before and after, and which file types are worth a word about
-// accessibility first.
+// accessibility first. And round 34's: a carousel cut into slides.
 
+import CoreGraphics
 import Foundation
 
 enum ExportPlan {
@@ -34,6 +35,67 @@ enum ExportPlan {
         let base = DesignExporter.fileBaseName(title)
         guard pages.count > 1 else { return pages.map { _ in "\(base).\(ext)" } }
         return pages.map { "\(base)-\($0 + 1).\(ext)" }
+    }
+
+    // MARK: a carousel cut into slides
+
+    /// The slides a picture `size` pixels across is cut into, `columns`
+    /// across and `rows` down, left to right and then top to bottom: each
+    /// edge at its share of the whole, rounded to a whole pixel, halves up —
+    /// floor(width × i / columns + 0.5) — so every slide is a whole number of
+    /// pixels, together they cover the picture exactly, and none differs
+    /// from another by more than a pixel: 3240 into three is 1080 each,
+    /// 1000 into three is 333, 334 and 333. The picture's own size is taken
+    /// to the nearest whole pixel first. None for no column or row. The
+    /// Android twin's ExportPlan.tiles, with the shared fixture
+    /// carousel-tiles.json.
+    static func tiles(size: CGSize, columns: Int, rows: Int = 1) -> [CGRect] {
+        guard columns >= 1, rows >= 1 else { return [] }
+        let width = (Double(size.width) + 0.5).rounded(.down)
+        let height = (Double(size.height) + 0.5).rounded(.down)
+        func edge(_ total: Double, _ parts: Int, _ i: Int) -> Double {
+            (total * Double(i) / Double(parts) + 0.5).rounded(.down)
+        }
+        var out: [CGRect] = []
+        for r in 0..<rows {
+            let top = edge(height, rows, r)
+            let bottom = edge(height, rows, r + 1)
+            for c in 0..<columns {
+                let left = edge(width, columns, c)
+                out.append(CGRect(x: left, y: top, width: edge(width, columns, c + 1) - left, height: bottom - top))
+            }
+        }
+        return out
+    }
+
+    /// The image types a carousel is cut into slides for: a picture.
+    static let splittable: Set<String> = ["png", "jpg"]
+
+    /// Whether "Split into slides" is offered: a picture of pages of which
+    /// one at least is cut (PageSplit).
+    static func offersSplit(format: String, design: Design, pages: [Int]) -> Bool {
+        splittable.contains(format)
+            && pages.contains { design.pages.indices.contains($0) && design.pages[$0].split != nil }
+    }
+
+    /// How many files a picture of `pages` makes: a file a slide of each
+    /// carousel page when `split`, else a file a page.
+    static func fileCount(design: Design, pages: [Int], split: Bool) -> Int {
+        guard split else { return pages.count }
+        return pages.reduce(0) { count, i in
+            let cut = design.pages.indices.contains(i) ? design.pages[i].split : nil
+            return count + (cut.map { $0.columns * $0.rows } ?? 1)
+        }
+    }
+
+    /// A slide's file name: the page's own name (fileBaseName, and "-n"
+    /// when there are several pages) and "_n", n its slide's place from 1 —
+    /// "Lisbon_1.png", "Lisbon_2.png", … for a carousel alone,
+    /// "Lisbon-2_1.png" for the second page's first slide — so they sort,
+    /// and are picked, in order.
+    static func slideName(_ title: String, pageIndex: Int, files: Int, slide: Int, ext: String) -> String {
+        let page = files > 1 ? "-\(pageIndex + 1)" : ""
+        return DesignExporter.fileBaseName(title) + page + "_\(slide + 1).\(ext)"
     }
 
     // MARK: a compressed PNG

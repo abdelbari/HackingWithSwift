@@ -67,6 +67,14 @@ final class LocalisationTests: XCTestCase {
 
     // MARK: the catalogue
 
+    /// A recording's names, which both phones tell a voice-over by, are
+    /// "Voice-over" and the catalogue's translations of it.
+    func testARecordingsNamesAreVoiceOverAndItsTranslations() throws {
+        let translations = try XCTUnwrap(try catalogue()["Voice-over"] as? [String: String])
+        let names = ["Voice-over"] + Self.languages.compactMap { translations[$0] }
+        XCTAssertEqual(names.sorted(), AudioTracks.voiceOverNames.sorted())
+    }
+
     func testEveryEntryIsInEveryLanguageWithItsPlaceholders() throws {
         let entries = try catalogue()
         XCTAssertFalse(entries.isEmpty)

@@ -1,0 +1,20 @@
+{
+  "note": "ExportPlan.tiles(size, columns, rows): each slide's x, y, w, h in whole pixels, edges at floor(total * i / parts + 0.5), left to right then top to bottom. The same rows on both phones.",
+  "cases": [
+    {"width": 3240, "height": 1350, "columns": 3, "rows": 1,
+     "tiles": [[0, 0, 1080, 1350], [1080, 0, 1080, 1350], [2160, 0, 1080, 1350]]},
+    {"width": 6480, "height": 2700, "columns": 3, "rows": 1,
+     "tiles": [[0, 0, 2160, 2700], [2160, 0, 2160, 2700], [4320, 0, 2160, 2700]]},
+    {"width": 1000, "height": 500, "columns": 3, "rows": 1,
+     "tiles": [[0, 0, 333, 500], [333, 0, 334, 500], [667, 0, 333, 500]]},
+    {"width": 1001, "height": 400, "columns": 2, "rows": 1,
+     "tiles": [[0, 0, 501, 400], [501, 0, 500, 400]]},
+    {"width": 2160.4, "height": 1350.5, "columns": 2, "rows": 1,
+     "tiles": [[0, 0, 1080, 1351], [1080, 0, 1080, 1351]]},
+    {"width": 300, "height": 200, "columns": 2, "rows": 2,
+     "tiles": [[0, 0, 150, 100], [150, 0, 150, 100], [0, 100, 150, 100], [150, 100, 150, 100]]},
+    {"width": 10, "height": 10, "columns": 4, "rows": 1,
+     "tiles": [[0, 0, 3, 10], [3, 0, 2, 10], [5, 0, 3, 10], [8, 0, 2, 10]]},
+    {"width": 3240, "height": 1350, "columns": 0, "rows": 1, "tiles": []}
+  ]
+}

@@ -45,6 +45,14 @@ enum AudioTracks {
     /// What a new voice-over is called first.
     static let firstVoiceOver = tr("Voice-over")
 
+    /// Every name a recording can start with: "Voice-over" and the
+    /// catalogue's seven translations of it — the same list as the Android
+    /// twin's AudioTracks.VOICE_OVER_NAMES, whichever language named it.
+    static let voiceOverNames = [
+        "Voice-over", "التعليق الصوتي", "Sprachaufnahme", "Voz en off",
+        "Voix off", "Voce fuori campo", "ナレーション", "Narração",
+    ]
+
     /// The name a new voice-over takes, as the Android twin names it:
     /// "Voice-over", then "Voice-over 2" and on — the first that none of
     /// the design's tracks has.

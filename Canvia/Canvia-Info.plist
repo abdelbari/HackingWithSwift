@@ -27,6 +27,12 @@
 	The scene manifest is kept here, not generated, so that it can name a
 	configuration for a screen attached by HDMI, USB-C or AirPlay: Present
 	shows the slides there, and the presenter's console on the phone.
+
+	An export started in Canvia keeps going once it is left, on iOS 26 and
+	later: each asks for a continued processing task named after it,
+	"com.canvia.app.export.<job id>" — under the app's bundle identifier,
+	as iOS asks of these — which the wildcard permits (ContinuedExport). "Back up automatically" writes its backup from the
+	processing task "com.canvia.backup", a day apart (AutoBackups).
 -->
 <plist version="1.0">
 <dict>
@@ -164,6 +170,15 @@
 				</array>
 			</dict>
 		</dict>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.canvia.backup</string>
+		<string>com.canvia.app.export.*</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>

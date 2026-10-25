@@ -383,6 +383,7 @@ struct SettingsSheet: View {
         Section {
             Button("Back up everything") { startBackup() }
             Button("Restore from backup") { restoring = true }
+            AutoBackupRows()
         } header: {
             Text("Backup")
         } footer: {

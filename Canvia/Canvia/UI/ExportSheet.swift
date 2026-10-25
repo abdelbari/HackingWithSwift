@@ -97,6 +97,17 @@ struct ExportSheet: View {
     /// Save as one ZIP, and the PNG's Compress file (ExportPlan).
     @State private var zip = false
     @State private var pngCompress = false
+    /// A carousel cut into a file a slide (PageSplit): on unless a
+    /// remembered export turned it off.
+    @State private var split = true
+    /// The audio download's voice-overs and clip sound, remembered with
+    /// the rest.
+    @State private var audioVoice = true
+    @State private var audioClips = true
+    /// Whether the pages the video would play are heard at all — what
+    /// Audio (M4A) is offered for — read as the sheet opens, every clip's
+    /// and song's length with it; nil until known.
+    @State private var audible: Bool?
     /// Said beside the share: a PNG that went out uncompressed.
     @State private var exportNote: String?
     /// What Check accessibility finds in the design as it stands, read off
@@ -476,15 +487,50 @@ struct ExportSheet: View {
             if pageRange == .chosen {
                 Button("Choose pages… (\(chosenText))") { choosingPages = true }
             }
-            if ExportPlan.offersZip(format: fileType, files: exportedIndices.count) {
-                Toggle("Save as one ZIP", isOn: $zip)
-                Text(tr("%@, with a file for each page inside.", ExportPlan.zipName(store.design.title)))
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
+            zipRows
         } header: {
             Text("Pages")
         } footer: {
             Text(note)
+        }
+    }
+
+    /// Save as one ZIP, for a type that writes several files — a page's or
+    /// a slide's each.
+    @ViewBuilder
+    private var zipRows: some View {
+        if ExportPlan.offersZip(format: fileType, files: pictureFiles) {
+            Toggle("Save as one ZIP", isOn: $zip)
+            Text(tr("%@, with a file for each page inside.", ExportPlan.zipName(store.design.title)))
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+
+    /// Split into slides, for a picture of a carousel page (PageSplit) —
+    /// never of the selection on its own.
+    private var offersSplit: Bool {
+        !selectionOnly && ExportPlan.offersSplit(format: fileType, design: exportedDesign, pages: exportedIndices)
+    }
+
+    private var pickedSplit: Bool { split && offersSplit }
+
+    /// How many files a picture makes: a file a slide of each carousel page
+    /// when it is cut, else a file a page.
+    private var pictureFiles: Int {
+        ExportPlan.fileCount(design: exportedDesign, pages: exportedIndices, split: pickedSplit)
+    }
+
+    /// A carousel cut into its slides, each its own file, saved in order so
+    /// a post picks them in sequence; a carousel alone, with no Pages row,
+    /// offers its ZIP here.
+    private var splitSection: some View {
+        Section {
+            Toggle("Split into slides", isOn: $split)
+            if split {
+                Text(trn("%d file, one a slide, in order|%d files, one a slide, in order", pictureFiles))
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if store.design.pages.count <= 1 { zipRows }
         }
     }
 
@@ -662,18 +708,18 @@ struct ExportSheet: View {
     private var sharedIndices: [Int] {
         switch fileType {
         case "pdf", "pptx", "html": return pdfIndices
-        case "mp4", "gif": return moviePages
+        case "mp4", "gif", "m4a": return moviePages
         default: return exportedIndices
         }
     }
 
-    private var shareCount: Int { sharedIndices.count }
+    private var shareCount: Int { pickedSplit ? pictureFiles : sharedIndices.count }
 
     /// Said in place of making anything: no pages chosen, or every page
     /// hidden.
     private var unavailable: String? { leftOut(sharedIndices) }
 
-    private var canShare: Bool { unavailable == nil }
+    private var canShare: Bool { unavailable == nil && (fileType != "m4a" || audible == true) }
 
     /// What goes into Photos for the chosen type: the pictures, or the
     /// film; nothing for a document.
@@ -708,6 +754,11 @@ struct ExportSheet: View {
             }
         case "gif":
             run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gif(designSnapshot, settings: movieSettings) }
+        case "m4a":
+            // The pages chosen — never the selection — heard on their own.
+            run(tr("Making the audio"), format: "m4a") {
+                ExportJobs.audio(designSnapshot, voice: audioVoice, clipSound: audioClips)
+            }
         case "docx":
             // A Doc as a Word document, from its blocks (DocxWriter).
             guard let doc else { return }
@@ -721,7 +772,7 @@ struct ExportSheet: View {
     /// Whether the files go out as one ZIP: asked for, where the type
     /// writes several.
     private var zipping: Bool {
-        zip && ExportPlan.offersZip(format: fileType, files: exportedIndices.count)
+        zip && ExportPlan.offersZip(format: fileType, files: pictureFiles)
     }
 
     /// `work`, its files put in one ZIP when they go out as one.
@@ -743,7 +794,7 @@ struct ExportSheet: View {
             run(tr("Saving to your photos"), format: fileType == "jpg" ? "jpg" : "png") {
                 ExportJobs.picturesToPhotos(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
                                             quality: jpegQuality, transparent: transparent,
-                                            compress: pngCompress && format == .png)
+                                            compress: pngCompress && format == .png, split: pickedSplit)
             }
         }
     }
@@ -769,6 +820,7 @@ struct ExportSheet: View {
         case "gif": return tr("Share GIF")
         case "html": return tr("Share web page")
         case "docx": return tr("Share Word document")
+        case "m4a": return tr("Share audio")
         default:
             let kind = type == "jpg" ? "JPG" : "PNG"
             return count > 1 ? trn("Share %d %@|Share %d %@s", count, kind) : tr("Share %@", kind)
@@ -791,11 +843,29 @@ struct ExportSheet: View {
             Text(Self.typeNote(fileType))
         }
         .task(id: revision) { await readA11y() }
+        .task(id: AudibleKey(revision: revision, pages: moviePages)) { await readAudible() }
     }
 
-    /// The file types offered: a Word document is a Doc's alone.
+    /// The file types offered: a Word document is a Doc's alone, and the
+    /// audio is offered only for pages that are heard.
     private var offeredTypes: [String] {
-        ExportLast.fileTypes.filter { $0 != "docx" || doc != nil }
+        ExportLast.fileTypes.filter { ($0 != "docx" || doc != nil) && ($0 != "m4a" || audible == true) }
+    }
+
+    /// What whether the pages are heard is read again for.
+    private struct AudibleKey: Equatable {
+        var revision: Int64
+        var pages: [Int]
+    }
+
+    /// Whether the pages are heard (MovieExporter.audible); nothing heard,
+    /// the audio is no choice, and a sheet that opened on it moves to the
+    /// picture instead.
+    @MainActor
+    private func readAudible() async {
+        let heard = await MovieExporter.audible(design: store.design, pages: moviePages)
+        audible = heard
+        if !heard && fileType == "m4a" { fileType = defaultFormat == "jpg" ? "jpg" : "png" }
     }
 
     private func fileTypeRow(_ type: String) -> some View {
@@ -827,6 +897,7 @@ struct ExportSheet: View {
         case "mp4": return "MP4"
         case "html": return "HTML"
         case "docx": return tr("Word document")
+        case "m4a": return tr("Audio (M4A)")
         default: return "GIF"
         }
     }
@@ -843,6 +914,7 @@ struct ExportSheet: View {
         case "mp4": return tr("A video of the pages, with their motion and music.")
         case "html": return tr("A web page: the pages as sections, with a menu, links and video.")
         case "docx": return tr("A Word document: headings, lists, tables and pictures, to edit in Word.")
+        case "m4a": return tr("The design's sound on its own: its music, voice-over and clip sound, as in the video.")
         default: return tr("A looping animation, without sound.")
         }
     }
@@ -853,10 +925,12 @@ struct ExportSheet: View {
         switch fileType {
         case "png":
             qualitySection
+            if offersSplit { splitSection }
             transparencySection
             compressSection
         case "jpg":
             qualitySection
+            if offersSplit { splitSection }
             jpegSection
         case "pdf":
             pdfSection
@@ -870,8 +944,28 @@ struct ExportSheet: View {
             htmlSection
         case "docx":
             EmptyView()
+        case "m4a":
+            audioSection
         default:
             motionSection
+        }
+    }
+
+    /// The audio download's: how long it runs — the pages' timeline, silence
+    /// and all — and whether the voice-overs and the clips' sound are in it;
+    /// where it goes, which is never Photos.
+    private var audioSection: some View {
+        let seconds = AudioMix.seconds(design: store.design, pages: moviePages,
+                                       settings: MovieExporter.Settings(store.design.motion))
+        let length = Presenter.clockText(seconds.rounded(.up))
+        return Section {
+            Text(leftOut(moviePages) ?? tr("%@ long, AAC at 44.1 kHz.", length))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Toggle("Include voice-over", isOn: $audioVoice)
+            Toggle("Include clip sound", isOn: $audioClips)
+        } footer: {
+            Text("Save it to Files or share it: the photos library takes no audio.")
         }
     }
 
@@ -1139,7 +1233,8 @@ struct ExportSheet: View {
                                 pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
                                 pptxStyledText: pptxStyledText, suggested: format == suggested,
                                 pdfBookmarks: pdfBookmarks, colourProfile: paper.colourProfile.rawValue,
-                                html: htmlSettings, zip: zip, pngCompress: pngCompress, pdfTagged: pdfTagged).json
+                                html: htmlSettings, zip: zip, pngCompress: pngCompress, pdfTagged: pdfTagged,
+                                audioVoice: audioVoice, audioClips: audioClips, split: split).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -1156,6 +1251,10 @@ struct ExportSheet: View {
         suggested = read != "png" ? read : (defaultFormat == "jpg" ? "jpg" : "png")
         fileType = suggested
         htmlLayout = ExportSuggestion.htmlLayout(store.design)
+        // Clear for a print on a T-shirt or a tote, where the fabric is the
+        // background (DesignTypes.clearBackground).
+        let clear = DesignTypes.suggestsClear(store.design)
+        transparent = clear
         guard let last = ExportLast.read(exportLast) else { return }
         remember = true
         // A Word document is a Doc's alone.
@@ -1164,7 +1263,7 @@ struct ExportSheet: View {
         pdfTagged = last.pdfTagged
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2
         jpegQuality = last.jpegQuality
-        transparent = last.transparent
+        transparent = last.transparent || clear
         pdfNotes = last.pdfNotes
         pdfCompress = last.pdfCompress
         pptxStyledText = last.pptxStyledText
@@ -1175,6 +1274,9 @@ struct ExportSheet: View {
         htmlLoop = last.html.loop
         zip = last.zip
         pngCompress = last.pngCompress
+        split = last.split
+        audioVoice = last.audioVoice
+        audioClips = last.audioClips
         paper.colourProfile = PrintLayout.ColourProfile.of(last.colourProfile)
         pageRange = RangeChoice(rawValue: last.pages) ?? .all
         // After the scale's own change has cleared the field, which it does
@@ -1510,9 +1612,24 @@ struct ExportSheet: View {
         errorMessage = nil
         musicNote = nil
         exportNote = nil
-        queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, work: job()))
+        queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, title: store.design.title,
+                                      detail: continuedDetail(format), units: continuedUnits(format), work: job()))
         // Kept for next time, when asked to be.
         if let format { rememberSettings(format) }
+    }
+
+    /// What the system shows under "Exporting <title>" while an export
+    /// keeps going out of the app (ContinuedExport): the file type and how
+    /// many pages — "MP4 · 3 pages".
+    private func continuedDetail(_ format: String?) -> String {
+        guard let format else { return "" }
+        return Self.formatName(format) + " · " + trn("%d page|%d pages", sharedIndices.count)
+    }
+
+    /// What it counts in there: a video's or GIF's frames, else its pages.
+    private func continuedUnits(_ format: String?) -> Int {
+        guard format == "mp4" || format == "gif" else { return sharedIndices.count }
+        return MovieExporter.timeline(design: store.design, pages: moviePages, settings: movieSettings).last?.end ?? 0
     }
 
     private func rowLabel(_ title: String, subtitle: String, icon: String) -> some View {
@@ -1548,7 +1665,7 @@ struct ExportSheet: View {
 
     private func picturesWork(_ format: DesignExporter.RasterFormat) -> ExportQueue.Work {
         ExportJobs.pictures(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
-                            quality: jpegQuality, transparent: transparent, compress: pngCompress)
+                            quality: jpegQuality, transparent: transparent, compress: pngCompress, split: pickedSplit)
     }
 
     /// How many pages are hidden, and so left out of "All pages" and the

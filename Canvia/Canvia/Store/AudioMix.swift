@@ -224,6 +224,59 @@ enum AudioMix {
         return after.isEmpty ? [index] : after
     }
 
+    /// Whether `track` is a recorded voice-over: named as a recording is
+    /// when it becomes a track — "Voice-over" or "Voice-over 2" …, or in
+    /// any of the app's languages, "Voz en off" … (AudioTracks
+    /// .voiceOverNames, the Android twin's list) — whichever phone and
+    /// language named it.
+    static func isVoiceOver(_ track: AudioTrack) -> Bool {
+        AudioTracks.voiceOverNames.contains { track.name.hasPrefix($0) }
+    }
+
+    /// The mix the MP4 of `pages` of `design` carries, at `settings`: their
+    /// timeline, each page's clips and every track, by `plan` — clips as
+    /// long as `clipDurations` says by source, songs as `trackDurations`
+    /// says by their store id.
+    static func filmPlan(design: Design, pages: [Int], settings: MovieExporter.Settings,
+                         clipDurations: [String: Double], trackDurations: [String: Double]) -> [Segment] {
+        plan(timeline: MovieExporter.timeline(design: design, pages: pages, settings: settings), fps: settings.fps,
+             clipsByPage: pages.map { clips(design: design, page: design.pages[$0]) },
+             clipDurations: clipDurations, tracks: design.audioTracks, trackDurations: trackDurations)
+    }
+
+    /// The audio download's mix ("m4a"): the MP4's own (`filmPlan`) — the
+    /// same timeline, fades, speeds, volumes and beat sync — less the
+    /// voice-overs (`isVoiceOver`) without `voice`, and less every clip's
+    /// own sound and every clip's detached sound (a "video:" track) without
+    /// `clipSound`. With both on it is the film's, segment for segment. The
+    /// Android twin's AudioMix.audioPlan, with the shared fixture
+    /// audio-download.json.
+    static func audioPlan(design: Design, pages: [Int], settings: MovieExporter.Settings,
+                          clipDurations: [String: Double], trackDurations: [String: Double],
+                          voice: Bool, clipSound: Bool) -> [Segment] {
+        let tracks = design.audioTracks.filter {
+            (voice || !isVoiceOver($0)) && (clipSound || !AudioTrack.isClipSound($0.src))
+        }
+        return plan(timeline: MovieExporter.timeline(design: design, pages: pages, settings: settings),
+                    fps: settings.fps,
+                    clipsByPage: pages.map { clipSound ? clips(design: design, page: design.pages[$0]) : [] },
+                    clipDurations: clipDurations, tracks: tracks, trackDurations: trackDurations)
+    }
+
+    /// Whether `segments` are heard at all: one at least that lasts and is
+    /// not silent — what the File type picker offers Audio (M4A) for.
+    static func audible(_ segments: [Segment]) -> Bool {
+        segments.contains { $0.duration > 0.001 && $0.gain > 0 }
+    }
+
+    /// How long the audio download of `pages` runs at `settings` — the
+    /// design's own motion settings — in seconds: their timeline's whole
+    /// length, silence and all, as the MP4's.
+    static func seconds(design: Design, pages: [Int], settings: MovieExporter.Settings) -> Double {
+        let end = MovieExporter.timeline(design: design, pages: pages, settings: settings).last?.end ?? 0
+        return Double(end) / Double(max(settings.fps, 1))
+    }
+
     /// The mix of a film laid out as `timeline` at `fps`: for each of its
     /// pages, the clips in `clipsByPage` at the same place, each as long as
     /// `clipDurations` says by source — a clip whose length is not known has

@@ -79,6 +79,31 @@ enum DesignSizeChoice: String, AppEnum, CaseIterable {
     case etsyShopIcon = "etsy-shop-icon"
     case whiteboard
     case website
+    case instaCarousel = "insta-carousel"
+    case linkedinCarousel = "linkedin-carousel"
+    case highlightCover = "highlight-cover"
+    case threadsPost = "threads-post"
+    case shortsCover = "shorts-cover"
+    case linkedinArticle = "linkedin-article"
+    case facebookAd = "facebook-ad"
+    case whatsappStatus = "whatsapp-status"
+    case twitchPanel = "twitch-panel"
+    case discordBanner = "discord-banner"
+    case reportA4 = "report-a4"
+    case reportLetter = "report-letter"
+    case proposal
+    case lessonPlanA4 = "lesson-plan-a4"
+    case mindMap = "mind-map"
+    case flowchart
+    case trifoldLetter = "trifold-letter"
+    case rackCard = "rack-card"
+    case flyerA5 = "flyer-a5"
+    case flyerDl = "flyer-dl"
+    case weddingInvitation = "wedding-invitation"
+    case birthdayCard = "birthday-card"
+    case thankYouCard = "thank-you-card"
+    case tshirtPrint = "tshirt-print"
+    case totePrint = "tote-print"
 
     static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Design Size")
     static var caseDisplayRepresentations: [DesignSizeChoice: DisplayRepresentation] = [
@@ -154,6 +179,31 @@ enum DesignSizeChoice: String, AppEnum, CaseIterable {
         .etsyShopIcon: "Etsy Shop Icon",
         .whiteboard: "Whiteboard",
         .website: "Website",
+        .instaCarousel: "Instagram Carousel",
+        .linkedinCarousel: "LinkedIn Carousel",
+        .highlightCover: "Instagram Highlight Cover",
+        .threadsPost: "Threads Post",
+        .shortsCover: "YouTube Shorts Cover",
+        .linkedinArticle: "LinkedIn Article Cover",
+        .facebookAd: "Facebook Ad",
+        .whatsappStatus: "WhatsApp Status",
+        .twitchPanel: "Twitch Panel",
+        .discordBanner: "Discord Banner",
+        .reportA4: "Report (A4)",
+        .reportLetter: "Report (US Letter)",
+        .proposal: "Proposal",
+        .lessonPlanA4: "Lesson Plan (A4)",
+        .mindMap: "Mind Map",
+        .flowchart: "Flowchart",
+        .trifoldLetter: "Trifold Brochure",
+        .rackCard: "Rack Card",
+        .flyerA5: "Flyer (A5)",
+        .flyerDl: "Flyer (DL)",
+        .weddingInvitation: "Wedding Invitation",
+        .birthdayCard: "Birthday Card",
+        .thankYouCard: "Thank You Card",
+        .tshirtPrint: "T-Shirt Print",
+        .totePrint: "Tote Bag Print",
     ]
 
     /// The home screen's preset this stands for.

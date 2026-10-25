@@ -10,18 +10,19 @@ enum ExportJobs {
 
     typealias Work = ExportQueue.Work
 
-    /// PNG or JPEG, a file a page — each PNG in 256 colours with
-    /// `compress` where that is enough smaller (PngWriter), and said where
-    /// it was not.
+    /// PNG or JPEG, a file a page — a file a slide of a carousel page with
+    /// `split` (ExportPlan.tiles) — each PNG in 256 colours with `compress`
+    /// where that is enough smaller (PngWriter), and said where it was not.
     static func pictures(_ snapshot: ExportSnapshot, format: DesignExporter.RasterFormat, scale: Double,
-                         longEdge: Double, quality: Double, transparent: Bool, compress: Bool = false) -> Work {
+                         longEdge: Double, quality: Double, transparent: Bool, compress: Bool = false,
+                         split: Bool = false) -> Work {
         { report in
             let made = try await DesignExporter.exportPictures(
                 design: snapshot.design, range: snapshot.range, current: snapshot.current,
                 format: format, scale: scale, longEdge: longEdge, quality: quality,
                 // JPEG has no alpha channel to be transparent in.
                 transparent: transparent && format == .png, captionTime: snapshot.captionTime,
-                compress: compress && format == .png, progress: report)
+                compress: compress && format == .png, split: split, progress: report)
             return ExportQueue.Result(urls: made.urls, note: made.uncompressed > 0 ? compressFellBack : nil)
         }
     }
@@ -74,14 +75,15 @@ enum ExportJobs {
     }
 
     /// The pictures into Photos rather than the share sheet, each PNG
-    /// compressed as `pictures` does with `compress`. Each is counted as it
-    /// goes in, and what went in is said even after a Cancel — then, as the
-    /// Android twin says it, a PNG that went in uncompressed.
+    /// compressed as `pictures` does with `compress`, a carousel's slides
+    /// in order with `split`, so a post picks them in sequence. Each is
+    /// counted as it goes in, and what went in is said even after a Cancel
+    /// — then, as the Android twin says it, a PNG that went in uncompressed.
     static func picturesToPhotos(_ snapshot: ExportSnapshot, format: DesignExporter.RasterFormat, scale: Double,
                                  longEdge: Double, quality: Double, transparent: Bool,
-                                 compress: Bool = false) -> Work {
+                                 compress: Bool = false, split: Bool = false) -> Work {
         let render = pictures(snapshot, format: format, scale: scale, longEdge: longEdge,
-                              quality: quality, transparent: transparent, compress: compress)
+                              quality: quality, transparent: transparent, compress: compress, split: split)
         return { report in
             let made = try await render(report)
             let outcome = try await PhotoSaver.save(made.urls)
@@ -128,6 +130,21 @@ enum ExportJobs {
             var urls = [url]
             if captions, let srt = try captionsFile(snapshot) { urls.append(srt) }
             return ExportQueue.Result(urls: urls, musicLost: made.musicLost)
+        }
+    }
+
+    /// The design's sound alone (MovieExporter.exportAudio): the pages the
+    /// video would play, their voice-overs with `voice` and their clips'
+    /// sound with `clipSound`, as an .m4a named as the MP4 would be — to
+    /// share or save to Files, as Photos takes no audio. A song not on this
+    /// phone is said beside the share, as a video's is.
+    static func audio(_ snapshot: ExportSnapshot, voice: Bool, clipSound: Bool) -> Work {
+        { report in
+            let url = DesignExporter.fileURL(for: snapshot.design, ext: "m4a")
+            let made = try await MovieExporter.exportAudio(design: snapshot.design, range: snapshot.range,
+                                                           current: snapshot.current, voice: voice,
+                                                           clipSound: clipSound, to: url, progress: report)
+            return ExportQueue.Result(urls: [url], musicLost: made.musicLost)
         }
     }
 

@@ -117,12 +117,10 @@ enum Soundtrack {
 
     /// Writes `video` with the sound `segments` lay under it (see
     /// AudioMix.plan) to `output`, each source read from its file in
-    /// `sources`: one composition track a source — another beside it where
-    /// two of its stretches sound at once, the same clip twice on a page or
-    /// the same song on two tracks — each with its own levels, fading in and
-    /// out. The mix sums them, each at its own gain of at most full. A source that will
-    /// not decode is left out and the rest kept; returns whether every one
-    /// went in, and throws when none did, so the picture is kept as it is.
+    /// `sources` (`lay`). The mix sums them, each at its own gain of at most
+    /// full. A source that will not decode is left out and the rest kept;
+    /// returns whether every one went in, and throws when none did, so the
+    /// picture is kept as it is.
     static func mux(video: URL, segments: [AudioMix.Segment], sources: [String: URL],
                     to output: URL) async throws -> Bool {
         let videoAsset = AVURLAsset(url: video)
@@ -136,6 +134,39 @@ enum Soundtrack {
         try compVideo.insertTimeRange(CMTimeRange(start: .zero, duration: videoDuration), of: videoTrack, at: .zero)
         compVideo.preferredTransform = try await videoTrack.load(.preferredTransform)
 
+        let laid = try await lay(segments, sources: sources, into: composition)
+        guard !laid.inputs.isEmpty else { throw SoundtrackError.noAudio }
+
+        let mix = AVMutableAudioMix()
+        mix.inputParameters = laid.inputs
+
+        guard let session = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
+            throw SoundtrackError.exportFailed("no export session")
+        }
+        try? FileManager.default.removeItem(at: output)
+        session.outputURL = output
+        session.outputFileType = .mp4
+        session.audioMix = mix
+        session.audioTimePitchAlgorithm = .spectral
+        session.shouldOptimizeForNetworkUse = true
+        await session.export()
+        withExtendedLifetime(laid.assets) {}
+        guard session.status == .completed else {
+            throw SoundtrackError.exportFailed(session.error?.localizedDescription ?? "the export stopped early")
+        }
+        return !laid.lost
+    }
+
+    /// The sound `segments` lay, added to `composition`: one composition
+    /// track a source — another beside it where two of its stretches sound
+    /// at once, the same clip twice on a page or the same song on two
+    /// tracks — each with its own levels, fading in and out, every one
+    /// silent on to `until` when that is further. The levels, the files the
+    /// tracks are taken from (held until the composition is done with), and
+    /// whether a source could not be read.
+    private static func lay(_ segments: [AudioMix.Segment], sources: [String: URL],
+                            into composition: AVMutableComposition, until: CMTime? = nil) async throws
+        -> (inputs: [AVMutableAudioMixInputParameters], assets: [AVURLAsset], lost: Bool) {
         let scale: CMTimeScale = 600
         func time(_ seconds: Double) -> CMTime { CMTime(seconds: seconds, preferredTimescale: scale) }
         /// A tick or two of rounding between one stretch and the next is
@@ -204,27 +235,117 @@ enum Soundtrack {
                 lost = true
                 continue
             }
+            // Silent on to the end asked for: the sound alone runs as long
+            // as the timeline, silence and all.
+            if let until {
+                for lane in lanes where CMTimeCompare(lane.end, until) < 0 {
+                    lane.track.insertEmptyTimeRange(CMTimeRange(start: lane.end, end: until))
+                }
+            }
             inputs += lanes.map { $0.levels }
         }
-        guard !inputs.isEmpty else { throw SoundtrackError.noAudio }
+        return (inputs, assets, lost)
+    }
 
+    // MARK: the sound alone
+
+    /// The audio download's AAC: 44.1 kHz, stereo, 192 kbps — the Android
+    /// twin's SoundtrackMux.M4A_RATE, M4A_CHANNELS and M4A_BIT_RATE.
+    static let m4aRate = 44_100.0
+    static let m4aChannels = 2
+    static let m4aBitRate = 192_000
+
+    /// `segments` mixed as `mux` mixes them under a video — the same
+    /// tracks, speeds, fades and gains — but on their own, `seconds` long,
+    /// read out of the mix as 16-bit samples at m4aRate in stereo and
+    /// written by AVAssetWriter as AAC at m4aBitRate in an MPEG-4 audio
+    /// file (.m4a) at `output`: the audio download. A source that cannot be
+    /// read is left out; returns whether every one went in, and throws when
+    /// none did, leaving no file. `progress` hears how far the encoding is,
+    /// 0 to 1; a Cancel lands between two buffers, and a paused export
+    /// waits there (ExportQueue).
+    static func audioOnly(segments: [AudioMix.Segment], sources: [String: URL], seconds: Double,
+                          to output: URL, progress: (@Sendable (Double) -> Void)? = nil) async throws -> Bool {
+        let composition = AVMutableComposition()
+        let end = CMTime(seconds: max(seconds, 0.1), preferredTimescale: 600)
+        let laid = try await lay(segments, sources: sources, into: composition, until: end)
+        guard !laid.inputs.isEmpty else { throw SoundtrackError.noAudio }
         let mix = AVMutableAudioMix()
-        mix.inputParameters = inputs
+        mix.inputParameters = laid.inputs
 
-        guard let session = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
-            throw SoundtrackError.exportFailed("no export session")
-        }
+        let reader = try AVAssetReader(asset: composition)
+        reader.timeRange = CMTimeRange(start: .zero, duration: end)
+        let samples: [String: Any] = [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVSampleRateKey: m4aRate,
+            AVNumberOfChannelsKey: m4aChannels,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false,
+        ]
+        let mixed = AVAssetReaderAudioMixOutput(audioTracks: composition.tracks(withMediaType: .audio),
+                                                audioSettings: samples)
+        mixed.audioMix = mix
+        mixed.audioTimePitchAlgorithm = .spectral
+        guard reader.canAdd(mixed) else { throw SoundtrackError.exportFailed("the mix could not be read") }
+        reader.add(mixed)
+
         try? FileManager.default.removeItem(at: output)
-        session.outputURL = output
-        session.outputFileType = .mp4
-        session.audioMix = mix
-        session.audioTimePitchAlgorithm = .spectral
-        session.shouldOptimizeForNetworkUse = true
-        await session.export()
-        withExtendedLifetime(assets) {}
-        guard session.status == .completed else {
-            throw SoundtrackError.exportFailed(session.error?.localizedDescription ?? "the export stopped early")
+        let writer = try AVAssetWriter(outputURL: output, fileType: .m4a)
+        let aac: [String: Any] = [
+            AVFormatIDKey: kAudioFormatMPEG4AAC,
+            AVSampleRateKey: m4aRate,
+            AVNumberOfChannelsKey: m4aChannels,
+            AVEncoderBitRateKey: m4aBitRate,
+        ]
+        let input = AVAssetWriterInput(mediaType: .audio, outputSettings: aac)
+        input.expectsMediaDataInRealTime = false
+        guard writer.canAdd(input) else { throw SoundtrackError.exportFailed("the encoder refused the sound") }
+        writer.add(input)
+        guard reader.startReading() else {
+            throw SoundtrackError.exportFailed(reader.error?.localizedDescription ?? "the mix could not be read")
         }
-        return !lost
+        guard writer.startWriting() else {
+            reader.cancelReading()
+            throw SoundtrackError.exportFailed(writer.error?.localizedDescription ?? "the encoder would not start")
+        }
+        writer.startSession(atSourceTime: .zero)
+        var pacer = DesignExporter.Pacer()
+        do {
+            while let buffer = mixed.copyNextSampleBuffer() {
+                while !input.isReadyForMoreMediaData {
+                    try Task.checkCancellation()
+                    try await Task.sleep(nanoseconds: 2_000_000)
+                }
+                guard input.append(buffer) else {
+                    throw SoundtrackError.exportFailed(writer.error?.localizedDescription ?? "a buffer was refused")
+                }
+                let at = CMSampleBufferGetPresentationTimeStamp(buffer).seconds
+                if at.isFinite { progress?(min(1, max(0, at / max(seconds, 0.1)))) }
+                try await pacer.breathe()
+            }
+            guard reader.status == .completed else {
+                throw SoundtrackError.exportFailed(reader.error?.localizedDescription ?? "the mix stopped early")
+            }
+            input.markAsFinished()
+        } catch {
+            // Cancelled or failed: a short file opens and plays and stops
+            // early, so none is left.
+            reader.cancelReading()
+            writer.cancelWriting()
+            try? FileManager.default.removeItem(at: output)
+            throw error
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            writer.finishWriting { continuation.resume() }
+        }
+        withExtendedLifetime(laid.assets) {}
+        guard writer.status == .completed else {
+            try? FileManager.default.removeItem(at: output)
+            throw SoundtrackError.exportFailed(writer.error?.localizedDescription ?? "the writer stopped early")
+        }
+        progress?(1)
+        return !laid.lost
     }
 }

@@ -112,7 +112,8 @@ struct Template: Codable, Identifiable {
 
     /// A fresh Design at the template's native size, every page of it — in
     /// the unit of the print type made at exactly that size, so an A4
-    /// template prints on A4.
+    /// template prints on A4, and cut into the slides of the carousel type
+    /// made at it (SizePreset.carouselAt).
     func instantiate() -> Design {
         var design = Design(title: name, width: width, height: height)
         design.pages = pageSpecs.map { makePage($0, scale: 1, dx: 0, dy: 0) }
@@ -121,6 +122,8 @@ struct Template: Codable, Identifiable {
         if let type = SizePreset.all.first(where: { $0.unit != nil && $0.w == width && $0.h == height }) {
             design.unit = type.unit
             design.dpi = type.dpi
+        } else if let columns = SizePreset.carouselAt(width: width, height: height)?.split {
+            design = PageSplit.splitAll(design, columns: columns)
         }
         return design
     }
@@ -601,9 +604,13 @@ struct SizePreset: Identifiable, Codable, Equatable {
     var dpi: Double?
     /// Other words it is found by: "cv" for a resume, "twitter" for X.
     var keywords: [String]
+    /// How many slides across a carousel type's page is cut into — its
+    /// `"split": {"columns": n}` in the catalogue, carried onto each page
+    /// it starts with as the page's split (PageSplit); nil for the rest.
+    var split: Int?
 
     init(id: String, name: String, category: String, width: Double, height: Double,
-         unit: String? = nil, dpi: Double? = nil, keywords: [String] = []) {
+         unit: String? = nil, dpi: Double? = nil, keywords: [String] = [], split: Int? = nil) {
         self.id = id
         self.name = name
         self.category = category
@@ -612,13 +619,19 @@ struct SizePreset: Identifiable, Codable, Equatable {
         self.unit = Units.isPhysical(unit) ? unit : nil
         self.dpi = self.unit == nil ? nil : (dpi ?? Units.printDPI)
         self.keywords = keywords
+        self.split = split
         let d = self.dpi ?? Units.screenDPI
         w = Units.pixels(width, unit: self.unit ?? "px", dpi: d)
         h = Units.pixels(height, unit: self.unit ?? "px", dpi: d)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, category, width, height, unit, dpi, keywords
+        case id, name, category, width, height, unit, dpi, keywords, split
+    }
+
+    /// The catalogue's "split": {"columns": n}.
+    private struct Split: Codable {
+        var columns: Int
     }
 
     init(from decoder: Decoder) throws {
@@ -630,7 +643,8 @@ struct SizePreset: Identifiable, Codable, Equatable {
                   height: try c.decode(Double.self, forKey: .height),
                   unit: try? c.decode(String.self, forKey: .unit),
                   dpi: try? c.decode(Double.self, forKey: .dpi),
-                  keywords: (try? c.decode([String].self, forKey: .keywords)) ?? [])
+                  keywords: (try? c.decode([String].self, forKey: .keywords)) ?? [],
+                  split: (try? c.decode(Split.self, forKey: .split))?.columns)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -643,29 +657,30 @@ struct SizePreset: Identifiable, Codable, Equatable {
         try c.encodeIfPresent(unit, forKey: .unit)
         try c.encodeIfPresent(dpi, forKey: .dpi)
         try c.encode(keywords, forKey: .keywords)
+        try c.encodeIfPresent(split.map { Split(columns: $0) }, forKey: .split)
     }
 
-    /// A blank design at this size, in its unit, under `title`.
+    /// A blank design at this size, in its unit, under `title` — a folded
+    /// card's two pages, a mind map's starter with it (DesignTypes).
     func makeDesign(title: String? = nil) -> Design {
         var design = Design(title: title ?? name, width: w, height: h)
         design.unit = unit
         design.dpi = dpi
-        return started(design)
+        return DesignTypes.started(self, started(design))
     }
 
-    /// `design`, made at this type, as it starts: at the Whiteboard type
-    /// its pages expanded (Whiteboards), at the Doc type blocks to type
-    /// into on Letter pages (Docs), any other as it is — the Android twin's
-    /// SizePreset.measured.
+    /// `design`, made at this type, as it starts: a carousel's pages cut
+    /// into its slides (PageSplit), at the Whiteboard type — and the mind
+    /// map and flowchart made on one — its pages expanded (Whiteboards), at
+    /// the Doc type blocks to type into on Letter pages (Docs), any other
+    /// as it is — the Android twin's SizePreset.measured.
     func started(_ design: Design) -> Design {
-        switch id {
-        case Whiteboards.presetId: return Whiteboards.started(design)
-        case Docs.presetId:
-            var doc = Docs.started(design.title)
-            doc.id = design.id
-            return doc
-        default: return design
-        }
+        let made = split.map { PageSplit.splitAll(design, columns: $0) } ?? design
+        if DesignTypes.whiteboards.contains(id) { return Whiteboards.started(made) }
+        guard id == Docs.presetId else { return made }
+        var doc = Docs.started(design.title)
+        doc.id = design.id
+        return doc
     }
 
     /// "210 × 297 mm", or "1080 × 1920" for a size in pixels.
@@ -713,7 +728,17 @@ struct SizePreset: Identifiable, Codable, Equatable {
     /// The pixel size a type's templates were made at before it became
     /// its true size: the A5 flyer's were made at 1240 × 1748, and are its
     /// templates still — fitted to the page when picked — as on Android.
-    static let formerPixels: [String: (width: Double, height: Double)] = ["flyer": (1240, 1748)]
+    /// Flyer (A5), the same paper as a type of its own, takes the same.
+    static let formerPixels: [String: (width: Double, height: Double)] = [
+        "flyer": (1240, 1748), "flyer-a5": (1240, 1748),
+    ]
+
+    /// The first carousel type in the catalogue whose pixels are `width` ×
+    /// `height` — Instagram Carousel for 3240 × 1350 — or nil: what a
+    /// template made at that size is cut into slides as.
+    static func carouselAt(width: Double, height: Double) -> SizePreset? {
+        all.first { $0.split != nil && $0.w == width && $0.h == height }
+    }
 
     // MARK: search
 

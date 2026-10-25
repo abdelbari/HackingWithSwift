@@ -60,6 +60,7 @@ struct PagesBar: View {
                               systemImage: store.isPageLocked ? "lock.open" : "lock")
                     }
                     PageRecoverItems(store: store, index: store.pageIndex)
+                    SlidesMenuItems(store: store, index: store.pageIndex)
                     // An endless canvas round the page, and back to its frame.
                     Button { store.toggleWhiteboard() } label: {
                         Label(store.isWhiteboard ? tr("Collapse") : tr("Expand to whiteboard"),

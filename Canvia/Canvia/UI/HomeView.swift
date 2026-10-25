@@ -235,7 +235,13 @@ struct HomeView: View {
     private var shelf: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                hero
+                Group {
+                    hero
+                    // An automatic backup that could not run, until the
+                    // folder is chosen again in Settings (AutoBackups).
+                    AutoBackupBanner { homeSheet = .settings }
+                        .padding(.horizontal)
+                }
                 // Always there: it finds templates as well as designs, and
                 // an empty shelf still has templates to search.
                 searchPart

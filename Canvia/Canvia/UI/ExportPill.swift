@@ -1,6 +1,6 @@
 // The export pill: "Rendering the video 42%" above the editor's toolbar and
-// on Home while an export runs in the app's queue (ExportQueue), with an X
-// that stops it — and, once it is done with the sheet gone, what there is
+// on Home while an export runs in the app's queue (ExportQueue) — under it
+// whether it keeps going if Canvia is left — with an X that stops it — and, once it is done with the sheet gone, what there is
 // to say. ExportDelivery, at the app's root, shares or opens what finished
 // while the sheet was closed, as the app comes back.
 
@@ -27,20 +27,29 @@ struct ExportPill: View {
 
     private func running(_ job: ExportQueue.Job) -> some View {
         let text = queue.paused ? ExportChoices.paused : ExportChoices.pillText(label: job.label, fraction: queue.progress)
+        let away = ExportChoices.keepsGoing(queue.keepsGoing)
         return HStack(spacing: 10) {
             Button {
                 onTap()
             } label: {
                 HStack(spacing: 8) {
                     ring
-                    Text(text)
-                        .font(.subheadline.weight(.semibold))
-                        .monospacedDigit()
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(text)
+                            .font(.subheadline.weight(.semibold))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                        // Whether it goes on once Canvia is left: on iOS 26,
+                        // with the system's task granted (ContinuedExport).
+                        Text(away)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(text)
+            .accessibilityLabel(text + ", " + away)
             .accessibilityHint("Shows the export")
             Button {
                 queue.cancel(job.id)
@@ -122,6 +131,9 @@ struct ExportDelivery: ViewModifier {
             .onChange(of: queue.delivering) { deliverSoon() }
             .onChange(of: queue.note) { deliverSoon() }
             .onChange(of: scenePhase) { _, phase in
+                // Left with an export running: on iOS 26 it asks to keep
+                // going (ContinuedExport), if it has not yet.
+                if phase == .background { queue.left() }
                 guard phase == .active else { return }
                 queue.resume()
                 deliverSoon()

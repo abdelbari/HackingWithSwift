@@ -1,6 +1,7 @@
 // The file type the export sheet opens on, read from the design itself —
 // Canva's "Suggested" — on both phones by one rule: "html" for a design of
-// the Website type, "mp4" when a shown page
+// the Website type, "m4a" for sound over shown pages that never change
+// (`audioLed`), "mp4" when a shown page
 // moves or sounds, "pdf" for a document of several pages, else "png", or
 // "jpg" for a design that is a photo. The sheet puts a remembered choice
 // before it and the Settings default after (see ExportSheet's precedence).
@@ -34,11 +35,33 @@ enum ExportSuggestion {
         // A Doc goes out as its pages (Docs.paginated).
         if Docs.isDoc(design) { return "pdf" }
         let shown = design.visiblePageIndices.map { design.pages[$0] }
+        // Sound over pages that never change is the sound: the audio alone.
+        if !design.audioTracks.isEmpty && audioLed(design, shown) { return "m4a" }
         if !design.audioTracks.isEmpty || shown.contains(where: { moves(design, $0) }) { return "mp4" }
         if shown.count > 1, let kind = category(design, presets: presets), documentCategories.contains(kind) {
             return "pdf"
         }
         return !shown.isEmpty && shown.allSatisfy({ isPhoto(design, $0) }) ? "jpg" : "png"
+    }
+
+    /// Whether `shown` are audio-led: two pages or more, none of which moves
+    /// (`moves`), each with something on it and looking exactly as the
+    /// first — the same background and the same elements, ids aside — so
+    /// nothing visible changes from one page to the next and only the sound
+    /// goes on. A single page is never audio-led: a still post with music is
+    /// still a video to post; nor are blank pages, a deck not yet made.
+    static func audioLed(_ design: Design, _ shown: [Page]) -> Bool {
+        guard shown.count >= 2, !shown.contains(where: { moves(design, $0) || $0.elements.isEmpty }),
+              let first = shown.first else { return false }
+        func look(_ page: Page) -> [Element] {
+            page.elements.map { el in
+                var anonymous = el
+                anonymous.id = ""
+                return anonymous
+            }
+        }
+        let elements = look(first)
+        return shown.allSatisfy { $0.background == first.background && look($0) == elements }
     }
 
     /// The web page's layout the sheet suggests for `design`: the slide

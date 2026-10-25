@@ -7,14 +7,19 @@
 // waits its turn. A pill above the editor's toolbar, and on Home, says how
 // far along it is, and its X stops it.
 //
-// Out of the app, the work is wrapped in a background task. When the time
-// the system gives runs out, the export stops between two pages or frames
-// (every exporter steps aside through Pacer.breathe, which waits here) —
-// a video's writer simply waits, open, for its next frame — and a
-// notification says "Paused — return to Canvia to finish"; coming back
-// carries it on. Done while away, a notification says so, with Share and
-// Open; the file is shared or opened as the app comes back, as it would
-// have been in the sheet. The Android twin holds its job in a foreground
+// Out of the app, on iOS 26 and later, the export runs under the system's
+// continued processing task (ContinuedExport), asked for as it starts, or
+// as the app is left with it running: the system shows how far along it is
+// and lets it finish — or stops it, when the export stops cleanly and a
+// notification says "Export stopped — open Canvia to finish". Below iOS 26
+// the work is wrapped in a background task. When the time the system gives
+// runs out, the export stops between two pages or frames (every exporter
+// steps aside through Pacer.breathe, which waits here) — a video's writer
+// simply waits, open, for its next frame — and a notification says
+// "Paused — return to Canvia to finish"; coming back carries it on. Done
+// while away, a notification says so, with Share and Open; the file is
+// shared or opened as the app comes back, as it would have been in the
+// sheet. The Android twin holds its job in a foreground
 // service, with the same words (ExportChoices).
 
 import Observation
@@ -76,6 +81,13 @@ final class ExportQueue {
         /// Its place among several designs exported at once, whose files
         /// are handed over together once the last is done; nil for one.
         var batch: Batch? = nil
+        /// What the system shows of it while it keeps going out of the app
+        /// (ContinuedExport): "Exporting <title>", what it makes under
+        /// that, and how many frames or pages it counts; none, and it is
+        /// "Exporting <label>", out of 100.
+        var title: String? = nil
+        var detail: String = ""
+        var units: Int = 0
         let work: Work
     }
 
@@ -108,16 +120,18 @@ final class ExportQueue {
         case share, open
     }
 
-    /// Begins and ends the background task, says whether the app is out of
-    /// sight, and posts and takes down an export's notification — one for
-    /// each export, so one done does not replace another's: the app's own,
-    /// or none in a test.
+    /// Begins and ends the background task, asks for an export's continued
+    /// processing task on iOS 26 (`beginContinued`, whether it was asked
+    /// for), says whether the app is out of sight, and posts and takes down
+    /// an export's notification — one for each export, so one done does
+    /// not replace another's: the app's own, or none in a test.
     struct Host {
         var begin: @MainActor (_ expired: @escaping @MainActor () -> Void) -> UIBackgroundTaskIdentifier
         var end: @MainActor (UIBackgroundTaskIdentifier) -> Void
         var isAway: @MainActor () -> Bool
         var notify: @MainActor (_ job: UUID, _ title: String, _ body: String, _ actions: Bool) -> Void
         var clear: @MainActor (_ job: UUID) -> Void
+        var beginContinued: @MainActor (_ job: UUID, _ title: String, _ subtitle: String) -> Bool = { _, _, _ in false }
 
         static let app = Host(
             begin: { expired in
@@ -132,10 +146,21 @@ final class ExportQueue {
             notify: { job, title, body, actions in
                 ExportNotifications.post(job: job, title: title, body: body, actions: actions)
             },
-            clear: { job in ExportNotifications.clear(job: job) })
+            clear: { job in ExportNotifications.clear(job: job) },
+            beginContinued: { job, title, subtitle in
+                ContinuedExport.submit(job: job, title: title, subtitle: subtitle)
+            })
 
         static let none = Host(begin: { _ in .invalid }, end: { _ in }, isAway: { false },
                                notify: { _, _, _, _ in }, clear: { _ in })
+    }
+
+    /// The system's task an export runs under out of the app
+    /// (ContinuedExport.Handle): how far along it is reported to it, and
+    /// its end.
+    struct Continued {
+        var job: UUID
+        var handle: ContinuedExport.Handle
     }
 
     private let host: Host
@@ -168,12 +193,20 @@ final class ExportQueue {
     @ObservationIgnored private var runner: Task<Void, Never>?
     @ObservationIgnored private var running: Task<Result, Error>?
     @ObservationIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    /// The export whose continued processing task has been asked for, and
+    /// the task itself once the system has started it.
+    private(set) var continuedAsked: UUID?
+    @ObservationIgnored private(set) var continuedTask: Continued?
 
     init(host: Host) {
         self.host = host
     }
 
     var isBusy: Bool { current != nil || !waiting.isEmpty }
+
+    /// Whether the export running goes on once Canvia is left: its
+    /// continued processing task was granted (ContinuedExport).
+    var keepsGoing: Bool { current != nil && continuedAsked == current?.id }
 
     /// "Rendering the video 42%", for the pill.
     var pillText: String? {
@@ -272,6 +305,7 @@ final class ExportQueue {
             current = job
             progress = 0
             beginBackground()
+            beginContinued(job)
             let id = job.id
             // Called on the main actor by most exporters, and from the
             // video writer's queue by the MP4's.
@@ -284,8 +318,12 @@ final class ExportQueue {
             }
             let task = Task { try await job.work(reporter) }
             running = task
+            // How the export went, for its continued processing task: one of
+            // a batch hands nothing over itself until the last is done.
+            var succeeded = false
             do {
                 let result = try await task.value
+                succeeded = job.batch != nil || result.failed == nil
                 if job.batch != nil {
                     collect(job, urls: result.urls, failed: result.failed == nil ? 0 : 1)
                 } else {
@@ -305,6 +343,7 @@ final class ExportQueue {
             }
             running = nil
             current = nil
+            endContinued(success: succeeded)
             endBackground()
         }
         runner = nil
@@ -349,6 +388,10 @@ final class ExportQueue {
     private func report(_ fraction: Double, for id: UUID) {
         guard current?.id == id else { return }
         progress = min(1, max(0, fraction))
+        if let continued = continuedTask, continued.job == id, let job = current {
+            let total = Int64(Self.units(job))
+            continued.handle.report(Int64((progress * Double(total)).rounded(.down)), total)
+        }
     }
 
     // MARK: in the background
@@ -364,10 +407,11 @@ final class ExportQueue {
     }
 
     /// The system's time is up: the export waits at its next page or frame,
-    /// and says so, until the app is back.
+    /// and says so, until the app is back — unless it runs on under its
+    /// continued processing task.
     private func backgroundTimeRanOut() {
         endBackground()
-        guard let job = current, host.isAway() else { return }
+        guard let job = current, host.isAway(), continuedTask?.job != job.id else { return }
         paused = true
         host.notify(job.id, ExportChoices.pausedTitle, ExportChoices.paused, false)
     }
@@ -378,6 +422,72 @@ final class ExportQueue {
         guard paused else { return }
         paused = false
         if current != nil { beginBackground() }
+    }
+
+    // MARK: on iOS 26, out of the app
+
+    /// What the system counts an export in: its frames or pages, or a
+    /// hundredth of the way for one that does not say.
+    static func units(_ job: Job) -> Int { job.units > 0 ? job.units : 100 }
+
+    /// "Exporting <title>": what the system shows over an export that keeps
+    /// going out of the app.
+    static func continuedTitle(_ job: Job) -> String {
+        tr("Exporting %@", job.title ?? job.label)
+    }
+
+    /// The export's continued processing task asked for, once: as it
+    /// starts, or — not granted then — as the app is left with it running
+    /// (`left`).
+    private func beginContinued(_ job: Job) {
+        guard continuedAsked != job.id else { return }
+        if host.beginContinued(job.id, Self.continuedTitle(job), job.detail) { continuedAsked = job.id }
+    }
+
+    /// The app has gone to the background: an export running asks for its
+    /// continued processing task, if it has not yet.
+    func left() {
+        if let job = current { beginContinued(job) }
+    }
+
+    /// The system has started export `job`'s continued processing task:
+    /// how far along it is reported to it from now on, and a paused export
+    /// carries on under it. Should the system stop it, the export stops
+    /// cleanly and says so. One for an export already over is ended at
+    /// once.
+    func continued(_ handle: ContinuedExport.Handle, job: UUID) {
+        guard current?.id == job else {
+            handle.finish(false)
+            return
+        }
+        continuedTask = Continued(job: job, handle: handle)
+        handle.onExpiry { [weak self] in
+            Task { @MainActor in self?.continuedExpired(job) }
+        }
+        report(progress, for: job)
+        if paused {
+            paused = false
+            beginBackground()
+        }
+    }
+
+    /// The system stopped export `job`'s continued processing task: the
+    /// export is cancelled, and a notification says to open Canvia to
+    /// finish.
+    func continuedExpired(_ job: UUID) {
+        guard let continued = continuedTask, continued.job == job else { return }
+        continuedTask = nil
+        continued.handle.finish(false)
+        cancel(job)
+        host.notify(job, ExportChoices.failedTitle, ExportChoices.stoppedAway, false)
+    }
+
+    /// The export over: its continued processing task, when it has one,
+    /// ended as it went.
+    private func endContinued(success: Bool) {
+        continuedTask?.handle.finish(success)
+        continuedTask = nil
+        continuedAsked = nil
     }
 
     /// Where every exporter's pause between pages or frames waits while the

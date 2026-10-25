@@ -77,6 +77,16 @@ enum ExportChoices {
     static let paused = tr("Paused — return to Canvia to finish")
     static let shareAction = tr("Share")
     static let openAction = tr("Open")
+    /// An export the system stopped while Canvia was left (ContinuedExport).
+    static let stoppedAway = tr("Export stopped — open Canvia to finish")
+
+    /// Under the pill: an export whose continued processing task the
+    /// system granted (iOS 26 and later, ExportQueue.keepsGoing) runs on
+    /// under it while Canvia is left; any other waits for the app to come
+    /// back. The Android twin says the first always (ExportPlan.KEEPS_GOING).
+    static func keepsGoing(_ granted: Bool) -> String {
+        granted ? tr("Keeps going if you leave Canvia") : tr("Keep Canvia open to finish")
+    }
 
     /// "Export failed: <why>", in the sheet or the pill.
     static func failedText(_ reason: String) -> String {
@@ -257,12 +267,13 @@ enum ExportChoices {
 ///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,
 ///  "colourProfile":"rgb","html":{"nav":true,"mobileStack":true,
 ///  "embedMedia":true,"layout":"scroll","autoplay":0.0,"loop":false},
-///  "zip":false,"pngCompress":false,"pdfTagged":true}. A
-///  missing "pptxStyledText" is "editable"; a missing "zip" or "pngCompress"
-///  off, and a missing "pdfTagged" false.
+///  "zip":false,"pngCompress":false,"pdfTagged":true,"audioVoice":true,
+///  "audioClips":true,"split":true}. A missing "pptxStyledText" is
+///  "editable"; a missing "zip" or "pngCompress" off, a missing "pdfTagged"
+///  false, and a missing "audioVoice", "audioClips" or "split" true.
 struct ExportLast: Codable, Equatable {
     /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html" |
-    /// "docx" (a Doc's Word document).
+    /// "docx" (a Doc's Word document) | "m4a" (the design's sound alone).
     var format: String
     var scale: Double
     /// The long edge typed, in pixels; nil when the scale applies.
@@ -300,12 +311,21 @@ struct ExportLast: Codable, Equatable {
     /// setting has no key, as one written before it has not. Never for a
     /// flattened PDF or the print one.
     var pdfTagged = true
+    /// The audio download's "Include voice-over": the design's recorded
+    /// voice-overs in the mix (AudioMix.audioPlan).
+    var audioVoice = true
+    /// The audio download's "Include clip sound": each clip's own sound,
+    /// and a clip's detached sound, in the mix.
+    var audioClips = true
+    /// A picture's "Split into slides": each carousel page (PageSplit) cut
+    /// into a file a slide (ExportPlan.tiles).
+    var split = true
 
     static let key = "exportLast"
-    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx"]
+    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx", "m4a"]
     /// The export sheet's file types, in the order its picker lists them —
     /// the Android twin's ExportSettings.formats.
-    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx"]
+    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html", "docx", "m4a"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     static let styledEditable = "editable"
@@ -314,14 +334,14 @@ struct ExportLast: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText,
-             suggested, pdfBookmarks, colourProfile, html, zip, pngCompress, pdfTagged
+             suggested, pdfBookmarks, colourProfile, html, zip, pngCompress, pdfTagged, audioVoice, audioClips, split
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
          pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable,
          suggested: Bool = false, pdfBookmarks: Bool = true, colourProfile: String = "rgb",
          html: HTMLExporter.Settings = HTMLExporter.Settings(), zip: Bool = false, pngCompress: Bool = false,
-         pdfTagged: Bool = true) {
+         pdfTagged: Bool = true, audioVoice: Bool = true, audioClips: Bool = true, split: Bool = true) {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -338,6 +358,9 @@ struct ExportLast: Codable, Equatable {
         self.zip = zip
         self.pngCompress = pngCompress
         self.pdfTagged = pdfTagged
+        self.audioVoice = audioVoice
+        self.audioClips = audioClips
+        self.split = split
     }
 
     /// Whether styled text goes out editable, as the setting says.
@@ -370,6 +393,10 @@ struct ExportLast: Codable, Equatable {
         pngCompress = (try? c.decode(Bool.self, forKey: .pngCompress)) ?? false
         // A setting from before "pdfTagged" was untagged, and stays so.
         pdfTagged = (try? c.decode(Bool.self, forKey: .pdfTagged)) ?? false
+        // Missing, the voice-overs and clip sound are in, and a carousel cut.
+        audioVoice = (try? c.decode(Bool.self, forKey: .audioVoice)) ?? true
+        audioClips = (try? c.decode(Bool.self, forKey: .audioClips)) ?? true
+        split = (try? c.decode(Bool.self, forKey: .split)) ?? true
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -392,6 +419,9 @@ struct ExportLast: Codable, Equatable {
         try c.encode(zip, forKey: .zip)
         try c.encode(pngCompress, forKey: .pngCompress)
         try c.encode(pdfTagged, forKey: .pdfTagged)
+        try c.encode(audioVoice, forKey: .audioVoice)
+        try c.encode(audioClips, forKey: .audioClips)
+        try c.encode(split, forKey: .split)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -417,6 +447,9 @@ struct ExportLast: Codable, Equatable {
             "\"zip\":" + String(zip),
             "\"pngCompress\":" + String(pngCompress),
             "\"pdfTagged\":" + String(pdfTagged),
+            "\"audioVoice\":" + String(audioVoice),
+            "\"audioClips\":" + String(audioClips),
+            "\"split\":" + String(split),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }
