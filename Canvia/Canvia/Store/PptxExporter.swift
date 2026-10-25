@@ -210,6 +210,10 @@ enum PptxExporter {
         // preset or path has no crop of its own.
         if GraphicClip.ownRect(el) != nil { return .picture }
         if el.shadow != nil && !(styled && el.type == .text) { return .picture }
+        // A sticker's or a graphic's outline or glow (PhotoEffects
+        // .takesDrawnEdge) is a picture: a group's laid under its shapes
+        // alone, a shape on its own with it.
+        if el.edgeOnly || (el.type == .shape && PhotoEffects.hasDrawnEdge(el)) { return .picture }
         let flipped = el.flipH || el.flipV
         switch el.type {
         case .text:
@@ -366,7 +370,9 @@ enum PptxExporter {
     /// arriving as the page's own animation has it, as Present plays it.
     static func drawnElements(design: Design, page: Page) -> [Element] {
         let pageNumber = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
-        return design.drawnElements(on: PageAnimation.playing(page)).map { el in
+        // A graphic's outline or glow as a picture under its shapes, which
+        // stay shapes (PhotoEffects.withGroupEdges).
+        return PhotoEffects.withGroupEdges(design.drawnElements(on: PageAnimation.playing(page))).map { el in
             var resolved = el
             if ShapeText.carriesWords(el) {
                 resolved.fillPageTokens(number: pageNumber, count: design.pages.count)

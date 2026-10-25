@@ -45,6 +45,8 @@ enum EditorSheet: String, Identifiable {
     case similar
     /// A line's ends: Start, End and their size (LineEnds).
     case lineEnds
+    /// A sticker's or a graphic's outline or glow (OutlineSheet).
+    case outline
     /// The typing bar's highlighter: marker colours for the words chosen.
     case highlightWords
     /// More's "Bulk create…": a page, or a design, for each row of a table.
@@ -1753,6 +1755,8 @@ struct EditorView: View {
             SimilarSheet(store: store)
         case .shadow:
             ShadowSheet(store: store)
+        case .outline:
+            OutlineSheet(store: store)
         case .lineEnds:
             LineEndsSheet(store: store)
         case .clip:

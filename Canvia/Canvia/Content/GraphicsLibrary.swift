@@ -1,7 +1,7 @@
 // The illustrated graphics: doodle arrows, underlines, sparkles, badges,
 // ribbons, blobs, confetti, dividers, bubbles, frames, scribbles and
-// patterns, and the Animated ones, a couple of hundred and more in thirteen
-// categories, each in up to four colours — drawn by
+// patterns, the Animated ones and the die-cut Stickers, nearly four hundred
+// in fourteen categories, each in up to four colours — drawn by
 // tools/generate_graphics.py into Graphics.json,
 // the very file the Android twin bundles, byte for byte, so a graphic is the
 // same on both phones (GraphicsLibraryTests hashes it).
@@ -18,6 +18,8 @@
 // or star twinkling, a shape floating — goes on with that animation set
 // (ElementAnimation.motioned), is found under the Animated chip and by the
 // word "animated", and plays in Present and the video, GIF and web page.
+// Every third sticker moves too — it wiggles, pops in or floats — and is
+// found under the Stickers chip and in the Stickers tab's Illustrated row.
 
 import Foundation
 
@@ -35,7 +37,8 @@ struct GraphicDef: Codable, Identifiable, Equatable {
     /// tools/generate_graphics.py measures them: what Add's colour filter
     /// matches (ElementSearch.filtered).
     var hues: [String] = []
-    /// "draw" | "twinkle" | "float"; nil for a graphic that stays still.
+    /// "draw" | "twinkle" | "float", or a sticker's "wiggle" | "pop" | "float";
+    /// nil for a graphic that stays still.
     var motion: String?
 
     private enum CodingKeys: String, CodingKey { case id, name, category, tags, svg, colours, hues, motion }
@@ -64,13 +67,17 @@ struct GraphicDef: Codable, Identifiable, Equatable {
     }
 
     /// The element animation a graphic that moves goes on with: draw draws
-    /// on, twinkle twinkles, float bobs (bounce); nil for one that is still
-    /// or moves in a way this build does not know.
+    /// on, twinkle twinkles, float bobs (bounce); a sticker's wiggle is the
+    /// wiggle loop and its pop the pop entrance, the kinds of the same
+    /// names; nil for one that is still or moves in a way this build does
+    /// not know.
     var animationKind: String? {
         switch motion {
         case "draw": return ElementAnimation.draw
         case "twinkle": return ElementAnimation.twinkle
         case "float": return "bounce"
+        case "wiggle": return "wiggle"
+        case "pop": return "pop"
         default: return nil
         }
     }
@@ -114,6 +121,11 @@ enum GraphicsLibrary {
     /// Add's like any other's, as the Android twin's ANIMATED.
     static let animated = "Animated"
 
+    /// The die-cut stickers: illustrated, each over a white outline its
+    /// silhouette grown 8 units out (Tools/generate_graphics.py), a third of
+    /// them moving. The Android twin's STICKERS.
+    static let stickers = "Stickers"
+
     /// Every graphic that moves, in the pack's order.
     static var moving: [GraphicDef] { file.graphics.filter { $0.motion != nil } }
 
@@ -140,7 +152,7 @@ enum GraphicsLibrary {
         guard !needle.isEmpty else { return from }
         return from.filter { g in
             g.name.lowercased().contains(needle) || g.id.contains(needle) || g.tags.contains { $0.contains(needle) }
-                || (g.motion != nil && "animated".contains(needle))
+                || (g.category == animated && "animated".contains(needle))
         }
     }
 

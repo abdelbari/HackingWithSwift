@@ -1,0 +1,15 @@
+{
+  "about": "An emoji sticker with the photo's edge reused as a die-cut outline, and its shadow, as both phones write it. Read and written back unchanged on both phones; an SVG export draws it as a picture whose box reaches the outline (overflow = the edge's reach, width / 5). Android's StickerEdgeTest and the iPhone's StickerEdgeTests read it.",
+  "element": {
+    "id": "party",
+    "type": "sticker",
+    "x": 100,
+    "y": 100,
+    "w": 160,
+    "h": 160,
+    "glyph": "🎉",
+    "edge": {"kind": "outline", "color": "#ffffff", "width": 30},
+    "shadow": {"color": "#000000", "opacity": 0.35, "blur": 12, "offsetX": 0, "offsetY": 6}
+  },
+  "reach": 6
+}

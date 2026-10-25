@@ -17,7 +17,8 @@ final class ElementSearchTests: XCTestCase {
             ("Arrow", ["shape/arrow-right", "line/Arrow", "shape/arrow-left"]),
             // A synonym finds what the word it stands for finds, as a word match.
             ("pointer", ["shape/arrow-right", "shape/arrow-left"]),
-            ("Love", ["sticker/😍", "shape/heart"]),
+            // The LOVE badge sticker's name starts so.
+            ("Love", ["sticker/😍", "graphic/sticker-badge-04"]),
             // Words a grid is found by, and a frame by its name.
             ("two photos", ["grid/two", "grid/twoStack"]),
             ("polaroid", ["photoFrame/polaroid"]),

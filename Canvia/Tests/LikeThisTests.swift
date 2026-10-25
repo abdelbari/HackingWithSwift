@@ -35,7 +35,8 @@ final class LikeThisTests: XCTestCase {
                                                pageWidth: 1000, pageHeight: 1000)
         let hits = ElementSearch.similar(try XCTUnwrap(sparkle.last))
         XCTAssertEqual(hits.count, 16)
-        XCTAssertEqual(hits.prefix(3).map(\.id), ["sparkle-01", "sparkle-02", "sparkle-04"])
+        // Its category's, the ones sharing most of its words first ("trio").
+        XCTAssertEqual(hits.prefix(5).map(\.id), ["sparkle-06", "sparkle-09", "sparkle-12", "sparkle-15", "sparkle-01"])
         let star = ElementSearch.similar(.shape("star-5"))
         XCTAssertEqual(star.prefix(6).map(\.id), ["star-4", "star-6", "star-8", "seal", "burst-16", "rect"])
         XCTAssertEqual(star.count, 24)

@@ -342,6 +342,7 @@ struct InsertSheet: View {
         // The Videos tab says it in Android's words, under its heading.
         case "Stickers":
             return EmojiCatalogue.search(search).isEmpty && Stickers.searchAnimated(search).isEmpty
+                && GraphicsLibrary.search(search, in: GraphicsLibrary.stickers).isEmpty
         default: return false
         }
     }
@@ -2132,6 +2133,7 @@ struct InsertSheet: View {
                 glyphRow(recentEmoji)
             }
             animatedStickersRow
+            illustratedStickersRow
             let starred = Favorites.ids(of: "sticker")
             if search.isEmpty && !starred.isEmpty {
                 sectionHeader(tr("Favourites"))
@@ -2201,6 +2203,34 @@ struct InsertSheet: View {
                 }
             }
         }
+    }
+
+    /// The die-cut illustrated stickers of the graphics pack
+    /// (GraphicsLibrary.stickers), found by the same search by their names
+    /// and words; a tap or a drag puts one on as any graphic goes on.
+    @ViewBuilder
+    private var illustratedStickersRow: some View {
+        let illustrated = GraphicsLibrary.search(search, in: GraphicsLibrary.stickers)
+        if !illustrated.isEmpty {
+            sectionHeader(tr("Illustrated"))
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 8) {
+                    ForEach(illustrated) { graphic in illustratedTile(graphic) }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private func illustratedTile(_ graphic: GraphicDef) -> some View {
+        Button { addPackGraphic(graphic) } label: {
+            GraphicThumb(graphic: graphic)
+                .padding(4)
+                .frame(width: 64, height: 64)
+        }
+        .buttonStyle(.plain)
+        .libraryDrag { packDrag(graphic) }
+        .accessibilityLabel(graphic.motion == nil ? tr("%@ graphic", graphic.name) : tr("%@ graphic, animated", graphic.name))
     }
 
     /// The Background sheet's choices, the same here as there.

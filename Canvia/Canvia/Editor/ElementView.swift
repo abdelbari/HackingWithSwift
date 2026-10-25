@@ -165,6 +165,10 @@ struct ElementView: View {
             // A cropped graphic shows only its crop (GraphicClip), cut in
             // its own box before it is flipped and turned.
             .modifier(GraphicClipMask(rect: GraphicClip.ownRect(element)))
+            // A sticker's or a graphic's outline or glow, grown from its own
+            // drawing (PhotoEffects.drawnEdge), behind it and over its
+            // shadow, which falls from both.
+            .background { drawnEdge }
             // A styled shadow (ShadowShapes) is a silhouette of its own,
             // drawn behind the element in the element's space, where the
             // drop shadow below is cast too.
@@ -231,10 +235,32 @@ struct ElementView: View {
         }
     }
 
+    /// A sticker's or a graphic shape's outline or glow (PhotoEffects
+    /// .takesDrawnEdge), centred on its box and reaching past it.
+    @ViewBuilder
+    private var drawnEdge: some View {
+        if let edge = PhotoEffects.drawnEdge(element) {
+            Image(uiImage: edge.image)
+                .resizable()
+                .frame(width: element.w + 2 * edge.pad, height: element.h + 2 * edge.pad)
+                .allowsHitTesting(false)
+        }
+    }
+
     /// What the element draws; a shape drawing itself on shows `drawing` of
-    /// its outline.
+    /// its outline. A copy laid for its group's edge (Element.edgeOnly)
+    /// draws nothing but that edge.
     @ViewBuilder
     private func content(drawing: Double = 1) -> some View {
+        if element.edgeOnly {
+            Color.clear
+        } else {
+            typeContent(drawing: drawing)
+        }
+    }
+
+    @ViewBuilder
+    private func typeContent(drawing: Double) -> some View {
         let el = shown
         switch el.type {
         case .shape:
@@ -1601,12 +1627,15 @@ struct PageRenderView: View {
         // The master page's elements, behind this page's own. Not on
         // the master itself, and not on a page that opted out.
         // A group's crop is put into each member's own box (GraphicClip).
-        ForEach(GraphicClip.shown(design.masterElements(behind: page), in: design.masterPage?.elements ?? [])) { el in
+        // A graphic's outline goes round the whole of it, laid before its
+        // first part (PhotoEffects.withGroupEdges).
+        ForEach(PhotoEffects.withGroupEdges(GraphicClip.shown(design.masterElements(behind: page),
+                                                              in: design.masterPage?.elements ?? []))) { el in
             ElementView(element: el).equatable()
         }
         // A hidden element is never drawn, here or in anything that
         // renders through this view: exports, thumbnails, Present, video.
-        ForEach(GraphicClip.shown(ownElements.filter { !$0.isHidden }, in: ownElements)) { el in
+        ForEach(PhotoEffects.withGroupEdges(GraphicClip.shown(ownElements.filter { !$0.isHidden }, in: ownElements))) { el in
             // .equatable() so a drag re-renders the element that moved
             // rather than every element on the page. The store is
             // @Observable and a gesture mutates the document each frame,

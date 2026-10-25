@@ -499,6 +499,18 @@ enum PhotoEffects {
             lay(shown.picture, under: shown.alpha)
             if let restored = shown.restored { lay(restored.picture, under: restored.cover) }
         }
+        guard let made = grown(silhouette, edge: edge, thickness: t, scale: scale, pad: pad) else { return nil }
+        edges.setObject(made, forKey: id)
+        lastEdges.setObject(made, forKey: el.id as NSString)
+        return made
+    }
+
+    /// `silhouette`'s alpha grown into an outline (`thickness` page units,
+    /// at `scale` pixels a unit) or blurred into a glow, laid down in the
+    /// edge's colour: the one routine a photo's, a sticker's and a
+    /// graphic's edge are made by.
+    private static func grown(_ silhouette: UIImage, edge: PhotoEdge, thickness t: Double, scale: Double,
+                              pad: Double) -> EdgeImage? {
         guard let cg = silhouette.cgImage else { return nil }
         let shape = CIImage(cgImage: cg)
         let extent = shape.extent
@@ -530,9 +542,131 @@ enum PhotoEffects {
         ink.maskImage = cover
         guard let out = ink.outputImage,
               let laid = ImageFilterEngine.cgImage(out, from: extent) else { return nil }
-        let made = EdgeImage(image: UIImage(cgImage: laid, scale: scale, orientation: .up), pad: pad)
+        return EdgeImage(image: UIImage(cgImage: laid, scale: scale, orientation: .up), pad: pad)
+    }
+
+    // MARK: a sticker's or a graphic's edge
+
+    /// Whether `el` takes an outline or glow drawn from its own shape — the
+    /// photo's edge, reused: a sticker (its glyph) or a pack graphic's shape
+    /// (its path) — grown from its alpha and laid behind it, its shadow
+    /// beneath. A photo's edge is its picture's, drawn with it. The Android
+    /// twin's PhotoEffects.takesDrawnEdge.
+    static func takesDrawnEdge(_ el: Element) -> Bool {
+        el.type == .sticker || (el.type == .shape && GraphicsLibrary.graphic(of: el) != nil)
+    }
+
+    /// Whether `el` has a drawn edge to lay down (`takesDrawnEdge`).
+    static func hasDrawnEdge(_ el: Element) -> Bool {
+        takesDrawnEdge(el) && thickness(el.edge) > 0
+    }
+
+    /// Where the edges of a graphic's shapes are laid, the simplest rule both
+    /// phones keep: a group's shape edges all go down together just before
+    /// the group's first element is drawn, so a graphic's outline is round
+    /// the whole of it and never over one of its own parts. Keyed by that
+    /// first element's id, each group's edged shapes in drawing order. A
+    /// shape in no group, and every sticker, lays its own just behind
+    /// itself, and is not here. The Android twin's PhotoEffects.groupEdges.
+    static func groupEdges(_ drawn: [Element]) -> [String: [Element]] {
+        var first: [String: String] = [:]
+        for el in drawn {
+            if let group = el.group, first[group] == nil { first[group] = el.id }
+        }
+        var out: [String: [Element]] = [:]
+        for el in drawn {
+            guard let group = el.group, el.type == .shape, hasDrawnEdge(el), let lead = first[group] else { continue }
+            out[lead, default: []].append(el)
+        }
+        return out
+    }
+
+    /// `el` as it is drawn once its group's edges are down (`groupEdges`):
+    /// without its edge; its shadow it casts itself, as ever.
+    static func afterGroupEdge(_ el: Element) -> Element {
+        guard el.group != nil, el.type == .shape, hasDrawnEdge(el) else { return el }
+        var out = el
+        out.edge = nil
+        return out
+    }
+
+    /// `drawn` as the canvas and every export lay it down: each group's
+    /// shape edges (`groupEdges`) as copies that draw their edge alone
+    /// (Element.edgeOnly) — no shadow, ids of their own — just before the
+    /// group's first element, and each shape of them after without its
+    /// own (`afterGroupEdge`).
+    static func withGroupEdges(_ drawn: [Element]) -> [Element] {
+        let edges = groupEdges(drawn)
+        guard !edges.isEmpty else { return drawn }
+        var out: [Element] = []
+        for el in drawn {
+            for shape in edges[el.id] ?? [] {
+                var only = shape
+                only.id = shape.id + "#edge"
+                only.edgeOnly = true
+                only.shadow = nil
+                out.append(only)
+            }
+            out.append(afterGroupEdge(el))
+        }
+        return out
+    }
+
+    /// `el`'s drawn outline or glow (`takesDrawnEdge`), made as a photo's
+    /// is — from the alpha of the element drawn alone, its glyph or its
+    /// path, grown or blurred by the same routine (`grown`) — at up to two
+    /// pixels a page unit and no more than 1024 across, and kept while
+    /// nothing that shapes it changes. nil when it has none.
+    @MainActor
+    static func drawnEdge(_ el: Element) -> EdgeImage? {
+        guard hasDrawnEdge(el), let edge = el.edge, el.w > 0, el.h > 0 else { return nil }
+        let t = thickness(edge)
+        let far = reach(edge)
+        let scale = min(2, 1024 / max(el.w + 2 * far, el.h + 2 * far, 1))
+        let pad = ((far * scale).rounded(.up) + 1) / scale
+        let id = ["drawn", el.glyph ?? "", el.pathData ?? "", el.shapeId ?? "", "\(el.w)x\(el.h)",
+                  "\(el.radius ?? 0)", el.fill?.kind ?? "", el.stroke ?? "", "\(el.strokeWidth ?? 0)",
+                  "\(edge.kind)\(edge.color)\(edge.width)", "\(scale)"].joined(separator: "|") as NSString
+        if let made = edges.object(forKey: id) { return made }
+        let canvas = CGSize(width: el.w + 2 * pad, height: el.h + 2 * pad)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = false
+        let silhouette = UIGraphicsImageRenderer(size: canvas, format: format).image { ctx in
+            ctx.cgContext.translateBy(x: pad, y: pad)
+            drawSilhouette(el, in: ctx.cgContext)
+        }
+        guard let made = grown(silhouette, edge: edge, thickness: t, scale: scale, pad: pad) else { return nil }
         edges.setObject(made, forKey: id)
-        lastEdges.setObject(made, forKey: el.id as NSString)
         return made
+    }
+
+    /// `el` in black in its own box, at its own size: a sticker's glyph as
+    /// StickerElementView sets it, a shape's path filled — or, with no
+    /// fill, stroked at its border's width.
+    private static func drawSilhouette(_ el: Element, in cg: CGContext) {
+        if el.type == .sticker {
+            let font = UIFont.systemFont(ofSize: min(el.w, el.h) * 0.86)
+            let glyph = NSAttributedString(string: el.glyph ?? "⭐", attributes: [.font: font])
+            let size = glyph.size()
+            glyph.draw(at: CGPoint(x: (el.w - size.width) / 2, y: (el.h - size.height) / 2))
+            return
+        }
+        let shape = LibraryShape(definition: ContentLibrary.shape(for: el), cornerRadius: el.radius ?? 0,
+                                 corners: el.corners, params: el.shapeParams, builds: true)
+        let path = shape.path(in: CGRect(x: 0, y: 0, width: el.w, height: el.h)).cgPath
+        cg.setFillColor(UIColor.black.cgColor)
+        cg.setStrokeColor(UIColor.black.cgColor)
+        if el.fill?.kind != "none" {
+            cg.addPath(path)
+            cg.fillPath(using: el.fillRule == "evenodd" ? .evenOdd : .winding)
+        }
+        if el.stroke != nil, let width = el.strokeWidth, width > 0 {
+            cg.setLineWidth(width)
+            cg.setLineJoin(.round)
+            cg.setLineCap(.round)
+            cg.addPath(path)
+            cg.strokePath()
+        }
     }
 }

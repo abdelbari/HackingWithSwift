@@ -950,6 +950,13 @@ final class DesignStore {
         selectedElements.contains { !$0.locked && ([.text, .line, .shape].contains($0.type) || PhotoFrames.takesColour($0)) }
     }
 
+    /// Whether everything selected — a sticker, or a graphic's shapes —
+    /// takes an outline or glow of its own (PhotoEffects.takesDrawnEdge),
+    /// and none of it is locked.
+    var selectionTakesDrawnEdge: Bool {
+        !selectedElements.isEmpty && selectedElements.allSatisfy { PhotoEffects.takesDrawnEdge($0) && !$0.locked }
+    }
+
     /// Whether anything selected takes a gradient: text, or a shape that is
     /// not a drawn stroke. A line is one colour only.
     var selectionTakesGradient: Bool {
