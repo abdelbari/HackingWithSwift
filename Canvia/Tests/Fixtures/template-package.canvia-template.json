@@ -1,0 +1,54 @@
+{
+  "asTemplate": {
+    "category": "Events",
+    "name": "Bake sale"
+  },
+  "design": {
+    "id": "d-template",
+    "title": "Bake sale poster",
+    "width": 1080,
+    "height": 1350,
+    "createdAt": 1700000000000,
+    "updatedAt": 1700000000000,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#fff4e0"
+        },
+        "elements": [
+          {
+            "id": "t1",
+            "type": "text",
+            "text": "Bake sale",
+            "x": 100,
+            "y": 100,
+            "w": 880,
+            "h": 160,
+            "fontSize": 96,
+            "fontFamily": "lato",
+            "color": "#5a2d0c"
+          },
+          {
+            "id": "i1",
+            "type": "image",
+            "src": "media:cake",
+            "x": 240,
+            "y": 400,
+            "w": 600,
+            "h": 600
+          }
+        ]
+      }
+    ]
+  },
+  "format": "canvia-package",
+  "media": {
+    "cake": {
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNg+M/AAAADAQEAnW4qOAAAAABJRU5ErkJggg==",
+      "ext": "png"
+    }
+  },
+  "version": 1
+}

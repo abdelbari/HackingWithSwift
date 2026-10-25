@@ -1,0 +1,250 @@
+{
+  "note": "VersionDiff.pages: each page of the version against the design now, matched by page id \u2014 same when their JSON is, written with keys sorted and thumbnails and caches left out, changed when not, onlyInVersion when the design has no page with its id. bringBack: where Bring back this page puts the copy (index in the design after it), currentIndex the page on screen. Both phones read this file.",
+  "version": {
+    "id": "d-diff",
+    "title": "Diff",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 1700000000000,
+    "updatedAt": 1700000000000,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "text": "Same",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430"
+          }
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e2",
+            "type": "text",
+            "text": "Before",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430"
+          }
+        ]
+      },
+      {
+        "id": "p3",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e3",
+            "type": "text",
+            "text": "Gone since",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430"
+          },
+          {
+            "id": "l3",
+            "type": "line",
+            "x": 0,
+            "y": 500,
+            "w": 300,
+            "h": 0,
+            "connectFrom": "e3"
+          }
+        ]
+      },
+      {
+        "id": "p4",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e4",
+            "type": "text",
+            "text": "Kept",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430"
+          }
+        ],
+        "thumbnail": "old.jpg"
+      }
+    ]
+  },
+  "current": {
+    "id": "d-diff",
+    "title": "Diff",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 1700000000000,
+    "updatedAt": 1700086400000,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "text": "Same",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430"
+          }
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e2",
+            "type": "text",
+            "text": "After",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430"
+          }
+        ]
+      },
+      {
+        "id": "p4",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e4",
+            "type": "text",
+            "text": "Kept",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430"
+          }
+        ],
+        "thumbnail": "new.jpg"
+      },
+      {
+        "id": "p5",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e5",
+            "type": "text",
+            "text": "New",
+            "x": 100,
+            "y": 100,
+            "w": 800,
+            "h": 120,
+            "fontSize": 60,
+            "fontFamily": "lato",
+            "color": "#1f2430"
+          }
+        ]
+      }
+    ]
+  },
+  "pages": [
+    {
+      "pageId": "p1",
+      "state": "same"
+    },
+    {
+      "pageId": "p2",
+      "state": "changed"
+    },
+    {
+      "pageId": "p3",
+      "state": "onlyInVersion"
+    },
+    {
+      "pageId": "p4",
+      "state": "same"
+    }
+  ],
+  "bringBack": [
+    {
+      "pageId": "p3",
+      "currentIndex": 0,
+      "replace": false,
+      "index": 2,
+      "pages": 5
+    },
+    {
+      "pageId": "p2",
+      "currentIndex": 0,
+      "replace": false,
+      "index": 1,
+      "pages": 5
+    },
+    {
+      "pageId": "p2",
+      "currentIndex": 3,
+      "replace": true,
+      "index": 1,
+      "pages": 4
+    },
+    {
+      "pageId": "p1",
+      "currentIndex": 3,
+      "replace": false,
+      "index": 4,
+      "pages": 5
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "note": "Help search over the topics both phones read from help.json (tools/generate_help.py): for each query, the help.json topics found, title hits first and then those whose words or body have it, in the file's order — capitals and accents aside — and the Tools section's topics: those with a place to go whose title or words have it. Each phone's own first nineteen topics are left out of both lists. Both phones read this file.",
+  "cases": [
+    {
+      "query": "remove background",
+      "topics": [
+        "cutout"
+      ],
+      "tools": []
+    },
+    {
+      "query": "captions",
+      "topics": [
+        "captions",
+        "a11y-check"
+      ],
+      "tools": [
+        "captions",
+        "a11y-check"
+      ]
+    },
+    {
+      "query": "bulk create",
+      "topics": [
+        "bulk"
+      ],
+      "tools": [
+        "bulk"
+      ]
+    },
+    {
+      "query": "Present",
+      "topics": [
+        "present",
+        "presenter",
+        "animate"
+      ],
+      "tools": [
+        "present",
+        "presenter"
+      ]
+    },
+    {
+      "query": "merge pdf",
+      "topics": [
+        "quick-tools"
+      ],
+      "tools": []
+    },
+    {
+      "query": "recently deleted",
+      "topics": [
+        "uploads"
+      ],
+      "tools": []
+    },
+    {
+      "query": "brand",
+      "topics": [
+        "brand"
+      ],
+      "tools": [
+        "brand"
+      ]
+    },
+    {
+      "query": "QR",
+      "topics": [
+        "qr"
+      ],
+      "tools": [
+        "qr"
+      ]
+    },
+    {
+      "query": "version",
+      "topics": [
+        "versions"
+      ],
+      "tools": [
+        "versions"
+      ]
+    },
+    {
+      "query": "Timeline",
+      "topics": [
+        "timeline"
+      ],
+      "tools": [
+        "timeline"
+      ]
+    },
+    {
+      "query": "zzzz",
+      "topics": [],
+      "tools": []
+    }
+  ]
+}

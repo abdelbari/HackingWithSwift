@@ -1,0 +1,63 @@
+{
+  "note": "uploads.json before and after the launch sweep at now: an entry deleted more than 30 days (2592000000 ms) before now leaves the list, one deleted exactly 30 days before stays this launch, and one not deleted stays. Its file goes with the next prune unless something still uses it. Both phones read this file.",
+  "now": 1760000000000,
+  "stale": [
+    "img-old",
+    "a1b2c3d4e5f6"
+  ],
+  "before": [
+    {
+      "id": "img-live",
+      "kind": "image",
+      "added": 1750000000000,
+      "name": "beach.jpg"
+    },
+    {
+      "id": "img-old",
+      "kind": "image",
+      "added": 1750000000000,
+      "deleted": 1757321600000,
+      "folder": "Trips"
+    },
+    {
+      "id": "vid-edge",
+      "kind": "video",
+      "added": 1750000000000,
+      "deleted": 1757408000000
+    },
+    {
+      "id": "aud-recent",
+      "kind": "audio",
+      "added": 1750000000000,
+      "deleted": 1759913600000
+    },
+    {
+      "id": "a1b2c3d4e5f6",
+      "kind": "font",
+      "added": 1750000000000,
+      "name": "Righteous",
+      "file": "a1b2c3d4e5f6.ttf",
+      "deleted": 1756112000000
+    }
+  ],
+  "after": [
+    {
+      "id": "img-live",
+      "kind": "image",
+      "added": 1750000000000,
+      "name": "beach.jpg"
+    },
+    {
+      "id": "vid-edge",
+      "kind": "video",
+      "added": 1750000000000,
+      "deleted": 1757408000000
+    },
+    {
+      "id": "aud-recent",
+      "kind": "audio",
+      "added": 1750000000000,
+      "deleted": 1759913600000
+    }
+  ]
+}

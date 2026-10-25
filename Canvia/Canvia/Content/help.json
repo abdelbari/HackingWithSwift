@@ -1,0 +1,449 @@
+[
+  {
+    "id": "crop-mode",
+    "title": "Crop mode",
+    "body": "Double-tap a photo or a clip to crop it where it sits. Drag the picture, pinch it, pull the frame in, pick a shape such as 1:1 or 9:16, straighten it with the dial, turn it a quarter or flip it. Done keeps it.",
+    "keywords": [
+      "crop",
+      "straighten",
+      "ratio",
+      "rotate",
+      "flip",
+      "trim"
+    ],
+    "opens": "crop"
+  },
+  {
+    "id": "brushes",
+    "title": "Brushes: erase, restore and blur",
+    "body": "Edit on a photo has brushes that erase part of it, bring an erased part back, blur or pixelate where you paint. The size slider sets the brush, and Undo takes back a stroke.",
+    "keywords": [
+      "brush",
+      "erase",
+      "restore",
+      "blur",
+      "pixelate",
+      "magic eraser",
+      "paint"
+    ],
+    "opens": null
+  },
+  {
+    "id": "cutout",
+    "title": "Removing a photo's background",
+    "body": "Edit on a photo can take its background out: erase what you do not want with the brush, or remove a white background from a logo. The Restore brush brings back what was taken.",
+    "keywords": [
+      "remove background",
+      "background remover",
+      "cut out",
+      "cutout",
+      "transparent"
+    ],
+    "opens": null
+  },
+  {
+    "id": "effects",
+    "title": "Photo effects and filters",
+    "body": "Filters set a look at any strength. Adjust has light, colour, curves and selective colour. Effects add blur, glow, duotone, shadows and more; hold Compare to see the photo without them.",
+    "keywords": [
+      "filter",
+      "effect",
+      "adjust",
+      "duotone",
+      "glow",
+      "blur",
+      "retouch",
+      "look"
+    ],
+    "opens": "style"
+  },
+  {
+    "id": "timeline",
+    "title": "Timeline and clips",
+    "body": "Turn on the timeline in the editor's menu to see each page's length, its clips and its sound. Drag a clip's ends to trim it, split it at the playhead, and set its speed and volume.",
+    "keywords": [
+      "timeline",
+      "video",
+      "clip",
+      "trim",
+      "split",
+      "speed",
+      "duration"
+    ],
+    "opens": "timeline"
+  },
+  {
+    "id": "animate",
+    "title": "Animation",
+    "body": "Animate gives a page or an element a way in and out, and text can come in word by word. Page transitions play between pages in Present and in videos.",
+    "keywords": [
+      "animate",
+      "animation",
+      "motion",
+      "transition",
+      "effect"
+    ],
+    "opens": null
+  },
+  {
+    "id": "audio",
+    "title": "Music and sound",
+    "body": "Audio adds music from the library, your own songs and sound effects. Each track can be trimmed, faded, set louder or quieter and fitted to the beat.",
+    "keywords": [
+      "music",
+      "audio",
+      "sound",
+      "song",
+      "beat",
+      "sfx",
+      "volume"
+    ],
+    "opens": "audio"
+  },
+  {
+    "id": "voiceover",
+    "title": "Voice-over",
+    "body": "Record your voice over a page in Audio, or have a text read aloud as a track. Enhance voice cleans it up.",
+    "keywords": [
+      "voice-over",
+      "voiceover",
+      "narration",
+      "record",
+      "microphone",
+      "text to speech",
+      "read aloud"
+    ],
+    "opens": "audio"
+  },
+  {
+    "id": "captions",
+    "title": "Captions",
+    "body": "Captions write what is said in a clip or a voice-over as words on the page, made on the phone. Change their words, their style and where they sit, or bring them in from an SRT file.",
+    "keywords": [
+      "captions",
+      "subtitles",
+      "srt",
+      "transcript",
+      "words"
+    ],
+    "opens": "captions"
+  },
+  {
+    "id": "present",
+    "title": "Presenting",
+    "body": "Present shows the design full screen, page by page. Tap or swipe to move on, or use the arrow keys on a keyboard. Magic shortcuts play confetti, a drumroll and more.",
+    "keywords": [
+      "present",
+      "slideshow",
+      "slides",
+      "full screen",
+      "keyboard",
+      "shortcuts",
+      "confetti"
+    ],
+    "opens": "present"
+  },
+  {
+    "id": "presenter",
+    "title": "Presenter view and recording",
+    "body": "Presenter view shows your notes, the next page and a timer while the audience sees only the slides. Present and record keeps you, the slides and your voice as a video to share.",
+    "keywords": [
+      "presenter",
+      "notes",
+      "timer",
+      "record",
+      "camera",
+      "talk",
+      "pointer",
+      "pen"
+    ],
+    "opens": "present"
+  },
+  {
+    "id": "print",
+    "title": "Printing and paper layout",
+    "body": "Print sends pages to a printer, or several to a sheet of A4 or Letter. The print-ready PDF adds bleed and crop marks.",
+    "keywords": [
+      "print",
+      "paper",
+      "a4",
+      "letter",
+      "bleed",
+      "crop marks",
+      "cmyk",
+      "duplex"
+    ],
+    "opens": "print"
+  },
+  {
+    "id": "versions",
+    "title": "Version history",
+    "body": "Version history keeps how the design looked earlier. Preview a version page by page, restore it whole, make a copy of it, or bring back just one page.",
+    "keywords": [
+      "version",
+      "history",
+      "restore",
+      "earlier",
+      "bring back",
+      "page",
+      "pin"
+    ],
+    "opens": "versions"
+  },
+  {
+    "id": "brand",
+    "title": "Brand kits",
+    "body": "A brand kit keeps your colours, fonts, logos, photos and text styles for every design. Pick its colours from a logo, and make a brand guidelines page from it.",
+    "keywords": [
+      "brand",
+      "kit",
+      "logo",
+      "colours",
+      "colors",
+      "fonts",
+      "guidelines"
+    ],
+    "opens": "brand"
+  },
+  {
+    "id": "templates",
+    "title": "Templates",
+    "body": "Templates start a design from a finished one. Search them, filter by style and colour, or add one as a new page of the design you have open.",
+    "keywords": [
+      "template",
+      "layout",
+      "start",
+      "design",
+      "style"
+    ],
+    "opens": "add"
+  },
+  {
+    "id": "own-templates",
+    "title": "Your templates",
+    "body": "Save as template keeps a design to start from again. Your templates can be renamed, starred, sent to someone else and brought in from a file.",
+    "keywords": [
+      "save as template",
+      "your templates",
+      "send template",
+      "template file",
+      "share template"
+    ],
+    "opens": null
+  },
+  {
+    "id": "planner",
+    "title": "Planning posts",
+    "body": "Plan a post sets a day and time to post a design, with its caption. The planner on Home shows them on a calendar and reminds you when it is time.",
+    "keywords": [
+      "planner",
+      "schedule",
+      "post",
+      "calendar",
+      "reminder",
+      "social"
+    ],
+    "opens": "planner"
+  },
+  {
+    "id": "bulk",
+    "title": "Bulk create",
+    "body": "Bulk create makes a page for each row of a table you type or paste, filling texts and photos from its columns.",
+    "keywords": [
+      "bulk create",
+      "mail merge",
+      "spreadsheet",
+      "csv",
+      "rows",
+      "data"
+    ],
+    "opens": "bulk"
+  },
+  {
+    "id": "docs",
+    "title": "Docs",
+    "body": "A Doc is a long page of headings, words, lists, tables and pictures that flows on as you type. Export it as a Word file or a PDF, or turn a design into a Doc.",
+    "keywords": [
+      "doc",
+      "document",
+      "word",
+      "docx",
+      "heading",
+      "report"
+    ],
+    "opens": null
+  },
+  {
+    "id": "whiteboards",
+    "title": "Whiteboards",
+    "body": "A whiteboard is one page that grows as you add to it, for sticky notes, drawing, diagrams and ideas.",
+    "keywords": [
+      "whiteboard",
+      "sticky notes",
+      "brainstorm",
+      "diagram",
+      "infinite"
+    ],
+    "opens": null
+  },
+  {
+    "id": "draw",
+    "title": "Drawing",
+    "body": "Draw has pens, a marker and a highlighter in any colour and size, and an eraser. Shape assist turns a rough circle or arrow into a neat one.",
+    "keywords": [
+      "draw",
+      "pen",
+      "marker",
+      "highlighter",
+      "stylus",
+      "freehand",
+      "shape assist"
+    ],
+    "opens": "draw"
+  },
+  {
+    "id": "charts",
+    "title": "Charts and their data",
+    "body": "Add a chart, then type its numbers in its table, paste them or import a CSV. Pick a kind — bar, line, pie, donut, scatter and more — and its colours and labels.",
+    "keywords": [
+      "chart",
+      "graph",
+      "data",
+      "csv",
+      "pie",
+      "bar",
+      "line"
+    ],
+    "opens": "chartData"
+  },
+  {
+    "id": "tables",
+    "title": "Tables",
+    "body": "A table can have rows and columns added and removed, cells merged, borders and colours of its own, and a design to start from.",
+    "keywords": [
+      "table",
+      "rows",
+      "columns",
+      "cells",
+      "merge",
+      "borders"
+    ],
+    "opens": "table"
+  },
+  {
+    "id": "qr",
+    "title": "QR codes and barcodes",
+    "body": "Add a QR code for a link, an email, a phone number or Wi-Fi, in your own colours, or a barcode. Canvia warns when a code may not scan.",
+    "keywords": [
+      "qr",
+      "qr code",
+      "barcode",
+      "link",
+      "wifi",
+      "scan"
+    ],
+    "opens": "add"
+  },
+  {
+    "id": "a11y-check",
+    "title": "Checking accessibility",
+    "body": "Check accessibility looks for small text, low contrast, pictures without alt text and clips without captions, and takes you to each.",
+    "keywords": [
+      "accessibility",
+      "accessibility check",
+      "alt text",
+      "contrast",
+      "captions",
+      "reading order"
+    ],
+    "opens": "a11yCheck"
+  },
+  {
+    "id": "backup",
+    "title": "Backing up",
+    "body": "Back up everything, in Settings, keeps your designs, uploads, templates and settings in one file that either phone can restore. Back up automatically writes one to a folder you choose.",
+    "keywords": [
+      "backup",
+      "back up",
+      "restore",
+      "move phone",
+      "settings"
+    ],
+    "opens": "backup"
+  },
+  {
+    "id": "share-in",
+    "title": "Sharing into Canvia",
+    "body": "Share photos, videos, PDFs or design files to Canvia from another app to start a design, or add them to the one that is open.",
+    "keywords": [
+      "share",
+      "share into",
+      "open with",
+      "import",
+      "pdf",
+      "powerpoint"
+    ],
+    "opens": null
+  },
+  {
+    "id": "folders",
+    "title": "Folders and starred",
+    "body": "On Home, keep designs and uploads in folders and folders inside folders. Star a design or a folder to find it under Starred.",
+    "keywords": [
+      "folder",
+      "starred",
+      "star",
+      "favourite",
+      "favorite",
+      "organise",
+      "organize"
+    ],
+    "opens": null
+  },
+  {
+    "id": "uploads",
+    "title": "Uploads and Recently deleted",
+    "body": "Uploads on Home lists the photos, videos, music and fonts you brought in. Deleted designs, uploads and folders wait in Recently deleted for 30 days, where they can be restored.",
+    "keywords": [
+      "uploads",
+      "trash",
+      "recently deleted",
+      "restore",
+      "deleted",
+      "bin"
+    ],
+    "opens": null
+  },
+  {
+    "id": "quick-tools",
+    "title": "Quick file tools",
+    "body": "Tools on Home merge and split PDFs, turn a PDF into pictures and photos into a PDF, and resize, convert or compress a picture, without making a design.",
+    "keywords": [
+      "merge pdf",
+      "split pdf",
+      "pdf to jpg",
+      "photos to pdf",
+      "resize image",
+      "convert",
+      "compress",
+      "tools"
+    ],
+    "opens": null
+  },
+  {
+    "id": "export-more",
+    "title": "Videos, GIFs and file types",
+    "body": "Share makes a video or a GIF of animated pages, a ZIP of every page, an SVG, a PowerPoint, a web page or a smaller PDF, and suggests the type that suits the design.",
+    "keywords": [
+      "mp4",
+      "gif",
+      "zip",
+      "svg",
+      "pptx",
+      "powerpoint",
+      "html",
+      "compress"
+    ],
+    "opens": "export"
+  }
+]

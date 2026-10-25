@@ -816,6 +816,23 @@ enum DesignLibrary {
         }
     }
 
+    /// The fonts of your own something still uses — a design, live or
+    /// trashed, a kept version, a template of your own or a brand kit's
+    /// text style — by hash; nil when a design no longer reads, and so what
+    /// it uses cannot be known. What lets a font that waited its thirty
+    /// days in Recently deleted keep its file (Uploads.sweepTrash).
+    static func fontsInUse() -> Set<String>? {
+        guard let designs = everyDesign() else { return nil }
+        let faces = FontStore.faces()
+        var used = Set(designs.flatMap { CustomFonts.used(in: $0, faces: faces) })
+        for kit in BrandKits.load().kits {
+            for role in BrandFonts.Role.allCases {
+                if let sha = CustomFonts.sha(kit.fonts[role: role]?.family) { used.insert(sha) }
+            }
+        }
+        return used
+    }
+
     /// Every design, live and trashed, every kept version of each, and
     /// your templates — or nil when a design's file no longer reads, and so
     /// what it uses cannot be known. Each sweep keeps what these use.

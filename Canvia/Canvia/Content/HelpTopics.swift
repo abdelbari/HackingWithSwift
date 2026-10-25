@@ -1,27 +1,82 @@
 // The help centre's contents: short, searchable, and each one a door into
 // the feature it describes.
 //
-// Offline by construction — it is a Swift array — and deep-linked: a topic
-// that explains the export sheet opens the export sheet. Reading about a
-// button is worse than being taken to it.
+// Offline by construction — a Swift array, then help.json in the bundle —
+// and deep-linked: a topic that explains the export sheet opens the export
+// sheet. Reading about a button is worse than being taken to it.
+//
+// The first nineteen are this phone's own, worded for its controls; the
+// rest come from help.json (Tools/generate_help.py), the same file and
+// the same words on the Android twin (HelpTopics.kt), in its order.
 
 import Foundation
+
+/// Where "Show me" goes: a sheet or a panel of the editor, or something it
+/// does (Present, the timeline). The raw value is its name in help.json —
+/// the Android twin's HelpTopics.Target in lower camel case ("a11yCheck",
+/// "chartData"); `shadow` is this phone's own, for its own topic.
+enum HelpTarget: String, CaseIterable, Sendable {
+    case add, text, crop, style, layers, theme, find, versions, export, resize, pages, snapping
+    case brand, planner, present, print, timeline, audio, captions, bulk, a11yCheck, draw, chartData, table, backup
+    case shadow
+}
 
 struct HelpTopic: Identifiable, Equatable {
     var id: String
     var title: String
     var body: String
     var keywords: [String]
-    /// The sheet this topic is about, opened by "Show me".
-    var opens: EditorSheet?
+    /// What this topic is about, opened by "Show me".
+    var opens: HelpTarget?
 }
 
 enum HelpTopics {
 
-    static let all: [HelpTopic] = [
+    /// Every topic: this phone's own nineteen, then help.json's, in the
+    /// app's language.
+    static var all: [HelpTopic] { own + shared }
+
+    /// help.json's topics, read once, their title and body looked up in
+    /// the catalogue as they are shown.
+    static var shared: [HelpTopic] {
+        sharedEnglish.map { t in
+            HelpTopic(id: t.id, title: tr(t.title), body: tr(t.body), keywords: t.keywords, opens: t.opens)
+        }
+    }
+
+    /// One entry of help.json: {id, title, body, keywords, opens}.
+    private struct SharedEntry: Decodable {
+        var id: String
+        var title: String
+        var body: String
+        var keywords: [String]?
+        var opens: String?
+    }
+
+    /// help.json in English; an entry that does not read is passed over,
+    /// and an "opens" this phone does not know opens nothing.
+    static func topics(from data: Data) -> [HelpTopic] {
+        guard let entries = try? JSONDecoder().decode([SharedEntry].self, from: data) else { return [] }
+        return entries.map { e in
+            HelpTopic(id: e.id, title: e.title, body: e.body, keywords: e.keywords ?? [],
+                      opens: e.opens.flatMap { HelpTarget(rawValue: $0) })
+        }
+    }
+
+    private static let sharedEnglish: [HelpTopic] = {
+        guard let url = Bundle.main.url(forResource: "help", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else {
+            assertionFailure("help.json missing")
+            return []
+        }
+        return topics(from: data)
+    }()
+
+    /// The first nineteen, this phone's own.
+    static let own: [HelpTopic] = [
         HelpTopic(id: "add", title: tr("Adding things to the page"),
                   body: tr("Tap the + button. Templates, shapes, lines, text styles, photos, stickers and QR codes are all there, and the search box at the top searches every tab."),
-                  keywords: ["insert", "plus", "shape", "sticker", "qr", "template"], opens: .insert),
+                  keywords: ["insert", "plus", "shape", "sticker", "qr", "template"], opens: .add),
         HelpTopic(id: "move", title: tr("Moving, resizing and rotating"),
                   body: tr("Drag an element to move it. Drag a corner handle to resize (text scales its type too), an edge handle to stretch, and the handle below to rotate. Snap guides appear when edges or centres line up."),
                   keywords: ["drag", "handle", "rotate", "resize", "snap"], opens: nil),
@@ -36,7 +91,7 @@ enum HelpTopics {
                   keywords: ["marquee", "band", "multi", "group", "hold", "several", "select multiple"], opens: nil),
         HelpTopic(id: "text", title: tr("Editing text"),
                   body: tr("Double-tap a text element to edit it in place. The toolbar has font, size, colour, bold, italic, underline, capitals (aA), lists, indents, alignment, effects, spacing and a curve slider. Tap the size to type one exactly or pick from a list. Select several texts to set their font, size, style, alignment and colour together."),
-                  keywords: ["font", "type", "edit", "curve", "list", "bullet", "size", "uppercase", "capitals", "several"], opens: .fonts),
+                  keywords: ["font", "type", "edit", "curve", "list", "bullet", "size", "uppercase", "capitals", "several"], opens: .text),
         HelpTopic(id: "inline", title: tr("Bold or italic words inside a text"),
                   body: tr("Wrap words the way you would in a message: **two stars** for bold, *one star* or _underscores_ for italic, __two underscores__ to underline, ~~two tildes~~ to strike through. The markers disappear and the words take the style, on the canvas and in every export. While typing, choose some words and tap Bold, Italic, Underline or Strikethrough above the keyboard to put the markers round them, or take them off."),
                   keywords: ["bold", "italic", "underline", "strike", "markdown", "rich", "inline", "style"], opens: nil),
@@ -60,7 +115,7 @@ enum HelpTopics {
                   keywords: ["search", "replace", "spell", "proofread"], opens: .find),
         HelpTopic(id: "undo", title: tr("Undo, redo and version history"),
                   body: tr("Undo and redo are in the top bar; hold Undo to rewind step after step, and Redo walks forward again. A three-finger swipe left or right, a three-finger double tap and a shake undo and redo the same steps. Version history keeps a copy of the design every couple of minutes while you edit; restoring one is itself undoable."),
-                  keywords: ["history", "restore", "version", "mistake", "shake", "three fingers"], opens: .history),
+                  keywords: ["history", "restore", "version", "mistake", "shake", "three fingers"], opens: .versions),
         HelpTopic(id: "export", title: tr("Exporting and sharing"),
                   body: tr("Export makes PNG, JPEG, PDF, SVG, PowerPoint, MP4 and GIF at any size, saves straight to Photos, copies to the clipboard, or prints. Choose this page, every page, or just the selection."),
                   keywords: ["share", "png", "pdf", "pptx", "powerpoint", "video", "gif", "print", "save", "size"], opens: .export),
@@ -76,7 +131,8 @@ enum HelpTopics {
                     + " " + HelpTopics.keyboardMore,
                   keywords: ["shortcut", "ipad", "command", "tab", "zoom", "flip", "align", "bold", "list", "link", "spacing",
                              "present", "move page", "drag", "shift", "option"], opens: nil),
-        HelpTopic(id: "voiceover", title: tr("VoiceOver and accessibility"),
+        // Not "voiceover": help.json's Voice-over topic has that id.
+        HelpTopic(id: "screen-reader", title: tr("VoiceOver and accessibility"),
                   body: tr("Every element on the canvas is named and can be moved, made larger or smaller, turned, duplicated, deleted or reordered from the VoiceOver actions rotor; a photo can be cropped and words edited there too. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it."),
                   keywords: ["accessibility", "voice", "motion", "contrast"], opens: nil),
     ]
@@ -105,5 +161,17 @@ enum HelpTopics {
         let byTitle = all.filter { hit($0.title) }
         let byRest = all.filter { t in !hit(t.title) && (t.keywords.contains(where: hit) || hit(t.body)) }
         return byTitle + byRest
+    }
+
+    /// The Tools section above the topics found for `query`: the topics
+    /// with somewhere to go whose title or words — never their body — have
+    /// what was typed, so "captions" or "bulk create" opens the tool
+    /// itself, as on the Android twin (HelpTopics.tools). None for nothing
+    /// typed.
+    static func tools(_ query: String) -> [HelpTopic] {
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        guard !needle.isEmpty else { return [] }
+        func hit(_ s: String) -> Bool { s.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
+        return all.filter { $0.opens != nil && (hit($0.title) || $0.keywords.contains(where: hit)) }
     }
 }
