@@ -368,6 +368,24 @@
     "ja": "%@°",
     "pt-BR": "%@°"
   },
+  "%@ diagram": {
+    "ar": "مخطط %@",
+    "de": "Diagramm: %@",
+    "es": "Diagrama: %@",
+    "fr": "Diagramme : %@",
+    "it": "Diagramma: %@",
+    "ja": "%@ の図",
+    "pt-BR": "Diagrama: %@"
+  },
+  "%@ diagram, %@": {
+    "ar": "مخطط %@، %@",
+    "de": "Diagramm: %@, %@",
+    "es": "Diagrama: %@, %@",
+    "fr": "Diagramme : %@, %@",
+    "it": "Diagramma: %@, %@",
+    "ja": "%@ の図、%@",
+    "pt-BR": "Diagrama: %@, %@"
+  },
   "%@ diamond": {
     "ar": "معيّن (%@)",
     "de": "Raute (%@)",
@@ -1657,6 +1675,15 @@
     "it": "%@, in questo design",
     "ja": "%@、このデザイン内",
     "pt-BR": "%@, neste design"
+  },
+  "%@, level %d": {
+    "ar": "%@، المستوى %d",
+    "de": "%@, Ebene %d",
+    "es": "%@, nivel %d",
+    "fr": "%@, niveau %d",
+    "it": "%@, livello %d",
+    "ja": "%@、レベル %d",
+    "pt-BR": "%@, nível %d"
   },
   "%@, linear gradient": {
     "ar": "%@، تدرّج خطي",
@@ -3256,6 +3283,15 @@
     "it": "%d di %d",
     "ja": "%d / %d",
     "pt-BR": "%d de %d"
+  },
+  "%d of %d: %@": {
+    "ar": "%d من %d: %@",
+    "de": "%d von %d: %@",
+    "es": "%d de %d: %@",
+    "fr": "%d sur %d : %@",
+    "it": "%d di %d: %@",
+    "ja": "%d / %d：%@",
+    "pt-BR": "%d de %d: %@"
   },
   "%d other item|%d other items": {
     "ar": {
@@ -5276,6 +5312,15 @@
     "ja": "横",
     "pt-BR": "Horizontal"
   },
+  "Act": {
+    "ar": "حسّن",
+    "de": "Handeln",
+    "es": "Actuar",
+    "fr": "Agir",
+    "it": "Agire",
+    "ja": "改善",
+    "pt-BR": "Agir"
+  },
   "Actions for %@": {
     "ar": "إجراءات %@",
     "de": "Aktionen für %@",
@@ -5758,6 +5803,15 @@
     "it": "Aggiungi guida orizzontale",
     "ja": "水平ガイドを追加",
     "pt-BR": "Adicionar guia horizontal"
+  },
+  "Add item": {
+    "ar": "إضافة عنصر",
+    "de": "Eintrag hinzufügen",
+    "es": "Añadir elemento",
+    "fr": "Ajouter un élément",
+    "it": "Aggiungi voce",
+    "ja": "項目を追加",
+    "pt-BR": "Adicionar item"
   },
   "Add link": {
     "ar": "إضافة رابط",
@@ -8333,6 +8387,15 @@
     "ja": "バブル",
     "pt-BR": "Bolhas"
   },
+  "Build": {
+    "ar": "البناء",
+    "de": "Bauen",
+    "es": "Construir",
+    "fr": "Construire",
+    "it": "Costruire",
+    "ja": "構築",
+    "pt-BR": "Construir"
+  },
   "Bulge": {
     "ar": "انتفاخ",
     "de": "Wölbung",
@@ -9010,6 +9073,24 @@
     "it": "Grafici e tabelle",
     "ja": "グラフと表",
     "pt-BR": "Gráficos e tabelas"
+  },
+  "Cheap": {
+    "ar": "رخيص",
+    "de": "Günstig",
+    "es": "Barato",
+    "fr": "Bon marché",
+    "it": "Economico",
+    "ja": "安い",
+    "pt-BR": "Barato"
+  },
+  "Check": {
+    "ar": "تحقّق",
+    "de": "Prüfen",
+    "es": "Verificar",
+    "fr": "Vérifier",
+    "it": "Verificare",
+    "ja": "評価",
+    "pt-BR": "Verificar"
   },
   "Check accessibility": {
     "ar": "التحقق من إمكانية الوصول",
@@ -11105,6 +11186,15 @@
     "ja": "カスタム：%@ px ごと",
     "pt-BR": "Personalizado: a cada %@ px"
   },
+  "Customers": {
+    "ar": "العملاء",
+    "de": "Kunden",
+    "es": "Clientes",
+    "fr": "Clients",
+    "it": "Clienti",
+    "ja": "顧客",
+    "pt-BR": "Clientes"
+  },
   "Customize this template": {
     "ar": "تخصيص هذا القالب",
     "de": "Diese Vorlage anpassen",
@@ -11182,6 +11272,15 @@
     "it": "Scontorna",
     "ja": "背景を削除",
     "pt-BR": "Remover fundo"
+  },
+  "Cycle": {
+    "ar": "دورة",
+    "de": "Kreislauf",
+    "es": "Ciclo",
+    "fr": "Cycle",
+    "it": "Ciclo",
+    "ja": "サイクル",
+    "pt-BR": "Ciclo"
   },
   "Daily": {
     "ar": "يوميًا",
@@ -11380,6 +11479,15 @@
     "it": "Formato di esportazione predefinito",
     "ja": "デフォルトの書き出し形式",
     "pt-BR": "Formato de exportação padrão"
+  },
+  "Delegate": {
+    "ar": "فوّض",
+    "de": "Delegieren",
+    "es": "Delegar",
+    "fr": "Déléguer",
+    "it": "Delegare",
+    "ja": "任せる",
+    "pt-BR": "Delegar"
   },
   "Delete": {
     "ar": "حذف",
@@ -11933,6 +12041,15 @@
     "ja": "デザインファイル",
     "pt-BR": "Arquivos de design"
   },
+  "Design lead": {
+    "ar": "قائد التصميم",
+    "de": "Designleitung",
+    "es": "Responsable de diseño",
+    "fr": "Responsable design",
+    "it": "Responsabile design",
+    "ja": "デザインリード",
+    "pt-BR": "Líder de design"
+  },
   "Design type: %@, %@": {
     "ar": "نوع التصميم: %@، %@",
     "de": "Designtyp: %@, %@",
@@ -11959,6 +12076,15 @@
     "it": "Tipi di design: %@",
     "ja": "デザインの種類：%@",
     "pt-BR": "Tipos de design: %@"
+  },
+  "Designer": {
+    "ar": "مصمم",
+    "de": "Designer",
+    "es": "Diseñador",
+    "fr": "Designer",
+    "it": "Designer",
+    "ja": "デザイナー",
+    "pt-BR": "Designer"
   },
   "Designs": {
     "ar": "التصاميم",
@@ -12083,6 +12209,15 @@
     "ja": "斜めのブラシ",
     "pt-BR": "Pincel diagonal"
   },
+  "Diagrams": {
+    "ar": "المخططات",
+    "de": "Diagramme",
+    "es": "Diagramas",
+    "fr": "Diagrammes",
+    "it": "Diagrammi",
+    "ja": "図",
+    "pt-BR": "Diagramas"
+  },
   "Diamond": {
     "ar": "معيّن",
     "de": "Raute",
@@ -12145,6 +12280,15 @@
     "it": "Direzione",
     "ja": "方向",
     "pt-BR": "Direção"
+  },
+  "Director": {
+    "ar": "المدير",
+    "de": "Leitung",
+    "es": "Dirección",
+    "fr": "Direction",
+    "it": "Direzione",
+    "ja": "ディレクター",
+    "pt-BR": "Diretoria"
   },
   "Discard": {
     "ar": "تجاهل",
@@ -12271,6 +12415,24 @@
     "it": "Diwali",
     "ja": "ディワリ",
     "pt-BR": "Diwali"
+  },
+  "Do": {
+    "ar": "نفّذ",
+    "de": "Umsetzen",
+    "es": "Hacer",
+    "fr": "Faire",
+    "it": "Fare",
+    "ja": "実行",
+    "pt-BR": "Fazer"
+  },
+  "Do now": {
+    "ar": "نفّذ الآن",
+    "de": "Sofort erledigen",
+    "es": "Hacer ya",
+    "fr": "À faire maintenant",
+    "it": "Fare subito",
+    "ja": "すぐやる",
+    "pt-BR": "Fazer agora"
   },
   "Doc": {
     "ar": "مستند",
@@ -13253,6 +13415,15 @@
     "ja": "データを編集",
     "pt-BR": "Editar dados"
   },
+  "Edit diagram": {
+    "ar": "تعديل المخطط",
+    "de": "Diagramm bearbeiten",
+    "es": "Editar diagrama",
+    "fr": "Modifier le diagramme",
+    "it": "Modifica diagramma",
+    "ja": "図を編集",
+    "pt-BR": "Editar diagrama"
+  },
   "Edit link": {
     "ar": "تعديل الرابط",
     "de": "Link bearbeiten",
@@ -13478,6 +13649,15 @@
     "ja": "素材",
     "pt-BR": "Elementos"
   },
+  "Eliminate": {
+    "ar": "استبعد",
+    "de": "Streichen",
+    "es": "Eliminar",
+    "fr": "Éliminer",
+    "it": "Eliminare",
+    "ja": "やめる",
+    "pt-BR": "Eliminar"
+  },
   "Ellipsis": {
     "ar": "علامة الحذف",
     "de": "Auslassungspunkte",
@@ -13675,6 +13855,24 @@
     "it": "Estremità",
     "ja": "端点",
     "pt-BR": "Pontas"
+  },
+  "Engineer": {
+    "ar": "مهندس",
+    "de": "Entwickler",
+    "es": "Ingeniero",
+    "fr": "Ingénieur",
+    "it": "Ingegnere",
+    "ja": "エンジニア",
+    "pt-BR": "Engenheiro"
+  },
+  "Engineering lead": {
+    "ar": "قائد الهندسة",
+    "de": "Technische Leitung",
+    "es": "Responsable de ingeniería",
+    "fr": "Responsable technique",
+    "it": "Responsabile tecnico",
+    "ja": "エンジニアリングリード",
+    "pt-BR": "Líder de engenharia"
   },
   "English (Australia)": {
     "ar": "الإنجليزية (أستراليا)",
@@ -14425,6 +14623,15 @@
     "it": "Dissolvenza in uscita",
     "ja": "フェードアウト",
     "pt-BR": "Desaparecer gradualmente"
+  },
+  "Fast": {
+    "ar": "سريع",
+    "de": "Schnell",
+    "es": "Rápido",
+    "fr": "Rapide",
+    "it": "Veloce",
+    "ja": "速い",
+    "pt-BR": "Rápido"
   },
   "Father's Day": {
     "ar": "عيد الأب",
@@ -15425,6 +15632,15 @@
     "ja": "ファネル",
     "pt-BR": "Funil"
   },
+  "Funnel steps": {
+    "ar": "مراحل القمع",
+    "de": "Trichterstufen",
+    "es": "Pasos de embudo",
+    "fr": "Étapes en entonnoir",
+    "it": "Fasi a imbuto",
+    "ja": "ファネルのステップ",
+    "pt-BR": "Etapas de funil"
+  },
   "Gallery": {
     "ar": "المعرض",
     "de": "Galerie",
@@ -15602,6 +15818,15 @@
     "ja": "このページに移動",
     "pt-BR": "Ir para esta página"
   },
+  "Goals": {
+    "ar": "الأهداف",
+    "de": "Ziele",
+    "es": "Objetivos",
+    "fr": "Objectifs",
+    "it": "Obiettivi",
+    "ja": "目標",
+    "pt-BR": "Metas"
+  },
   "Goes with these · %@": {
     "ar": "يتناسق مع هذه · %@",
     "de": "Passt dazu · %@",
@@ -15637,6 +15862,15 @@
     "it": "Luccichio dorato",
     "ja": "ゴールドシマー",
     "pt-BR": "Cintilar dourado"
+  },
+  "Good": {
+    "ar": "جيد",
+    "de": "Gut",
+    "es": "Bueno",
+    "fr": "Bon",
+    "it": "Buono",
+    "ja": "良い",
+    "pt-BR": "Bom"
   },
   "Gradient %d": {
     "ar": "التدرّج %d",
@@ -16628,6 +16862,15 @@
     "ja": "アイコン · %@",
     "pt-BR": "Ícones · %@"
   },
+  "Idea": {
+    "ar": "فكرة",
+    "de": "Idee",
+    "es": "Idea",
+    "fr": "Idée",
+    "it": "Idea",
+    "ja": "アイデア",
+    "pt-BR": "Ideia"
+  },
   "Idea 1": {
     "ar": "فكرة 1",
     "de": "Idee 1",
@@ -16940,6 +17183,15 @@
     "ja": "インデント",
     "pt-BR": "Recuo"
   },
+  "Indent %@": {
+    "ar": "زيادة مسافة %@",
+    "de": "%@ einrücken",
+    "es": "Aumentar sangría de %@",
+    "fr": "Décaler %@ vers la droite",
+    "it": "Rientra %@",
+    "ja": "%@ を字下げ",
+    "pt-BR": "Recuar %@"
+  },
   "Indent less": {
     "ar": "تقليل المسافة البادئة",
     "de": "Einzug verkleinern",
@@ -17236,6 +17488,33 @@
     "it": "Articolo",
     "ja": "品目",
     "pt-BR": "Item"
+  },
+  "Item %d": {
+    "ar": "العنصر %d",
+    "de": "Eintrag %d",
+    "es": "Elemento %d",
+    "fr": "Élément %d",
+    "it": "Voce %d",
+    "ja": "項目 %d",
+    "pt-BR": "Item %d"
+  },
+  "Item %d of %d": {
+    "ar": "العنصر %d من %d",
+    "de": "Eintrag %d von %d",
+    "es": "Elemento %d de %d",
+    "fr": "Élément %d sur %d",
+    "it": "Voce %d di %d",
+    "ja": "項目 %d / %d",
+    "pt-BR": "Item %d de %d"
+  },
+  "Items": {
+    "ar": "العناصر",
+    "de": "Einträge",
+    "es": "Elementos",
+    "fr": "Éléments",
+    "it": "Voci",
+    "ja": "項目",
+    "pt-BR": "Itens"
   },
   "Its %d design can move up a level, out of the folder, or go to Recently deleted.|Its %d designs can move up a level, out of the folder, or go to Recently deleted.": {
     "ar": {
@@ -17716,6 +17995,15 @@
     "it": "Ultima pagina",
     "ja": "最後のページ",
     "pt-BR": "Última página"
+  },
+  "Launch": {
+    "ar": "الإطلاق",
+    "de": "Starten",
+    "es": "Lanzar",
+    "fr": "Lancer",
+    "it": "Lanciare",
+    "ja": "公開",
+    "pt-BR": "Lançar"
   },
   "Layer order": {
     "ar": "ترتيب الطبقات",
@@ -18971,6 +19259,15 @@
     "ja": "一致",
     "pt-BR": "Resultados"
   },
+  "Matrix": {
+    "ar": "مصفوفة",
+    "de": "Matrix",
+    "es": "Matriz",
+    "fr": "Matrice",
+    "it": "Matrice",
+    "ja": "マトリックス",
+    "pt-BR": "Matriz"
+  },
   "Matte": {
     "ar": "غير لامع",
     "de": "Matt",
@@ -19484,6 +19781,15 @@
     "ja": "%@を背面へ",
     "pt-BR": "Mover %@ para trás"
   },
+  "Move %@ down": {
+    "ar": "نقل %@ للأسفل",
+    "de": "%@ nach unten",
+    "es": "Bajar %@",
+    "fr": "Descendre %@",
+    "it": "Sposta giù %@",
+    "ja": "%@ を下へ",
+    "pt-BR": "Mover %@ para baixo"
+  },
   "Move %@ in front": {
     "ar": "نقل %@ إلى الأمام",
     "de": "%@ nach vorne verschieben",
@@ -19492,6 +19798,15 @@
     "it": "Sposta %@ davanti",
     "ja": "%@を前面へ",
     "pt-BR": "Mover %@ para a frente"
+  },
+  "Move %@ up": {
+    "ar": "نقل %@ للأعلى",
+    "de": "%@ nach oben",
+    "es": "Subir %@",
+    "fr": "Monter %@",
+    "it": "Sposta su %@",
+    "ja": "%@ を上へ",
+    "pt-BR": "Mover %@ para cima"
   },
   "Move %d design|Move %d designs": {
     "ar": {
@@ -21215,6 +21530,15 @@
     "ja": "切り込み",
     "pt-BR": "Entalhe"
   },
+  "Note": {
+    "ar": "ملاحظة",
+    "de": "Notiz",
+    "es": "Nota",
+    "fr": "Note",
+    "it": "Nota",
+    "ja": "メモ",
+    "pt-BR": "Nota"
+  },
   "Notes": {
     "ar": "الملاحظات",
     "de": "Notizen",
@@ -22277,6 +22601,15 @@
     "ja": "オレンジ",
     "pt-BR": "Laranja"
   },
+  "Org chart": {
+    "ar": "مخطط تنظيمي",
+    "de": "Organigramm",
+    "es": "Organigrama",
+    "fr": "Organigramme",
+    "it": "Organigramma",
+    "ja": "組織図",
+    "pt-BR": "Organograma"
+  },
   "Organisation": {
     "ar": "المؤسسة",
     "de": "Organisation",
@@ -22331,6 +22664,15 @@
     "ja": "元の比率",
     "pt-BR": "Original"
   },
+  "Ours": {
+    "ar": "نحن",
+    "de": "Wir",
+    "es": "Lo nuestro",
+    "fr": "Nous",
+    "it": "Noi",
+    "ja": "自社",
+    "pt-BR": "Nosso"
+  },
   "Outdent": {
     "ar": "إنقاص المسافة البادئة",
     "de": "Einzug verkleinern",
@@ -22339,6 +22681,15 @@
     "it": "Riduci rientro",
     "ja": "インデントを解除",
     "pt-BR": "Diminuir recuo"
+  },
+  "Outdent %@": {
+    "ar": "إنقاص مسافة %@",
+    "de": "%@ ausrücken",
+    "es": "Reducir sangría de %@",
+    "fr": "Décaler %@ vers la gauche",
+    "it": "Riduci rientro di %@",
+    "ja": "%@ の字下げを解除",
+    "pt-BR": "Remover recuo de %@"
   },
   "Outer": {
     "ar": "خارجي",
@@ -23768,6 +24119,15 @@
     "ja": "プレーン",
     "pt-BR": "Simples"
   },
+  "Plan": {
+    "ar": "خطّط",
+    "de": "Planen",
+    "es": "Planificar",
+    "fr": "Planifier",
+    "it": "Pianificare",
+    "ja": "計画",
+    "pt-BR": "Planejar"
+  },
   "Plan a post": {
     "ar": "خطّط لمنشور",
     "de": "Beitrag planen",
@@ -24476,6 +24836,15 @@
     "ja": "プリント…",
     "pt-BR": "Imprimir…"
   },
+  "Process": {
+    "ar": "عملية",
+    "de": "Prozess",
+    "es": "Proceso",
+    "fr": "Processus",
+    "it": "Processo",
+    "ja": "プロセス",
+    "pt-BR": "Processo"
+  },
   "Progress bar": {
     "ar": "شريط التقدم",
     "de": "Fortschrittsbalken",
@@ -24502,6 +24871,15 @@
     "it": "Anello di avanzamento",
     "ja": "プログレスリング",
     "pt-BR": "Anel de progresso"
+  },
+  "Projects": {
+    "ar": "المشاريع",
+    "de": "Projekte",
+    "es": "Proyectos",
+    "fr": "Projets",
+    "it": "Progetti",
+    "ja": "プロジェクト",
+    "pt-BR": "Projetos"
   },
   "Proofing": {
     "ar": "التدقيق",
@@ -24574,6 +24952,15 @@
     "it": "Metti al centro del codice",
     "ja": "コードの中央に置く",
     "pt-BR": "Colocar no meio do código"
+  },
+  "Pyramid": {
+    "ar": "هرم",
+    "de": "Pyramide",
+    "es": "Pirámide",
+    "fr": "Pyramide",
+    "it": "Piramide",
+    "ja": "ピラミッド",
+    "pt-BR": "Pirâmide"
   },
   "QR code": {
     "ar": "رمز QR",
@@ -27059,6 +27446,15 @@
     "ja": "ページ上のグラフを選択すると編集できます。",
     "pt-BR": "Selecione um gráfico na página para editá-lo."
   },
+  "Select a diagram on the page to edit it.": {
+    "ar": "حدّد مخططًا في الصفحة لتعديله.",
+    "de": "Wähle ein Diagramm auf der Seite aus, um es zu bearbeiten.",
+    "es": "Selecciona un diagrama en la página para editarlo.",
+    "fr": "Sélectionnez un diagramme sur la page pour le modifier.",
+    "it": "Seleziona un diagramma nella pagina per modificarlo.",
+    "ja": "編集するには、ページ上の図を選択してください。",
+    "pt-BR": "Selecione um diagrama na página para editá-lo."
+  },
   "Select a photo grid on the page to space it out.": {
     "ar": "حدّد شبكة صور في الصفحة لضبط تباعدها.",
     "de": "Wähle ein Fotoraster auf der Seite aus, um die Abstände festzulegen.",
@@ -28345,6 +28741,15 @@
     "it": "Lati",
     "ja": "辺の数",
     "pt-BR": "Lados"
+  },
+  "Sign-ups": {
+    "ar": "التسجيلات",
+    "de": "Anmeldungen",
+    "es": "Registros",
+    "fr": "Inscriptions",
+    "it": "Iscrizioni",
+    "ja": "登録",
+    "pt-BR": "Cadastros"
   },
   "Single page": {
     "ar": "صفحة واحدة",
@@ -30227,6 +30632,15 @@
     "ja": "テープで留めた写真",
     "pt-BR": "Foto com fita"
   },
+  "Tasks": {
+    "ar": "المهام",
+    "de": "Aufgaben",
+    "es": "Tareas",
+    "fr": "Tâches",
+    "it": "Attività",
+    "ja": "タスク",
+    "pt-BR": "Tarefas"
+  },
   "Teacher": {
     "ar": "معلم",
     "de": "Lehrkraft",
@@ -31157,6 +31571,15 @@
     "ja": "次回ホームを開くとウェルカムツアーが表示されます。",
     "pt-BR": "O tour de boas-vindas aparece na próxima vez que você estiver no Início."
   },
+  "Theirs": {
+    "ar": "هم",
+    "de": "Sie",
+    "es": "Lo suyo",
+    "fr": "Eux",
+    "it": "Loro",
+    "ja": "他社",
+    "pt-BR": "Deles"
+  },
   "Theme": {
     "ar": "السمة",
     "de": "Thema",
@@ -31444,6 +31867,15 @@
     "it": "Impossibile aprire il file di questo design.",
     "ja": "このデザインのファイルを開けません。",
     "pt-BR": "Não é possível abrir o arquivo deste design."
+  },
+  "This diagram is locked. Unlock it from More to edit it.": {
+    "ar": "هذا المخطط مقفل. ألغِ قفله من المزيد لتعديله.",
+    "de": "Dieses Diagramm ist gesperrt. Entsperre es unter Mehr, um es zu bearbeiten.",
+    "es": "Este diagrama está bloqueado. Desbloquéalo desde Más para editarlo.",
+    "fr": "Ce diagramme est verrouillé. Déverrouillez-le depuis Plus pour le modifier.",
+    "it": "Questo diagramma è bloccato. Sbloccalo da Altro per modificarlo.",
+    "ja": "この図はロックされています。編集するには「その他」からロックを解除してください。",
+    "pt-BR": "Este diagrama está bloqueado. Desbloqueie-o em Mais para editá-lo."
   },
   "This element is locked": {
     "ar": "هذا العنصر مقفل",
@@ -33509,6 +33941,24 @@
     "ja": "値",
     "pt-BR": "Valores"
   },
+  "Venn, three circles": {
+    "ar": "فن، ثلاث دوائر",
+    "de": "Venn, drei Kreise",
+    "es": "Venn, tres círculos",
+    "fr": "Venn, trois cercles",
+    "it": "Venn, tre cerchi",
+    "ja": "ベン図（3つの円）",
+    "pt-BR": "Venn, três círculos"
+  },
+  "Venn, two circles": {
+    "ar": "فن، دائرتان",
+    "de": "Venn, zwei Kreise",
+    "es": "Venn, dos círculos",
+    "fr": "Venn, deux cercles",
+    "it": "Venn, due cerchi",
+    "ja": "ベン図（2つの円）",
+    "pt-BR": "Venn, dois círculos"
+  },
   "Version": {
     "ar": "الإصدار",
     "de": "Version",
@@ -33784,6 +34234,24 @@
     "it": "Vignettatura",
     "ja": "周辺減光",
     "pt-BR": "Vinheta"
+  },
+  "Vision": {
+    "ar": "الرؤية",
+    "de": "Vision",
+    "es": "Visión",
+    "fr": "Vision",
+    "it": "Visione",
+    "ja": "ビジョン",
+    "pt-BR": "Visão"
+  },
+  "Visitors": {
+    "ar": "الزوار",
+    "de": "Besucher",
+    "es": "Visitantes",
+    "fr": "Visiteurs",
+    "it": "Visitatori",
+    "ja": "訪問者",
+    "pt-BR": "Visitantes"
   },
   "Vivid": {
     "ar": "زاهٍ",

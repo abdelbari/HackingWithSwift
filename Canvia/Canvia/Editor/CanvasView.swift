@@ -2097,7 +2097,7 @@ struct CanvasView: View {
     /// Next value or Previous value last reached, when one has; else where
     /// it is and how big.
     private func spokenValue(of el: Element) -> String {
-        if let chart = el.chart?.id, el.chartPart != nil, let at = chartValue[chart] {
+        if let chart = CanvasAccessibility.stopKey(of: el), let at = chartValue[chart] {
             let values = CanvasAccessibility.values(ofChart: chart, in: store.page.elements)
             if values.indices.contains(at) { return values[at] }
         }
@@ -2114,7 +2114,8 @@ struct CanvasView: View {
     }
 
     /// The chart's own actions: its values one by one, and Edit data, which
-    /// opens Edit chart on it.
+    /// opens Edit chart on it. A diagram's: its items one by one, and Edit
+    /// diagram.
     @ViewBuilder
     private func chartActions(for el: Element) -> some View {
         if let chart = el.chart?.id, el.chartPart != nil {
@@ -2123,6 +2124,13 @@ struct CanvasView: View {
             Button("Edit data") {
                 store.select(el.id)
                 store.chartEditRequested = true
+            }
+        } else if let diagram = el.diagram?.id, el.diagramPart != nil {
+            Button("Next value") { stepChart(diagram, forward: true) }
+            Button("Previous value") { stepChart(diagram, forward: false) }
+            Button("Edit diagram") {
+                store.select(el.id)
+                store.diagramEditRequested = true
             }
         }
     }

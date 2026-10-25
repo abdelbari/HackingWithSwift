@@ -559,6 +559,9 @@ struct InsertSheet: View {
             }
             Group {
                 dataRow
+                // Diagrams beside charts, made from a list rather than numbers.
+                sectionHeader(tr("Diagrams"))
+                DiagramRow(store: store) { dismiss() }
                 svgImportRow
                 componentsSection
             }

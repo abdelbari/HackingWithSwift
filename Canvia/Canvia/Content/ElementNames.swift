@@ -21,6 +21,8 @@ enum ElementNames {
         // Any part of a chart is its chart's summary, as a reader meets the
         // chart as one thing — as on the Android twin.
         if let chart = ChartSpeech.summary(of: el) { return chart }
+        // A diagram's part, the diagram as a whole: "Cycle diagram, 4 items".
+        if let diagram = el.diagram, el.diagramPart != nil { return Diagrams.summary(diagram) }
         switch el.type {
         case .text:
             let words = RichText.strip(el.text ?? "").replacingOccurrences(of: "\n", with: " ")
