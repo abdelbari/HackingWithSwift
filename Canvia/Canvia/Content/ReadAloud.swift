@@ -31,10 +31,11 @@ final class ReadAloud: NSObject, AVSpeechSynthesizerDelegate {
             case .text, .shape:
                 guard ShapeText.carriesWords(el) else { break }
                 // The words as typed, as find and replace and the spelling
-                // check read them, not in the capitals a box may draw them
-                // in: a voice can take a word in capitals for letters to spell.
+                // check read them, not in the capitals a box or its words may
+                // draw them in: a voice can take a word in capitals for letters to spell.
                 var typed = el
                 typed.uppercase = nil
+                if typed.spans != nil { typed.setSpans(Spans.withoutCaps(typed.liveSpans)) }
                 let text = FontLibrary.displayText(for: typed, pageNumber: number, pageCount: design.pages.count)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 if !text.isEmpty { parts.append(text) }

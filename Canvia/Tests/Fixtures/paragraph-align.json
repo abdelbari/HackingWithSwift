@@ -1,0 +1,35 @@
+{
+  "about": "Alignment per paragraph on both phones (TextLists.alignOf, withAlign, and the box-wide set: Android withBoxAlign, iOS setAlign): an entry of a text box's `paragraphs` may carry its line's own \"align\" (left, center, right, justify), left out where it is the box's `align` (centred when the box names none) and guarded by `paragraphsText` as list and level are; stale or missing paragraphs, or an align this build does not know, read as the box's. `alignOf` gives each line's alignment. `withAlign` sets the lines `lines` (zero-based, both ends in) while typing; `withBoxAlign` sets every line at once, dropping each line's own. The rule both phones share when lines are set: every line aligned alike, however their lists differ, makes that the box's `align` and no line keeps its own — so a range taking in every line is the box-wide set. `out` gives the box's align and its paragraphs after, null for none. `pptx`: each paragraph's algn as written. Shared row for row by both phones' tests (Android ParagraphAlignTest, iOS ParagraphAlignTests).",
+  "alignOf": [
+    {"name": "no paragraphs: the box's align on every line", "element": {"id": "a", "type": "text", "text": "Title\nBody", "align": "left"}, "aligns": ["left", "left"]},
+    {"name": "a box that names none is centred", "element": {"id": "b", "type": "text", "text": "A\nB"}, "aligns": ["center", "center"]},
+    {"name": "a line's own over the box's", "element": {"id": "c", "type": "text", "text": "Title\nBody one\nBody two", "align": "left", "paragraphs": [{"align": "center"}, {}, {}], "paragraphsText": "Title\nBody one\nBody two"}, "aligns": ["center", "left", "left"]},
+    {"name": "stale paragraphs: the box's", "element": {"id": "d", "type": "text", "text": "New\nWords", "align": "right", "paragraphs": [{"align": "center"}, {}], "paragraphsText": "Old\nWords"}, "aligns": ["right", "right"]},
+    {"name": "past the paragraphs: the box's", "element": {"id": "e", "type": "text", "text": "A\nB", "align": "left", "paragraphs": [{"align": "right"}], "paragraphsText": "A\nB"}, "aligns": ["right", "left"]},
+    {"name": "an alignment this build does not know is the box's", "element": {"id": "f", "type": "text", "text": "A\nB", "align": "justify", "paragraphs": [{"align": "middle"}, {"align": "left"}], "paragraphsText": "A\nB"}, "aligns": ["justify", "left"]},
+    {"name": "with a list and a level", "element": {"id": "g", "type": "text", "text": "Heading\n**Item**", "align": "left", "paragraphs": [{"align": "center"}, {"list": "bullet", "level": 1, "align": "right"}], "paragraphsText": "Heading\nItem"}, "aligns": ["center", "right"]},
+    {"name": "centred heading over a left list", "element": {"id": "h", "type": "text", "text": "Plan\nShop\nCook", "align": "center", "paragraphs": [{}, {"list": "bullet", "align": "left"}, {"list": "bullet", "align": "left"}], "paragraphsText": "Plan\nShop\nCook"}, "aligns": ["center", "left", "left"]},
+    {"name": "every line its own alike, the box's another: the lines' own", "element": {"id": "i", "type": "text", "text": "One\nTwo\nThree", "align": "left", "paragraphs": [{"align": "center"}, {"align": "center"}, {"align": "center"}], "paragraphsText": "One\nTwo\nThree"}, "aligns": ["center", "center", "center"]}
+  ],
+  "withAlign": [
+    {"name": "one line of three", "element": {"id": "a", "type": "text", "text": "T\nA\nB", "align": "left"}, "lines": [0, 0], "align": "center", "out": {"align": "left", "paragraphs": [{"align": "center"}, {}, {}]}},
+    {"name": "every line is the box-wide set", "element": {"id": "b", "type": "text", "text": "T\nA\nB", "align": "left", "paragraphs": [{"align": "center"}, {}, {}], "paragraphsText": "T\nA\nB"}, "lines": [0, 2], "align": "right", "out": {"align": "right", "paragraphs": null}},
+    {"name": "the last line to match makes it the box's", "element": {"id": "c", "type": "text", "text": "T\nA\nB", "align": "left", "paragraphs": [{"align": "center"}, {"align": "center"}, {}], "paragraphsText": "T\nA\nB"}, "lines": [2, 2], "align": "center", "out": {"align": "center", "paragraphs": null}},
+    {"name": "back to the box's own drops the line's, and the paragraphs with it", "element": {"id": "d", "type": "text", "text": "T\nA\nB", "align": "left", "paragraphs": [{"align": "center"}, {}, {}], "paragraphsText": "T\nA\nB"}, "lines": [0, 0], "align": "left", "out": {"align": "left", "paragraphs": null}},
+    {"name": "list items keep their list", "element": {"id": "e", "type": "text", "text": "T\nA\nB", "align": "left", "paragraphs": [{}, {"list": "bullet"}, {"list": "bullet"}], "paragraphsText": "T\nA\nB"}, "lines": [1, 2], "align": "center", "out": {"align": "left", "paragraphs": [{}, {"list": "bullet", "align": "center"}, {"list": "bullet", "align": "center"}]}},
+    {"name": "every line of a list aligned alike is the box's, the lists kept", "element": {"id": "f", "type": "text", "text": "T\nA\nB", "align": "left", "paragraphs": [{}, {"list": "bullet"}, {"list": "bullet"}], "paragraphsText": "T\nA\nB"}, "lines": [0, 2], "align": "center", "out": {"align": "center", "paragraphs": [{}, {"list": "bullet"}, {"list": "bullet"}]}},
+    {"name": "a box-wide list made per line by an alignment", "element": {"id": "g", "type": "text", "text": "A\nB", "align": "center", "listStyle": "number"}, "lines": [1, 1], "align": "justify", "out": {"align": "center", "paragraphs": [{"list": "number"}, {"list": "number", "align": "justify"}]}},
+    {"name": "a box that names none keeps naming none", "element": {"id": "h", "type": "text", "text": "A\nB"}, "lines": [0, 0], "align": "center", "out": {"align": null, "paragraphs": null}}
+  ],
+  "withBoxAlign": [
+    {"name": "the box-wide set drops every line's own", "element": {"id": "a", "type": "text", "text": "T\nA", "align": "left", "paragraphs": [{"align": "center"}, {"align": "right"}], "paragraphsText": "T\nA"}, "align": "justify", "out": {"align": "justify", "paragraphs": null}},
+    {"name": "lists stay, alignments go", "element": {"id": "b", "type": "text", "text": "T\nA", "align": "left", "paragraphs": [{"list": "bullet", "level": 1, "align": "center"}, {}], "paragraphsText": "T\nA"}, "align": "right", "out": {"align": "right", "paragraphs": [{"list": "bullet", "level": 1}, {}]}},
+    {"name": "a box with no paragraphs takes the align alone", "element": {"id": "c", "type": "text", "text": "T\nA", "align": "left"}, "align": "center", "out": {"align": "center", "paragraphs": null}}
+  ],
+  "pptx": {
+    "element": {"id": "a", "type": "text", "text": "Title\nBody one\nBody two", "align": "left", "fontSize": 32, "w": 400,
+      "paragraphs": [{"align": "center"}, {}, {"align": "right"}], "paragraphsText": "Title\nBody one\nBody two"},
+    "algn": ["ctr", null, "r"],
+    "aligns": ["center", "left", "right"]
+  }
+}

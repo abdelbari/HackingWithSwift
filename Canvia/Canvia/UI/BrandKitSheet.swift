@@ -68,6 +68,8 @@ struct BrandKitSheet: View {
         case kit
         case newPalette
         case palette(Int)
+        /// A colour of a palette: the palette and the colour.
+        case colour(Int, String)
     }
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
@@ -253,14 +255,22 @@ struct BrandKitSheet: View {
                 if kit.palettes.indices.contains(index) { kit.palettes[index].colors.removeAll { $0 == hex } }
             }
         }
+        let rename = {
+            nameText = kit.palettes.indices.contains(index) ? kit.palettes[index].name(of: hex) ?? "" : ""
+            naming = .colour(index, hex)
+        }
+        let name = kit.palettes.indices.contains(index) ? kit.palettes[index].name(of: hex) : nil
         return RoundedRectangle(cornerRadius: 9)
             .fill(Color(hex: hex))
             .frame(height: 40)
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline))
+            .help(name ?? "")
             .contextMenu {
+                Button("Rename colour…") { rename() }
                 Button("Remove", role: .destructive) { remove() }
             }
-            .accessibilityLabel("\(ElementNames.spokenColour(hex)), brand colour")
+            .accessibilityLabel(kit.brandColourLabel(hex))
+            .accessibilityAction(named: "Rename colour…") { rename() }
             .accessibilityAction(named: "Remove") { remove() }
     }
 
@@ -269,6 +279,11 @@ struct BrandKitSheet: View {
     private func applyName() {
         let name = nameText.trimmingCharacters(in: .whitespacesAndNewlines)
         defer { naming = nil }
+        // A colour's name may be cleared: a blank takes it away.
+        if case .colour(let index, let hex) = naming {
+            editKit { kit in if kit.palettes.indices.contains(index) { kit.palettes[index].setName(name, of: hex) } }
+            return
+        }
         guard !name.isEmpty, let naming else { return }
         switch naming {
         case .kit:
@@ -277,6 +292,8 @@ struct BrandKitSheet: View {
             editKit { $0.palettes.append(BrandPalette(name: name, colors: [])) }
         case .palette(let index):
             editKit { kit in if kit.palettes.indices.contains(index) { kit.palettes[index].name = name } }
+        case .colour:
+            break
         }
     }
 
@@ -613,6 +630,7 @@ struct BrandKitSheet: View {
         case .kit: return tr("Rename brand kit")
         case .newPalette: return tr("New palette")
         case .palette: return tr("Rename palette")
+        case .colour: return tr("Rename colour")
         case nil: return ""
         }
     }

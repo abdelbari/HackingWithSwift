@@ -205,6 +205,7 @@ struct ContextToolbar: View {
             alignButton
             listMenu(el)
             indentButtons(el)
+            changeCaseMenu
         }
         HStack(spacing: 14) {
             stylesMenu(el)
@@ -285,6 +286,7 @@ struct ContextToolbar: View {
             listMenu(shared: TextSelection.list(boxes)) { store.setTextList($0) }
             let levels = TextSelection.levels(boxes)
             indentButtons(deepest: levels.deepest, shallowest: levels.shallowest) { store.indentTexts(by: $0) }
+            changeCaseMenu
         }
         HStack(spacing: 14) {
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
@@ -409,7 +411,29 @@ struct ContextToolbar: View {
         styleToggle(.italic, "Italic", glyph: Image(systemName: "italic"))
         styleToggle(.underline, "Underline", glyph: Image(systemName: "underline"))
         styleToggle(.strike, "Strikethrough", glyph: Image(systemName: "strikethrough"))
-        styleToggle(.uppercase, "Uppercase", glyph: Text(verbatim: "aA"))
+        capsToggle
+    }
+
+    /// aA: capitals on the words chosen while typing, else on every text
+    /// selected (DesignStore.toggleCaps).
+    private var capsToggle: some View {
+        let shared = store.capsShown
+        return toggle(glyph: Text(verbatim: "aA"), "Uppercase", active: shared == true, mixed: shared == nil) {
+            store.styleWhileTyping { store.toggleCaps() }
+        }
+    }
+
+    /// Change case: the words chosen while typing, or every text selected,
+    /// rewritten in UPPERCASE, lowercase, Title Case or Sentence case.
+    private var changeCaseMenu: some View {
+        Menu {
+            ForEach(ChangeCase.Casing.allCases) { kind in
+                Button(kind.label) { store.changeCase(kind) }
+            }
+        } label: {
+            toolLabel("textformat", "Change case")
+        }
+        .accessibilityLabel("Change case")
     }
 
     private func styleToggle<Glyph: View>(_ style: TextToggle, _ name: String, glyph: Glyph) -> some View {
@@ -421,15 +445,14 @@ struct ContextToolbar: View {
 
     /// Left, centre, right, justify in turn — and which it is now, for
     /// VoiceOver, which otherwise heard only "Align". Several texts aligned
-    /// differently all go to the first.
+    /// differently all go to the first. While a box is typed in, only the
+    /// lines its choice touches (DesignStore.alignText), Mixed when they
+    /// differ.
     private var alignButton: some View {
-        let shared = store.sharedText { $0.align ?? "center" }
+        let shared = store.alignShown
         return toolButton(alignIcon(shared), "Align") {
             let next = shared.map { TypeReadouts.nextAlignment(after: $0) } ?? "left"
-            store.updateSelected { e in
-                guard e.type == .text else { return }
-                e.align = next
-            }
+            store.styleWhileTyping { store.alignText(next) }
         }
         .accessibilityValue(shared.map { TypeReadouts.alignment($0) } ?? TypeReadouts.mixed)
     }

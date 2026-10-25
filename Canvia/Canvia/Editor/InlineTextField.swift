@@ -84,13 +84,17 @@ struct InlineTextField: UIViewRepresentable {
     /// Words typed while x² or x₂ waited at the caret: raised or lowered
     /// with the typing, in its own step.
     var onTypedScript: (NSRange, String) -> Void = { _, _ in }
-    /// ⇧⌘K: capitals on or off for the whole box, as a step of its own
-    /// (TextKeys).
+    /// ⇧⌘K: capitals on or off for the words chosen, or the whole box with
+    /// none chosen, as a step of its own (TextKeys).
     var onToggle: (TextToggle) -> Void = { _ in }
+    /// Change case on the bar: the words chosen, or the whole box with none
+    /// chosen, rewritten in that case as a step of its own.
+    var onChangeCase: (ChangeCase.Casing) -> Void = { _ in }
     /// F5 and ⇧F5: Present from "start" or "current" (PresentFrom), the
     /// typing ended first (TextKeys.present).
     var onPresent: (String) -> Void = { _ in }
-    /// ⇧⌘L, C, R and J: the whole box aligned, as a step of its own.
+    /// ⇧⌘L, C, R and J: the lines the choice touches aligned, as a step of
+    /// its own.
     var onAlign: (String) -> Void = { _ in }
     /// ⌥⌘ and an arrow, ⌥⌘C and ⌥⌘V: the whole box's line or letter
     /// spacing a step tighter or looser, or its look copied or pasted, as
@@ -199,7 +203,7 @@ struct InlineTextField: UIViewRepresentable {
         [el.fontFamily ?? "", "\(el.fontSize ?? 42)", "\(FontLibrary.weight(of: el))", "\(FontLibrary.isItalic(el))",
          "\(el.underline == true)", el.align ?? "", "\(el.lineHeight ?? 1.25)", "\(el.letterSpacing ?? 0)",
          el.color ?? "", "\(el.paragraphSpacing ?? 0)", "\(el.indent ?? 0)", el.listStyle ?? "",
-         (el.paragraphs ?? []).map { "\($0.list)\($0.level)" }.joined(separator: ",")]
+         (el.paragraphs ?? []).map { "\($0.list)\($0.level)\($0.align ?? "")" }.joined(separator: ",")]
             .joined(separator: "|")
     }
 
@@ -708,6 +712,13 @@ struct InlineTextField: UIViewRepresentable {
             indent.tag = 1
             indent.accessibilityLabel = tr("Indent")
             lineItems = parent.lineStyles ? [list, outdent, indent] : []
+            // Change case, its four from a menu.
+            let cases = ChangeCase.Casing.allCases.map { kind in
+                UIAction(title: kind.label) { [weak self] _ in self?.changeCase(kind) }
+            }
+            let changeCase = UIBarButtonItem(title: nil, image: UIImage(systemName: "textformat"), primaryAction: nil,
+                                             menu: UIMenu(title: tr("Change case"), children: cases))
+            changeCase.accessibilityLabel = tr("Change case")
             // A table's cell: first, the arrow to the next cell.
             var cellItems: [UIBarButtonItem] = []
             if parent.onNextCell != nil {
@@ -716,13 +727,20 @@ struct InlineTextField: UIViewRepresentable {
                 next.accessibilityLabel = tr("Next cell")
                 cellItems = [next]
             }
-            bar.items = cellItems + styleItems + wordItems + scriptItems + lineItems
+            bar.items = cellItems + styleItems + wordItems + scriptItems + lineItems + [changeCase]
             bar.sizeToFit()
             return bar
         }
 
         @objc private func finish() {
             parent.onDone()
+        }
+
+        /// Change case chosen from the bar: the burst typed before it ends.
+        private func changeCase(_ kind: ChangeCase.Casing) {
+            guard let view, view.markedTextRange == nil else { return }
+            coalescer.close()
+            parent.onChangeCase(kind)
         }
 
         @objc private func nextCell() {

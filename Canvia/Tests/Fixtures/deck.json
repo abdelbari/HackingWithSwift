@@ -45,6 +45,8 @@
           "lineHeight": 1.25,
           "locked": false,
           "opacity": 1.0,
+          "paragraphs": [{}, {"align": "left"}],
+          "paragraphsText": "First point\nSecond point",
           "rotation": 0.0,
           "text": "First point\n*Second* point",
           "type": "text",

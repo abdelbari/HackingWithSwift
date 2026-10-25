@@ -550,6 +550,17 @@ enum FontLibrary {
         }
     }
 
+    /// A box's or a line's align as the paragraph style sets it, centred
+    /// for none.
+    static func textAlignment(_ align: String?) -> NSTextAlignment {
+        switch align ?? "center" {
+        case "left": return .left
+        case "right": return .right
+        case "justify": return .justified
+        default: return .center
+        }
+    }
+
     /// Attributes shared by canvas rendering, measurement and export.
     static func attributes(for el: Element) -> [NSAttributedString.Key: Any] {
         memoized(TypographyKey(el), &attrCache) { buildAttributes(for: el) }
@@ -560,14 +571,7 @@ enum FontLibrary {
         let font = uiFont(family: el.fontFamily, size: size,
                           weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
         let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = {
-            switch el.align ?? "center" {
-            case "left": return .left
-            case "right": return .right
-            case "justify": return .justified
-            default: return .center
-            }
-        }()
+        paragraph.alignment = textAlignment(el.align)
         paragraph.paragraphSpacing = size * max(0, el.paragraphSpacing ?? 0)
         let lineHeight = size * (el.lineHeight ?? 1.25)
         paragraph.minimumLineHeight = lineHeight
@@ -727,8 +731,21 @@ enum FontLibrary {
     /// measured and what plain drawing shows — in capitals, when the box is
     /// set in them.
     static func displayText(for el: Element, pageNumber: Int?, pageCount: Int?) -> String {
-        let plain = RichText.strip(markedDisplayText(for: el, pageNumber: pageNumber, pageCount: pageCount))
-        return el.uppercase == true ? plain.uppercased() : plain
+        let marked = markedDisplayText(for: el, pageNumber: pageNumber, pageCount: pageCount)
+        let plain = RichText.strip(marked)
+        if el.uppercase == true { return plain.uppercased() }
+        // Words in capitals of their own (Spans' caps), the rest as typed.
+        let caps = capsRanges(for: el, marked: marked)
+        guard !caps.isEmpty else { return plain }
+        return RichText.inCapitals(RichText.Parsed(plain: plain, runs: []), spans: [], only: caps).parsed.plain
+    }
+
+    /// The stretches of `el`'s display text (`marked`'s plain words) its
+    /// words' own caps set in capitals (Spans), moved past a list's
+    /// markers; none in a box set in capitals whole, which takes them all.
+    static func capsRanges(for el: Element, marked: String) -> [NSRange] {
+        guard el.uppercase != true, el.liveSpans.contains(where: { $0.caps == true }) else { return [] }
+        return Spans.capsRanges(displaySpans(for: el, marked: marked))
     }
 
     /// The text as drawn with its inline styles applied: the plain display
@@ -740,7 +757,52 @@ enum FontLibrary {
     /// are set so on top — in capitals, moved as the runs are.
     static func attributedString(for el: Element) -> NSAttributedString {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
-        return styledWords(marked, of: el, capitals: el.uppercase == true, spans: displaySpans(for: el, marked: marked))
+        let spans = displaySpans(for: el, marked: marked) + markerSpans(for: el, marked: marked)
+        return styledWords(marked, of: el, capitals: el.uppercase == true, spans: spans)
+    }
+
+    /// Each list marker in the look of its item's first letter
+    /// (TextLists.markerStyle), as a span over the marker in the display
+    /// text (`marked`'s plain words): its colour — left out while the
+    /// letters are a gradient or a photo — size, font, weight and slant.
+    /// None where the markers keep the box's own look.
+    static func markerSpans(for el: Element, marked: String) -> [TextSpan] {
+        guard isList(el), !el.liveSpans.isEmpty else { return [] }
+        let prefixes = listPrefixes(for: el)
+        let typed = RichText.strip(el.text ?? "").components(separatedBy: "\n")
+        guard zip(prefixes, typed).map({ $0 + $1 }).joined(separator: "\n") == RichText.strip(marked) else { return [] }
+        var out: [TextSpan] = []
+        var at = 0
+        for (i, pair) in zip(prefixes, typed).enumerated() {
+            let length = pair.0.utf16.count
+            if length > 0, var look = TextLists.markerStyle(el, i) {
+                if paintsLetters(el) { look.color = nil }
+                look.start = at
+                look.end = at + length
+                if look.says { out.append(look) }
+            }
+            at += length + pair.1.utf16.count + 1
+        }
+        return out
+    }
+
+    /// The size line `line`'s marker is drawn at, as a share of the box's:
+    /// its item's first letter's (TextLists.markerStyle), so the hang under
+    /// it fits it.
+    static func markerScale(_ el: Element, _ line: Int) -> Double {
+        TextLists.markerStyle(el, line)?.scale ?? 1
+    }
+
+    /// `el`'s display text (`plain`, before capitals) with `spans` on it
+    /// moved as the capitals it is drawn in move them: the box's own, or
+    /// its words' (capsRanges). Unchanged when nothing is in capitals.
+    static func capitalised(_ el: Element, marked: String, spans: [TextSpan]) -> (plain: String, spans: [TextSpan]) {
+        let plain = RichText.strip(marked)
+        let caps = capsRanges(for: el, marked: marked)
+        guard el.uppercase == true || !caps.isEmpty else { return (plain, spans) }
+        let moved = RichText.inCapitals(RichText.Parsed(plain: plain, runs: []), spans: spans,
+                                        only: el.uppercase == true ? nil : caps)
+        return (moved.parsed.plain, moved.spans)
     }
 
     /// The words as the field typed in on the canvas lays them out: as they
@@ -748,31 +810,37 @@ enum FontLibrary {
     /// after a list's markers, as the field types the words as they are
     /// kept (InlineTextField). Where a tap puts the caret is found in it.
     static func typedAttributedString(for el: Element) -> NSAttributedString {
-        let spans = paintsLetters(el) ? Spans.withoutColours(el.liveSpans) : el.liveSpans
+        // As typed: words' own capitals left out too.
+        let live = Spans.withoutCaps(el.liveSpans)
+        let spans = paintsLetters(el) ? Spans.withoutColours(live) : live
         return styledWords(el.text ?? "", of: el, capitals: false, spans: spans)
     }
 
     /// Each line of `text` — the words of `el`, markers in or out, a line
-    /// for each of its own — pushed in by its own level, a list item's
+    /// for each of its own — aligned as it is (TextLists.alignOf), pushed
+    /// in by its own level, a list item's
     /// marker hanging so wrapped lines start where the words after it do,
     /// over the paragraph style each run already has (the box's, or one
     /// made roomier for a larger word): the Android twin's LeadingMarginSpan
     /// per paragraph. A box with no paragraphs of its own keeps the one
     /// style it has (attributes(for:)), indented as a whole.
     static func setParagraphStyles(_ text: NSMutableAttributedString, for el: Element) {
-        guard let lines = TextLists.paragraphsOf(el),
+        // A box-wide list too, when a marker is set larger or smaller.
+        let scaled = isList(el) && el.liveSpans.contains { $0.scale != nil }
+        guard let lines = TextLists.paragraphsOf(el) ?? (scaled ? TextLists.lines(el) : nil),
               let base = attributes(for: el)[.paragraphStyle] as? NSParagraphStyle else { return }
         let ns = text.string as NSString
         let size = el.fontSize ?? 42
         var start = 0
-        for line in lines {
+        for (index, line) in lines.enumerated() {
             guard start <= ns.length else { break }
             let lineEnd = ns.range(of: "\n", range: NSRange(location: start, length: ns.length - start)).location
             // The line and the break after it, which carries its style.
             let end = lineEnd == NSNotFound ? ns.length : lineEnd + 1
             if end > start {
                 let indent = Double(line.level) * size * indentEm
-                let hang = indent + (line.isListed ? size * markerEm : 0)
+                // The marker's room at the marker's own size.
+                let hang = indent + (line.isListed ? size * markerEm * markerScale(el, index) : 0)
                 // Each run keeps the style it has — the room a larger word
                 // was given (RichText.makeRoom) — and takes only the indents.
                 let range = NSRange(location: start, length: end - start)
@@ -781,6 +849,9 @@ enum FontLibrary {
                     let paragraph = (had.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
                     paragraph.firstLineHeadIndent = indent
                     paragraph.headIndent = hang
+                    // A line aligned on its own, by the box's own rule —
+                    // right-to-left words too.
+                    if let own = line.align { paragraph.alignment = textAlignment(own) }
                     text.addAttribute(.paragraphStyle, value: paragraph.copy(), range: part)
                 }
             }
@@ -828,7 +899,7 @@ enum FontLibrary {
                                          linkColour: linkColour, face: face) { bold, slanted in
             uiFont(family: el.fontFamily, size: size, weight: resolveWeight(weight, bold: bold), italic: slanted || italic)
         }
-        guard TextLists.paragraphsOf(el) != nil else { return styled }
+        guard TextLists.paragraphsOf(el) != nil || isList(el) else { return styled }
         let lined = NSMutableAttributedString(attributedString: styled)
         setParagraphStyles(lined, for: el)
         return lined
@@ -979,9 +1050,8 @@ enum FontLibrary {
             return (span.color ?? linked).map { TextSpan(start: span.start, end: span.end, color: $0) }
         }
         guard !colours.isEmpty else { return [] }
-        guard el.uppercase == true else { return colours }
-        let capitals = RichText.inCapitals(RichText.Parsed(plain: RichText.strip(marked), runs: []), spans: colours)
-        return capitals.parsed.plain == displayText(for: el) ? capitals.spans : []
+        let capitals = capitalised(el, marked: marked, spans: colours)
+        return capitals.plain == displayText(for: el) ? capitals.spans : []
     }
 
     /// `text` with the colours of `spans` on it, each moved by `shift`.

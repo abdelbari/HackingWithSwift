@@ -96,18 +96,26 @@ enum BrandGuidelines {
             swatch.stroke = edge
             swatch.strokeWidth = 4
             els.append(swatch)
-            els.append(text(kit, .body, describe(hex), x, y + 304, cell, 40, ink))
+            els.append(text(kit, .body, describe(hex, name: palette.name(of: hex) ?? kit.colourName(hex)), x, y + 304, cell, 40, ink))
         }
         return page(els)
     }
 
     /// A swatch's words: its name, then HEX, RGB and CMYK, a line each.
     static func describe(_ hex: String) -> String {
+        describe(hex, name: nil)
+    }
+
+    /// The same, the colour's brand name (BrandPalette.names) above the
+    /// codes where it has one — kept as typed, its stars and underscores
+    /// no style markers (RichText.escapeLiteral), as on the Android twin —
+    /// else its hue's.
+    static func describe(_ hex: String, name brandName: String?) -> String {
         let rgb = Cmyk.rgb(hex) ?? (0, 0, 0)
         let press = Cmyk.fromRGB(rgb.r, rgb.g, rgb.b)
         func pc(_ v: Double) -> Int { Int((v * 100).rounded()) }
         let named = ElementNames.colourName(hex)
-        let name = named.prefix(1).uppercased() + named.dropFirst()
+        let name = brandName.map(RichText.escapeLiteral) ?? (named.prefix(1).uppercased() + named.dropFirst())
         let code = String(format: "#%02x%02x%02x", rgb.r, rgb.g, rgb.b)
         return [
             name,

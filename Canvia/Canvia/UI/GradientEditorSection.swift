@@ -277,6 +277,9 @@ struct GradientTileRow: View {
     var pick: (Paint) -> Void
     /// Offered on a long press, when set: "Remove from brand kit".
     var remove: ((Paint) -> Void)?
+    /// A gradient's name, when it has one: a brand gradient by its stops'
+    /// brand names (BrandKit.gradientName).
+    var named: (Paint) -> String? = { _ in nil }
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
 
@@ -310,7 +313,8 @@ struct GradientTileRow: View {
                 }
             }
         }
-        .accessibilityLabel(tr("Gradient %d", number))
+        .accessibilityLabel(named(paint) ?? tr("Gradient %d", number))
+        .help(named(paint) ?? "")
         .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }

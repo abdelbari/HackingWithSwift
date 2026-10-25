@@ -452,6 +452,8 @@ enum PptxReader {
         var highlight: String? = nil
         /// Raised or lowered (TextSpan.script), from its a:rPr's baseline.
         var script: String? = nil
+        /// In capitals: its a:rPr's cap="all".
+        var caps = false
     }
 
     /// The script an a:rPr's baseline — thousandths of a percent of the
@@ -471,6 +473,9 @@ enum PptxReader {
         var runs: [Run]
         var align: String?
         var props: SvgImport.Node? = nil
+        /// Each line's own alignment, a paragraph's and its line breaks';
+        /// nil where it says none.
+        var aligns: [String?] = []
     }
 
     /// A box in EMU on the slide: where, how big, turned and flipped.
@@ -844,13 +849,16 @@ enum PptxReader {
             var length = 0
             var runs: [Run] = []
             var alignment: String?
+            var aligns: [String?] = []
             var props: SvgImport.Node?
             for (k, paragraph) in body.children(named: "p").enumerated() {
                 if k > 0 {
                     plain += "\n"
                     length += 1
                 }
-                if k == 0 { alignment = align(paragraph.child("pPr")?.attributes["algn"]) ?? defaults.align }
+                let own = align(paragraph.child("pPr")?.attributes["algn"]) ?? defaults.align
+                if k == 0 { alignment = own }
+                aligns.append(own)
                 for part in paragraph.children {
                     switch part.name {
                     case "r", "fld":
@@ -870,17 +878,19 @@ enum PptxReader {
                                         underline: look.underline == true, colour: look.colour ?? "#000000",
                                         font: cut?.family ?? font(look.typeface), weight: cut?.weight,
                                         highlight: part.child("rPr")?.child("highlight").flatMap(colour(in:)),
-                                        script: PptxReader.script(baseline: part.child("rPr")?.attributes["baseline"])))
+                                        script: PptxReader.script(baseline: part.child("rPr")?.attributes["baseline"]),
+                                        caps: part.child("rPr")?.attributes["cap"] == "all"))
                     case "br":
                         plain += "\n"
                         length += 1
+                        aligns.append(own)
                     default:
                         break
                     }
                 }
             }
             if runs.isEmpty && !empty { return nil }
-            return Words(plain: plain, runs: runs, align: alignment, props: props)
+            return Words(plain: plain, runs: runs, align: alignment, props: props, aligns: aligns)
         }
 
         /// The styling the writer gives a text box, read back from its first
@@ -1490,6 +1500,14 @@ enum PptxReader {
             let marks = words.runs.map(\.highlight)
             let boxMarked = !marks.isEmpty && marks.allSatisfy { $0 != nil && $0 == marks[0] }
             if !boxMarked, el.effect?.type == "highlight" { el.effect = nil }
+            // Every shown run in capitals is the box set in Uppercase; some
+            // of them, those words' own (TextSpan.caps), as on the Android
+            // twin.
+            let shown = words.runs.filter { r in
+                let ns = words.plain as NSString
+                return r.end <= ns.length && !PptxReader.isBlank(ns.substring(with: NSRange(location: r.start, length: r.end - r.start)))
+            }
+            let allCaps = !shown.isEmpty && shown.allSatisfy(\.caps)
             // The spans are made for the plain words, which the escapes keep.
             if RichText.strip(text) == words.plain {
                 let boxWeight = bold ? 700 : 400
@@ -1503,7 +1521,18 @@ enum PptxReader {
                                     font: r.font == face ? nil : r.font,
                                     weight: weight == boxWeight ? nil : weight,
                                     italic: plainOnly && r.italic && !italic ? true : nil,
-                                    highlight: boxMarked ? nil : r.highlight, script: r.script)
+                                    highlight: boxMarked ? nil : r.highlight, script: r.script,
+                                    caps: r.caps && !allCaps ? true : nil)
+                })
+            }
+            if allCaps { el.uppercase = true }
+            // Each paragraph's own algn, where they differ: the box's is the
+            // first paragraph's, the rest on their lines (TextLists).
+            if Set(words.aligns.map { $0 ?? "left" }).count > 1 {
+                el.setLines(TextLists.lines(el).enumerated().map { i, line -> TextParagraph in
+                    var p = line
+                    p.align = i < words.aligns.count ? words.aligns[i] ?? "left" : nil
+                    return p
                 })
             }
             return el

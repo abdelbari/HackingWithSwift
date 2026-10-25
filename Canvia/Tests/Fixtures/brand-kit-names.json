@@ -1,0 +1,36 @@
+{
+  "about": "Named brand colours: a palette's optional \"names\", keyed by the colour as #RRGGBB in upper case, each at most 40 characters, left out when empty. `kit` reads and writes back as it is; `names` are what each colour reads as — `name` its brand name (null for none), `spoken` as a swatch says it: the brand name, else its hue's with a capital; `rename` rows each start from `kit`, call the palette's colour by the name given (null or blank takes it away) and give the palette's names after; `swap` rows are what Change all and Colours in selection say for a swap; `describe` rows give a guidelines swatch's first line for a colour called `name` — kept as typed, its stars no style markers — or its hue's for none. Shared row for row by both phones' tests (Android BrandColourNamesTest, iOS BrandColourNamesTests).",
+  "kit": {
+    "id": "kit-names",
+    "name": "Acme",
+    "palettes": [
+      {"name": "Primary", "colors": ["#1a6bff", "#f2d7a0", "#101820"], "names": {"#1A6BFF": "Ocean", "#F2D7A0": "Sand"}},
+      {"name": "Plain", "colors": ["#000000"]}
+    ],
+    "fonts": {},
+    "logos": []
+  },
+  "names": [
+    {"hex": "#1a6bff", "name": "Ocean", "spoken": "Ocean"},
+    {"hex": "#1A6BFF", "name": "Ocean", "spoken": "Ocean"},
+    {"hex": "#f2d7a0", "name": "Sand", "spoken": "Sand"},
+    {"hex": "#101820", "name": null, "spoken": "Black"},
+    {"hex": "#000000", "name": null, "spoken": "Black"}
+  ],
+  "rename": [
+    {"name": "a new name", "palette": 0, "hex": "#101820", "to": "Ink", "names": {"#1A6BFF": "Ocean", "#F2D7A0": "Sand", "#101820": "Ink"}},
+    {"name": "a name changed, given in lower case", "palette": 0, "hex": "#1a6bff", "to": "Deep sea", "names": {"#1A6BFF": "Deep sea", "#F2D7A0": "Sand"}},
+    {"name": "blank takes it away", "palette": 0, "hex": "#F2D7A0", "to": "  ", "names": {"#1A6BFF": "Ocean"}},
+    {"name": "trimmed and cut to 40 characters", "palette": 1, "hex": "#000000", "to": "  The darkest black there is, for type and rules  ", "names": {"#000000": "The darkest black there is, for type and"}}
+  ],
+  "swap": [
+    {"from": "#1A6BFF", "to": "#f2d7a0", "said": "Ocean → Sand"},
+    {"from": "#0b1f33", "to": "#1a6bff", "said": "Dark blue → Ocean"},
+    {"from": "#f2d7a0", "to": "#101820", "said": "Sand → Black"}
+  ],
+  "describe": [
+    {"hex": "#1a6bff", "name": "Ocean", "first": "Ocean"},
+    {"hex": "#ff0000", "name": "Sale *Red*", "first": "Sale \\*Red\\*"},
+    {"hex": "#0b1f33", "name": null, "first": "Dark blue"}
+  ]
+}

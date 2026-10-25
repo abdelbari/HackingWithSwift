@@ -2446,6 +2446,10 @@ final class DesignStore {
             if !keepingLines { el.dropParagraphs() }
             el.listStyle = style.listStyle
             el.indent = style.indent
+            // A style's align is the whole box's: no line kept keeps its own.
+            if let own = TextLists.paragraphsOf(el), own.contains(where: { $0.align != nil }) {
+                el.setAlign(TextLists.boxAlign(el))
+            }
             el.textFill = style.textFill
             el.vAlign = style.vAlign
             el.paragraphSpacing = style.paragraphSpacing

@@ -690,7 +690,8 @@ struct TextElementView: View {
         // Splice's and echo's copies follow the letters' colour unless they
         // have one of their own.
         let copiesFollow = (effect == .splice || effect == .echo) && el.effect?.color == nil
-        // The copies splice, glitch and echo lay behind the letters.
+        // The copies splice, glitch and echo lay behind the letters, and
+        // 3D's block, each layer in its own colour.
         for copy in fx.copies {
             let drawn = copiesFollow ? faded(copy.alpha)
                 : over([.foregroundColor: UIColor(hex: copy.color).withAlphaComponent(copy.alpha)])
@@ -1011,8 +1012,9 @@ struct TextElementView: View {
     /// effects that survive that are the ones a filled path can carry — the
     /// shadows and the glow; outline and splice become a stroke on the same
     /// path at the effect's thickness, Outline a stroke under the filled
-    /// path, and glitch and echo become offset fills. A colour emoji, which
-    /// has no outline, is drawn by the emoji font once, over them — never
+    /// path, glitch and echo become offset fills and 3D its layers. A
+    /// colour emoji, which has no outline, is drawn by the emoji font once,
+    /// over them — never
     /// stroked, copied or tinted, at its full colour, whatever the effect.
     private func drawCurvedText(_ resolved: Element, in cg: CGContext, size: CGSize, effect: TextEffect) {
         var el = resolved
@@ -1033,6 +1035,18 @@ struct TextElementView: View {
         }
 
         if fx.casts { Self.castShadow(fx, in: cg) }
+
+        // 3D's block, back to front, under letters filled as ever.
+        if effect == .extrude {
+            for layer in fx.copies {
+                cg.saveGState()
+                cg.translateBy(x: layer.dx, y: layer.dy)
+                cg.addPath(path)
+                cg.setFillColor(UIColor(hex: layer.color).cgColor)
+                cg.fillPath()
+                cg.restoreGState()
+            }
+        }
 
         switch effect {
         case .outline, .splice:
@@ -1118,7 +1132,6 @@ struct TextElementView: View {
         let string = attributed.string as NSString
         // Paragraph spacing, as FontLibrary sets it: after each line break.
         let gap = (el.fontSize ?? 42) * max(0, el.paragraphSpacing ?? 0)
-        let justified = el.align == "justify"
         var lineTop = top
         var fragments: [LineFragment] = []
         for (i, line) in lines.enumerated() {
@@ -1141,6 +1154,9 @@ struct TextElementView: View {
             let inked = full - CTLineGetTrailingWhitespaceWidth(line)
             guard inked > 0.5 else { continue }
             let x = Double(origins[i].x)
+            // Justified as its own paragraph is: a line may be aligned on
+            // its own (TextLists.alignOf).
+            let justified = style.map { $0.alignment == .justified } ?? (el.align == "justify")
             let lineWidth = justified && !endsParagraph ? max(inked, width - x) : inked
             fragments.append(LineFragment(rect: CGRect(x: x, y: topY, width: lineWidth, height: pitch)))
         }

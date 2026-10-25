@@ -2905,7 +2905,8 @@ struct CanvasView: View {
                                onWordHighlight: { store.chooseWordHighlight(id, range: $0) },
                                onWordScript: { store.scriptWords(id, range: $0, script: $1) },
                                onTypedScript: { store.scriptTyped(id, range: $0, script: $1) },
-                               onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
+                               onToggle: { toggle in store.styleWhileTyping { toggleTyped(toggle) } },
+                               onChangeCase: { store.changeCase($0) },
                                onPresent: presentTyped,
                                onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onBoxKey: { store.typingBoxKey($0) },
@@ -2939,7 +2940,8 @@ struct CanvasView: View {
                                onChange: { typeInline(id, $0) },
                                onDone: { commitTextEditIfAny() },
                                onStyled: { store.styleWhileTyping($0) },
-                               onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
+                               onToggle: { toggle in store.styleWhileTyping { toggleTyped(toggle) } },
+                               onChangeCase: { store.changeCase($0) },
                                onPresent: presentTyped,
                                onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onBoxKey: { store.typingBoxKey($0) },
@@ -2986,13 +2988,20 @@ struct CanvasView: View {
         store.typeWords(words, into: id)
     }
 
-    /// ⇧⌘L, C, R or J while typing: the box typed in aligned, as the Align
-    /// button aligns it.
-    private func alignTyped(_ align: String) {
-        store.updateSelected { e in
-            guard ShapeText.carriesWords(e) else { return }
-            e.align = align
+    /// ⇧⌘B and the rest while typing: aA on the words chosen
+    /// (DesignStore.toggleCaps), the others on the box.
+    private func toggleTyped(_ toggle: TextToggle) {
+        if toggle == .uppercase {
+            store.toggleCaps()
+        } else {
+            store.toggleText(toggle)
         }
+    }
+
+    /// ⇧⌘L, C, R or J while typing: the lines the choice touches aligned,
+    /// as the Align button aligns them.
+    private func alignTyped(_ align: String) {
+        store.alignText(align)
     }
 
     /// The typing field's caret, its bursts and their Undo, kept by the

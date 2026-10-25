@@ -188,7 +188,7 @@ enum PptxExporter {
 
     /// The effects styled text carries over as DrawingML; the rest —
     /// splice, echo, glitch — stay pictures.
-    static let styledEffects: Set<TextEffect> = [.none, .shadow, .lift, .outline, .outlined, .neon, .highlight]
+    static let styledEffects: Set<TextEffect> = [.none, .shadow, .lift, .outline, .outlined, .extrude, .neon, .highlight]
 
     /// What `el` becomes, by the rule the Android twin's kindOf follows:
     /// anything blended with what is under it, and any cell of a table or
@@ -542,6 +542,11 @@ enum PptxExporter {
                     poured = PouredPhoto(embed: rels.add("image", "../media/\(part.name)"), size: size)
                 }
                 let average = el.textFill?.isPhoto == true ? el.textFill?.src.flatMap(photos.average) : nil
+                // 3D's block behind the words, which stay editable.
+                if TextEffect.from(el.effect) == .extrude {
+                    let block = extrusionXML(el, nextId: &nextId, frame: frame, ink: average)
+                    if !block.isEmpty { shapes.append(block) }
+                }
                 shapes.append(textXML(el, id: id, link: link, design: design, slides: slides, frame: frame, rels: &rels,
                                       photo: poured, ink: average))
             case .shape(let preset):
@@ -799,6 +804,30 @@ enum PptxExporter {
         return out
     }
 
+    /// 3D's block behind a text box: one group of a free-form shape a layer
+    /// (TextEffect.extrusion), back to front, each the letters' outline
+    /// (TextOutliner) moved along and filled in its layer's colour, set
+    /// where the words start in the box — the face over it is the text box
+    /// (textXML), its words still editable. Empty when there is no block.
+    private static func extrusionXML(_ el: Element, nextId: inout Int, frame: Frame, ink: String?) -> String {
+        var drawn = el
+        if el.fitText == true, !TextOutliner.followsAPath(el) { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
+        guard let outline = TextOutliner.inkedPaths(for: drawn)?.whole else { return "" }
+        let fx = TextEffect.resolve(el.effect, fontSize: drawn.fontSize ?? 42, ink: ink ?? el.color ?? "#1f2430")
+        guard !fx.copies.isEmpty else { return "" }
+        let top = min(max(SVGExporter.textTop(el), 0), el.h)
+        var out = groupXML("\(el.id) 3D", id: nextId, members: [el], frame: frame)
+        nextId += 1
+        for (k, layer) in fx.copies.enumerated() {
+            var move = CGAffineTransform(translationX: CGFloat(layer.dx), y: CGFloat(layer.dy + top))
+            guard let moved = outline.copy(using: &move) else { continue }
+            let properties = "<p:cNvPr id=\"\(nextId)\" name=\"\(SVGExporter.escape(el.id)) 3D \(k + 1)\"/>"
+            nextId += 1
+            out += outlineXML(el, properties: properties, steps: steps(of: moved), colour: layer.color, frame: frame)
+        }
+        return out + "</p:grpSp>"
+    }
+
     /// Warped words as their outlines, a shape for each colour piece
     /// (`parts`, nil the text's own): the first with `id` and the element's
     /// name and link, each after it with the next id and the name with its
@@ -975,6 +1004,8 @@ enum PptxExporter {
         var highlight: String? = nil
         /// Raised or lowered (Spans' script); nil is on the line.
         var script: String? = nil
+        /// In capitals of its own (Spans' caps); nil is as typed.
+        var caps: Bool? = nil
     }
 
     /// The a:rPr baseline a script is written with: raised 30%, lowered
@@ -998,7 +1029,7 @@ enum PptxExporter {
     static func paragraphs(of el: Element) -> [[TextRun]] {
         var unlisted = el
         if TextLists.isList(el) {
-            unlisted.setLines(TextLists.lines(el).map { TextParagraph(level: $0.level) })
+            unlisted.setLines(TextLists.lines(el).map { TextParagraph(level: $0.level, align: $0.align) })
         }
         let marked = FontLibrary.markedDisplayText(for: unlisted, pageNumber: nil, pageCount: nil)
         let parsed = RichText.parse(marked)
@@ -1040,11 +1071,13 @@ enum PptxExporter {
             let linked = span?.link != nil ? Spans.linkColour : nil
             let run = TextRun(text: piece, style: style, color: span?.color ?? linked, scale: span?.scale,
                               font: span?.font, link: Links.followable(span?.link) ?? Links.pageId(span?.link).map(Links.pageLink),
-                              weight: span?.weight, highlight: span?.highlight, script: span?.script)
+                              weight: span?.weight, highlight: span?.highlight, script: span?.script,
+                              caps: span?.caps)
             let last = paragraphs.count - 1
             if var before = paragraphs[last].last, before.style == run.style, before.color == run.color,
                before.scale == run.scale, before.font == run.font, before.link == run.link,
-               before.weight == run.weight, before.highlight == run.highlight, before.script == run.script {
+               before.weight == run.weight, before.highlight == run.highlight, before.script == run.script,
+               before.caps == run.caps {
                 before.text += piece
                 paragraphs[last][paragraphs[last].count - 1] = before
             } else {
@@ -1093,7 +1126,7 @@ enum PptxExporter {
         default: anchor = ""
         }
         var body = ""
-        let properties = paragraphProperties(el, em: size * frame.unit)
+        let properties = paragraphProperties(el, em: size * frame.unit, design: design)
         // What the effect, the shadow, the gradient letters and the drop cap
         // put in every run, the box's own warp and column in its body.
         let style = styledParts(el, size: size, frame: frame, photo: photo, average: ink)
@@ -1252,40 +1285,62 @@ enum PptxExporter {
             + "\(color(colour, opacity: alpha))</a:outerShdw>"
     }
 
-    /// Each line's paragraph properties: aligned as the box is, at its list
+    /// Each line's paragraph properties: aligned as the line is
+    /// (TextLists.alignOf — the box's, unless it has its own), at its list
     /// level, pushed in a level's ems (`em` a type size on the slide) and
     /// its item's bullet or number hanging in the marker's room before its
     /// words, as PowerPoint's own — a bullet by its character, a number,
-    /// letter or numeral counted on from the item's place. Empty for a
-    /// left-aligned plain line. The Android twin's PptxWriter, attribute
+    /// letter or numeral counted on from the item's place — in the look of
+    /// its item's first letter (TextLists.markerStyle): buClr its colour,
+    /// buSzPct its size, buFont its font, the hang at that size. Empty for
+    /// a left-aligned plain line. The Android twin's PptxWriter, attribute
     /// for attribute.
-    static func paragraphProperties(_ el: Element, em: Double) -> [String] {
-        let align: String
-        switch el.align ?? "center" {
-        case "left": align = ""
-        case "right": align = " algn=\"r\""
-        case "justify": align = " algn=\"just\""
-        default: align = " algn=\"ctr\""
+    static func paragraphProperties(_ el: Element, em: Double, design: Design? = nil) -> [String] {
+        func algn(_ align: String) -> String {
+            switch align {
+            case "left": return ""
+            case "right": return " algn=\"r\""
+            case "justify": return " algn=\"just\""
+            default: return " algn=\"ctr\""
+            }
         }
         let items = TextLists.items(el)
         return TextLists.lines(el).enumerated().map { line, paragraph -> String in
             let indent = Double(paragraph.level) * FontLibrary.indentEm * em
-            let hang = paragraph.isListed ? FontLibrary.markerEm * em : 0
-            var attributes = align
+            let look = line < items.count && items[line] != nil ? TextLists.markerStyle(el, line) : nil
+            let hang = paragraph.isListed ? FontLibrary.markerEm * em * (look?.scale ?? 1) : 0
+            var attributes = algn(TextLists.alignOf(el, line))
             if paragraph.level > 0 { attributes += " lvl=\"\(paragraph.level)\"" }
             if indent + hang > 0 { attributes += " marL=\"\(emu(indent + hang))\"" }
             if hang > 0 { attributes += " indent=\"\(emu(-hang))\"" }
-            let bullet = line < items.count ? items[line].map(bulletXML) ?? "" : ""
+            let face = look?.font.map { key -> String in
+                guard let design else { return FontLibrary.of(key).name }
+                return typeface(key, in: design)
+            }
+            var bullet = line < items.count ? items[line].map { bulletXML($0, face: face) } ?? "" : ""
+            if let look, !bullet.isEmpty { bullet = markerLook(look) + bullet }
             if !bullet.isEmpty { return "<a:pPr\(attributes)>\(bullet)</a:pPr>" }
             return attributes.isEmpty ? "" : "<a:pPr\(attributes)/>"
         }
     }
 
-    /// A list item's bullet or number as PowerPoint draws it.
-    private static func bulletXML(_ item: TextLists.Item) -> String {
+    /// A marker's own colour and size before its font and its bullet or
+    /// number: buClr and buSzPct.
+    private static func markerLook(_ look: TextSpan) -> String {
+        var out = ""
+        if let colour = look.color { out += "<a:buClr>\(color(colour))</a:buClr>" }
+        if let scale = look.scale { out += "<a:buSzPct val=\"\(Int((scale * 100_000).rounded()))\"/>" }
+        return out
+    }
+
+    /// A list item's bullet or number as PowerPoint draws it, in `face`
+    /// when its item's first letter has a font of its own (buFont) — a
+    /// bullet in Arial otherwise.
+    private static func bulletXML(_ item: TextLists.Item, face: String? = nil) -> String {
+        let font = face.map { "<a:buFont typeface=\"\(SVGExporter.escape($0))\"/>" }
         guard item.list != "bullet" else {
             let char = SVGExporter.escape(item.marker.trimmingCharacters(in: .whitespaces))
-            return "<a:buFont typeface=\"Arial\"/><a:buChar char=\"\(char)\"/>"
+            return (font ?? "<a:buFont typeface=\"Arial\"/>") + "<a:buChar char=\"\(char)\"/>"
         }
         let scheme: String
         switch TextLists.counting(item.list, level: item.depth) {
@@ -1293,11 +1348,11 @@ enum PptxExporter {
         case 1: scheme = "alphaLcPeriod"
         default: scheme = "romanLcPeriod"
         }
-        return "<a:buAutoNum type=\"\(scheme)\" startAt=\"\(item.index)\"/>"
+        return (font ?? "") + "<a:buAutoNum type=\"\(scheme)\" startAt=\"\(item.index)\"/>"
     }
 
     /// One run: bold, italic, underlined or struck as its style is, in
-    /// capitals with the box, its letter spacing as spc (px × 75), its
+    /// capitals with the box or of its own, its letter spacing as spc (px × 75), its
     /// colour — its own or the box's — faded by the element's opacity, its
     /// face, and its link (`link`, a relationship id) on a click; the
     /// styling's line before the fill, its own fill in place of the
@@ -1310,7 +1365,7 @@ enum PptxExporter {
         if run.style.underline { attributes += " u=\"sng\"" }
         if run.style.strike { attributes += " strike=\"sngStrike\"" }
         if let shift = baseline(run.script) { attributes += " baseline=\"\(shift)\"" }
-        if el.uppercase == true { attributes += " cap=\"all\"" }
+        if el.uppercase == true || run.caps == true { attributes += " cap=\"all\"" }
         let tracking = (el.letterSpacing ?? 0) * unit
         let spacing = tracking.isFinite ? Int((min(max(tracking, -1000), 1000) * 75).rounded()) : 0
         if spacing != 0 { attributes += " spc=\"\(spacing)\"" }

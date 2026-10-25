@@ -87,7 +87,7 @@ final class PhotoInLettersTests: XCTestCase {
     func testAPhotoPoursThroughTheEffectsAGradientDoes() {
         let rows: [TextEffect: Bool] = [
             .none: true, .shadow: true, .lift: true, .outline: false, .outlined: true,
-            .splice: false, .echo: false, .glitch: false, .neon: true, .highlight: true,
+            .splice: false, .echo: false, .extrude: true, .glitch: false, .neon: true, .highlight: true,
         ]
         XCTAssertEqual(Set(rows.keys), Set(TextEffect.allCases))
         for (effect, takes) in rows {

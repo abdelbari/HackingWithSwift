@@ -99,12 +99,13 @@ enum DocxWriter {
 
     /// A stretch's w:rPr: a link with no colour of its own the Hyperlink
     /// character style (the link colour, underlined), then bold, italic,
-    /// its colour, underline, strike, highlight and script (w:vertAlign).
+    /// capitals (a span's caps), its colour, underline, strike, highlight and script (w:vertAlign).
     private static func props(_ style: RichText.Style, bold: Bool, span: TextSpan?, linked: Bool) -> String {
         var props = ""
         if linked && span?.color == nil { props += "<w:rStyle w:val=\"Hyperlink\"/>" }
         if bold || style.bold { props += "<w:b/>" }
         if style.italic { props += "<w:i/>" }
+        if span?.caps == true { props += "<w:caps/>" }
         if let colour = span?.color { props += "<w:color w:val=\"\(hex(colour))\"/>" }
         if style.underline { props += "<w:u w:val=\"single\"/>" }
         if style.strike { props += "<w:strike/>" }
@@ -142,12 +143,31 @@ enum DocxWriter {
     }
 
     private static func paragraph(_ style: String?, _ body: String, numId: Int? = nil, align: String? = nil,
-                                  level: Int = 0) -> String {
+                                  level: Int = 0, mark: String = "") -> String {
         var props = ""
         if let style { props += "<w:pStyle w:val=\"\(style)\"/>" }
         if let numId { props += "<w:numPr><w:ilvl w:val=\"\(level)\"/><w:numId w:val=\"\(numId)\"/></w:numPr>" }
         if let jc = jc(align) { props += "<w:jc w:val=\"\(jc)\"/>" }
+        props += mark
         return "<w:p>" + (props.isEmpty ? "" : "<w:pPr>" + props + "</w:pPr>") + body + "</w:p>"
+    }
+
+    /// A list item's bullet or number in the look of its first letter
+    /// (TextLists.markerStyle) — its font, bold from 600, slant, colour and
+    /// size — as the paragraph mark's w:rPr, which Word draws the numbering
+    /// in; nothing for the list's own look.
+    private static func markRun(_ b: DocBlock) -> String {
+        guard let look = TextLists.markerStyle(Docs.asElement(b), 0) else { return "" }
+        var props = ""
+        if let font = look.font {
+            let face = esc(FontLibrary.of(font).name)
+            props += "<w:rFonts w:ascii=\"\(face)\" w:hAnsi=\"\(face)\" w:cs=\"\(face)\"/>"
+        }
+        if let weight = look.weight, weight >= 600 { props += "<w:b/>" }
+        if look.italic == true { props += "<w:i/>" }
+        if let colour = look.color { props += "<w:color w:val=\"\(hex(colour))\"/>" }
+        if let scale = look.scale { props += "<w:sz w:val=\"\(whole(Docs.fontSize(b.type) * scale * 72 / 96 * 2))\"/>" }
+        return props.isEmpty ? "" : "<w:rPr>" + props + "</w:rPr>"
     }
 
     /// A block's alignment as w:jc says it; none for left.
@@ -202,9 +222,11 @@ enum DocxWriter {
             case Docs.caption: out += paragraph("Caption", runs(b, links: linked), align: b.align)
             case Docs.p: out += paragraph(nil, runs(b, links: linked), align: b.align)
             case Docs.bullet:
-                out += paragraph("ListParagraph", runs(b, links: linked), numId: 1, align: b.align, level: b.level ?? 0)
+                out += paragraph("ListParagraph", runs(b, links: linked), numId: 1, align: b.align, level: b.level ?? 0,
+                                 mark: markRun(b))
             case Docs.number:
-                out += paragraph("ListParagraph", runs(b, links: linked), numId: 2, align: b.align, level: b.level ?? 0)
+                out += paragraph("ListParagraph", runs(b, links: linked), numId: 2, align: b.align, level: b.level ?? 0,
+                                 mark: markRun(b))
             case Docs.checklist:
                 let box = b.checked == true ? "☑ " : "☐ "
                 out += paragraph(nil, runs(b, prefix: box, links: linked), align: b.align)

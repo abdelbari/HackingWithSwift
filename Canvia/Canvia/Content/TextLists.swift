@@ -2,8 +2,9 @@
 // in one box, items nested a level at a time with a marker per level.
 //
 // A box may set each of its lines on its own in `paragraphs`: one entry per
-// line of its words (split at "\n"), each `{"list", "level"}` with either
-// left out at its default ("none", 0), and `paragraphsText`, the words as
+// line of its words (split at "\n"), each `{"list", "level", "align"}` with
+// any left out at its default ("none", 0, the box's own `align`), and
+// `paragraphsText`, the words as
 // they read that they were made for, guarding them as `spansText` guards the
 // spans: words changed by a build that knows nothing of them no longer
 // match, and the box-wide `listStyle` and `indent` set every line again. A
@@ -13,21 +14,25 @@
 
 import Foundation
 
-/// One line's list and how deep it sits.
+/// One line's list, how deep it sits and how it is aligned.
 struct TextParagraph: Codable, Equatable, Hashable {
     /// "bullet" | "number" | "letter", or "none".
     var list: String = "none"
     /// 0…TextLists.maxLevel; each level is one and a half ems.
     var level: Int = 0
+    /// "left" | "center" | "right" | "justify" of its own; nil is the box's
+    /// `align`.
+    var align: String?
 
-    init(list: String = "none", level: Int = 0) {
+    init(list: String = "none", level: Int = 0, align: String? = nil) {
         self.list = list
         self.level = level
+        self.align = align
     }
 
     var isListed: Bool { list != "none" }
 
-    private enum CodingKeys: String, CodingKey { case list, level }
+    private enum CodingKeys: String, CodingKey { case list, level, align }
 
     // Each key on its own: a list this build does not know is none, and a
     // level out of reach is held to it, never the box lost.
@@ -39,6 +44,8 @@ struct TextParagraph: Codable, Equatable, Hashable {
             ?? (try? c.decode(Double.self, forKey: .level)).flatMap { $0.isFinite ? Int($0) : nil }
             ?? 0
         self.level = min(TextLists.maxLevel, max(0, level))
+        // An alignment this build does not know is the box's.
+        align = (try? c.decode(String.self, forKey: .align)).flatMap { TextLists.aligns.contains($0) ? $0 : nil }
     }
 
     /// Defaults are no key at all, as on the Android twin.
@@ -46,6 +53,7 @@ struct TextParagraph: Codable, Equatable, Hashable {
         var c = encoder.container(keyedBy: CodingKeys.self)
         if isListed { try c.encode(list, forKey: .list) }
         if level > 0 { try c.encode(level, forKey: .level) }
+        try c.encodeIfPresent(align, forKey: .align)
     }
 }
 
@@ -55,6 +63,9 @@ enum TextLists {
 
     /// The bullets, a level at a time, round again past the third.
     static let bullets = ["•", "◦", "▪"]
+
+    /// The alignments a box or a line may have.
+    static let aligns = ["left", "center", "right", "justify"]
 
     /// A line's list item: its style, the level its marker is drawn for,
     /// and its one-based place in its count.
@@ -153,7 +164,76 @@ enum TextLists {
         items(el).map { $0?.marker }
     }
 
+    // MARK: alignment a line at a time
+
+    /// The box's own alignment: its `align`, centred when it has none.
+    static func boxAlign(_ el: Element) -> String {
+        el.align.flatMap { aligns.contains($0) ? $0 : nil } ?? "center"
+    }
+
+    /// How line `line` (zero-based) is aligned: its own paragraph's align,
+    /// else the box's — the box's too when the paragraphs are missing or
+    /// were made for other words, so an older file reads the same.
+    static func alignOf(_ el: Element, _ line: Int) -> String {
+        guard let own = paragraphsOf(el), own.indices.contains(line), let align = own[line].align else {
+            return boxAlign(el)
+        }
+        return align
+    }
+
+    /// Every line's alignment (alignOf), one a line of the words.
+    static func alignments(_ el: Element) -> [String] {
+        let count = (el.text ?? "").components(separatedBy: "\n").count
+        return (0..<count).map { alignOf(el, $0) }
+    }
+
+    /// The alignment the lines in `lines` share, or nil when they differ —
+    /// what the Align button shows while typing, Mixed for nil.
+    static func sharedAlign(_ el: Element, lines: ClosedRange<Int>) -> String? {
+        let all = alignments(el)
+        let covered = all.indices.filter { lines.contains($0) }.map { all[$0] }
+        guard let first = covered.first else { return boxAlign(el) }
+        return covered.allSatisfy { $0 == first } ? first : nil
+    }
+
+    /// `el` with the lines in `lineRange` (zero-based, both ends in) aligned
+    /// `align`, the rest as they are: the Align button and ⇧⌘L, C, R and J
+    /// while typing. A line aligned as the box is keeps no align of its own,
+    /// and lines all aligned alike make that the box's align (setLines) —
+    /// so a range taking in every line is the box-wide set.
+    static func withAlign(_ el: Element, _ lineRange: ClosedRange<Int>, _ align: String) -> Element {
+        guard aligns.contains(align) else { return el }
+        var out = el
+        out.changeLines(lineRange) { $0.align = align }
+        return out
+    }
+
     // MARK: markers
+
+    /// The look line `line`'s marker takes, the rule both phones share: the
+    /// colour, size, font, weight and slant of the span (Spans) in force at
+    /// the first character of the line's words that is not a space or a
+    /// tab — not its link, highlight, script or capitals, which are the
+    /// words' alone — as a span of nothing (start and end 0); nil for the
+    /// box's own, where no span is there or it sets none of them, or the
+    /// line has no words.
+    static func markerStyle(_ el: Element, _ line: Int) -> TextSpan? {
+        let spans = el.liveSpans
+        guard !spans.isEmpty else { return nil }
+        let plain = RichText.strip(el.text ?? "")
+        let words = plain.components(separatedBy: "\n")
+        let starts = lineStarts(plain)
+        guard words.indices.contains(line), starts.indices.contains(line) else { return nil }
+        let ns = words[line] as NSString
+        var i = 0
+        while i < ns.length, ns.character(at: i) == 0x20 || ns.character(at: i) == 0x09 { i += 1 }
+        guard i < ns.length else { return nil }
+        let at = starts[line] + i
+        guard let span = spans.first(where: { $0.start <= at && at < $0.end }) else { return nil }
+        let look = TextSpan(start: 0, end: 0, color: span.color, scale: span.scale, font: span.font,
+                            weight: span.weight, italic: span.italic)
+        return look.says ? look : nil
+    }
 
     /// The prefix an item gets, by style, its `level` and its one-based place
     /// among its level's items: bullets go • ◦ ▪ by level, numbers 1. a. i.
@@ -384,18 +464,31 @@ enum TextLists {
 extension Element {
 
     /// The box with its lines set as `lines` — one a line, fitted to its
-    /// words. Lines all alike are written as the box-wide keys instead and
-    /// the paragraphs dropped, when they read the same that way: no list, or
-    /// a list at the first level (deeper, a paragraph's marker follows its
-    /// level, where the box-wide list's marker never does). Otherwise
-    /// `paragraphs` and `paragraphsText`, the box-wide list and indent gone.
+    /// words. Every line aligned alike, however their lists differ, makes
+    /// that the box's `align` and no line keeps its own — the rule both
+    /// phones share. Lines all alike are written as the box-wide keys
+    /// instead and the paragraphs dropped, when they read the same that way:
+    /// no list, or a list at the first level (deeper, a paragraph's marker
+    /// follows its level, where the box-wide list's marker never does).
+    /// Otherwise `paragraphs` and `paragraphsText`, the box-wide list and
+    /// indent gone.
     mutating func setLines(_ lines: [TextParagraph]) {
         let plain = RichText.strip(text ?? "")
         let count = plain.components(separatedBy: "\n").count
+        let current = TextLists.boxAlign(self)
+        // Each line's align as it would read: its own, or the box's.
+        let reads = (0..<count).map { i -> String in
+            guard i < lines.count, let own = lines[i].align, TextLists.aligns.contains(own) else { return current }
+            return own
+        }
+        if let shared = reads.first, shared != current, reads.allSatisfy({ $0 == shared }) { align = shared }
+        let box = TextLists.boxAlign(self)
         let fitted = (0..<count).map { i -> TextParagraph in
             guard i < lines.count else { return TextParagraph() }
             var p = lines[i]
             p.level = min(TextLists.maxLevel, max(0, p.level))
+            // An align the box has already is no align of its own.
+            if p.align == box || !TextLists.aligns.contains(p.align ?? box) { p.align = nil }
             return p
         }
         paragraphs = nil
@@ -425,7 +518,7 @@ extension Element {
     /// list, its own paragraphs' lists given up to it, their levels kept.
     mutating func setListStyle(_ style: String) {
         if TextLists.paragraphsOf(self) != nil {
-            setLines(TextLists.lines(self).map { TextParagraph(list: style, level: $0.level) })
+            setLines(TextLists.lines(self).map { TextParagraph(list: style, level: $0.level, align: $0.align) })
         } else {
             dropParagraphs()
             listStyle = style == "none" ? nil : style
@@ -438,13 +531,22 @@ extension Element {
     mutating func stepIndent(by delta: Int) {
         if TextLists.paragraphsOf(self) != nil {
             setLines(TextLists.lines(self).map {
-                TextParagraph(list: $0.list, level: min(TextLists.maxLevel, max(0, $0.level + delta)))
+                TextParagraph(list: $0.list, level: min(TextLists.maxLevel, max(0, $0.level + delta)), align: $0.align)
             })
         } else {
             dropParagraphs()
             let level = min(TextLists.maxLevel, max(0, FontLibrary.indentLevel(of: self) + delta))
             indent = level == 0 ? nil : level
         }
+    }
+
+    /// Every line aligned `align` — the Align button with nothing typed in,
+    /// Several texts, a text style: the box's `align`, and no line keeps an
+    /// align of its own.
+    mutating func setAlign(_ new: String) {
+        align = new
+        guard let own = TextLists.paragraphsOf(self), own.contains(where: { $0.align != nil }) else { return }
+        setLines(own.map { TextParagraph(list: $0.list, level: $0.level) })
     }
 
     /// No paragraphs of its own, its box-wide keys as they are.
