@@ -89,6 +89,10 @@ struct EditorView: View {
     @State private var presenting = false
     /// The page Present opens on (PresentFrom).
     @State private var presentStart = 0
+    /// Where this design was left when the editor opened (LastPlace), for
+    /// Present from where I left off: the live record follows every page
+    /// left, so it would only repeat this page.
+    @State private var leftOff: LastPlace.Place?
     /// Details' Show in Uploads: the uploads Add opens on.
     @State private var insertUploads: Uploads.Kind?
     /// Present and record: the studio over the design, and its talks.
@@ -407,7 +411,7 @@ struct EditorView: View {
             saveNow()
         }
         // Opened where it was left, and the place kept as it goes.
-        .modifier(KeepsPlace(store: store))
+        .modifier(KeepsPlace(store: store, leftOff: $leftOff))
         // The design being edited, for Siri suggestions and Handoff.
         .userActivity(DesignActivity.type, element: store.design.id) { _, activity in
             DesignActivity.configure(activity, design: store.design)
@@ -664,7 +668,7 @@ struct EditorView: View {
     /// The page Present from where I left off starts on, past the first
     /// page; nil when it is not offered.
     private var leftOffPage: Int? {
-        let place = LastPlace.place(for: store.design.id)
+        let place = leftOff
         guard LastPlace.offersPresent(store.design, place: place) else { return nil }
         return LastPlace.pageIndex(store.design, place: place)
     }
