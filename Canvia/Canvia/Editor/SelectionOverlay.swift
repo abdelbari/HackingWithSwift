@@ -779,12 +779,14 @@ struct SelectionOverlay: View {
     /// connected copy that way (DesignStore.addConnected); a drag draws the
     /// connector to the finger, let go on an element to tie to it or on
     /// empty space to put the copy there (DesignStore.quickFlowDrop).
+    /// While one is dragged, the line starts on the shape's box edge facing
+    /// the finger (Connectors.anchor), as on Android.
     /// VoiceOver has the same as actions on the shape.
     private func quickFlow(_ el: Element) -> some View {
         let points = Self.flowPoints(el, store: store)
         return ZStack {
             if let drag = flowDrag {
-                flowLine(from: QuickFlow.discPoint(Geometry.aabb(el), side: drag.side, distance: 0), to: drag.at)
+                flowLine(from: Connectors.anchor(of: Geometry.aabb(el), toward: drag.at), to: drag.at)
             }
             ForEach(points) { point in flowDisc(point.side, at: point.at) }
         }
