@@ -439,8 +439,10 @@ enum SVGExporter {
         let emoji = emojiMarkup(outlines?.emoji ?? [], el: el, top: top)
         guard !d.isEmpty else { return emoji }
         let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
-        // Marks behind chosen words, before the letters, so under them.
-        let marks = standIns == nil ? highlightMarkup(drawn, top: top) : ""
+        // Marks behind chosen words, before the letters, so under them —
+        // and 3D's block after them, the letters over it.
+        let marks = (standIns == nil ? highlightMarkup(drawn, top: top) : "")
+            + extrusionMarkup(drawn, d: d, index: index, defs: &defs)
         // Outline's stroke as a pass of its own under every fill, as the
         // canvas strokes all the letters before it fills any.
         let stroke = outlinedStroke(drawn)
@@ -483,6 +485,20 @@ enum SVGExporter {
         }
         let letters = "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
         return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring + letters + emoji
+    }
+
+    /// 3D's block (TextEffect.extrusion): the letters' outline `d` once in
+    /// the defs, then a <use> of it for each layer, back to front, moved
+    /// along and filled in the layer's colour. Nothing for any other effect.
+    static func extrusionMarkup(_ drawn: Element, d: String, index: Int, defs: inout [String]) -> String {
+        guard TextEffect.from(drawn.effect) == .extrude else { return "" }
+        let fx = TextEffect.resolve(drawn.effect, fontSize: drawn.fontSize ?? 42, ink: textInk(drawn))
+        guard !fx.copies.isEmpty else { return "" }
+        let id = "textblock\(index)"
+        defs.append("<path id=\"\(id)\" d=\"\(d)\" fill-rule=\"nonzero\"/>")
+        return fx.copies.map { layer in
+            "<use xlink:href=\"#\(id)\" transform=\"translate(\(num(layer.dx)) \(num(layer.dy)))\" fill=\"\(escape(layer.color))\"/>"
+        }.joined()
     }
 
     /// The colour emoji among outlined letters (TextOutliner.EmojiPiece),

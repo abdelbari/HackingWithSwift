@@ -15,7 +15,7 @@ enum ElementType: String, Codable {
 /// before the settings draws as it did; one at its default is never written.
 /// Settings another type does not use are kept and ignored when drawing.
 struct TextEffectSpec: Codable, Equatable, Hashable {
-    var type: String = "none"     // none|shadow|lift|outline|outlined|splice|echo|neon|glitch|highlight
+    var type: String = "none"     // none|shadow|lift|outline|outlined|splice|echo|extrude|neon|glitch|highlight
     var offset: Double?           // 0–100
     var direction: Double?        // degrees −180…180; 0 points right, 90 down
     var blur: Double?             // 0–100
@@ -24,13 +24,16 @@ struct TextEffectSpec: Codable, Equatable, Hashable {
     var thickness: Double?        // 0–100
     var roundness: Double?        // 0–100
     var spread: Double?           // 0–100
+    var depth: Double?            // 0–100, 3D's
+    var shading: Double?          // 0–100, 3D's
     var color: String?            // "#rrggbb"
     var color2: String?           // "#rrggbb", glitch's second copy
 }
 
 extension TextEffectSpec {
     private enum CodingKeys: String, CodingKey {
-        case type, offset, direction, blur, transparency, intensity, thickness, roundness, spread, color, color2
+        case type, offset, direction, blur, transparency, intensity, thickness, roundness, spread, depth, shading
+        case color, color2
     }
 
     // Each key on its own, so one bad value loses that setting, never the
@@ -46,6 +49,8 @@ extension TextEffectSpec {
         thickness = try? c.decodeIfPresent(Double.self, forKey: .thickness)
         roundness = try? c.decodeIfPresent(Double.self, forKey: .roundness)
         spread = try? c.decodeIfPresent(Double.self, forKey: .spread)
+        depth = try? c.decodeIfPresent(Double.self, forKey: .depth)
+        shading = try? c.decodeIfPresent(Double.self, forKey: .shading)
         color = try? c.decodeIfPresent(String.self, forKey: .color)
         color2 = try? c.decodeIfPresent(String.self, forKey: .color2)
     }
@@ -99,6 +104,8 @@ extension TextEffectSpec {
             case .thickness: return thickness
             case .roundness: return roundness
             case .spread: return spread
+            case .depth: return depth
+            case .shading: return shading
             }
         }
         set {
@@ -111,6 +118,8 @@ extension TextEffectSpec {
             case .thickness: thickness = newValue
             case .roundness: roundness = newValue
             case .spread: spread = newValue
+            case .depth: depth = newValue
+            case .shading: shading = newValue
             }
         }
     }

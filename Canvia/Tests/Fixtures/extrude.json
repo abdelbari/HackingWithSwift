@@ -1,0 +1,97 @@
+{
+ "about": "3D (\"extrude\") on both phones: TextEffect.resolve's layers for each spec at a type size and ink, back to front. The block runs 0.004 x depth x type size along direction (degrees, 0 right, 90 down) in max(8, floor(depth / 2)) steps, layer k of n at k/n of the way; each layer is the side colour (the effect's colour, or the ink for Auto) darkened toward black by shading% x k/n, each channel rounded half up. Defaults: depth 40, direction 135, shading 40. `count` is how many layers, `farthest` the first drawn and `nearest` the last, under the letters; dx and dy to 4 places.",
+ "rows": [
+  {
+   "spec": {
+    "type": "extrude"
+   },
+   "fontSize": 100,
+   "ink": "#1f2430",
+   "count": 20,
+   "farthest": {
+    "dx": -11.3137,
+    "dy": 11.3137,
+    "color": "#13161d"
+   },
+   "nearest": {
+    "dx": -0.5657,
+    "dy": 0.5657,
+    "color": "#1e232f"
+   }
+  },
+  {
+   "spec": {
+    "type": "extrude",
+    "depth": 100,
+    "direction": 0,
+    "shading": 0,
+    "color": "#ff0000"
+   },
+   "fontSize": 50,
+   "ink": "#1f2430",
+   "count": 50,
+   "farthest": {
+    "dx": 20.0,
+    "dy": 0.0,
+    "color": "#ff0000"
+   },
+   "nearest": {
+    "dx": 0.4,
+    "dy": 0.0,
+    "color": "#ff0000"
+   }
+  },
+  {
+   "spec": {
+    "type": "extrude",
+    "depth": 10,
+    "direction": 90,
+    "shading": 100,
+    "color": "#336699"
+   },
+   "fontSize": 100,
+   "ink": "#000000",
+   "count": 8,
+   "farthest": {
+    "dx": 0.0,
+    "dy": 4.0,
+    "color": "#000000"
+   },
+   "nearest": {
+    "dx": 0.0,
+    "dy": 0.5,
+    "color": "#2d5986"
+   }
+  },
+  {
+   "spec": {
+    "type": "extrude",
+    "depth": 0
+   },
+   "fontSize": 100,
+   "ink": "#1f2430",
+   "count": 0
+  },
+  {
+   "spec": {
+    "type": "extrude",
+    "depth": 23,
+    "direction": -45,
+    "shading": 50
+   },
+   "fontSize": 40,
+   "ink": "#ffffff",
+   "count": 11,
+   "farthest": {
+    "dx": 2.6022,
+    "dy": -2.6022,
+    "color": "#808080"
+   },
+   "nearest": {
+    "dx": 0.2366,
+    "dy": -0.2366,
+    "color": "#f3f3f3"
+   }
+  }
+ ]
+}

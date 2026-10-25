@@ -188,7 +188,7 @@ enum PptxExporter {
 
     /// The effects styled text carries over as DrawingML; the rest —
     /// splice, echo, glitch — stay pictures.
-    static let styledEffects: Set<TextEffect> = [.none, .shadow, .lift, .outline, .outlined, .neon, .highlight]
+    static let styledEffects: Set<TextEffect> = [.none, .shadow, .lift, .outline, .outlined, .extrude, .neon, .highlight]
 
     /// What `el` becomes, by the rule the Android twin's kindOf follows:
     /// anything blended with what is under it, and any cell of a table or
@@ -542,6 +542,11 @@ enum PptxExporter {
                     poured = PouredPhoto(embed: rels.add("image", "../media/\(part.name)"), size: size)
                 }
                 let average = el.textFill?.isPhoto == true ? el.textFill?.src.flatMap(photos.average) : nil
+                // 3D's block behind the words, which stay editable.
+                if TextEffect.from(el.effect) == .extrude {
+                    let block = extrusionXML(el, nextId: &nextId, frame: frame, ink: average)
+                    if !block.isEmpty { shapes.append(block) }
+                }
                 shapes.append(textXML(el, id: id, link: link, design: design, slides: slides, frame: frame, rels: &rels,
                                       photo: poured, ink: average))
             case .shape(let preset):
@@ -797,6 +802,30 @@ enum PptxExporter {
             nextId += 1
         }
         return out
+    }
+
+    /// 3D's block behind a text box: one group of a free-form shape a layer
+    /// (TextEffect.extrusion), back to front, each the letters' outline
+    /// (TextOutliner) moved along and filled in its layer's colour, set
+    /// where the words start in the box — the face over it is the text box
+    /// (textXML), its words still editable. Empty when there is no block.
+    private static func extrusionXML(_ el: Element, nextId: inout Int, frame: Frame, ink: String?) -> String {
+        var drawn = el
+        if el.fitText == true, !TextOutliner.followsAPath(el) { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
+        guard let outline = TextOutliner.inkedPaths(for: drawn)?.whole else { return "" }
+        let fx = TextEffect.resolve(el.effect, fontSize: drawn.fontSize ?? 42, ink: ink ?? el.color ?? "#1f2430")
+        guard !fx.copies.isEmpty else { return "" }
+        let top = min(max(SVGExporter.textTop(el), 0), el.h)
+        var out = groupXML("\(el.id) 3D", id: nextId, members: [el], frame: frame)
+        nextId += 1
+        for (k, layer) in fx.copies.enumerated() {
+            var move = CGAffineTransform(translationX: CGFloat(layer.dx), y: CGFloat(layer.dy + top))
+            guard let moved = outline.copy(using: &move) else { continue }
+            let properties = "<p:cNvPr id=\"\(nextId)\" name=\"\(SVGExporter.escape(el.id)) 3D \(k + 1)\"/>"
+            nextId += 1
+            out += outlineXML(el, properties: properties, steps: steps(of: moved), colour: layer.color, frame: frame)
+        }
+        return out + "</p:grpSp>"
     }
 
     /// Warped words as their outlines, a shape for each colour piece

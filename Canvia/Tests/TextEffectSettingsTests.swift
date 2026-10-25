@@ -172,13 +172,69 @@ final class TextEffectSettingsTests: XCTestCase {
         XCTAssertEqual(round.radius(barHeight: 40), 20, accuracy: 0.001)
     }
 
+    /// Shared rows (Fixtures/extrude.json): 3D's layers, back to front.
+    func testExtrudeLayersAreTheSharedRows() throws {
+        let fixture = try SharedFixture.object("extrude")
+        let rows = try XCTUnwrap(fixture["rows"] as? [[String: Any]])
+        XCTAssertFalse(rows.isEmpty)
+        for row in rows {
+            let spec = try JSONDecoder().decode(TextEffectSpec.self, from: SharedFixture.encoded(XCTUnwrap(row["spec"])))
+            let size = try XCTUnwrap(row["fontSize"] as? Double)
+            let ink = try XCTUnwrap(row["ink"] as? String)
+            let fx = TextEffect.resolve(spec, fontSize: size, ink: ink)
+            XCTAssertEqual(fx.copies.count, row["count"] as? Int, "\(spec)")
+            for (key, layer) in [("farthest", fx.copies.first), ("nearest", fx.copies.last)] {
+                guard let expected = row[key] as? [String: Any] else { continue }
+                let got = try XCTUnwrap(layer)
+                XCTAssertEqual(got.dx, try XCTUnwrap(expected["dx"] as? Double), accuracy: 0.001, "\(spec) \(key)")
+                XCTAssertEqual(got.dy, try XCTUnwrap(expected["dy"] as? Double), accuracy: 0.001, "\(spec) \(key)")
+                XCTAssertEqual(got.color, expected["color"] as? String, "\(spec) \(key)")
+                XCTAssertEqual(got.alpha, 1)
+            }
+        }
+    }
+
+    func testExtrudeSettingsAndColour() throws {
+        let effect = TextEffect.extrude
+        XCTAssertEqual(effect.params, [.depth, .direction, .shading])
+        XCTAssertEqual(effect.defaultValue(.depth), 40)
+        XCTAssertEqual(effect.defaultValue(.direction), 135)
+        XCTAssertEqual(effect.defaultValue(.shading), 40)
+        XCTAssertTrue(effect.takesColor)
+        XCTAssertNil(effect.defaultColor, "Auto: the ink, darkened")
+        XCTAssertTrue(effect.takesGradient)
+        // Settings at their defaults are left out; others are written.
+        var spec = TextEffectSpec(type: "extrude")
+        spec.adjust(.depth, to: 40)
+        spec.adjust(.shading, to: 70)
+        let written = try keys(spec)
+        XCTAssertNil(written["depth"])
+        XCTAssertEqual(written["shading"] as? Double, 70)
+        let back = try JSONDecoder().decode(TextEffectSpec.self, from: JSONEncoder().encode(spec))
+        XCTAssertEqual(back, spec)
+    }
+
+    /// The contrast check reads the front face, not the block behind it:
+    /// white letters on a white page fall short however dark their 3D.
+    func testContrastIsCheckedAgainstTheFrontFace() {
+        var el = Element.text("Sale", fontSize: 20, w: 200)
+        el.color = "#ffffff"
+        el.effect = TextEffectSpec(type: "extrude", color: "#000000")
+        var design = Design(title: "Poster", width: 400, height: 400)
+        design.pages = [Page(background: .color("#ffffff"), elements: [el])]
+        let findings = ContrastAudit.audit(design)
+        XCTAssertEqual(findings.map(\.elementId), [el.id])
+        XCTAssertEqual(findings.first?.ratio ?? 0, 1, accuracy: 0.01)
+    }
+
     // MARK: names and order
 
     func testTilesAreInTheTwinsOrderAndGlitchIsCalledGlitch() {
         XCTAssertEqual(TextEffect.allCases.map(\.displayName),
-                       ["None", "Shadow", "Lift", "Hollow", "Outline", "Splice", "Echo", "Glitch", "Neon", "Highlight"])
+                       ["None", "Shadow", "Lift", "Hollow", "Outline", "Splice", "Echo", "3D", "Glitch", "Neon", "Highlight"])
         XCTAssertEqual(TextEffect.allCases.map(\.rawValue),
-                       ["none", "shadow", "lift", "outline", "outlined", "splice", "echo", "glitch", "neon", "highlight"])
+                       ["none", "shadow", "lift", "outline", "outlined", "splice", "echo", "extrude", "glitch", "neon",
+                        "highlight"])
         XCTAssertEqual(TextEffect.glitch.rawValue, "glitch")
         XCTAssertEqual(TextEffect.echo.rawValue, "echo")
     }

@@ -12,7 +12,8 @@ enum TextEffect: String, CaseIterable, Identifiable {
     // In the picker's order. "outline" is Hollow, the letters stroked and
     // left empty; "outlined" is Outline, filled letters with a coloured
     // stroke round them, its tile after Hollow's as on the Android twin.
-    case none, shadow, lift, outline, outlined, splice, echo, glitch, neon, highlight
+    // "extrude" is 3D, a solid block behind the letters, after Echo.
+    case none, shadow, lift, outline, outlined, splice, echo, extrude, glitch, neon, highlight
 
     var id: String { rawValue }
 
@@ -25,6 +26,7 @@ enum TextEffect: String, CaseIterable, Identifiable {
         case .outlined: return tr("Outline")
         case .splice: return tr("Splice")
         case .echo: return tr("Echo")
+        case .extrude: return tr("3D")
         case .glitch: return tr("Glitch")
         case .neon: return tr("Neon")
         case .highlight: return tr("Highlight")
@@ -56,6 +58,7 @@ enum TextEffect: String, CaseIterable, Identifiable {
         case .outline, .outlined: return [.thickness]
         case .splice: return [.thickness, .offset, .direction]
         case .echo, .glitch: return [.offset, .direction]
+        case .extrude: return [.depth, .direction, .shading]
         case .highlight: return [.spread, .roundness, .transparency]
         }
     }
@@ -68,6 +71,8 @@ enum TextEffect: String, CaseIterable, Identifiable {
         switch (self, param) {
         case (.shadow, .direction), (.splice, .direction), (.echo, .direction): return 45
         case (.glitch, .direction): return 0
+        case (.extrude, .depth), (.extrude, .shading): return 40
+        case (.extrude, .direction): return 135
         case (.shadow, .transparency): return 45
         case (.highlight, .roundness), (.highlight, .transparency): return 0
         default: return 50
@@ -76,7 +81,7 @@ enum TextEffect: String, CaseIterable, Identifiable {
 
     /// Whether the effect takes a colour, and whether it has one of its own
     /// (shadow, glitch) or follows the text when none is set ("Auto").
-    var takesColor: Bool { [.shadow, .outlined, .splice, .echo, .glitch, .highlight].contains(self) }
+    var takesColor: Bool { [.shadow, .outlined, .splice, .echo, .extrude, .glitch, .highlight].contains(self) }
     var defaultColor: String? {
         switch self {
         case .shadow, .outlined: return "#000000"
@@ -88,10 +93,10 @@ enum TextEffect: String, CaseIterable, Identifiable {
 
     /// Whether gradient letters show through the effect: the plain
     /// letters, and those drawn filled under a shadow, a lift, an outline,
-    /// a glow or a highlight bar — not Hollow, Splice, Echo or Glitch,
-    /// which draw the letters as strokes or doubles. The same set on both
-    /// phones.
-    var takesGradient: Bool { [.none, .shadow, .lift, .outlined, .neon, .highlight].contains(self) }
+    /// 3D's block, a glow or a highlight bar — on the front face only — not
+    /// Hollow, Splice, Echo or Glitch, which draw the letters as strokes or
+    /// doubles. The same set on both phones.
+    var takesGradient: Bool { [.none, .shadow, .lift, .outlined, .extrude, .neon, .highlight].contains(self) }
 
     /// Whether a photo in the letters shows through the effect: the same
     /// set as takesGradient. Effects that need a solid ink under a photo
@@ -173,6 +178,9 @@ enum TextEffect: String, CaseIterable, Identifiable {
                 ResolvedEffect.Copy(dx: 2 * step.dx, dy: 2 * step.dy, color: tint, alpha: 0.25),
                 ResolvedEffect.Copy(dx: step.dx, dy: step.dy, color: tint, alpha: 0.5),
             ]
+        case .extrude:
+            out.copies = extrusion(depth: v(.depth), direction: v(.direction), shading: v(.shading),
+                                   side: spec?.color ?? ink, fontSize: fs)
         case .highlight:
             out.pad = 0.18 * fs * v(.spread) / 50
             out.roundness = v(.roundness) / 100
@@ -181,12 +189,50 @@ enum TextEffect: String, CaseIterable, Identifiable {
         }
         return out
     }
+
+    // MARK: 3D
+
+    /// 3D's layers, back to front, the rule both phones share
+    /// (Fixtures/extrude.json): the block runs 0.004 × depth × the type
+    /// size along `direction` (degrees, 0 pointing right, 90 down) in
+    /// max(8, ⌊depth / 2⌋) steps, layer k of n at k/n of the way — none at
+    /// no depth. Each layer is the side colour (`side`: the effect's own,
+    /// or the ink for Auto) darkened toward black by shading% × k/n, so the
+    /// nearest is almost the side colour and the farthest darker by all of
+    /// shading; each channel rounded half up, as "#rrggbb". The letters are
+    /// drawn over the last of them, in their own fill.
+    static func extrusion(depth: Double, direction: Double, shading: Double, side: String,
+                          fontSize fs: Double) -> [ResolvedEffect.Copy] {
+        guard depth > 0, fs > 0 else { return [] }
+        let total = 0.004 * depth * fs
+        let steps = max(8, Int((depth / 2).rounded(.down)))
+        let angle = direction * .pi / 180
+        let rgb = channels(side)
+        return (1...steps).reversed().map { k -> ResolvedEffect.Copy in
+            let share = Double(k) / Double(steps)
+            let along = total * share
+            let dark = min(max(shading / 100 * share, 0), 1)
+            let mixed = rgb.map { min(255, max(0, Int(floor(Double($0) * (1 - dark) + 0.5)))) }
+            let hex = String(format: "#%02x%02x%02x", mixed[0], mixed[1], mixed[2])
+            return ResolvedEffect.Copy(dx: along * cos(angle), dy: along * sin(angle), color: hex, alpha: 1)
+        }
+    }
+
+    /// "#rgb", "#rrggbb" or "#rrggbbaa" as its red, green and blue, 0–255;
+    /// anything else is black.
+    static func channels(_ hex: String) -> [Int] {
+        var digits = hex.trimmingCharacters(in: .whitespaces)
+        if digits.hasPrefix("#") { digits.removeFirst() }
+        if digits.count == 3 { digits = digits.map { "\($0)\($0)" }.joined() }
+        guard digits.count >= 6, let value = UInt32(digits.prefix(6), radix: 16) else { return [0, 0, 0] }
+        return [Int((value >> 16) & 0xff), Int((value >> 8) & 0xff), Int(value & 0xff)]
+    }
 }
 
 /// The numeric settings, in the Android twin's words. Each runs 0–100
 /// but direction, which is degrees from pointing right, 90 pointing down.
 enum TextEffectParam: String, CaseIterable, Identifiable {
-    case offset, direction, blur, transparency, intensity, thickness, roundness, spread
+    case offset, direction, blur, transparency, intensity, thickness, roundness, spread, depth, shading
 
     var id: String { rawValue }
 
@@ -200,6 +246,8 @@ enum TextEffectParam: String, CaseIterable, Identifiable {
         case .thickness: return tr("Thickness")
         case .roundness: return tr("Roundness")
         case .spread: return tr("Spread")
+        case .depth: return tr("Depth")
+        case .shading: return tr("Shading")
         }
     }
 
@@ -210,7 +258,8 @@ enum TextEffectParam: String, CaseIterable, Identifiable {
 /// drawn type size. Which fields mean anything depends on the type:
 /// shadow, lift and neon cast (dx, dy, blur, color, alpha); outline and
 /// splice stroke; outlined strokes in a colour (stroke, color) under the
-/// filled letters; splice, glitch and echo lay copies behind the letters;
+/// filled letters; splice, glitch and echo lay copies behind the letters,
+/// and 3D its block's layers, back to front;
 /// highlight pads its bars, rounds them and tints them (color, alpha).
 struct ResolvedEffect: Equatable {
     /// A copy of the letters, shifted, in a colour at an alpha.
@@ -262,7 +311,7 @@ struct TextEffectModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         switch effect {
-        case .none, .outline, .outlined, .splice, .echo, .highlight:
+        case .none, .outline, .outlined, .splice, .echo, .extrude, .highlight:
             // outline/outlined/splice/echo/highlight are handled inside TextElementView
             // (they change how the string itself is drawn).
             content
