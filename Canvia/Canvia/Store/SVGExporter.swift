@@ -248,7 +248,7 @@ enum SVGExporter {
             if el.edgeOnly { return shape }
             return shape + shapeWordsMarkup(el, index: index, standIns: standIns, defs: &defs)
         case .text: return textMarkup(el, index: index, standIns: standIns, defs: &defs)
-        case .line: return lineMarkup(el)
+        case .line: return labelledLineMarkup(el, index: index, standIns: standIns, defs: &defs)
         case .image:
             if let code = CodeGenerator.vector(el) {
                 return codeMarkup(el, code) + logoMarkup(el, code, standIns: standIns)
@@ -582,9 +582,11 @@ enum SVGExporter {
     }
 
     /// The marks behind highlighted words (TextHighlights), as rounded
-    /// rects in the box's space, a see-through marker as a fill-opacity.
+    /// rects in the box's space, a see-through marker as a fill-opacity;
+    /// for bent words, Highlight's band and each word's own as paths
+    /// (bandMarkup).
     static func highlightMarkup(_ drawn: Element, top: Double) -> String {
-        guard !TextOutliner.followsAPath(drawn) else { return "" }
+        guard !TextOutliner.followsAPath(drawn) else { return bandMarkup(drawn) }
         return TextHighlights.rects(for: drawn, width: drawn.w, top: top).map { mark in
             let paint = TextHighlights.split(mark.color)
             let opacity = paint.alpha < 1 ? " fill-opacity=\"\(num(paint.alpha))\"" : ""
@@ -592,6 +594,31 @@ enum SVGExporter {
             return "<rect x=\"\(num(mark.x))\" y=\"\(num(mark.y))\" width=\"\(num(mark.w))\" " +
                 "height=\"\(num(mark.h))\" rx=\"\(num(corner))\" fill=\"\(escape(paint.color))\"\(opacity)/>"
         }.joined()
+    }
+
+    /// Bent words' bands (TextPaths.band), as the canvas draws them under
+    /// the letters: Highlight's in its colour, then each word's own marker.
+    static func bandMarkup(_ el: Element) -> String {
+        func paths(_ bands: [CGPath], _ colour: String) -> String {
+            let paint = TextHighlights.split(colour)
+            let opacity = paint.alpha < 1 ? " fill-opacity=\"\(num(paint.alpha))\"" : ""
+            return bands.map { "<path d=\"\(pathData($0, dx: 0, dy: 0))\" fill=\"\(escape(paint.color))\"\(opacity)/>" }.joined()
+        }
+        var out = ""
+        if TextEffect.from(el.effect) == .highlight {
+            let fx = TextEffect.resolve(el.effect, fontSize: el.fontSize ?? 42, ink: textInk(el))
+            let bands = TextPaths.band(el, spread: TextEffect.value(el.effect, .spread, for: .highlight),
+                                       roundness: TextEffect.value(el.effect, .roundness, for: .highlight), range: nil)
+            out += paths(bands, fx.alpha < 1 ? fx.color + String(format: "%02x", Int((fx.alpha * 255).rounded())) : fx.color)
+        }
+        let em = el.fontSize ?? 42
+        for span in el.liveSpans {
+            guard let colour = span.highlight, span.end > span.start else { continue }
+            let bands = TextPaths.band(el, pad: em * Spans.highlightPadEm, corner: em * Spans.highlightRadiusEm,
+                                       range: NSRange(location: span.start, length: span.end - span.start))
+            out += paths(bands, colour)
+        }
+        return out
     }
 
     /// The ink text is written in: its colour, or for letters full of a
@@ -642,6 +669,39 @@ enum SVGExporter {
         case "bottom": return slack
         default: return 0
         }
+    }
+
+    /// A line with its label (LineLabels) as LineElementView draws it: the
+    /// stroke under a mask that cuts the box round the words out of it, and
+    /// the words' outlines over it — both upright on the page, undoing the
+    /// line's own turn and flip about where the words sit. A line with no
+    /// label is lineMarkup's.
+    private static func labelledLineMarkup(_ el: Element, index: Int, standIns: StandIns? = nil,
+                                           defs: inout [String]) -> String {
+        let line = lineMarkup(el)
+        guard let words = LineLabels.textElement(for: el) else { return line }
+        let centre = LineRoutes.toLocal(el, CGPoint(x: words.x + words.w / 2, y: words.y + words.h / 2))
+        let px = el.x + Double(centre.x), py = el.y + Double(centre.y)
+        let upright = "translate(\(num(px)) \(num(py))) scale(\(el.flipH ? -1 : 1) \(el.flipV ? -1 : 1)) " +
+            "rotate(\(num(-el.rotation))) translate(\(num(-px)) \(num(-py)))"
+        var stroke = line
+        if LineLabels.gapRect(of: el) != nil {
+            let id = "linegap\(index)"
+            let pad = LineLabels.gapPad
+            let reach = max(el.w, el.h) + words.w + words.h + 100
+            let page = "x=\"\(num(el.x - reach))\" y=\"\(num(el.y - reach))\" " +
+                "width=\"\(num(el.w + 2 * reach))\" height=\"\(num(el.h + 2 * reach))\""
+            let hole = "x=\"\(num(px - words.w / 2 - pad))\" y=\"\(num(py - words.h / 2 - pad))\" " +
+                "width=\"\(num(words.w + 2 * pad))\" height=\"\(num(words.h + 2 * pad))\""
+            defs.append("<mask id=\"\(id)\" maskUnits=\"userSpaceOnUse\" \(page)><rect \(page) fill=\"white\"/>" +
+                        "<rect \(hole) fill=\"black\" transform=\"\(upright)\"/></mask>")
+            stroke = "<g mask=\"url(#\(id))\">" + line + "</g>"
+        }
+        var placed = words
+        placed.x = px - words.w / 2
+        placed.y = py - words.h / 2
+        let text = textMarkup(placed, index: index, standIns: standIns, defs: &defs)
+        return stroke + "<g transform=\"\(upright)\">" + text + "</g>"
     }
 
     /// A line as LineElementView draws it: round-capped, dashed 3:2 or dotted

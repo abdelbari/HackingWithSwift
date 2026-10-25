@@ -7232,6 +7232,15 @@
     "ja": "戻る",
     "pt-BR": "Voltar"
   },
+  "Back to school": {
+    "ar": "العودة إلى المدرسة",
+    "de": "Schulanfang",
+    "es": "Vuelta al cole",
+    "fr": "Rentrée scolaire",
+    "it": "Ritorno a scuola",
+    "ja": "新学期",
+    "pt-BR": "Volta às aulas"
+  },
   "Back to sizes": {
     "ar": "الرجوع إلى الأحجام",
     "de": "Zurück zu den Größen",
@@ -7597,6 +7606,15 @@
     "it": "Curva di più",
     "ja": "もっと曲げる",
     "pt-BR": "Curvar mais"
+  },
+  "Birthday": {
+    "ar": "عيد ميلاد",
+    "de": "Geburtstag",
+    "es": "Cumpleaños",
+    "fr": "Anniversaire",
+    "it": "Compleanno",
+    "ja": "誕生日",
+    "pt-BR": "Aniversário"
   },
   "Black": {
     "ar": "أسود",
@@ -8165,6 +8183,15 @@
     "ja": "ブランドの写真とグラフィックは、どのデザインでも「追加 ▸ ブランド」にあります。",
     "pt-BR": "Fotos e gráficos da marca ficam em Adicionar ▸ Marca, em todos os designs."
   },
+  "Break line behind text": {
+    "ar": "قطع الخط خلف النص",
+    "de": "Linie hinter dem Text unterbrechen",
+    "es": "Cortar la línea detrás del texto",
+    "fr": "Couper la ligne derrière le texte",
+    "it": "Interrompi la linea dietro il testo",
+    "ja": "テキストの背後で線を切る",
+    "pt-BR": "Interromper a linha atrás do texto"
+  },
   "Breathe": {
     "ar": "تنفّس",
     "de": "Atmen",
@@ -8458,6 +8485,15 @@
     "it": "Esplosione",
     "ja": "バースト",
     "pt-BR": "Explosão"
+  },
+  "Business": {
+    "ar": "الأعمال",
+    "de": "Business",
+    "es": "Negocios",
+    "fr": "Entreprise",
+    "it": "Business",
+    "ja": "ビジネス",
+    "pt-BR": "Negócios"
   },
   "CMYK": {
     "ar": "CMYK",
@@ -13451,6 +13487,15 @@
     "ja": "エディトリアル",
     "pt-BR": "Editorial"
   },
+  "Education": {
+    "ar": "التعليم",
+    "de": "Bildung",
+    "es": "Educación",
+    "fr": "Éducation",
+    "it": "Istruzione",
+    "ja": "教育",
+    "pt-BR": "Educação"
+  },
   "Effect": {
     "ar": "التأثير",
     "de": "Effekt",
@@ -14839,6 +14884,15 @@
     "it": "Adatta il testo alla casella",
     "ja": "文字をボックスに合わせる",
     "pt-BR": "Ajustar fonte à caixa"
+  },
+  "Fitness": {
+    "ar": "اللياقة البدنية",
+    "de": "Fitness",
+    "es": "Fitness",
+    "fr": "Fitness",
+    "it": "Fitness",
+    "ja": "フィットネス",
+    "pt-BR": "Fitness"
   },
   "Fitted to %@ landscape.": {
     "ar": "تمت الملاءمة إلى %@ أفقي.",
@@ -18149,6 +18203,15 @@
     "ja": "線の太さ",
     "pt-BR": "Espessura da linha"
   },
+  "Line, labelled %@": {
+    "ar": "خط، بعنوان %@",
+    "de": "Linie, beschriftet mit %@",
+    "es": "Línea, con la etiqueta %@",
+    "fr": "Ligne, étiquetée %@",
+    "it": "Linea, con etichetta %@",
+    "ja": "線、ラベル: %@",
+    "pt-BR": "Linha, com o rótulo %@"
+  },
   "Linear": {
     "ar": "خطي",
     "de": "Linear",
@@ -19438,6 +19501,15 @@
     "it": "Festa della mamma",
     "ja": "母の日",
     "pt-BR": "Dia das Mães"
+  },
+  "Mother's/Father's Day": {
+    "ar": "عيد الأم/عيد الأب",
+    "de": "Mutter-/Vatertag",
+    "es": "Día de la Madre/del Padre",
+    "fr": "Fête des mères/des pères",
+    "it": "Festa della mamma/del papà",
+    "ja": "母の日・父の日",
+    "pt-BR": "Dia das Mães/dos Pais"
   },
   "Motion": {
     "ar": "الحركة",
@@ -24710,6 +24782,15 @@
     "ja": "放射",
     "pt-BR": "Radial"
   },
+  "Ramadan/Eid": {
+    "ar": "رمضان/العيد",
+    "de": "Ramadan/Eid",
+    "es": "Ramadán/Eid",
+    "fr": "Ramadan/Aïd",
+    "it": "Ramadan/Eid",
+    "ja": "ラマダン・イード",
+    "pt-BR": "Ramadã/Eid"
+  },
   "Ratio %@": {
     "ar": "النسبة %@",
     "de": "Verhältnis %@",
@@ -24790,6 +24871,15 @@
     "it": "Leggi questa pagina ad alta voce",
     "ja": "このページを読み上げる",
     "pt-BR": "Ler esta página em voz alta"
+  },
+  "Real estate": {
+    "ar": "العقارات",
+    "de": "Immobilien",
+    "es": "Inmobiliaria",
+    "fr": "Immobilier",
+    "it": "Immobiliare",
+    "ja": "不動産",
+    "pt-BR": "Imóveis"
   },
   "Rearrange to fit": {
     "ar": "إعادة الترتيب للملاءمة",
@@ -33499,6 +33589,15 @@
     "it": "Usato nel tuo Brand Kit.",
     "ja": "ブランドキットで使用中です。",
     "pt-BR": "Usado no seu kit de marca."
+  },
+  "Valentine's": {
+    "ar": "عيد الحب",
+    "de": "Valentinstag",
+    "es": "San Valentín",
+    "fr": "Saint-Valentin",
+    "it": "San Valentino",
+    "ja": "バレンタイン",
+    "pt-BR": "Dia dos Namorados"
   },
   "Valentine's Day": {
     "ar": "عيد الحب",

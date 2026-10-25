@@ -10,10 +10,15 @@ same elements on both phones.
 
 The file is a list of combinations, one a line:
 
-    {"id", "name", "tags": [...], "category", "w": <width>, "elements": [...]}
+    {"id", "name", "tags": [...], "category", "w": <width>, "elements": [...], "occasion"?}
 
-the category one of Headline, Sale, Quote, Event, Wedding, Social, Retro,
-Minimal, Badge, Kids and Animated, the chips Add > Text browses them by.
+the category one of CATEGORIES, the chips Add > Text browses them by: the
+first ten, then occasions (Birthday, Christmas, Halloween…) and everyday
+ones (Business, Education, Food, Travel, Fitness, Real estate), about
+fifteen each, and Animated last. A combination for a day the calendar
+knows (templates/occasions.json) names it as "occasion", the id Add >
+Text's Coming up row finds it by; "tags" are words a search finds it by.
+Every combination passes check() before the file is written.
 An Animated one's texts carry the design file's `animation` — {kind, delay,
 duration} and `by` (letter, word or line) for a kind that moves units one
 by one — and some an `exitAnimation`, every kind one ElementAnimation
@@ -30,6 +35,7 @@ heading over a line of body text, 14 apart.
 """
 import json
 import math
+import re
 import pathlib
 import sys
 
@@ -98,7 +104,12 @@ def stacked(w, parts):
     return out
 
 
-CATEGORIES = ['Headline', 'Sale', 'Quote', 'Event', 'Wedding', 'Social', 'Retro', 'Minimal', 'Badge', 'Kids', 'Animated']
+CATEGORIES = [
+    'Headline', 'Sale', 'Quote', 'Event', 'Wedding', 'Social', 'Retro', 'Minimal', 'Badge', 'Kids',
+    'Birthday', 'Christmas', 'Halloween', "Valentine's", 'Easter', "Mother's/Father's Day", 'Graduation', 'Back to school',
+    'Black Friday', 'New Year', 'Ramadan/Eid', 'Diwali', 'Thanksgiving', 'Business', 'Education', 'Food', 'Travel',
+    'Fitness', 'Real estate', 'Animated',
+]
 
 # The first thirty's categories; every one after names its own.
 FIRST = {
@@ -350,7 +361,7 @@ def build():
         (0, lambda y: text('PARTY', y, 90, 'bebas-neue', 400, ls=30, lh=1.05)),
         (10, lambda y: text('Costumes required', y, 34, 'permanent-marker', 400, color='#7C3AED')),
     ])))
-    return combos + more() + shaped() + animated()
+    return combos + more() + shaped() + animated() + occasions()
 
 
 # How wide a letter of each face runs, in ems, roughly — enough to set a
@@ -421,7 +432,7 @@ def panel(cid, name, category, tags, w, fill, parts, radius=24, pad=48):
     return combo(cid, name, tags, w, [shape('rect', 0, 0, w, num(h), fill, radius=radius)] + body, category)
 
 
-def badge(cid, name, tags, d, fill, top, big, bottom, ink='#FFFFFF', ring=None):
+def badge(cid, name, tags, d, fill, top, big, bottom, ink='#FFFFFF', ring=None, category='Badge'):
     """A round badge [d] across: a small line, a big one and a small one,
     centred in it."""
     els = [shape('circle', 0, 0, d, d, fill)]
@@ -437,7 +448,7 @@ def badge(cid, name, tags, d, fill, top, big, bottom, ink='#FFFFFF', ring=None):
     for el in body:
         el['x'] = num(el['x'] + (d - inner) / 2)
         el['y'] = num(el['y'] + (d - tall) / 2)
-    return combo(cid, name, tags, d, els + body, 'Badge')
+    return combo(cid, name, tags, d, els + body, category)
 
 
 def anim(kind, by=None, delay=0, duration=0.8):
@@ -1087,13 +1098,599 @@ def more():
     return out
 
 
+# MARK: occasions, business and the rest
+
+# The categories keyed to the calendar's occasions (templates/occasions.json)
+# and the everyday ones after them, about fifteen each. Each set is a
+# category, the occasion id its combinations carry (none for one the
+# calendar has no day for), its colours (ink, accent, second accent, a
+# light tint), its faces (display, script, body), three words a list of it
+# shows, and fifteen (title, line under it, small label) — every one laid
+# out by one of fifteen recipes in turn, so each set has the newer keys
+# among it: 3D, gradient letters, warps and curves, a highlighted, capital,
+# raised or larger word, and lists.
+OCCASION_SETS = [
+    ('Birthday', None, ('#1F2937', '#EC4899', '#F59E0B', '#FCE7F3'), ('bungee', 'pacifico', 'poppins'), ('Cake', 'Games', 'Music'), [
+        ('Happy Birthday', 'Make a wish and blow', 'Party time'),
+        ('Party Time', 'Saturday at 4 pm', 'You are invited'),
+        ('Thirty & Flirty', 'Drinks on the terrace', 'Turning 30'),
+        ('Sweet Sixteen', 'A night to remember', 'Celebrate'),
+        ('Birthday Girl', 'Cake, candles, confetti', 'All about her'),
+        ('Level Up', 'Another year unlocked', 'Game on'),
+        ('Best Day Ever', 'Join us for cake', 'Save the date'),
+        ('Oh Baby, One', 'First birthday bash', 'Turning 1st'),
+        ('Fabulous Fifty', 'Still got it', 'Since 1977'),
+        ('Make A Wish', 'Candles at seven', 'Birthday'),
+        ('Cheers To You', 'Raise a glass tonight', 'Toast'),
+        ('Surprise!', "Shh, don't tell", 'Secret party'),
+        ('Hip Hip Hooray', 'Games and goodie bags', 'Kids party'),
+        ('Born To Shine', 'Glitter required', 'Sparkle'),
+        ('Golden Birthday', 'Gold on the 21st', 'Golden'),
+    ]),
+    ('Christmas', 'christmas', ('#14532D', '#DC2626', '#CA8A04', '#FEF3C7'), ('playfair-display', 'dancing-script', 'lato'), ('Carols', 'Cocoa', 'Gifts'), [
+        ('Merry Christmas', 'Peace, love and joy', 'Season greetings'),
+        ('Ho Ho Ho', 'Santa stops here', 'North Pole'),
+        ('Jingle All The Way', 'Festive fair this Friday', 'Christmas market'),
+        ('Season’s Greetings', 'From all of us', 'Happy holidays'),
+        ('Deck The Halls', 'Wreaths and garlands', 'Workshop'),
+        ('Silent Night', 'Candlelit carols at eight', 'Concert'),
+        ('Let It Snow', 'Cosy nights ahead', 'Winter'),
+        ('Christmas Eve', 'Dinner at seven', 'December 24th'),
+        ('Festive Feast', 'Turkey and all the trimmings', 'Menu'),
+        ('Holiday Sale', 'Gifts under £20', 'Up to 40% off'),
+        ('Joy To The World', 'Carol service', 'St Mary’s'),
+        ('Elf Yourself', 'Office party', 'Dress up'),
+        ('Warm Wishes', 'Thinking of you', 'With love'),
+        ('Twelve Days', 'Of gifts and giving', 'Advent'),
+        ('Naughty Or Nice', 'Choose wisely', 'Santa says'),
+    ]),
+    ('Halloween', 'halloween', ('#111827', '#EA580C', '#7C3AED', '#FFEDD5'), ('alfa-slab-one', 'permanent-marker', 'oswald'), ('Costumes', 'Candy', 'Scares'), [
+        ('Trick Or Treat', 'Sweets at the door', 'Halloween'),
+        ('Spooky Season', 'It begins tonight', 'October'),
+        ('Monster Mash', 'Dance party at nine', 'Costumes on'),
+        ('Haunted House', 'Enter if you dare', 'Fright night'),
+        ('Boo!', 'Gotcha', 'Spooky'),
+        ('Witching Hour', 'Midnight brews', 'Coven'),
+        ('Creepy Crawly', 'Bug hunt for kids', 'Family fun'),
+        ('Pumpkin Patch', 'Pick your own', 'Farm open'),
+        ('Fright Night', 'Horror films till late', 'Movie marathon'),
+        ('Ghoul Gang', 'Squad goals', 'Costume contest'),
+        ('Eat, Drink & Be Scary', 'Halloween dinner', 'Party'),
+        ('Something Wicked', 'This way comes', 'Play'),
+        ('Hocus Pocus', 'Spells and snacks', 'Magic'),
+        ('Night Of Terror', 'Escape room', 'Book now'),
+        ('Candy Crawl', 'Main street, 5 pm', 'October 31st'),
+    ]),
+    ("Valentine's", 'valentines', ('#881337', '#E11D48', '#F472B6', '#FFE4E6'), ('abril-fatface', 'sacramento', 'raleway'), ('Roses', 'Dinner', 'Dancing'), [
+        ('Be Mine', 'Forever and always', 'Valentine'),
+        ('All You Need Is Love', 'And chocolate', 'February 14th'),
+        ('XOXO', 'Hugs and kisses', 'With love'),
+        ('Love Is In The Air', 'Dinner for two', 'Romance'),
+        ('My Valentine', 'You and me', 'Always'),
+        ('Galentine’s Day', 'Brunch with the girls', 'Friends'),
+        ('Sweetheart', 'You make my heart skip', 'Love note'),
+        ('Crazy In Love', 'Since day one', 'Couple goals'),
+        ('Love Bug', 'Bitten by you', 'Cute'),
+        ('Date Night', 'Table for two at eight', 'Reservation'),
+        ('Hearts Sale', 'Gifts she will love', '20% off'),
+        ('Cupid Called', 'He said you’re the one', 'Message'),
+        ('Lovestruck', 'Head over heels', 'Romance'),
+        ('Pure Love', 'Handmade for you', 'Gift'),
+        ('Love Letters', 'Write one today', 'Workshop'),
+    ]),
+    ('Easter', 'easter', ('#365314', '#A855F7', '#FACC15', '#F3E8FF'), ('righteous', 'satisfy', 'nunito'), ('Eggs', 'Bunnies', 'Brunch'), [
+        ('Happy Easter', 'Hop into spring', 'Spring'),
+        ('Egg Hunt', 'Sunday at ten', 'Family fun'),
+        ('Some Bunny Loves You', 'Hoppy days', 'Easter'),
+        ('He Is Risen', 'Easter Sunday service', 'Church'),
+        ('Spring Has Sprung', 'Fresh blooms', 'Garden'),
+        ('Easter Brunch', 'Hot cross buns', 'Menu'),
+        ('Hop To It', 'Sack races and games', 'Kids'),
+        ('Chocolate Eggs', 'Hand painted', 'Shop'),
+        ('Bunny Trail', 'Follow the clues', 'Treasure hunt'),
+        ('Blessed Easter', 'Peace and joy', 'Greetings'),
+        ('Egg-cellent', 'Crafts for little ones', 'Workshop'),
+        ('Spring Sale', 'Fresh deals for Easter', 'Up to 30% off'),
+        ('Hippity Hoppity', 'Easter’s on its way', 'Countdown'),
+        ('Basket Full Of Joy', 'Gifts for everyone', 'Hamper'),
+        ('Easter Parade', 'Bonnets on parade', 'Town square'),
+    ]),
+    ("Mother's/Father's Day", None, ('#1E3A8A', '#DB2777', '#0EA5E9', '#E0F2FE'), ('dm-serif-display', 'dancing-script', 'montserrat'), ('Breakfast', 'Flowers', 'Hugs'), [
+        ('Happy Mother’s Day', 'To the best mum', 'With love'),
+        ('Best Mum Ever', 'Thank you for everything', 'Mum'),
+        ('Mama Bear', 'Fierce and kind', 'Mother'),
+        ('Love You, Mum', 'Today and every day', 'Card'),
+        ('Mum’s Day Brunch', 'Book a table', 'Sunday'),
+        ('Queen Of Hearts', 'Our family’s queen', 'Mum'),
+        ('Mother Knows Best', 'Always right', 'Fact'),
+        ('Happy Father’s Day', 'To my hero', 'Dad'),
+        ('Best Dad Ever', 'Grill master', 'Dad'),
+        ('Dad Jokes', 'Loading…', 'Warning'),
+        ('My Hero', 'No cape needed', 'Dad'),
+        ('Like Father, Like Son', 'Two of a kind', 'Family'),
+        ('Gifts For Dad', 'Tools, ties, treats', 'Shop'),
+        ('Papa Bear', 'Strong and gentle', 'Father'),
+        ('Thanks, Dad', 'For every lift', 'Card'),
+    ]),
+    ('Graduation', 'graduation', ('#0F172A', '#1D4ED8', '#CA8A04', '#DBEAFE'), ('bebas-neue', 'satisfy', 'roboto'), ('Ceremony', 'Photos', 'Party'), [
+        ('Class Of 2027', 'We did it', 'Graduation'),
+        ('Congrats, Grad', 'The tassel was worth the hassle', 'Well done'),
+        ('Proud Graduate', 'The future is bright', 'Class of 2027'),
+        ('Cap & Gown', 'Ceremony at noon', 'Commencement'),
+        ('Grad Party', 'Food, music, friends', 'Join us'),
+        ('Oh, The Places', 'You’ll go', 'Next chapter'),
+        ('Nailed It', 'Diploma in hand', 'Done'),
+        ('Hello, Future', 'Goodbye, school', 'Graduate'),
+        ('Dream Big', 'The world awaits', 'Grad'),
+        ('Master’s Degree', 'Two years well spent', 'MSc'),
+        ('Valedictorian', 'Top of the class', 'Honours'),
+        ('Throw Your Caps', 'Celebrate together', 'Class photo'),
+        ('Senior Year', 'The best one yet', 'Seniors'),
+        ('PhD Done', 'Call me Doctor', 'Graduation'),
+        ('Graduation Day', 'Friday, 2 pm, main hall', 'June 1st'),
+    ]),
+    ('Back to school', None, ('#1F2937', '#DC2626', '#2563EB', '#FEF9C3'), ('alfa-slab-one', 'indie-flower', 'nunito'), ('Pencils', 'Books', 'Lunch'), [
+        ('Back To School', 'Pencils sharpened', 'September'),
+        ('First Day', 'Of second grade', 'Hello school'),
+        ('School Supplies', 'Everything on the list', 'Shop'),
+        ('Ready To Learn', 'Let’s do this', 'New term'),
+        ('Welcome Back', 'We missed you', 'Students'),
+        ('Class Rules', 'Be kind, work hard', 'Classroom'),
+        ('Homework Club', 'Mondays after class', 'Library'),
+        ('Lunch Menu', 'Pizza Friday', 'Canteen'),
+        ('Open Evening', 'Meet the teachers', 'Parents'),
+        ('Book Fair', 'Stories for every reader', 'Hall'),
+        ('Science Fair', 'Experiments on show', 'Grade 5th'),
+        ('Field Trip', 'To the museum', 'Permission slip'),
+        ('New Term', 'New goals', 'Planner'),
+        ('Teacher Of The Year', 'Thank you, Ms Lee', 'Award'),
+        ('School’s Back', 'Bus at 8:15', 'Reminder'),
+    ]),
+    ('Black Friday', 'black-friday', ('#000000', '#FACC15', '#EF4444', '#FEF9C3'), ('anton', 'permanent-marker', 'montserrat'), ('Tech', 'Fashion', 'Home'), [
+        ('Black Friday', 'Biggest sale of the year', 'Up to 70% off'),
+        ('Doorbusters', 'From 6 am', 'Limited stock'),
+        ('Deals Deals Deals', 'All weekend long', 'Shop now'),
+        ('Mega Sale', 'Everything must go', 'Black Friday'),
+        ('Sold Out Soon', 'Grab it while you can', 'Hurry'),
+        ('Friday Frenzy', 'Prices slashed', 'Today only'),
+        ('Half Off', 'Sitewide', '50% off'),
+        ('Blackout Sale', 'Lights out on prices', 'Online'),
+        ('Early Access', 'For members', 'VIP'),
+        ('Steal Of The Day', 'One deal, one day', 'Daily deal'),
+        ('Cyber Weekend', 'Black Friday to Monday', 'Online only'),
+        ('Final Hours', 'Sale ends at midnight', 'Last chance'),
+        ('Price Crash', 'Lowest of the year', 'Deals'),
+        ('Shop Small', 'Saturday too', 'Support local'),
+        ('Free Delivery', 'On every Black Friday order', 'No minimum'),
+    ]),
+    ('New Year', 'new-year', ('#111827', '#CA8A04', '#7C3AED', '#FEF9C3'), ('bebas-neue', 'sacramento', 'raleway'), ('Fireworks', 'Countdown', 'Toast'), [
+        ('Happy New Year', 'Cheers to 2027', 'Countdown'),
+        ('Hello 2027', 'Fresh start', 'New year'),
+        ('New Year’s Eve', 'Party till midnight', 'December 31st'),
+        ('Cheers!', 'To new beginnings', 'Toast'),
+        ('Countdown', '10, 9, 8…', 'Midnight'),
+        ('New Year, New Me', 'Resolutions loading', 'Goals'),
+        ('Pop The Bubbly', 'Celebrate in style', 'Party'),
+        ('Out With The Old', 'In with the new', 'Hello'),
+        ('Midnight Kiss', 'Under the fireworks', 'NYE'),
+        ('Resolutions', 'Read more, worry less', 'List'),
+        ('Ring In 2027', 'Gala dinner', 'Black tie'),
+        ('Year In Review', 'Our best moments', 'Recap'),
+        ('Fresh Start', 'January sale', 'Up to 50% off'),
+        ('Sparkle & Shine', 'Glitter dress code', 'NYE party'),
+        ('Best Is Yet To Come', 'Happy new year', 'Wishes'),
+    ]),
+    ('Ramadan/Eid', 'eid', ('#064E3B', '#CA8A04', '#0D9488', '#ECFDF5'), ('playfair-display', 'satisfy', 'lato'), ('Iftar', 'Prayer', 'Family'), [
+        ('Ramadan Kareem', 'Blessings to you', 'Ramadan'),
+        ('Eid Mubarak', 'Joy and peace', 'Eid al-Fitr'),
+        ('Iftar Night', 'Break the fast together', 'Sunset'),
+        ('Blessed Ramadan', 'Peace and reflection', 'Greetings'),
+        ('Suhoor Menu', 'Before dawn', 'Menu'),
+        ('Eid Sale', 'Gifts for the family', 'Up to 30% off'),
+        ('Moonlit Nights', 'A month of mercy', 'Ramadan'),
+        ('Eid Feast', 'Join us for lunch', 'Celebration'),
+        ('Family Iftar', 'Dates, soup and stories', 'Community'),
+        ('Happy Eid', 'From our family to yours', 'Wishes'),
+        ('Lantern Walk', 'Evening in the park', 'Kids'),
+        ('Charity Drive', 'Give what you can', 'Zakat'),
+        ('Eid Bazaar', 'Food, crafts, henna', 'Market'),
+        ('Peace & Light', 'Eid greetings', 'Card'),
+        ('Countdown To Eid', 'Three days to go', 'Soon'),
+    ]),
+    ('Diwali', 'diwali', ('#7C2D12', '#F59E0B', '#DB2777', '#FFF7ED'), ('abril-fatface', 'dancing-script', 'poppins'), ('Diyas', 'Sweets', 'Rangoli'), [
+        ('Happy Diwali', 'Festival of lights', 'Diwali'),
+        ('Shubh Deepavali', 'Light and joy', 'Greetings'),
+        ('Festival Of Lights', 'Let your light shine', 'Celebrate'),
+        ('Diwali Night', 'Dinner and dancing', 'Party'),
+        ('Diya Workshop', 'Paint your own lamps', 'Craft'),
+        ('Rangoli Contest', 'Colours on the courtyard', 'Competition'),
+        ('Sweet Treats', 'Laddoos and barfi', 'Shop'),
+        ('Diwali Sale', 'Sparkling deals', 'Up to 40% off'),
+        ('Light Up', 'Your home', 'Decor'),
+        ('Joy & Light', 'Wishing you prosperity', 'Card'),
+        ('Diwali Mela', 'Food stalls and fireworks', 'Fair'),
+        ('Lakshmi Puja', 'Evening prayers', 'Temple'),
+        ('Shine Bright', 'This Diwali', 'Wishes'),
+        ('Family Feast', 'Come hungry', 'Dinner'),
+        ('Golden Glow', 'Diwali collection', 'New'),
+    ]),
+    ('Thanksgiving', 'thanksgiving', ('#78350F', '#EA580C', '#CA8A04', '#FFEDD5'), ('roboto-slab', 'caveat', 'lato'), ('Turkey', 'Pie', 'Family'), [
+        ('Happy Thanksgiving', 'Grateful for you', 'Thanksgiving'),
+        ('Give Thanks', 'Count your blessings', 'Gratitude'),
+        ('Friendsgiving', 'Bring a dish', 'Potluck'),
+        ('Gobble Gobble', 'Turkey time', 'Dinner'),
+        ('Thankful & Blessed', 'Every single day', 'Grateful'),
+        ('Harvest Feast', 'Thursday at four', 'Family'),
+        ('Pie Contest', 'Bake your best', 'Competition'),
+        ('Turkey Trot', '5K fun run', 'November'),
+        ('Gather Together', 'Around our table', 'Welcome'),
+        ('Pass The Gravy', 'And the stuffing', 'Menu'),
+        ('Fall Harvest', 'Farm market', 'Saturday'),
+        ('Grateful Hearts', 'Food drive', 'Donate'),
+        ('Thanksgiving Menu', 'Roast, sides, dessert', 'Order now'),
+        ('Thanks A Bunch', 'From our team', 'Card'),
+        ('Leftovers Club', 'Friday sandwiches', 'Members'),
+    ]),
+    ('Business', None, ('#0F172A', '#2563EB', '#0D9488', '#E0F2FE'), ('space-grotesk', 'satisfy', 'dm-sans'), ('Strategy', 'Growth', 'Results'), [
+        ('Quarterly Review', 'Q3 results and plans', 'Report'),
+        ('We’re Hiring', 'Join a growing team', 'Careers'),
+        ('Annual Report', 'Twelve months in numbers', '2027'),
+        ('Team Meeting', 'Monday, 9 am', 'Agenda'),
+        ('Grow Your Business', 'Free workshop', 'Webinar'),
+        ('Thank You', 'For your business', 'Clients'),
+        ('Case Study', 'How we doubled sales', 'Success'),
+        ('Now Open', 'New office downtown', 'Welcome'),
+        ('Mission & Vision', 'Why we do it', 'About us'),
+        ('Key Metrics', 'Revenue up 24%', 'Dashboard'),
+        ('Pitch Deck', 'Seed round', 'Investors'),
+        ('Product Roadmap', 'What’s next', '2027'),
+        ('Employee Of The Month', 'Congratulations, Sam', 'Award'),
+        ('Business Plan', 'Goals, budget, timeline', 'Draft'),
+        ('Get In Touch', 'hello@company.com', 'Contact'),
+    ]),
+    ('Education', None, ('#1E293B', '#7C3AED', '#0EA5E9', '#EDE9FE'), ('libre-baskerville', 'caveat', 'nunito'), ('Read', 'Practise', 'Review'), [
+        ('Lesson Plan', 'Week one: fractions', 'Maths'),
+        ('Study Guide', 'Everything for the exam', 'Revision'),
+        ('Fun Facts', 'About the solar system', 'Science'),
+        ('Book Report', 'The Secret Garden', 'English'),
+        ('Spelling Bee', 'Friday afternoon', 'Contest'),
+        ('Learning Goals', 'This term we will', 'Objectives'),
+        ('History Timeline', 'Ancient Rome', 'History'),
+        ('Vocabulary', 'Word of the day', 'Language'),
+        ('Lab Safety', 'Goggles on', 'Science'),
+        ('Reading Log', 'Twenty minutes a day', 'Homework'),
+        ('Exam Tips', 'Sleep, eat, review', 'Advice'),
+        ('Online Course', 'Start learning today', 'Enrol'),
+        ('Workshop', 'Creative writing', 'Saturday'),
+        ('Certificate', 'Of achievement', 'Awarded'),
+        ('Fact Or Fiction', 'Test your knowledge', 'Quiz'),
+    ]),
+    ('Food', None, ('#422006', '#DC2626', '#16A34A', '#FEF3C7'), ('dm-serif-display', 'pacifico', 'karla'), ('Fresh', 'Local', 'Seasonal'), [
+        ('Today’s Special', 'Chef’s choice', 'Menu'),
+        ('Fresh Pasta', 'Made every morning', 'Italian'),
+        ('Taco Tuesday', 'Two for £5', 'Deal'),
+        ('Brunch Club', 'Weekends, 10 to 2', 'Café'),
+        ('Pizza Night', 'Wood-fired', 'Friday'),
+        ('Farm To Table', 'Seasonal menu', 'Restaurant'),
+        ('Sweet Tooth', 'Cakes and pastries', 'Bakery'),
+        ('Coffee Break', 'Freshly roasted', 'Espresso'),
+        ('Burger Bar', 'Smash it', 'Grill'),
+        ('Recipe', 'Lemon drizzle cake', 'Bake'),
+        ('Happy Hour', 'Five till seven', 'Drinks'),
+        ('Vegan Eats', 'Plant powered', 'Menu'),
+        ('Street Food', 'Market every Thursday', 'Food trucks'),
+        ('Sushi Night', 'All you can eat', 'Japanese'),
+        ('Chef’s Table', 'Seven courses', 'Tasting'),
+    ]),
+    ('Travel', None, ('#0C4A6E', '#0EA5E9', '#F97316', '#E0F2FE'), ('oswald', 'satisfy', 'raleway'), ('Explore', 'Relax', 'Discover'), [
+        ('Wanderlust', 'Let’s get lost', 'Travel'),
+        ('Adventure Awaits', 'Pack your bags', 'Explore'),
+        ('Road Trip', 'Coast to coast', 'Summer'),
+        ('Paradise Found', 'White sand, blue water', 'Island'),
+        ('Bon Voyage', 'Safe travels', 'Farewell'),
+        ('Explore Japan', 'Ten days, five cities', 'Itinerary'),
+        ('Mountain Escape', 'Fresh air', 'Hiking'),
+        ('City Break', 'Paris in spring', 'Weekend'),
+        ('Travel Guide', 'Where to eat and stay', 'Lisbon'),
+        ('Out Of Office', 'Back on Monday', 'Holiday'),
+        ('Passport Ready', 'Next stop: Bali', 'Departures'),
+        ('Camp Out', 'Under the stars', 'Outdoors'),
+        ('Summer Getaway', 'Book now, save 20%', 'Deals'),
+        ('Around The World', 'In eighty days', 'Journey'),
+        ('Postcards From Rome', 'Wish you were here', 'Travel diary'),
+    ]),
+    ('Fitness', None, ('#111827', '#22C55E', '#F97316', '#DCFCE7'), ('anton', 'permanent-marker', 'montserrat'), ('Warm up', 'Workout', 'Cool down'), [
+        ('No Pain, No Gain', 'Push harder', 'Motivation'),
+        ('Leg Day', 'Squats and lunges', 'Workout'),
+        ('Get Fit', 'Thirty-day challenge', 'Join now'),
+        ('Morning Yoga', 'Breathe and stretch', 'Class'),
+        ('Run Club', 'Thursdays at six', 'Running'),
+        ('Beast Mode', 'On', 'Training'),
+        ('HIIT It', '20 minutes, all out', 'Session'),
+        ('Stronger Every Day', 'Keep going', 'Progress'),
+        ('Spin Class', 'Ride the rhythm', 'Studio'),
+        ('Personal Best', 'New record', 'PB'),
+        ('Gym Opening', 'Free first week', 'Offer'),
+        ('Sweat It Out', 'Burn and build', 'Bootcamp'),
+        ('Mind & Body', 'Pilates for all', 'Wellness'),
+        ('Marathon Ready', 'Twelve-week plan', 'Training'),
+        ('Rest Day', 'Recover well', 'Self care'),
+    ]),
+    ('Real estate', None, ('#1C1917', '#0F766E', '#B45309', '#CCFBF1'), ('playfair-display', 'dancing-script', 'lato'), ('Bedrooms', 'Garden', 'Parking'), [
+        ('Just Listed', '3 bed family home', 'For sale'),
+        ('Open House', 'Sunday, 1 to 4', 'Viewing'),
+        ('Sold!', 'Congratulations to the owners', 'Success'),
+        ('For Rent', 'Two-bed city flat', 'Available now'),
+        ('Dream Home', 'Your next chapter', 'Listing'),
+        ('Price Reduced', 'Now £325,000', 'Offer'),
+        ('New Development', 'Twelve modern homes', 'Coming soon'),
+        ('Home Sweet Home', 'Welcome to your new home', 'Keys'),
+        ('Luxury Living', 'Penthouse with views', 'Exclusive'),
+        ('Under Offer', 'Similar homes wanted', 'Agent'),
+        ('Free Valuation', 'Know your home’s worth', 'Book now'),
+        ('Waterfront Villa', 'Private beach access', 'Featured'),
+        ('First-Time Buyer', 'Guide to your first home', 'Advice'),
+        ('Move-In Ready', 'Freshly renovated', 'Listing'),
+        ('Let’s Talk Homes', 'Call our team today', 'Contact'),
+    ]),
+]
+
+# The occasion each new category's combinations carry, where the calendar
+# names one; Mother's/Father's Day's each its own by its words.
+OCCASION_OF = {
+    "Mother's/Father's Day": lambda title: 'fathers-day' if any(w in title for w in ('Dad', 'Father', 'Papa')) else 'mothers-day',
+}
+
+
+# The faces cut in one weight only.
+ONE_WEIGHT = {'anton', 'bebas-neue', 'abril-fatface', 'alfa-slab-one', 'bungee', 'righteous', 'pacifico', 'sacramento',
+              'satisfy', 'permanent-marker', 'indie-flower', 'patrick-hand', 'dm-serif-display', 'shadows-into-light'}
+
+
+def slug(words):
+    out = ''.join(c.lower() if c.isalnum() else '-' for c in words.replace('’', '').replace("'", '').replace('&', 'and'))
+    while '--' in out:
+        out = out.replace('--', '-')
+    return out.strip('-')
+
+
+ORDINAL = re.compile(r'\b\d+(st|nd|rd|th)\b')
+
+
+def raised(words):
+    """A raised ordinal's letters in [words] — the 'st' of '21st' — as a
+    span of its own (Spans script super); none where there is none."""
+    m = ORDINAL.search(words)
+    return [{'start': m.start(1), 'end': m.end(1), 'script': 'super'}] if m else []
+
+
+def recipe(k, cid, name, category, tags, colours, faces, items, title, sub, kicker):
+    """The [k]th of fifteen layouts for one set's entry (k mod 15)."""
+    ink, accent, accent2, tint = colours
+    display, script_face, body = faces
+    w = 860
+    K = kicker.upper()
+
+    def kick(gap=0, **more):
+        look = raised(kicker)
+        extra = {'spans': look, 'spansText': kicker} if look else {}
+        extra.update(more)
+        if not look:
+            extra['uppercase'] = True
+        return part(kicker, body, 28, 700, accent, gap=gap, ls=8, **extra)
+
+    if k == 0:
+        # 3D letters on a label.
+        return trio(cid, name, category, tags, w, [
+            kick(),
+            part(title.upper(), display, 130, 700, accent, gap=10, lh=1.05, ls=2,
+                 effect={'type': 'extrude', 'depth': 45, 'direction': 135, 'shading': 40, 'color': ink}),
+            part(sub, body, 34, 500, ink, gap=16),
+        ])
+    if k == 1:
+        # Gradient letters over an italic line.
+        return trio(cid, name, category, tags, w, [
+            part(title, display, 130, 800, accent, lh=1.05, textFill=gradient(90, accent, accent2)),
+            part(sub, body, 36, 400, ink, gap=12, italic=True),
+        ])
+    if k == 2:
+        # An arched title.
+        return trio(cid, name, category, tags, w, [
+            part(title.upper(), display, 120, 700, accent, ls=4, lh=1.0, warp=warp('arch', 40)),
+            part(sub, body, 34, 500, ink, gap=18),
+        ])
+    if k == 3:
+        # A curved script over a capital line.
+        return trio(cid, name, category, tags, w, [
+            part(title, script_face, 110, 400, accent, lh=1.3, curve=35),
+            part(K, body, 30, 700, ink, gap=10, ls=8),
+        ])
+    if k == 4:
+        # The last word highlighted.
+        last = title.rfind(' ') + 1
+        return trio(cid, name, category, tags, w, [
+            part(title, display, 110, 800, ink, lh=1.1, **spans(title, last, len(title), highlight=tint)),
+            part(sub, body, 34, 500, accent, gap=14),
+        ])
+    if k == 5:
+        # A script title over a line whose first word is in capitals.
+        first = sub.find(' ') if ' ' in sub else len(sub)
+        return trio(cid, name, category, tags, w, [
+            part(title, script_face, 120, 400, accent, lh=1.3),
+            part(sub, body, 36, 600, ink, gap=6, ls=2, **spans(sub, 0, first, caps=True)),
+        ])
+    if k == 6:
+        # A first letter larger and in the second colour.
+        return trio(cid, name, category, tags, w, [
+            kick(),
+            part(title, display, 100, 700, ink, gap=8, lh=1.15, **spans(title, 0, 1, scale=1.4, color=accent2)),
+            part(sub, body, 32, 400, accent, gap=12),
+        ])
+    if k == 7:
+        # A bulleted list under the title.
+        listed = '\n'.join(items)
+        return trio(cid, name, category, tags, w, [
+            part(title, display, 96, 700, accent, lh=1.1),
+            part(listed, body, 38, 500, ink, gap=16, lh=1.3, align='left', x=260, w=w - 260,
+                 paragraphs=[{'list': 'bullet'}] * 3, paragraphsText=listed),
+        ])
+    if k == 8:
+        # Neon on a dark panel.
+        return panel(cid, name, category, tags, w, '#0F172A', [
+            part(title, script_face, 110, 400, accent2, lh=1.3, effect={'type': 'neon', 'intensity': 60}),
+            part(K, body, 30, 700, '#F8FAFC', gap=8, ls=10),
+        ])
+    if k == 9:
+        # A shadowed title between rules.
+        return trio(cid, name, category, tags, w, [
+            rule(w, 2, accent, gap=0),
+            part(title.upper(), display, 110, 700, ink, gap=16, ls=4, lh=1.05,
+                 effect={'type': 'shadow', 'offset': 40, 'direction': 45, 'blur': 20, 'transparency': 60, 'color': accent}),
+            rule(w, 2, accent, gap=16),
+            part(sub, body, 32, 500, ink, gap=14),
+        ])
+    if k == 10:
+        # Spliced letters.
+        return trio(cid, name, category, tags, w, [
+            part(title.upper(), display, 120, 800, ink, ls=4, lh=1.05,
+                 effect={'type': 'splice', 'thickness': 50, 'offset': 40, 'direction': 45, 'color': accent}),
+            part(sub, script_face, 64, 400, accent2, gap=6, lh=1.3),
+        ])
+    if k == 11:
+        # An echo of the title.
+        return trio(cid, name, category, tags, w, [
+            kick(),
+            part(title, display, 120, 700, accent, gap=8, lh=1.05, effect={'type': 'echo', 'offset': 50, 'direction': 45, 'color': accent2}),
+            part(sub, body, 32, 500, ink, gap=12),
+        ])
+    if k == 12:
+        # A numbered list under a flag-waved title.
+        listed = '\n'.join(items)
+        return trio(cid, name, category, tags, w, [
+            part(title.upper(), display, 100, 700, accent, ls=2, lh=1.0, warp=warp('flag', 30)),
+            part(listed, body, 36, 500, ink, gap=18, lh=1.3, align='left', x=280, w=w - 280,
+                 paragraphs=[{'list': 'number'}] * 3, paragraphsText=listed),
+        ])
+    if k == 13:
+        # A round badge.
+        words = title.split(' ')
+        top = ' '.join(words[:-1]) or kicker
+        return badge(cid, name, tags, 420, accent, (top.upper(), body, 30, 700), (words[-1].upper(), display, 90, 800),
+                     (K, body, 24, 700), ink='#FFFFFF', ring=tint, category=category)
+    # A label on a pill over the title and line.
+    return labelled(cid, name, category, tags, w, K, body, accent, '#FFFFFF', [
+        part(title, display, 110, 800, ink, lh=1.05),
+        part(sub, body, 34, 500, accent2, gap=12),
+    ])
+
+
+def occasions():
+    """The occasion sets and the everyday ones, fifteen layouts in turn
+    across each set's entries; each carries its occasion where the
+    calendar has one."""
+    out = []
+    used = set()
+    for s, (category, occasion, colours, faces, items, entries) in enumerate(OCCASION_SETS):
+        assert category in CATEGORIES, category
+        for i, (title, sub, kicker) in enumerate(entries):
+            cid = slug(category.split('/')[0]) + '-' + slug(title)
+            assert cid not in used, cid
+            used.add(cid)
+            tags = [w for w in dict.fromkeys([slug(category).replace('-', ' '), *slug(title).split('-'), kicker.lower()]) if w]
+            # Each set starts its turn of layouts further along, so the
+            # sets do not all open alike.
+            combo_ = recipe((i + s) % 15, cid, title, category, tags, colours, faces, items, title, sub, kicker)
+            # A face cut in one weight only is set at it, never made bold.
+            for el in combo_['elements']:
+                if el['type'] == 'text' and el['fontFamily'] in ONE_WEIGHT:
+                    el['fontWeight'] = 400
+            occ = OCCASION_OF[category](title) if category in OCCASION_OF else occasion
+            if occ:
+                combo_['occasion'] = occ
+            out.append(combo_)
+    return out
+
+
+FONTS = json.loads((REPO / 'tools/fonts.json').read_text(encoding='utf-8'))
+FAMILIES = {f['id']: f for f in FONTS['families']}
+
+# The effects a text may carry and how far each setting goes (TextEffect).
+EFFECTS = {'none', 'shadow', 'lift', 'outline', 'outlined', 'splice', 'echo', 'extrude', 'glitch', 'neon', 'highlight'}
+SETTINGS = {'offset': (0, 100), 'direction': (-180, 180), 'blur': (0, 100), 'transparency': (0, 100), 'intensity': (0, 100),
+            'thickness': (0, 100), 'roundness': (0, 100), 'spread': (0, 100), 'depth': (0, 100), 'shading': (0, 100)}
+
+# The scripts a letter is in, past Latin, by block (FontLibrary.scriptsOfLetter):
+# what a family's `scripts` must name for words in it.
+BLOCKS = [((0x180, 0x24F), 'latin-ext'), ((0x1E00, 0x1EFF), 'latin-ext'), ((0x400, 0x52F), 'cyrillic'),
+          ((0x370, 0x3FF), 'greek'), ((0x1F00, 0x1FFF), 'greek')]
+
+
+def family_of(font):
+    """A face's family id, an alias read as the family it names."""
+    return FONTS['aliases'].get(font, font)
+
+
+def estimated_width(line, font, size, ls, caps):
+    """How wide [line] runs, roughly: each letter its face's em share
+    (EM, 0.6 for one not listed), capitals 1.18 times wider, plus the
+    letter spacing after each — the rule TextCombosTest holds too."""
+    em = EM.get(family_of(font), 0.6) * (1.18 if caps or line == line.upper() else 1.0)
+    return len(line) * (em * size + ls)
+
+
+def letters_covered(words, font):
+    """Whether [font] has every letter of [words]: a letter of a script
+    other than plain Latin must be one its family's scripts name; a family
+    that names none covers everything (FontLibrary.covers)."""
+    scripts = FAMILIES[family_of(font)].get('scripts') or []
+    if not scripts:
+        return True
+    for ch in words:
+        cp = ord(ch)
+        if not ch.isalpha() or cp < 0x180:
+            continue
+        need = next((script for (lo, hi), script in BLOCKS if lo <= cp <= hi), None)
+        if need is None or need not in scripts:
+            return False
+    return True
+
+
+def check(combos):
+    """The checks every combination passes before the file is written —
+    TextCombosTest holds the same: ids once each; every face in the font
+    library; every effect one TextEffect knows, its settings in range; each
+    text's every line fitting its box (estimated_width); and words in a
+    script other than Latin only in a face that covers them."""
+    ids = [c['id'] for c in combos]
+    if len(set(ids)) != len(ids):
+        sys.exit('an id is listed twice')
+    for c in combos:
+        for el in c['elements']:
+            if el['type'] != 'text':
+                continue
+            font = el['fontFamily']
+            if family_of(font) not in FAMILIES:
+                sys.exit(f"{c['id']}: no font {font}")
+            effect = el.get('effect')
+            if effect:
+                if effect['type'] not in EFFECTS:
+                    sys.exit(f"{c['id']}: no effect {effect['type']}")
+                for key, value in effect.items():
+                    lo, hi = SETTINGS.get(key, (None, None))
+                    if lo is not None and not lo <= value <= hi:
+                        sys.exit(f"{c['id']}: {key} {value} out of range")
+            for line in el['text'].split('\n'):
+                if estimated_width(line, font, el['fontSize'], el['letterSpacing'], el.get('uppercase', False)) > el['w'] + 0.5:
+                    sys.exit(f"{c['id']}: '{line}' runs out of its box")
+            if not letters_covered(el['text'], font):
+                sys.exit(f"{c['id']}: {font} lacks letters of '{el['text']}'")
+
+
 def main():
     if len(sys.argv) > 2:
         sys.exit(__doc__)
     combos = build()
-    ids = [c['id'] for c in combos]
-    if len(set(ids)) != len(ids):
-        sys.exit('an id is listed twice')
+    check(combos)
     lines = [json.dumps(c, ensure_ascii=False, separators=(',', ':')) for c in combos]
     text_out = '[\n' + ',\n'.join(lines) + '\n]\n'
     json.loads(text_out)
@@ -1115,9 +1712,11 @@ def ios_readme(combos):
         '',
         'Shape',
         '-----',
-        '[{"id","name","tags":[…],"category","w":<box width>,"elements":[<Element, the iOS JSON>…]}, …]',
-        'category is one of Headline, Sale, Quote, Event, Wedding, Social, Retro, Minimal,',
-        'Badge, Kids, Animated, in that order the chips list them.',
+        '[{"id","name","tags":[…],"category","w":<box width>,"elements":[<Element, the iOS JSON>…],"occasion"?}, …]',
+        'category is one of ' + ', '.join(CATEGORIES) + ',',
+        'in that order the chips list them. occasion, where there is one, is an id of',
+        'templates/occasions.json: Add > Text\'s Coming up row shows the combinations of',
+        'the occasion Home\'s Coming up row would (Occasions.upcoming), first.',
         'Each element sits in a box w wide from 0, 0, in a 1080-wide page\'s units, with',
         'its x, y, w and h, and a text with fontFamily, fontSize, fontWeight, align,',
         'lineHeight, letterSpacing and color written out; no ids. The fields used are',

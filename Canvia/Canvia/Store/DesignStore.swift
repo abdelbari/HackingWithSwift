@@ -688,6 +688,16 @@ final class DesignStore {
         typingRedos = 0
         for p in design.pages.indices {
             guard let i = design.pages[p].elements.firstIndex(where: { $0.id == id }) else { continue }
+            // A line's words are its label: left empty, the label goes and
+            // the line stays.
+            if design.pages[p].elements[i].type == .line {
+                if let label = design.pages[p].elements[i].label,
+                   RichText.strip(label.text).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    beginGesture()
+                    design.pages[p].elements[i].label = nil
+                }
+                continue
+            }
             let words = design.pages[p].elements[i].text ?? ""
             if design.pages[p].elements[i].table == nil,
                words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -729,12 +739,17 @@ final class DesignStore {
         editingTextId = id
         typingSteps = 0
         typingRedos = 0
-        let length = ((element(id)?.text ?? "") as NSString).length
+        let length = (typedWords(element(id)) as NSString).length
         typingPoint = point
         let opening = openingSelection(id, at: point, word: word) ?? NSRange(location: length, length: 0)
         typingSelection = opening
         askTypingSelection(opening)
         beginGesture()
+        // A line typed on is given a label at its middle, empty until typed.
+        if let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id && $0.type == .line }),
+           design.pages[pageIndex].elements[i].label == nil {
+            design.pages[pageIndex].elements[i].label = LineLabel(text: "")
+        }
         typedShapeBefore = design.pages[pageIndex].elements.first { $0.id == id && $0.type == .shape }
         guard let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
               ShapeText.takesText(design.pages[pageIndex].elements[i]),
@@ -748,10 +763,16 @@ final class DesignStore {
         startTyping(id, at: nil)
     }
 
+    /// The words typed in `el`: a line's label's, any other's own.
+    func typedWords(_ el: Element?) -> String {
+        guard let el else { return "" }
+        return el.type == .line ? el.label?.text ?? "" : el.text ?? ""
+    }
+
     /// Where the field typed in opens its caret or choice in `id`'s stored
-    /// words; nil for the end.
+    /// words; nil for the end — always for a line's label.
     private func openingSelection(_ id: String, at point: CGPoint?, word: Bool) -> NSRange? {
-        guard let el = element(id) else { return nil }
+        guard let el = element(id), el.type != .line else { return nil }
         let words = el.text ?? ""
         if let added = freshTexts.removeValue(forKey: id), added == words, !words.isEmpty {
             return NSRange(location: 0, length: (words as NSString).length)
@@ -780,7 +801,14 @@ final class DesignStore {
     func typeWords(_ words: String, into id: String) {
         beginGesture()
         guard let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
-              design.pages[pageIndex].elements[i].text != words else { return }
+              typedWords(design.pages[pageIndex].elements[i]) != words else { return }
+        // A line's words are its label's.
+        if design.pages[pageIndex].elements[i].type == .line {
+            var label = design.pages[pageIndex].elements[i].label ?? LineLabel(text: "")
+            label.text = words
+            design.pages[pageIndex].elements[i].label = label
+            return
+        }
         design.pages[pageIndex].elements[i].setText(words)
         ShapeText.fitWords(&design.pages[pageIndex].elements[i])
     }
@@ -2115,7 +2143,7 @@ final class DesignStore {
         var found: [TextMatch] = []
         for (index, page) in design.pages.enumerated() where !PageLocks.isLocked(page) {
             for element in page.elements where FindReplace.searches(element) {
-                let body = element.text ?? ""
+                let body = FindReplace.words(of: element)
                 let plain = RichText.strip(body)
                 for hit in FindReplace.matches(of: needle, in: body, caseSensitive: caseSensitive, wholeWord: wholeWord) {
                     found.append(TextMatch(pageIndex: index, elementId: element.id, range: hit.stored,
@@ -2186,7 +2214,8 @@ final class DesignStore {
             for p in design.pages.indices where !PageLocks.isLocked(design.pages[p]) {
                 for i in design.pages[p].elements.indices
                 where FindReplace.replaces(design.pages[p].elements[i]) {
-                    guard let body = design.pages[p].elements[i].text, !body.isEmpty else { continue }
+                    let body = FindReplace.words(of: design.pages[p].elements[i])
+                    guard !body.isEmpty else { continue }
                     let found = FindReplace.ranges(of: needle, in: RichText.strip(body),
                                                    caseSensitive: caseSensitive, wholeWord: wholeWord)
                     guard !found.isEmpty else { continue }
@@ -2245,7 +2274,7 @@ final class DesignStore {
         }
         guard let i = design.pages[match.pageIndex].elements.firstIndex(where: { $0.id == match.elementId }),
               FindReplace.replaces(design.pages[match.pageIndex].elements[i]) else { return nil }
-        let body = design.pages[match.pageIndex].elements[i].text ?? ""
+        let body = FindReplace.words(of: design.pages[match.pageIndex].elements[i])
         let length = (RichText.strip(body) as NSString).length
         guard match.plain.length > 0, NSMaxRange(match.plain) <= length,
               RichText.storedRange(of: match.plain, in: body) == match.range else { return nil }
@@ -2270,8 +2299,8 @@ final class DesignStore {
     /// (FindReplace.replacing), everything on the words moved along, and
     /// the box grown or shrunk to its words.
     private static func replaceWords(_ range: NSRange, with replacement: String, in el: inout Element) {
-        el.setText(FindReplace.replacing(range, in: el.text ?? "", with: replacement))
-        ShapeText.fitWords(&el)
+        FindReplace.setWords(FindReplace.replacing(range, in: FindReplace.words(of: el), with: replacement), in: &el)
+        if el.type != .line { ShapeText.fitWords(&el) }
     }
 
     /// A Doc's match replaced: a cell's words as plain text, a text block's

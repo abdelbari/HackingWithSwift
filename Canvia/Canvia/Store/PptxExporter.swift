@@ -614,7 +614,19 @@ enum PptxExporter {
                                                         link: link, frame: frame))
                 }
             case .line:
-                shapes.append(lineXML(el, id: id, link: link, frame: frame))
+                // A line's words (LineLabels): a text box where they sit,
+                // grouped with the line so they move together.
+                if let words = LineLabels.textElement(for: el) {
+                    let textId = nextId
+                    let groupId = nextId + 1
+                    nextId += 2
+                    let label = textXML(words, id: textId, link: nil, design: design, slides: slides, frame: frame,
+                                        rels: &rels)
+                    shapes.append(groupXML(words.id, id: groupId, members: [el, words], frame: frame)
+                                  + lineXML(el, id: id, link: link, frame: frame) + label + "</p:grpSp>")
+                } else {
+                    shapes.append(lineXML(el, id: id, link: link, frame: frame))
+                }
             case .code:
                 if let bars = Barcodes.vector(el) {
                     shapes.append(contentsOf: barcodeXML(el, bars, id: id, nextId: &nextId, link: link, design: design,
@@ -1358,8 +1370,11 @@ enum PptxExporter {
     /// words, as PowerPoint's own — a bullet by its character, a number,
     /// letter or numeral counted on from the item's place — in the look of
     /// its item's first letter (TextLists.markerStyle): buClr its colour,
-    /// buSzPct its size, buFont its font, the hang at that size. Empty for
-    /// a left-aligned plain line. The Android twin's PptxWriter, attribute
+    /// buSzPct its size, buFont its font, the hang at that size. Lines set
+    /// apart from a new text's 1.25 are an lnSpc spcPct of lineHeight ÷
+    /// PptxReader.singleSpacing, and room between paragraphs an spcAft
+    /// spcPts of that many ems, so the reader takes both back. Empty for a
+    /// left-aligned plain line. The Android twin's PptxWriter, attribute
     /// for attribute.
     static func paragraphProperties(_ el: Element, em: Double, design: Design? = nil) -> [String] {
         func algn(_ align: String) -> String {
@@ -1371,6 +1386,7 @@ enum PptxExporter {
             }
         }
         let items = TextLists.items(el)
+        let spacing = spacingXML(el, em: em)
         return TextLists.lines(el).enumerated().map { line, paragraph -> String in
             let indent = Double(paragraph.level) * FontLibrary.indentEm * em
             let look = line < items.count && items[line] != nil ? TextLists.markerStyle(el, line) : nil
@@ -1385,9 +1401,26 @@ enum PptxExporter {
             }
             var bullet = line < items.count ? items[line].map { bulletXML($0, face: face) } ?? "" : ""
             if let look, !bullet.isEmpty { bullet = markerLook(look) + bullet }
-            if !bullet.isEmpty { return "<a:pPr\(attributes)>\(bullet)</a:pPr>" }
+            let inside = spacing + bullet
+            if !inside.isEmpty { return "<a:pPr\(attributes)>\(inside)</a:pPr>" }
             return attributes.isEmpty ? "" : "<a:pPr\(attributes)/>"
         }
+    }
+
+    /// A paragraph's lnSpc and spcAft (paragraphProperties), before its
+    /// bullet as DrawingML orders them; empty at a new text's spacing.
+    static func spacingXML(_ el: Element, em: Double) -> String {
+        var out = ""
+        if let lineHeight = el.lineHeight, lineHeight.isFinite, lineHeight > 0,
+           abs(lineHeight - PptxReader.singleSpacing) > 1e-9 {
+            let pct = Int((lineHeight / PptxReader.singleSpacing * 100_000).rounded())
+            out += "<a:lnSpc><a:spcPct val=\"\(pct)\"/></a:lnSpc>"
+        }
+        if let room = el.paragraphSpacing, room.isFinite, room > 0 {
+            let pts = Int(min(room * em * 75, 158_400).rounded())
+            if pts > 0 { out += "<a:spcAft><a:spcPts val=\"\(pts)\"/></a:spcAft>" }
+        }
+        return out
     }
 
     /// A marker's own colour and size before its font and its bullet or

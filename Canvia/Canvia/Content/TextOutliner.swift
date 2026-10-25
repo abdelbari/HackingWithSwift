@@ -124,6 +124,14 @@ enum TextOutliner {
         let whole: CGPath
         let parts: [InkedPath]
         let emoji: [EmojiPiece]
+        /// Bent words' letters where they stand, by their place in the
+        /// words as drawn (TextPaths.glyphPlacements), and what they run
+        /// along (TextPaths.Spine); none for straight or warped words.
+        var placements: [TextPaths.GlyphPlacement] = []
+        var spines: [TextPaths.Spine] = []
+        /// The box's own type's ascent and descent.
+        var ascent: Double = 0
+        var descent: Double = 0
     }
 
     /// A colour emoji set among outlined letters: the emoji, its type size,
@@ -153,9 +161,14 @@ enum TextOutliner {
         lock.unlock()
         if none { return nil }
         let made = ink(for: el).flatMap { ink -> Outline? in
-            if let whole = ink.joined { return Outline(whole: whole, parts: ink.parts, emoji: ink.emoji) }
             // Nothing but emoji: no path, the pictures alone.
-            return ink.emoji.isEmpty ? nil : Outline(whole: CGMutablePath(), parts: [], emoji: ink.emoji)
+            guard let whole = ink.joined ?? (ink.emoji.isEmpty ? nil : CGMutablePath()) else { return nil }
+            var outline = Outline(whole: whole, parts: ink.joined == nil ? [] : ink.parts, emoji: ink.emoji)
+            outline.placements = ink.placements
+            outline.spines = ink.spines
+            outline.ascent = ink.ascent
+            outline.descent = ink.descent
+            return outline
         }
         lock.lock()
         if outlines.count + blank.count >= FontLibrary.cacheLimit {
@@ -215,8 +228,29 @@ enum TextOutliner {
         private var rules: [(color: String?, path: CGMutablePath)] = []
         /// The colour emoji, which have no outline, as pictures.
         var emoji: [EmojiPiece] = []
+        /// Bent words' letters, by their place in the words as drawn, what
+        /// they run along, and the box's type's ascent and descent.
+        var placements: [TextPaths.GlyphPlacement] = []
+        var spines: [TextPaths.Spine] = []
+        var ascent = 0.0
+        var descent = 0.0
 
         var isEmpty: Bool { all.isEmpty && emoji.isEmpty }
+
+        /// Glyph `index` (of the words as drawn), `advance` wide in `font`,
+        /// placed by `transform` as its outline is.
+        func place(_ index: Int, font: CTFont, advance: CGFloat, transform: CGAffineTransform) {
+            placements.append(TextPaths.GlyphPlacement(
+                index: index, origin: CGPoint.zero.applying(transform),
+                angle: Double(atan2(transform.b, transform.a)) * 180 / .pi, advance: Double(advance),
+                ascent: Double(CTFontGetAscent(font)), descent: Double(CTFontGetDescent(font))))
+        }
+
+        /// The box's own type's ascent and descent, from `font`.
+        func measure(_ font: CTFont) {
+            ascent = Double(CTFontGetAscent(font))
+            descent = Double(CTFontGetDescent(font))
+        }
 
         /// An emoji whose glyph, `advance` wide in `font`, is placed by
         /// `transform` as an outline would be: its box centred where the
@@ -304,6 +338,17 @@ enum TextOutliner {
                 moved.angle += turn
                 return moved
             }
+            // Bent words are only ever moved: a ring to the box's centre, an
+            // arc to centre its ink.
+            out.placements = placements.map { glyph in
+                var moved = glyph
+                moved.origin = glyph.origin.applying(transform)
+                moved.angle += turn
+                return moved
+            }
+            out.spines = spines.map { $0.moved(Double(transform.tx), Double(transform.ty)) }
+            out.ascent = ascent
+            out.descent = descent
             return out
         }
     }
@@ -415,7 +460,8 @@ enum TextOutliner {
     }
 
     private static func pathTextInk(for el: Element, data: String) -> Ink? {
-        guard let attributed = flatLine(for: el), el.w > 0, el.h > 0 else { return nil }
+        guard let flat = flatLineAt(el), el.w > 0, el.h > 0 else { return nil }
+        let attributed = flat.line
         let walker = PathWalker(SVGPath.scaledPath(data, to: CGSize(width: el.w, height: el.h)))
         guard walker.length > 1 else { return nil }
 
@@ -427,6 +473,8 @@ enum TextOutliner {
                                           weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
 
         let ink = Ink()
+        ink.measure(declared as CTFont)
+        var extents: [TextPaths.Extent] = []
         let string = attributed.string as NSString
         var taken = Set<Int>()
         for run in runs {
@@ -440,10 +488,12 @@ enum TextOutliner {
             var glyphs = [CGGlyph](repeating: 0, count: count)
             var positions = [CGPoint](repeating: .zero, count: count)
             var advances = [CGSize](repeating: .zero, count: count)
+            var indices = [CFIndex](repeating: 0, count: count)
             let range = CFRange(location: 0, length: count)
             CTRunGetGlyphs(run, range, &glyphs)
             CTRunGetPositions(run, range, &positions)
             CTRunGetAdvances(run, range, &advances)
+            CTRunGetStringIndices(run, range, &indices)
             for i in 0..<count {
                 let centre = start + Double(positions[i].x) + Double(advances[i].width) / 2
                 let here = walker.locate(centre)
@@ -451,6 +501,10 @@ enum TextOutliner {
                     .rotated(by: here.angle)
                     .translatedBy(x: -advances[i].width / 2, y: -lift)
                     .scaledBy(x: 1, y: -1)
+                let drawn = flat.lead + indices[i]
+                ink.place(drawn, font: font, advance: advances[i].width, transform: transform)
+                let left = start + Double(positions[i].x)
+                extents.append(TextPaths.Extent(index: drawn, from: left, to: left + Double(advances[i].width)))
                 // A space has no outline but keeps its rule, so an underline
                 // runs on between words (as Android's TextOutlines does); a
                 // colour emoji has none either, and is kept as a picture.
@@ -465,6 +519,7 @@ enum TextOutliner {
                 }
             }
         }
+        ink.spines = [.path(walker, glyphs: extents)]
         return ink.isEmpty ? nil : ink
     }
 
@@ -474,6 +529,11 @@ enum TextOutliner {
     /// strike, colour, face and size kept, so CoreText shapes and kerns each
     /// run in its own font and a larger word takes more of the line.
     private static func flatLine(for el: Element) -> NSAttributedString? {
+        flatLineAt(el)?.line
+    }
+
+    /// The same, and where it starts in the words as drawn.
+    private static func flatLineAt(_ el: Element) -> (line: NSAttributedString, lead: Int)? {
         let styled = NSMutableAttributedString(attributedString: FontLibrary.attributedString(for: el))
         // Each break a space, in place, so every run keeps its letters.
         let breaks = (styled.string as NSString)
@@ -488,7 +548,7 @@ enum TextOutliner {
         guard !flat.isEmpty else { return nil }
         // Less the spaces trimmed from either end.
         let lead = (joined as NSString).range(of: flat).location
-        return styled.attributedSubstring(from: NSRange(location: lead, length: (flat as NSString).length))
+        return (styled.attributedSubstring(from: NSRange(location: lead, length: (flat as NSString).length)), lead)
     }
 
     /// A run's underline and strike under or through one glyph `advance`
@@ -570,6 +630,8 @@ enum TextOutliner {
         let blockWidth = Double(columns.count) * columnWidth
         let rightEdge = el.w / 2 + blockWidth / 2
         let ink = Ink()
+        ink.measure(declared as CTFont)
+        var cells: [TextPaths.Cell] = []
         for (c, column) in columns.enumerated() {
             let centreX = rightEdge - (Double(c) + 0.5) * columnWidth
             let columnHeight = Double(column.count) * step
@@ -580,6 +642,9 @@ enum TextOutliner {
             default: top = 0
             }
             for (r, entry) in column.enumerated() where entry.char != " " {
+                cells.append(TextPaths.Cell(index: entry.at, column: c,
+                                            rect: CGRect(x: centreX - columnWidth / 2, y: top + Double(r) * step,
+                                                         width: columnWidth, height: step)))
                 let line = CTLineCreateWithAttributedString(NSAttributedString(string: String(entry.char),
                                                                                attributes: style(at: entry.at)))
                 let advance = CTLineGetTypographicBounds(line, nil, nil, nil)
@@ -610,6 +675,7 @@ enum TextOutliner {
                     for i in 0..<count {
                         let transform = CGAffineTransform(translationX: centreX - advance / 2 + positions[i].x, y: baselineY - lift)
                             .scaledBy(x: 1, y: -1)
+                        ink.place(entry.at, font: font, advance: advances[i].width, transform: transform)
                         let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil)
                         if let cluster = emoji(at: i, of: run, glyph: glyph, font: font, in: string, taken: &taken) {
                             ink.addEmoji(cluster, font: font, advance: advances[i].width, transform: transform)
@@ -621,6 +687,14 @@ enum TextOutliner {
                 }
             }
         }
+        // A column's band is round its letters themselves (their quads), as
+        // on the Android twin, not their cells.
+        let placed = Dictionary(grouping: ink.placements, by: \.index)
+        ink.spines = [.columns(cells.map { cell in
+            var out = cell
+            if let glyphs = placed[cell.index] { out.rect = WordLinks.bounds(of: glyphs.map(\.quad)) }
+            return out
+        })]
         return ink.isEmpty ? nil : ink
     }
 
@@ -768,7 +842,8 @@ enum TextOutliner {
     }
 
     private static func curvedInk(for el: Element, degrees: Double) -> Ink? {
-        guard let attributed = flatLine(for: el), el.w > 0, el.h > 0 else { return nil }
+        guard let flat = flatLineAt(el), el.w > 0, el.h > 0 else { return nil }
+        let attributed = flat.line
 
         let line = CTLineCreateWithAttributedString(attributed)
         let width = CTLineGetTypographicBounds(line, nil, nil, nil)
@@ -786,6 +861,8 @@ enum TextOutliner {
                                           italic: FontLibrary.isItalic(el))
 
         let ink = Ink()
+        ink.measure(declared as CTFont)
+        var extents: [TextPaths.Extent] = []
         let string = attributed.string as NSString
         var taken = Set<Int>()
         for run in runs {
@@ -800,10 +877,12 @@ enum TextOutliner {
             var glyphs = [CGGlyph](repeating: 0, count: count)
             var positions = [CGPoint](repeating: .zero, count: count)
             var advances = [CGSize](repeating: .zero, count: count)
+            var indices = [CFIndex](repeating: 0, count: count)
             let range = CFRange(location: 0, length: count)
             CTRunGetGlyphs(run, range, &glyphs)
             CTRunGetPositions(run, range, &positions)
             CTRunGetAdvances(run, range, &advances)
+            CTRunGetStringIndices(run, range, &indices)
 
             for i in 0..<count {
                 // Place each glyph by its own centre rather than its left edge,
@@ -816,6 +895,12 @@ enum TextOutliner {
                     .rotated(by: angle)
                     .translatedBy(x: -advances[i].width / 2, y: -lift)
                     .scaledBy(x: 1, y: -1)
+                let drawn = flat.lead + indices[i]
+                ink.place(drawn, font: font, advance: advances[i].width, transform: transform)
+                // The glyph's stretch round the arc, its start to its end.
+                let left = Double(positions[i].x) - width / 2
+                extents.append(TextPaths.Extent(index: drawn, from: left / length * theta + start,
+                                                to: (left + Double(advances[i].width)) / length * theta + start))
                 // A space has no outline but keeps its rule, so an underline
                 // runs on between words (as Android's TextOutlines does); a
                 // colour emoji has none either, and is kept as a picture.
@@ -831,6 +916,7 @@ enum TextOutliner {
             }
         }
         guard !ink.isEmpty else { return nil }
+        ink.spines = [.arc(centre: CGPoint(x: 0, y: radius), radius: radius, glyphs: extents)]
 
         // A ring: its circle's centre, (0, radius), at the box's.
         if abs(arc) >= TextPaths.halfCurve {

@@ -880,7 +880,212 @@ final class PptxReaderTests: XCTestCase {
         let found = differences(actual, expected)
         XCTAssertTrue(found.isEmpty, found.joined(separator: "\n"))
         XCTAssertEqual(imported.summary,
-                       "Imported 4 slides. 8 items couldn't be brought in (1 chart, 1 SmartArt, 1 video, 1 picture, 1 shape, 3 fonts).")
+                       "Imported 5 slides. 8 items couldn't be brought in (1 chart, 1 SmartArt, 1 video, 1 picture, 1 shape, 3 fonts).")
         XCTAssertEqual(imported.media, ["image1.png": "ppt/media/image1.png", "image2.png": "ppt/media/image2.png"])
+    }
+}
+
+// MARK: text fidelity
+
+/// Shared rows (the twin's 'text-fidelity' slide): lists and their levels,
+/// letter, line and paragraph spacing, strikethrough, links out and to a
+/// slide, and type shrunk to fit come in as editable text.
+extension PptxReaderTests {
+
+    private func fidelityBox(_ body: String, lstStyle: String = "<a:lstStyle/>",
+                             bodyPr: String = "<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"/>") -> String {
+        "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"t\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr>\(box)</p:spPr>"
+            + "<p:txBody>\(bodyPr)\(lstStyle)\(body)</p:txBody></p:sp>"
+    }
+
+    private func para(_ words: String, pPr: String = "", rPr: String = "<a:rPr sz=\"2400\"/>") -> String {
+        "<a:p>\(pPr)<a:r>\(rPr)<a:t>\(words)</a:t></a:r></a:p>"
+    }
+
+    /// The text-fidelity slide, and a second slide its words jump to.
+    private func fidelityDeck() throws -> PptxReader.Imported {
+        let bullets = fidelityBox(
+            para("Plan", pPr: "<a:pPr><a:buChar char=\"•\"/></a:pPr>")
+                + para("Steps", pPr: "<a:pPr lvl=\"1\"><a:buChar char=\"◦\"/></a:pPr>")
+                + para("Detail", pPr: "<a:pPr lvl=\"2\"/>"),
+            lstStyle: "<a:lstStyle><a:lvl3pPr><a:buChar char=\"▪\"/></a:lvl3pPr></a:lstStyle>")
+        let numbered = fidelityBox(
+            para("Four", pPr: "<a:pPr><a:buAutoNum type=\"arabicPeriod\" startAt=\"4\"/></a:pPr>")
+                + para("Five", pPr: "<a:pPr><a:buAutoNum type=\"arabicPeriod\" startAt=\"4\"/></a:pPr>"))
+        let spaced = fidelityBox(para(
+            "Wide", pPr: "<a:pPr><a:lnSpc><a:spcPct val=\"150000\"/></a:lnSpc><a:spcAft><a:spcPts val=\"1200\"/></a:spcAft></a:pPr>",
+            rPr: "<a:rPr sz=\"2400\" spc=\"300\"/>"))
+        let struck = fidelityBox("<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Was </a:t></a:r>"
+            + "<a:r><a:rPr sz=\"2400\" strike=\"sngStrike\"/><a:t>$40</a:t></a:r></a:p>")
+        let linked = fidelityBox(para("Visit us", rPr: "<a:rPr sz=\"2400\"><a:hlinkClick r:id=\"rId1\"/></a:rPr>"))
+        let jump = fidelityBox("<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Go </a:t></a:r>"
+            + "<a:r><a:rPr sz=\"2400\"><a:hlinkClick r:id=\"rId2\" action=\"ppaction://hlinksldjump\"/></a:rPr><a:t>next</a:t></a:r></a:p>")
+        let shrunk = fidelityBox(para("Fits", rPr: "<a:rPr sz=\"3200\"/>"),
+                                 bodyPr: "<a:bodyPr><a:normAutofit fontScale=\"62500\" lnSpcReduction=\"20000\"/></a:bodyPr>")
+        let pictured = fidelityBox(para("Pic", pPr: "<a:pPr><a:buBlip><a:blip r:embed=\"rId9\"/></a:buBlip></a:pPr>"))
+        let counted = fidelityBox(
+            para("A", pPr: "<a:pPr><a:buAutoNum type=\"alphaUcParenR\"/></a:pPr>")
+                + para("B", pPr: "<a:pPr><a:buAutoNum type=\"romanLcPeriod\"/></a:pPr>")
+                + para("C", pPr: "<a:pPr><a:buNone/></a:pPr>"))
+        let base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+        let rels = "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+            + "<Relationship Id=\"rId1\" Type=\"\(base)hyperlink\" Target=\"https://example.com/\" TargetMode=\"External\"/>"
+            + "<Relationship Id=\"rId2\" Type=\"\(base)slide\" Target=\"slide2.xml\"/></Relationships>"
+        let first = [bullets, numbered, spaced, struck, linked, jump, shrunk, pictured, counted].joined()
+        return try read(deck([first, textBox(box, "<a:p><a:r><a:t>Next</a:t></a:r></a:p>")], slideRels: [0: rels]))
+    }
+
+    func testListsComeInWithTheirLevelsFromTheParagraphElseTheListStyle() throws {
+        let els = try fidelityDeck().design.pages[0].elements
+        XCTAssertEqual(TextLists.lines(els[0]), [TextParagraph(list: "bullet", level: 0),
+                                                 TextParagraph(list: "bullet", level: 1),
+                                                 TextParagraph(list: "bullet", level: 2)])
+        XCTAssertNotNil(els[0].paragraphs)
+        // Every line alike at the first level: the box-wide list.
+        XCTAssertEqual(els[1].listStyle, "number")
+        XCTAssertNil(els[1].paragraphs)
+        XCTAssertEqual(TextLists.lines(els[8]).map(\.list), ["letter", "number", "none"])
+    }
+
+    func testListSchemesMapAsBothPhonesMapThem() {
+        let rows: [(String?, String?, String?)] = [
+            ("buChar", nil, "bullet"), ("buBlip", nil, "bullet"), ("buNone", nil, "none"),
+            ("buAutoNum", "arabicPeriod", "number"), ("buAutoNum", "arabicParenR", "number"),
+            ("buAutoNum", "alphaLcPeriod", "letter"), ("buAutoNum", "alphaUcParenBoth", "letter"),
+            ("buAutoNum", "romanUcPeriod", "number"), ("buAutoNum", "circleNumDbPlain", "number"),
+            ("buFont", nil, nil), (nil, nil, nil),
+        ]
+        for (bullet, scheme, list) in rows {
+            XCTAssertEqual(PptxReader.list(bullet: bullet, autoNum: scheme), list, "\(bullet ?? "-") \(scheme ?? "-")")
+        }
+    }
+
+    func testSpacingStrikeAndShrunkTypeComeIn() throws {
+        let els = try fidelityDeck().design.pages[0].elements
+        // spc 300 is 4 px; lnSpc 150% of single spacing (1.25); 12 pt after
+        // 24 pt type is half an em.
+        XCTAssertEqual(try XCTUnwrap(els[2].letterSpacing), 4, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(els[2].lineHeight), 1.875, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(els[2].paragraphSpacing), 0.5, accuracy: 1e-9)
+        XCTAssertEqual(els[3].text, "Was ~~$40~~")
+        XCTAssertEqual(RichText.parse(els[3].text ?? "").runs.map(\.style), [RichText.Style(strike: true)])
+        // normAutofit: 32 pt at 62.5%, the lines 20% closer.
+        XCTAssertEqual(try XCTUnwrap(els[6].fontSize), 3200 / 75 * 0.625, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(els[6].lineHeight), 1.0, accuracy: 1e-9)
+    }
+
+    func testLinksGoOutOrToTheSlidesPageAndPictureBulletsAreSaid() throws {
+        let imported = try fidelityDeck()
+        let els = imported.design.pages[0].elements
+        XCTAssertEqual(els[4].link, "https://example.com/")
+        XCTAssertFalse(els[4].liveSpans.contains { $0.link != nil })
+        let next = imported.design.pages[1].id
+        XCTAssertNil(els[5].link)
+        XCTAssertEqual(els[5].liveSpans.filter { $0.link != nil }.map { [$0.start, $0.end] }, [[3, 7]])
+        XCTAssertEqual(els[5].liveSpans.compactMap(\.link), [Links.pageLink(next)])
+        XCTAssertEqual(els[7].listStyle, "bullet")
+        XCTAssertEqual(imported.skipped[PptxReader.picture], 1)
+    }
+
+    /// A box the exporter wrote reads back with its lists, spacing and
+    /// links.
+    func testListsSpacingAndLinksRoundTrip() throws {
+        var el = Element.text("Plan\nSteps\nDetail **now**", fontSize: 32, w: 600)
+        el.id = "t1"
+        el.h = 200
+        el.align = "left"
+        el.setLines([TextParagraph(list: "bullet"), TextParagraph(list: "bullet", level: 1),
+                      TextParagraph(list: "number", level: 2)])
+        el.letterSpacing = 4
+        el.lineHeight = 1.5
+        el.paragraphSpacing = 0.5
+        el.setSpans([TextSpan(start: 0, end: 4, link: "https://example.com/"),
+                     TextSpan(start: 5, end: 10, link: Links.pageLink("p2"))])
+        var design = Design(title: "Deck", width: 1280, height: 720)
+        design.pages = [Page(id: "p1", elements: [el]), Page(id: "p2", elements: [])]
+        let imported = try read(exported(design))
+        let back = try XCTUnwrap(imported.design.pages.first?.elements.first)
+        XCTAssertEqual(TextLists.lines(back).map(\.list), ["bullet", "bullet", "number"])
+        XCTAssertEqual(TextLists.lines(back).map(\.level), [0, 1, 2])
+        XCTAssertEqual(try XCTUnwrap(back.letterSpacing), 4, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(back.lineHeight), 1.5, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(back.paragraphSpacing), 0.5, accuracy: 1e-9)
+        let links = back.liveSpans.filter { $0.link != nil }
+        XCTAssertEqual(links.map { [$0.start, $0.end] }, [[0, 4], [5, 10]])
+        XCTAssertEqual(links.map(\.link), ["https://example.com/", Links.pageLink(imported.design.pages[1].id)])
+        XCTAssertEqual(back.text, "Plan\nSteps\nDetail **now**")
+        // The box's own link goes out on its shape (p:cNvPr) and comes back.
+        var whole = Element.text("All of it", fontSize: 24, w: 400)
+        whole.id = "t2"
+        whole.y = 400
+        whole.h = 60
+        whole.align = "left"
+        whole.link = "https://example.com/whole"
+        design.pages[0].elements.append(whole)
+        let again = try read(exported(design)).design.pages[0].elements
+        XCTAssertEqual(again.count, 2)
+        XCTAssertEqual(again.last?.link, "https://example.com/whole")
+    }
+
+    /// Shared (the twin's spacing row): lnSpc spcPts over the type is not
+    /// rounded; the dominant run is the longest of all, spaces too; a run's
+    /// strike and spc are its own, else its list style's defRPr.
+    func testSpacingIsNotRoundedAndRunsInheritStrikeAndSpacing() throws {
+        let points = try only(deck([textBox(box, "<a:p><a:pPr><a:lnSpc><a:spcPts val=\"2000\"/></a:lnSpc></a:pPr>"
+            + "<a:r><a:rPr sz=\"2400\"/><a:t>Close</a:t></a:r></a:p>")]))
+        XCTAssertEqual(try XCTUnwrap(points.lineHeight), 20.0 / 24.0, accuracy: 1e-12)
+        let pct = try only(deck([textBox(box, "<a:p><a:pPr><a:lnSpc><a:spcPct val=\"90000\"/></a:lnSpc></a:pPr>"
+            + "<a:r><a:rPr sz=\"2400\"/><a:t>Tight</a:t></a:r></a:p>")]))
+        XCTAssertEqual(try XCTUnwrap(pct.lineHeight), 1.125, accuracy: 1e-9)
+        let blank = try only(deck([textBox(box, "<a:p><a:r><a:rPr sz=\"2400\" spc=\"150\"/><a:t>ab</a:t></a:r>"
+            + "<a:r><a:rPr sz=\"2400\" spc=\"300\"/><a:t>      </a:t></a:r></a:p>")]))
+        XCTAssertEqual(try XCTUnwrap(blank.letterSpacing), 4, accuracy: 1e-9)
+        let styled = textBox(box, "<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Old</a:t></a:r>"
+            + "<a:r><a:rPr sz=\"2400\" strike=\"noStrike\"/><a:t> new</a:t></a:r></a:p>")
+            .replacingOccurrences(of: "<a:lstStyle/>",
+                                  with: "<a:lstStyle><a:lvl1pPr><a:defRPr strike=\"sngStrike\" spc=\"150\"/></a:lvl1pPr></a:lstStyle>")
+        let inherited = try only(deck([styled]))
+        XCTAssertEqual(inherited.text, "~~Old~~ new")
+        XCTAssertEqual(try XCTUnwrap(inherited.letterSpacing), 2, accuracy: 1e-9)
+    }
+
+    /// Shared: a shape's own click (p:cNvPr a:hlinkClick) is its element's
+    /// link, unless its words already go somewhere as a whole.
+    func testAShapesOwnClickIsItsElementsLink() throws {
+        let base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+        let rels = "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+            + "<Relationship Id=\"rId1\" Type=\"\(base)hyperlink\" Target=\"https://canvia.app/box\" TargetMode=\"External\"/>"
+            + "<Relationship Id=\"rId2\" Type=\"\(base)hyperlink\" Target=\"https://canvia.app/words\" TargetMode=\"External\"/>"
+            + "</Relationships>"
+        func clicked(_ body: String) -> String {
+            textBox(box, body).replacingOccurrences(of: "<p:cNvPr id=\"2\" name=\"t\"/>",
+                                                    with: "<p:cNvPr id=\"2\" name=\"t\"><a:hlinkClick r:id=\"rId1\"/></p:cNvPr>")
+        }
+        let plain = clicked("<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Box</a:t></a:r></a:p>")
+        let worded = clicked("<a:p><a:r><a:rPr sz=\"2400\"><a:hlinkClick r:id=\"rId2\"/></a:rPr><a:t>Words</a:t></a:r></a:p>")
+        let els = try read(deck([plain + worded], slideRels: [0: rels])).design.pages[0].elements
+        XCTAssertEqual(els.map(\.link), ["https://canvia.app/box", "https://canvia.app/words"])
+    }
+
+    /// Shared: how a box's words fit is the first bodyPr that says
+    /// (normAutofit, spAutoFit or noAutofit) — the shape's own, then its
+    /// placeholder's layout's, then its master's; only normAutofit shrinks.
+    func testAPlaceholderShrinksToFitAsItsLayoutSaysUnlessItSaysOtherwise() throws {
+        func placeholder(_ bodyPr: String, _ body: String) -> String {
+            "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"b\"/><p:cNvSpPr/><p:nvPr><p:ph type=\"body\" idx=\"1\"/></p:nvPr></p:nvSpPr>"
+                + "<p:spPr>\(box)</p:spPr><p:txBody>\(bodyPr)<a:lstStyle/>\(body)</p:txBody></p:sp>"
+        }
+        func size(_ own: String) throws -> Double? {
+            let layout = "<p:sldLayout \(ns)><p:cSld><p:spTree>"
+                + placeholder("<a:bodyPr><a:normAutofit fontScale=\"50000\"/></a:bodyPr>", "<a:p/>")
+                + "</p:spTree></p:cSld></p:sldLayout>"
+            let data = try deck([placeholder(own, "<a:p><a:r><a:rPr sz=\"2400\"/><a:t>Fit</a:t></a:r></a:p>")],
+                                extra: [("ppt/slideLayouts/slideLayout1.xml", layout)],
+                                slideRels: [0: rels([("slideLayout", "../slideLayouts/slideLayout1.xml")])])
+            return try only(data).fontSize
+        }
+        XCTAssertEqual(try XCTUnwrap(size("<a:bodyPr/>")), 16, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(size("<a:bodyPr><a:noAutofit/></a:bodyPr>")), 32, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(size("<a:bodyPr><a:spAutoFit/></a:bodyPr>")), 32, accuracy: 1e-9)
     }
 }

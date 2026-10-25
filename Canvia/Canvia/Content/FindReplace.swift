@@ -93,16 +93,31 @@ enum FindReplace {
         Unicode.Scalar(0x10000 + ((UInt32(high) - 0xD800) << 10) + (UInt32(low) - 0xDC00))
     }
 
-    /// Whether a box's words are searched and replaced: a text box's, or the
-    /// words a shape carries, unless it is hidden or locked against typing
+    /// Whether a box's words are searched and replaced: a text box's, the
+    /// words a shape carries or a line's label (LineLabels), unless it is hidden or locked against typing
     /// (Lock; a position lock still takes new words), or a caption box, whose
     /// words are its cues, drawn one at a time, and changed in Edit
     /// captions. A chart's words are searched, all of them; a replacement
     /// in its labels and legend changes its data too
     /// (DataGraphics.keepingLabel). The same rule on the Android twin.
     static func searches(_ el: Element) -> Bool {
-        ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil
+        (ShapeText.carriesWords(el) || (el.type == .line && el.label != nil)) && !el.isHidden && el.captions == nil
             && ElementLock.allows(ElementLock.mode(of: el), ElementLock.Action.editText)
+    }
+
+    /// The words searched in `el`: a line's label's (LineLabels), any other
+    /// box's own.
+    static func words(of el: Element) -> String {
+        el.type == .line ? el.label?.text ?? "" : el.text ?? ""
+    }
+
+    /// `el` with its words — a line's label's — now `text`.
+    static func setWords(_ text: String, in el: inout Element) {
+        if el.type == .line {
+            el.label?.text = text
+        } else {
+            el.setText(text)
+        }
     }
 
     /// Whether a box's words found (searches) are replaced: not a chart's
@@ -162,10 +177,17 @@ enum FindReplace {
     /// line, as WordLinks finds a link's, in the element's own space on the
     /// page's side of its flip (its top-left the origin, y down, before its
     /// turn) — a shape's words in the box they sit in — for Find to mark
-    /// the match it is showing. None for words round a curve, along a path,
-    /// down a column or beside a drop cap, which are drawn another way; the
-    /// canvas marks the whole box there.
+    /// the match it is showing. Words round a curve, along a path or down a
+    /// column a box round each letter's turned quad (TextPaths); none for a
+    /// warp or words beside a drop cap, which are drawn another way — the
+    /// canvas marks the whole box there. A line's words are in their own
+    /// upright box (LineLabels.textElement), in whose space these are, as
+    /// on the Android twin.
     static func letterRects(of range: NSRange, in el: Element) -> [CGRect] {
+        if el.type == .line {
+            guard let words = LineLabels.textElement(for: el) else { return [] }
+            return letterRects(of: range, in: words)
+        }
         if el.type == .shape {
             guard ShapeText.takesText(el) else { return [] }
             let box = ShapeText.shownBox(for: el)
@@ -182,7 +204,12 @@ enum FindReplace {
 
     /// The same in a text box's own space, before any flip.
     private static func letterRects(of range: NSRange, inWords el: Element) -> [CGRect] {
-        guard el.w > 0, range.length > 0, !TextOutliner.followsAPath(el) else { return [] }
+        guard el.w > 0, range.length > 0 else { return [] }
+        if TextOutliner.followsAPath(el) {
+            return TextPaths.glyphPlacements(el).filter { NSLocationInRange($0.index, range) }.map {
+                WordLinks.bounds(of: [$0.quad])
+            }
+        }
         var drawn = el
         if el.fitText == true { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
         if TextEffect.from(el.effect) == .none, FontLibrary.dropCapLayout(for: drawn) != nil { return [] }

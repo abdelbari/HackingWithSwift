@@ -1516,6 +1516,43 @@ struct ContextToolbar: View {
         // Each end on its own, eleven ways, and how big the heads are
         // (LineEnds), as the Android twin sets them.
         toolButton("arrow.left.and.right", "Ends") { activeSheet = .lineEnds }
+        lineLabelControls(el)
+    }
+
+    /// A line's words (LineLabels): Add text — Edit text once it has some
+    /// — types on it, and then their size, colour, face, weight and slant,
+    /// and whether they break the line, one step a change.
+    @ViewBuilder
+    private func lineLabelControls(_ el: Element) -> some View {
+        toolButton("character.textbox", el.label == nil ? "Add text" : "Edit text") { store.typeLineLabel() }
+        if let label = el.label {
+            sliderControl("Text size", value: label.size, in: 6...200) { v in
+                store.changeLineLabelTransient { $0.size = v.rounded() }
+            }
+            colorChip(label.color ?? el.color ?? "#1f2430", "Text colour") { activeSheet = .colorLabel }
+            Menu { labelLookMenu(label) } label: { toolLabel("textformat", "Font") }
+                .accessibilityLabel("Font")
+        }
+    }
+
+    /// The label's face, Bold, Italic and whether the line breaks behind
+    /// it.
+    @ViewBuilder
+    private func labelLookMenu(_ label: LineLabel) -> some View {
+        Toggle(tr("Bold"), isOn: Binding(get: { label.weight >= 700 }, set: { on in
+            store.changeLineLabel { $0.weight = on ? 700 : 400 }
+        }))
+        Toggle(tr("Italic"), isOn: Binding(get: { label.italic }, set: { on in
+            store.changeLineLabel { $0.italic = on }
+        }))
+        Toggle(tr("Break line behind text"), isOn: Binding(get: { label.gap }, set: { on in
+            store.changeLineLabel { $0.gap = on }
+        }))
+        Picker(tr("Font"), selection: Binding(get: { label.font ?? FontLibrary.all[0].id }, set: { id in
+            store.changeLineLabel { $0.font = id }
+        })) {
+            ForEach(FontLibrary.all, id: \.id) { font in Text(font.name).tag(font.id) }
+        }
     }
 
     /// Straight, Elbow or Curve (LineRoutes), the line's ends staying where

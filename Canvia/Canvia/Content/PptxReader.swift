@@ -34,6 +34,14 @@
 //     spaces, and is bold, italic or underlined when every one is — a run
 //     that is when the box is not is written in RichText's markers, and a
 //     run's own colour, size or font is a span (Spans)
+//   • a paragraph's list and lvl, the first paragraph's line spacing and
+//     the room round it, are its pPr's, else its level's in the box's
+//     lstStyle, its placeholder's layout's and master's, else the master's
+//     body or other style (words(of:), list(bullet:autoNum:)); a run's
+//     spc and strike (its own or its list styles' defRPr) and hlinkClick its
+//     letter spacing, ~~ and link (spaced, jumped); normAutofit's fontScale
+//     and lnSpcReduction are applied, so shrunk type comes in at the size
+//     it showed
 //   • every *, _, ~ and backslash of the deck's own words is escaped
 //     (RichText.escapeLiteral), so the words read exactly as the deck has
 //     them and only the runs' own styles are markers
@@ -424,13 +432,18 @@ enum PptxReader {
         var colour: String?
         var typeface: String?
         var align: String?
+        /// Struck through (strike sngStrike or dblStrike; noStrike false).
+        var strike: Bool?
+        /// Its spc, hundredths of a point between letters.
+        var spacing: Double?
 
         /// This, its gaps filled from `under`.
         func over(_ under: Look?) -> Look {
             guard let under else { return self }
             return Look(size: size ?? under.size, bold: bold ?? under.bold, italic: italic ?? under.italic,
                         underline: underline ?? under.underline, colour: colour ?? under.colour,
-                        typeface: typeface ?? under.typeface, align: align ?? under.align)
+                        typeface: typeface ?? under.typeface, align: align ?? under.align,
+                        strike: strike ?? under.strike, spacing: spacing ?? under.spacing)
         }
     }
 
@@ -454,7 +467,58 @@ enum PptxReader {
         var script: String? = nil
         /// In capitals: its a:rPr's cap="all".
         var caps = false
+        /// Struck through: its a:rPr's strike, sngStrike or dblStrike.
+        var strike = false
+        /// Its a:rPr's spc, hundredths of a point between letters; nil for
+        /// none said.
+        var spacing: Double? = nil
+        /// Where its a:hlinkClick goes: a followable address, or a jump to
+        /// a slide (slideLink) until the slides' pages are known.
+        var link: String? = nil
     }
+
+    /// A paragraph's line spacing or the room before or after it, as the
+    /// deck says it: a share of the type (spcPct, 100000 the whole) or
+    /// hundredths of a point (spcPts).
+    fileprivate enum Gap {
+        case pct(Double)
+        case pts(Double)
+
+        /// In ems of type `size` page pixels high.
+        func ems(size: Double) -> Double {
+            switch self {
+            case .pct(let value): return value / 100_000
+            case .pts(let value): return size > 0 ? value / PptxReader.sizePerPixel / size : 0
+            }
+        }
+    }
+
+    /// The line height a deck's single spacing (lnSpc spcPct 100%) is: a
+    /// new text's own, 1.25 — so a deck at single spacing comes in at the
+    /// default, and the writer's lnSpc is lineHeight ÷ 1.25. Both phones'
+    /// rule (the Android twin's PptxWriter.LINE_SPACING_EM).
+    static let singleSpacing = 1.25
+
+    /// The list an a:pPr's bullet makes, the rule both phones share:
+    /// buChar (and a picture's buBlip) a bullet, buAutoNum arabic… a
+    /// number, alphaLc… or alphaUc… letters, roman… — and any other
+    /// numbering — a number; buNone none. Nil when it names none of them.
+    static func list(bullet: String?, autoNum: String? = nil) -> String? {
+        switch bullet {
+        case "buChar", "buBlip": return "bullet"
+        case "buNone": return "none"
+        case "buAutoNum":
+            let scheme = autoNum ?? ""
+            return scheme.hasPrefix("alphaLc") || scheme.hasPrefix("alphaUc") ? "letter" : "number"
+        default: return nil
+        }
+    }
+
+    /// What a jump to a slide reads as until the slides' pages are known:
+    /// a page link to the slide's place in the deck's list.
+    fileprivate static let slidePrefix = "pptx-slide-"
+
+    fileprivate static func slideLink(_ index: Int) -> String { Links.pageLink(slidePrefix + String(index)) }
 
     /// The script an a:rPr's baseline — thousandths of a percent of the
     /// size, as "30000" — gives its words: above 0 raised, below 0 lowered,
@@ -476,6 +540,13 @@ enum PptxReader {
         /// Each line's own alignment, a paragraph's and its line breaks';
         /// nil where it says none.
         var aligns: [String?] = []
+        /// Each line's list and level, a paragraph's and its line breaks'.
+        var lines: [TextParagraph] = []
+        /// The first paragraph's a:lnSpc, a:spcBef and a:spcAft, as its
+        /// pPr, else its list style's level, says them.
+        var lineSpacing: Gap? = nil
+        var before: Gap? = nil
+        var after: Gap? = nil
     }
 
     /// A box in EMU on the slide: where, how big, turned and flipped.
@@ -525,6 +596,11 @@ enum PptxReader {
             [layout?.at("txBody", "lstStyle", "lvl1pPr"), master?.at("txBody", "lstStyle", "lvl1pPr")].compactMap { $0 }
         }
 
+        /// Their whole list styles, every level, the layout's first.
+        var listStyles: [SvgImport.Node] {
+            [layout?.at("txBody", "lstStyle"), master?.at("txBody", "lstStyle")].compactMap { $0 }
+        }
+
         /// Their bodyPrs, the layout's first.
         var bodies: [SvgImport.Node] {
             [layout?.at("txBody", "bodyPr"), master?.at("txBody", "bodyPr")].compactMap { $0 }
@@ -560,8 +636,8 @@ enum PptxReader {
     }
 
     /// The box's words with each run's bold, italic and underline that the
-    /// box as a whole does not have written in RichText's markers — "**",
-    /// "*" and "__", outermost first — round the run's words, line by line,
+    /// box as a whole does not have, and its strike, written in RichText's
+    /// markers — "**", "*", "__" and "~~", outermost first — round the run's words, line by line,
     /// spaces at either end left outside, and the deck's own marker
     /// characters escaped. Read back, they must give the same words in the
     /// same styles; when they do not, the words go in plain, escaped.
@@ -574,7 +650,7 @@ enum PptxReader {
             // weight in its span; its b="1" is only the writer saying the
             // cut is heavy, and a ** round it would draw it bolder still.
             let style = RichText.Style(bold: r.bold && r.weight == nil && !bold, italic: r.italic && !italic,
-                                       underline: r.underline && !underline)
+                                       underline: r.underline && !underline, strike: r.strike)
             for k in r.start..<r.end { want[k] = style }
         }
         let plainly = RichText.escapeLiteral(words.plain)
@@ -596,6 +672,7 @@ enum PptxReader {
             while t > s && isSpace(units[t - 1]) { t -= 1 }
             if s < t {
                 let open = (style.bold ? "**" : "") + (style.italic ? "*" : "") + (style.underline ? "__" : "")
+                    + (style.strike ? "~~" : "")
                 opens[s, default: ""] += open
                 closes[t] = String(open.reversed()) + (closes[t] ?? "")
             }
@@ -619,6 +696,43 @@ enum PptxReader {
         return text
     }
 
+    /// `pages` with each jump to a slide (slideLink) a link to the page
+    /// that slide became, by `made`; a jump to a slide that made none goes
+    /// nowhere and is dropped.
+    fileprivate static func jumped(_ pages: [Page], to made: [String: String]) -> [Page] {
+        func moved(_ link: String?) -> String? {
+            guard let id = Links.pageId(link), id.hasPrefix(slidePrefix) else { return link }
+            return made[id].map(Links.pageLink)
+        }
+        var out = pages
+        for p in out.indices {
+            for i in out[p].elements.indices {
+                var el = out[p].elements[i]
+                el.link = moved(el.link)
+                if let spans = el.spans {
+                    el.spans = spans.map { span -> TextSpan in
+                        var kept = span
+                        kept.link = moved(span.link)
+                        return kept
+                    }
+                }
+                out[p].elements[i] = el
+            }
+        }
+        return out
+    }
+
+    /// The link every run with words shares, when they all have one and
+    /// it is the same: the box's own link; nil otherwise.
+    fileprivate static func wholeLink(_ words: Words) -> String? {
+        let units = Array(words.plain.utf16)
+        let shown = words.runs.filter { r in
+            !units[max(0, r.start)..<min(r.end, units.count)].allSatisfy(isSpace)
+        }
+        guard let link = shown.first?.link, shown.allSatisfy({ $0.link == link }) else { return nil }
+        return link
+    }
+
     // MARK: reading
 
     private final class DeckReader {
@@ -631,6 +745,10 @@ enum PptxReader {
         var theme = Theme()
         /// The master the words being read are under, for their defaults.
         var currentMaster: Part?
+        /// The slide the words being read are on, for their links.
+        var currentSlide: Part?
+        /// The slides' parts in the deck's order, for a jump to one.
+        var slideOrder: [String] = []
         /// The master's level-1 look for words in a kind of box, by master.
         var masterLooks: [String: Look?] = [:]
         /// Groups nested past maxDepth end the read, as on the Android
@@ -688,8 +806,16 @@ enum PptxReader {
                 return rel.target
             }
             let designId = ids("doc")
-            let pages = slides.compactMap { path in load(path).flatMap(page) }
+            slideOrder = slides
+            var made: [String: String] = [:]
+            var pages: [Page] = []
+            for (n, path) in slides.enumerated() {
+                guard let read = load(path).flatMap(page) else { continue }
+                made[PptxReader.slidePrefix + String(n)] = read.id
+                pages.append(read)
+            }
             guard !pages.isEmpty, !tooDeep else { return nil }
+            pages = PptxReader.jumped(pages, to: made)
             skipped[PptxReader.font] = missingFonts.count
             var design = Design(title: title, width: width, height: height)
             design.id = designId
@@ -724,6 +850,7 @@ enum PptxReader {
             let master = layout.flatMap { related($0, "slideMaster") }
             let id = ids("page")
             currentMaster = master
+            currentSlide = slide
             var shown: Background?
             for part in [slide, layout, master].compactMap({ $0 }) {
                 guard let bg = part.root.at("cSld", "bg") else { continue }
@@ -838,8 +965,15 @@ enum PptxReader {
         /// each of `levels` (its placeholder's layout's and master's) in
         /// turn, else the master's for a `kind` of box, else 18 pt black in
         /// the theme's body font. Nil when there is no run and not `empty`.
+        ///
+        /// Each paragraph's list (PptxReader.list) and its lvl, and the
+        /// first paragraph's spacing, are its own a:pPr's, else its level's
+        /// in its a:lstStyle, else in each of `listStyles` (its
+        /// placeholder's layout's and master's), else in the master's body
+        /// or other text style for its kind of box — the first that says.
+        /// A line break's line is its paragraph's.
         func words(of body: SvgImport.Node, kind: TextKind, empty: Bool = false,
-                   levels: [SvgImport.Node] = []) -> Words? {
+                   levels: [SvgImport.Node] = [], listStyles: [SvgImport.Node] = []) -> Words? {
             let base = Look(size: PptxReader.defaultType, bold: false, italic: false, underline: false,
                             colour: "#000000", typeface: theme.minor)
             var defaults = (masterLook(kind, currentMaster) ?? Look()).over(base)
@@ -850,7 +984,10 @@ enum PptxReader {
             var runs: [Run] = []
             var alignment: String?
             var aligns: [String?] = []
+            var lines: [TextParagraph] = []
+            var spacing: (line: Gap?, before: Gap?, after: Gap?) = (nil, nil, nil)
             var props: SvgImport.Node?
+            let styles = (body.child("lstStyle").map { [$0] } ?? []) + listStyles + masterLists(kind)
             for (k, paragraph) in body.children(named: "p").enumerated() {
                 if k > 0 {
                     plain += "\n"
@@ -859,6 +996,14 @@ enum PptxReader {
                 let own = align(paragraph.child("pPr")?.attributes["algn"]) ?? defaults.align
                 if k == 0 { alignment = own }
                 aligns.append(own)
+                let pPr = paragraph.child("pPr")
+                let level = min(TextLists.maxLevel, max(0, Int(PptxReader.number(pPr, "lvl") ?? 0)))
+                let chain = [pPr].compactMap { $0 } + styles.compactMap { $0.child("lvl\(level + 1)pPr") }
+                let line = TextParagraph(list: listOf(chain), level: level)
+                lines.append(line)
+                if k == 0 {
+                    spacing = (gap(chain, "lnSpc"), gap(chain, "spcBef"), gap(chain, "spcAft"))
+                }
                 for part in paragraph.children {
                     switch part.name {
                     case "r", "fld":
@@ -879,18 +1024,68 @@ enum PptxReader {
                                         font: cut?.family ?? font(look.typeface), weight: cut?.weight,
                                         highlight: part.child("rPr")?.child("highlight").flatMap(colour(in:)),
                                         script: PptxReader.script(baseline: part.child("rPr")?.attributes["baseline"]),
-                                        caps: part.child("rPr")?.attributes["cap"] == "all"))
+                                        caps: part.child("rPr")?.attributes["cap"] == "all",
+                                        strike: look.strike == true,
+                                        spacing: look.spacing,
+                                        link: link(part.child("rPr")?.child("hlinkClick"))))
                     case "br":
                         plain += "\n"
                         length += 1
                         aligns.append(own)
+                        lines.append(line)
                     default:
                         break
                     }
                 }
             }
             if runs.isEmpty && !empty { return nil }
-            return Words(plain: plain, runs: runs, align: alignment, props: props, aligns: aligns)
+            return Words(plain: plain, runs: runs, align: alignment, props: props, aligns: aligns, lines: lines,
+                         lineSpacing: spacing.line, before: spacing.before, after: spacing.after)
+        }
+
+        /// The master's text style a `kind` of box takes its lists from:
+        /// its body style, or its other style; a title none.
+        func masterLists(_ kind: TextKind) -> [SvgImport.Node] {
+            guard kind != .title, let style = currentMaster?.root.child("txStyles")?.child("\(kind.rawValue)Style") else {
+                return []
+            }
+            return [style]
+        }
+
+        /// The list the first of `chain` that names a bullet makes; none
+        /// when none does. A picture bullet is a bullet, the picture said
+        /// left out.
+        func listOf(_ chain: [SvgImport.Node]) -> String {
+            for node in chain {
+                let named = node.children.first { PptxReader.list(bullet: $0.name, autoNum: nil) != nil }
+                guard let bullet = named else { continue }
+                if bullet.name == "buBlip" { skip(PptxReader.picture) }
+                return PptxReader.list(bullet: bullet.name, autoNum: bullet.attributes["type"]) ?? "none"
+            }
+            return "none"
+        }
+
+        /// The first of `chain`'s `tag` (a:lnSpc, a:spcBef or a:spcAft):
+        /// its spcPct or its spcPts.
+        func gap(_ chain: [SvgImport.Node], _ tag: String) -> Gap? {
+            for node in chain {
+                guard let holder = node.child(tag) else { continue }
+                if let pct = PptxReader.number(holder.child("spcPct"), "val") { return .pct(pct) }
+                if let pts = PptxReader.number(holder.child("spcPts"), "val") { return .pts(pts) }
+            }
+            return nil
+        }
+
+        /// Where an a:hlinkClick goes, through the slide's relationships: an
+        /// address to follow, or a jump to a slide of the deck
+        /// (ppaction://hlinksldjump) as its place in the deck's list, which
+        /// read turns into that slide's page; nil for anything else.
+        func link(_ click: SvgImport.Node?) -> String? {
+            guard let click, let id = click.attributes["r:id"], let rel = currentSlide?.rels[id] else { return nil }
+            if rel.external { return Links.followable(rel.target) }
+            guard (click.attributes["action"] ?? "").contains("hlinksldjump") else { return nil }
+            let key = rel.target.lowercased()
+            return slideOrder.firstIndex { $0.lowercased() == key }.map(PptxReader.slideLink)
         }
 
         /// The styling the writer gives a text box, read back from its first
@@ -971,11 +1166,14 @@ enum PptxReader {
         func look(_ props: SvgImport.Node?) -> Look {
             guard let props else { return Look() }
             let u = props.attributes["u"]
+            let strike = props.attributes["strike"]
             return Look(size: PptxReader.number(props, "sz").flatMap { $0 > 0 ? $0 : nil },
                         bold: PptxReader.flag(props, "b"), italic: PptxReader.flag(props, "i"),
                         underline: u.map { $0 != "none" },
                         colour: props.child("solidFill").flatMap(colour(in:)),
-                        typeface: props.child("latin")?.attributes["typeface"].flatMap { $0.isEmpty ? nil : $0 })
+                        typeface: props.child("latin")?.attributes["typeface"].flatMap { $0.isEmpty ? nil : $0 },
+                        strike: strike.map { $0 == "sngStrike" || $0 == "dblStrike" },
+                        spacing: PptxReader.number(props, "spc"))
         }
 
         func align(_ algn: String?) -> String? {
@@ -1265,9 +1463,13 @@ enum PptxReader {
             }
             let type = reader.placeholderType(node)
             guard let body = node.child("txBody"),
-                  let words = reader.words(of: body, kind: reader.kind(of: type), levels: from.levels) else { return }
+                  let words = reader.words(of: body, kind: reader.kind(of: type), levels: from.levels,
+                                           listStyles: from.listStyles) else { return }
             let bodies = (body.child("bodyPr").map { [$0] } ?? []) + from.bodies
-            if let made = text(words, bodies: bodies, box: box, place: place, group: group) {
+            if var made = text(words, bodies: bodies, box: box, place: place, group: group) {
+                // The shape's own click, as the writer writes an element's
+                // link, unless its words already go somewhere as a whole.
+                if made.link == nil { made.link = reader.link(nv?.child("cNvPr")?.child("hlinkClick")) }
                 out.append(made)
             }
             if title == nil && (type == "title" || type == "ctrTitle") {
@@ -1435,16 +1637,27 @@ enum PptxReader {
             let inset = Insets(left: said("lIns", 91440), top: said("tIns", 45720),
                                right: said("rIns", 91440), bottom: said("bIns", 45720))
             let anchor = bodies.lazy.compactMap { $0.attributes["anchor"] }.first
+            // The first body that says how its words fit: shrunk on
+            // overflow (normAutofit) comes in at the size it showed.
+            let fit = bodies.lazy.compactMap { b in
+                b.children.first { ["normAutofit", "spAutoFit", "noAutofit"].contains($0.name) }
+            }.first
+            let shrink = fit?.name == "normAutofit" ? fit : nil
             return textBox(words, anchor: anchor, inset: inset, box: box, place: place, group: group, empty: false,
-                           body: bodies.first)
+                           body: bodies.first,
+                           fontScale: (PptxReader.number(shrink, "fontScale") ?? 100_000) / 100_000,
+                           lineReduction: (PptxReader.number(shrink, "lnSpcReduction") ?? 0) / 100_000)
         }
 
         /// A text box of `words` inside `box` less `inset` (scaled as its
         /// group is by `place`), the box's look its first run's with words
         /// and the rest as markers and spans; nil for no words, unless
-        /// `empty` — a table's cell, which always has its text.
+        /// `empty` — a table's cell, which always has its text. Type shrunk
+        /// to fit comes in at the size it showed: `fontScale` times its
+        /// own, its lines `lineReduction` closer (normAutofit).
         func textBox(_ given: Words, anchor: String?, inset: Insets, box: Box, place: Place, group: String?,
-                     empty: Bool, body: SvgImport.Node? = nil) -> Element? {
+                     empty: Bool, body: SvgImport.Node? = nil, fontScale: Double = 1,
+                     lineReduction: Double = 0) -> Element? {
             if !empty && PptxReader.isBlank(given.plain) { return nil }
             // The runs' offsets are into the words as they read, which the
             // escapes leave as they are.
@@ -1454,7 +1667,8 @@ enum PptxReader {
                 !units[max(0, r.start)..<min(r.end, units.count)].allSatisfy(PptxReader.isSpace)
             }
             let first = shown.first ?? words.runs.first
-            let size = first?.size ?? PptxReader.defaultType / PptxReader.sizePerPixel
+            let own = first?.size ?? PptxReader.defaultType / PptxReader.sizePerPixel
+            let size = own * (fontScale > 0 ? fontScale : 1)
             let colour = first?.colour ?? "#000000"
             let face = first?.font ?? FontLibrary.all[0].id
             let bold = !shown.isEmpty && shown.allSatisfy(\.bold)
@@ -1508,31 +1722,66 @@ enum PptxReader {
             // The spans are made for the plain words, which the escapes keep.
             if RichText.strip(text) == words.plain {
                 let boxWeight = bold ? 700 : 400
+                // A run that goes where every other run goes is the box's
+                // link instead (below).
+                let whole = PptxReader.wholeLink(words)
                 el.setSpans(words.runs.map { r in
-                    let scale = r.size / size
+                    let scale = r.size / own
                     // A run's cut is its words' weight; a bold run the
                     // markers could not keep is 700, an italic one slanted.
                     let weight: Int? = r.weight ?? (plainOnly && r.bold && !bold ? 700 : nil)
                     return TextSpan(start: r.start, end: r.end, color: r.colour == colour ? nil : r.colour,
                                     scale: size > 0 && abs(scale - 1) > Spans.scaleTolerance ? scale : nil,
-                                    font: r.font == face ? nil : r.font,
+                                    font: r.font == face ? nil : r.font, link: whole == nil ? r.link : nil,
                                     weight: weight == boxWeight ? nil : weight,
                                     italic: plainOnly && r.italic && !italic ? true : nil,
                                     highlight: boxMarked ? nil : r.highlight, script: r.script,
                                     caps: r.caps && !allCaps ? true : nil)
                 })
             }
+            el.link = PptxReader.wholeLink(words)
+            spaced(&el, words, size: own, lineReduction: lineReduction)
             if allCaps { el.uppercase = true }
             // Each paragraph's own algn, where they differ: the box's is the
-            // first paragraph's, the rest on their lines (TextLists).
-            if Set(words.aligns.map { $0 ?? "left" }).count > 1 {
+            // first paragraph's, the rest on their lines (TextLists); and
+            // each paragraph's list and level, the box-wide listStyle when
+            // every line is alike (setLines).
+            let aligned = Set(words.aligns.map { $0 ?? "left" }).count > 1
+            let listed = words.lines.contains { $0.isListed || $0.level > 0 }
+            if aligned || listed {
                 el.setLines(TextLists.lines(el).enumerated().map { i, line -> TextParagraph in
-                    var p = line
-                    p.align = i < words.aligns.count ? words.aligns[i] ?? "left" : nil
+                    var p = i < words.lines.count ? words.lines[i] : line
+                    p.align = aligned && i < words.aligns.count ? words.aligns[i] ?? "left" : nil
                     return p
                 })
             }
             return el
+        }
+
+        /// The box's spacing from its words, the rule both phones share:
+        /// its letters' the spc of its dominant run (the longest of all its
+        /// runs, spaces too, the first of those alike; a run's spc its own
+        /// or its list styles' defRPr) ÷ 75, as the writer writes
+        /// letterSpacing × 75; its lines' the first paragraph's lnSpc — a
+        /// spcPct × singleSpacing, a spcPts over the type — `lineReduction`
+        /// closer (the normAutofit of the first bodyPr that says how its
+        /// words fit: the shape's, its layout's, its master's); and the room
+        /// between paragraphs its spcBef and spcAft together, in ems of the
+        /// type `size` (pixels) high. No number is rounded.
+        func spaced(_ el: inout Element, _ words: Words, size: Double, lineReduction: Double) {
+            var dominant: Run?
+            for r in words.runs where r.end - r.start > (dominant.map { $0.end - $0.start } ?? 0) { dominant = r }
+            if let spc = dominant?.spacing { el.letterSpacing = spc / PptxReader.sizePerPixel }
+            var lineHeight: Double?
+            switch words.lineSpacing {
+            case .pct(let value)?: lineHeight = value / 100_000 * PptxReader.singleSpacing
+            case .pts?: lineHeight = words.lineSpacing?.ems(size: size)
+            case nil: lineHeight = nil
+            }
+            if lineReduction > 0 { lineHeight = (lineHeight ?? PptxReader.singleSpacing) * (1 - lineReduction) }
+            if let lineHeight, lineHeight > 0 { el.lineHeight = lineHeight }
+            let room = (words.before?.ems(size: size) ?? 0) + (words.after?.ems(size: size) ?? 0)
+            if room > 0 { el.paragraphSpacing = room }
         }
 
         /// A line from corner to corner of `box` — the other two corners
