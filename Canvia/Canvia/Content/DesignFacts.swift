@@ -218,7 +218,7 @@ struct DesignFacts: Equatable {
         let used = Set(fonts(design).map(\.key))
         let colours = Set(elements.flatMap { ColourSwap.fields(of: $0) }.compactMap { ColourSwap.parse($0)?.rgb })
         return kits.first { kit in
-            let faces = BrandFonts.Role.allCases.compactMap { kit.fonts[role: $0]?.family }.map { FontLibrary.resolve($0) }
+            let faces = BrandFonts.Role.allCases.compactMap { kit.fonts[$0]?.family }.map { FontLibrary.resolve($0) }
             let shared = kit.colors.contains { ColourSwap.parse($0).map { colours.contains($0.rgb) } ?? false }
             return faces.contains { used.contains($0) } && shared
         }
