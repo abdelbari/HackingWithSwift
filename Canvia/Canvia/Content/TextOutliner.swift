@@ -373,6 +373,15 @@ enum TextOutliner {
         return attributes?[Spans.colourKey.rawValue] as? String
     }
 
+    /// How far a run of raised or lowered letters (Spans' script) sits above
+    /// its line, negative below: CoreText lays it on the line, so the
+    /// outlines move it themselves.
+    private static func shift(of run: CTRun) -> CGFloat {
+        let attributes = CTRunGetAttributes(run) as? [String: Any]
+        let value = attributes?[NSAttributedString.Key.baselineOffset.rawValue] as? NSNumber
+        return CGFloat(value?.doubleValue ?? 0)
+    }
+
     /// Whether `text` has any Chinese, Japanese or Korean letters — what
     /// vertical text is set down a column for in PowerPoint (eaVert), the
     /// rest stacked letter by letter (wordArtVert). The Android twin's
@@ -427,6 +436,7 @@ enum TextOutliner {
             let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
             let font = uiFont as CTFont
             let tint = colour(of: run)
+            let lift = shift(of: run)
             var glyphs = [CGGlyph](repeating: 0, count: count)
             var positions = [CGPoint](repeating: .zero, count: count)
             var advances = [CGSize](repeating: .zero, count: count)
@@ -439,7 +449,7 @@ enum TextOutliner {
                 let here = walker.locate(centre)
                 let transform = CGAffineTransform(translationX: here.point.x, y: here.point.y)
                     .rotated(by: here.angle)
-                    .translatedBy(x: -advances[i].width / 2, y: 0)
+                    .translatedBy(x: -advances[i].width / 2, y: -lift)
                     .scaledBy(x: 1, y: -1)
                 // A space has no outline but keeps its rule, so an underline
                 // runs on between words (as Android's TextOutlines does); a
@@ -676,7 +686,7 @@ enum TextOutliner {
         let width = CTRunGetTypographicBounds(run, CFRange(location: 0, length: 0), nil, nil, nil)
         guard width > 0 else { return }
         let x = Double(lineOrigin.x + first.x)
-        let baseline = boxHeight - Double(lineOrigin.y + first.y)
+        let baseline = boxHeight - Double(lineOrigin.y + first.y + shift(of: run))
         let thickness = max(1, Double(CTFontGetUnderlineThickness(font)))
         let tint = colour(of: run)
         if underlined {
@@ -713,13 +723,14 @@ enum TextOutliner {
         CTRunGetPositions(run, range, &positions)
         CTRunGetAdvances(run, range, &advances)
         let tint = colour(of: run)
+        let lift = shift(of: run)
 
         for i in 0..<count {
             // CoreText places glyphs in a y-up space whose origin is the
             // frame's bottom-left; the element's space is y-down from its
             // top-left. Translate to the glyph's pen position, then flip.
             let x = lineOrigin.x + positions[i].x
-            let y = boxHeight - (lineOrigin.y + positions[i].y)
+            let y = boxHeight - (lineOrigin.y + positions[i].y + lift)
             let transform = CGAffineTransform(translationX: x, y: y).scaledBy(x: 1, y: -1)
             let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil)
             if let cluster = emoji(at: i, of: run, glyph: glyph, font: font, in: string, taken: &taken) {
@@ -780,6 +791,7 @@ enum TextOutliner {
             let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
             let font = uiFont as CTFont
             let tint = colour(of: run)
+            let lift = shift(of: run)
 
             var glyphs = [CGGlyph](repeating: 0, count: count)
             var positions = [CGPoint](repeating: .zero, count: count)
@@ -798,7 +810,7 @@ enum TextOutliner {
                 let point = CGPoint(x: radius * sin(angle), y: radius * (1 - cos(angle)))
                 let transform = CGAffineTransform(translationX: point.x, y: point.y)
                     .rotated(by: angle)
-                    .translatedBy(x: -advances[i].width / 2, y: 0)
+                    .translatedBy(x: -advances[i].width / 2, y: -lift)
                     .scaledBy(x: 1, y: -1)
                 // A space has no outline but keeps its rule, so an underline
                 // runs on between words (as Android's TextOutlines does); a

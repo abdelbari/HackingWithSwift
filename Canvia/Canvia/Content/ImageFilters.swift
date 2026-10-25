@@ -192,13 +192,19 @@ struct Adjustments: Codable, Equatable, Hashable {
     /// later and are written only once moved, so a photo nobody has turned
     /// them on is saved exactly as before.
     func encode(to encoder: Encoder) throws {
+        try encodeDials(to: encoder, keepsVignette: true)
+    }
+
+    /// The dials written; an area's (RetouchLayer) leave the vignette out,
+    /// as it is never drawn on part of a photo — the Android twin's shape.
+    func encodeDials(to encoder: Encoder, keepsVignette: Bool) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(brightness, forKey: .brightness)
         try c.encode(contrast, forKey: .contrast)
         try c.encode(saturation, forKey: .saturation)
         try c.encode(warmth, forKey: .warmth)
         try c.encode(sharpness, forKey: .sharpness)
-        try c.encode(vignette, forKey: .vignette)
+        if keepsVignette { try c.encode(vignette, forKey: .vignette) }
         try c.encodeIfPresent(curve, forKey: .curve)
         let later: [(Double, CodingKeys)] = [
             (tint, .tint), (highlights, .highlights), (shadows, .shadows), (whites, .whites),
@@ -843,8 +849,9 @@ enum PhotoLook {
 
 // MARK: - fx
 
-/// A photo's fx (PhotoFx) a pixel at a time: glitch, slice, halftone and
-/// grain, step for step the Android twin's PhotoFx, with one test table
+/// A photo's fx (PhotoFx) a pixel at a time: glitch, slice, halftone,
+/// grain, screen, posterize, mosaic and kaleido, step for step the Android
+/// twin's PhotoFx, with one test table
 /// (PhotoLooksTests, the Android twin's PhotoFxTest). Each works on `bytes`
 /// — RGBA, premultiplied, `width` × `height`, top row first — and draws from
 /// its seed with the shared SeededRandom, in the order written here. They
@@ -865,6 +872,10 @@ extension PhotoLook {
         case "slice": slice(&bytes, width: width, height: height, amount: fx.share, seed: fx.seed)
         case "halftone": halftone(&bytes, width: width, height: height, amount: fx.share)
         case "grain": grain(&bytes, width: width, height: height, amount: fx.share, seed: fx.seed)
+        case "screen": screen(&bytes, width: width, height: height, amount: fx.share)
+        case "posterize": posterize(&bytes, width: width, height: height, amount: fx.share, colours: fx.colours)
+        case "mosaic": mosaic(&bytes, width: width, height: height, amount: fx.share, seed: fx.seed)
+        case "kaleido": kaleido(&bytes, width: width, height: height, amount: fx.share)
         default: break
         }
     }
@@ -984,6 +995,175 @@ extension PhotoLook {
             guard alpha > 0 else { continue }
             let d = n * reach * Double(alpha) / 255
             for c in 0..<3 { bytes[i + c] = UInt8(min(byte(Double(bytes[i + c]) + d), alpha)) }
+        }
+    }
+
+    /// Screen, an old monitor's: scanlines every 2 + 6 × amount pixels
+    /// (rounded half up) — the last row of each period at 1 − amount / 2 —
+    /// an RGB subpixel mask — column x keeps channel x mod 3 (red, green,
+    /// blue) whole and the other two at 1 − 0.35 × amount — and a slight
+    /// barrel vignette, 1 − amount / 4 × d² / 2, d² the pixel centre's
+    /// squared distance from the middle with the sides at ±1. Each
+    /// premultiplied channel is multiplied by (row × vignette) × mask, once,
+    /// rounded half up and kept within its alpha — the Android twin's
+    /// numbers in its order, so both draw photo-fx-more.json to one hash.
+    static func screen(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double) {
+        let period = max(2, Int((2 + 6 * amount + 0.5).rounded(.down)))
+        let dim = 1 - 0.35 * amount
+        let line = 1 - 0.5 * amount
+        for y in 0..<h {
+            let row = y % period == period - 1 ? line : 1
+            let dy = (Double(y) + 0.5) / Double(h) * 2 - 1
+            for x in 0..<w {
+                let i = (y * w + x) * 4
+                let alpha = Int(bytes[i + 3])
+                guard alpha > 0 else { continue }
+                let dx = (Double(x) + 0.5) / Double(w) * 2 - 1
+                let fall = 1 - 0.25 * amount * (dx * dx + dy * dy) / 2
+                let lit = row * fall
+                for c in 0..<3 {
+                    let mask = x % 3 == c ? 1 : dim
+                    let v = Double(bytes[i + c]) * (lit * mask)
+                    bytes[i + c] = UInt8(min(alpha, Int(v + 0.5)))
+                }
+            }
+        }
+    }
+
+    /// Posterize: round(8 − 6 × amount) levels a channel (2 to 8). Each
+    /// channel's colour v (unpremultiplied, 0…255) goes to the nearest
+    /// level k = (2 v (L − 1) + 255) / 510 and back to k × 255 / (L − 1),
+    /// rounded half up, in whole numbers. With `colours` (ColorMix), the
+    /// colour that gives is then the nearest of them by squared RGB
+    /// distance, the first of equals. Premultiplied again as
+    /// (v × alpha + 127) / 255; a clear pixel stays as it is.
+    static func posterize(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double, colours: [String]?) {
+        let levels = max(2, Int((8 - 6 * amount + 0.5).rounded(.down)))
+        let steps = levels - 1
+        let palette = (colours ?? []).compactMap(PhotoFx.rgb)
+        for p in 0..<(w * h) {
+            let i = p * 4
+            let alpha = Int(bytes[i + 3])
+            guard alpha > 0 else { continue }
+            var rgb = [0, 0, 0]
+            for c in 0..<3 {
+                let v = min(255, (Int(bytes[i + c]) * 255 + alpha / 2) / alpha)
+                let k = (2 * v * steps + 255) / 510
+                rgb[c] = (2 * k * 255 + steps) / (2 * steps)
+            }
+            if !palette.isEmpty { rgb = nearest(rgb, in: palette) }
+            for c in 0..<3 { bytes[i + c] = UInt8((rgb[c] * alpha + 127) / 255) }
+        }
+    }
+
+    /// The colour of `palette` nearest `rgb` by squared distance, the first
+    /// of equals.
+    private static func nearest(_ rgb: [Int], in palette: [[Int]]) -> [Int] {
+        var best = palette[0]
+        var bestDistance = Int.max
+        for colour in palette {
+            let dr = rgb[0] - colour[0], dg = rgb[1] - colour[1], db = rgb[2] - colour[2]
+            let d = dr * dr + dg * dg + db * db
+            if d < bestDistance {
+                best = colour
+                bestDistance = d
+            }
+        }
+        return best
+    }
+
+    /// Mosaic: tiles 1% + 7% × amount of the shorter side (at least 2
+    /// pixels, rounded half up), Voronoi cells round one site a square of
+    /// that grid, row by row from the top left, each at (column + the
+    /// seed's next draw, row + its next) × the side. A pixel belongs to the
+    /// nearest site of the nine squares round its own, the first of equals
+    /// in that order, its centre at half a pixel; each tile is its pixels'
+    /// mean, rounded half up, and a 1-pixel grout — a pixel whose right or
+    /// lower neighbour is in another tile — its tile's colour halved, rounded
+    /// half up ((v + 1) / 2, as the Android twin does), its alpha kept.
+    static func mosaic(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double, seed: Int) {
+        let side = max(2, pixels(0.01 + 0.07 * amount, of: min(w, h)))
+        let cols = (w + side - 1) / side, rows = (h + side - 1) / side
+        var random = SeededRandom(seed: Double(seed))
+        var sites: [(x: Double, y: Double)] = []
+        for j in 0..<rows {
+            for i in 0..<cols {
+                let x = (Double(i) + random.next()) * Double(side)
+                let y = (Double(j) + random.next()) * Double(side)
+                sites.append((x: x, y: y))
+            }
+        }
+        var owner = [Int](repeating: 0, count: w * h)
+        for y in 0..<h {
+            for x in 0..<w {
+                owner[y * w + x] = nearestSite(x: x, y: y, side: side, cols: cols, rows: rows, sites: sites)
+            }
+        }
+        var sums = [Int](repeating: 0, count: sites.count * 4)
+        var counts = [Int](repeating: 0, count: sites.count)
+        for p in 0..<(w * h) {
+            let k = owner[p]
+            counts[k] += 1
+            for c in 0..<4 { sums[k * 4 + c] += Int(bytes[p * 4 + c]) }
+        }
+        for y in 0..<h {
+            for x in 0..<w {
+                let p = y * w + x, k = owner[p], n = counts[k]
+                let grout = (x + 1 < w && owner[p + 1] != k) || (y + 1 < h && owner[p + w] != k)
+                for c in 0..<4 {
+                    let mean = (2 * sums[k * 4 + c] + n) / (2 * n)
+                    bytes[p * 4 + c] = UInt8(grout && c < 3 ? (mean + 1) / 2 : mean)
+                }
+            }
+        }
+    }
+
+    /// The site of the nine grid squares round pixel (`x`, `y`)'s nearest
+    /// its centre, the first of equals, row by row.
+    private static func nearestSite(x: Int, y: Int, side: Int, cols: Int, rows: Int,
+                                    sites: [(x: Double, y: Double)]) -> Int {
+        let px = Double(x) + 0.5, py = Double(y) + 0.5
+        let ci = x / side, cj = y / side
+        var best = -1
+        var bestDistance = 0.0
+        for nj in max(0, cj - 1)...min(rows - 1, cj + 1) {
+            for ni in max(0, ci - 1)...min(cols - 1, ci + 1) {
+                let k = nj * cols + ni
+                let dx = sites[k].x - px, dy = sites[k].y - py
+                let d = dx * dx + dy * dy
+                if best < 0 || d < bestDistance {
+                    best = k
+                    bestDistance = d
+                }
+            }
+        }
+        return best
+    }
+
+    /// Kaleido: 4 + round(8 × amount) wedges about the photo's centre (w /
+    /// 2, h / 2), each mirroring the first. A pixel centre at angle θ
+    /// (atan2 of its offset, y down) and distance r is folded into the first
+    /// wedge — t = θ less whole wedges, mirrored about the wedge's middle
+    /// (the wedge's width less t) when past it, every wedge alike, so an odd
+    /// count leaves no seam; the Android twin's rule — and takes the pixel
+    /// under (centre + r (cos t, sin t)), rounded down and held within the
+    /// picture.
+    static func kaleido(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double) {
+        let segments = 4 + Int((amount * 8 + 0.5).rounded(.down))
+        let wedge = 2 * Double.pi / Double(segments)
+        let cx = Double(w) / 2, cy = Double(h) / 2
+        let source = bytes
+        for y in 0..<h {
+            for x in 0..<w {
+                let dx = Double(x) + 0.5 - cx, dy = Double(y) + 0.5 - cy
+                let r = (dx * dx + dy * dy).squareRoot()
+                let theta = atan2(dy, dx)
+                var t = theta - (theta / wedge).rounded(.down) * wedge
+                if t > wedge / 2 { t = wedge - t }
+                let sx = min(max(Int((cx + r * cos(t)).rounded(.down)), 0), w - 1)
+                let sy = min(max(Int((cy + r * sin(t)).rounded(.down)), 0), h - 1)
+                for c in 0..<4 { bytes[(y * w + x) * 4 + c] = source[(sy * w + sx) * 4 + c] }
+            }
         }
     }
 
@@ -1178,9 +1358,18 @@ enum ImageFilterEngine {
             }
         }
         // The blur and pixelate brushed on, each over what its strokes
-        // cover: after the filter, the dials and the effects, before the
-        // vignette and the duotone.
-        output = retouched(output, effects, extent: extent)
+        // cover, and the dials of an adjust layer over its area: after the
+        // filter, the dials and the effects, before the vignette and the
+        // duotone. A layer over the subject or the background finds the
+        // subject as focus does.
+        var areaSubject: CIImage?
+        if effects.retouch.contains(where: { !$0.paintsArea }) {
+            switch subjectMask(of: image, key: cacheKey, extent: extent, waits: waits) {
+            case .found(let mask): areaSubject = mask
+            case .finding: stopgap = true
+            }
+        }
+        output = retouched(output, effects, extent: extent, subject: areaSubject)
         // The vignette over the blur, the blocks and the fx, a smooth fade as
         // the Android twin lays it over the drawn picture — the filter's own
         // added to the dial's, at the filter's strength.
@@ -1208,10 +1397,17 @@ enum ImageFilterEngine {
     }
 
     /// `image` with each retouch layer of `effects` laid over what its
-    /// strokes cover (MaskRaster): blurred, or in blocks of its own.
-    private static func retouched(_ image: CIImage, _ effects: PhotoEffects.Plan, extent: CGRect) -> CIImage {
+    /// strokes cover (MaskRaster): blurred, or in blocks of its own — or,
+    /// for an adjust layer, the picture so far run through the dials again
+    /// with its own and mixed in by its area (adjustedOver).
+    private static func retouched(_ image: CIImage, _ effects: PhotoEffects.Plan, extent: CGRect,
+                                  subject: CIImage?) -> CIImage {
         var output = image
         for (i, layer) in effects.retouch.enumerated() {
+            if layer.adjusts {
+                output = adjustedOver(output, layer, extent: extent, subject: subject)
+                continue
+            }
             guard let cover = ImageMasking.coverage(layer, picture: extent.size) else { continue }
             var effect: CIImage?
             if layer.kind == RetouchLayer.blur {
@@ -1227,6 +1423,28 @@ enum ImageFilterEngine {
             if let effect { output = ImageMasking.mixed(effect, over: output, by: cover, extent: extent) }
         }
         return output
+    }
+
+    /// An adjust layer over `image`: a copy through the dials
+    /// (`adjusted`) with the layer's own, mixed in by what its strokes cover
+    /// (RetouchLayer.cover), or by the subject — or all but it — where
+    /// `subject` is found; nothing while it is not.
+    private static func adjustedOver(_ image: CIImage, _ layer: RetouchLayer, extent: CGRect,
+                                     subject: CIImage?) -> CIImage {
+        let dials = layer.adjust ?? .neutral
+        guard !dials.isNeutral else { return image }
+        let effect = adjusted(image, dials, extent: extent).cropped(to: extent)
+        if layer.paintsArea {
+            guard let cover = ImageMasking.coverage(layer, picture: extent.size) else { return image }
+            return ImageMasking.mixed(effect, over: image, by: cover, extent: extent)
+        }
+        guard let subject else { return image }
+        let onSubject = layer.area == RetouchLayer.subjectArea
+        let mix = CIFilter.blendWithAlphaMask()
+        mix.inputImage = onSubject ? effect : image
+        mix.backgroundImage = onSubject ? image : effect
+        mix.maskImage = subject
+        return (mix.outputImage ?? image).cropped(to: extent)
     }
 
     // MARK: looks made off the main thread

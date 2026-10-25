@@ -2351,6 +2351,53 @@ struct ComboThumb: View {
     }
 }
 
+/// An animated combination's tile: its page as the presenter plays it
+/// (PageRenderView at the page's clock), in a loop of TextCombos.loopHold,
+/// silent — or, under Reduce Motion, the still tile with a motion badge.
+@MainActor
+struct AnimatedComboThumb: View {
+    let combo: TextCombos.Combo
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        if reduceMotion {
+            ComboThumb(combo: combo)
+                .overlay(alignment: .topTrailing) { motionBadge }
+        } else {
+            playing
+        }
+    }
+
+    private var motionBadge: some View {
+        Image(systemName: "sparkles")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .padding(5)
+            .background(Circle().fill(Theme.accent))
+            .padding(6)
+            .accessibilityHidden(true)
+    }
+
+    private var playing: some View {
+        let page = ComboThumbCache.page(for: combo)
+        let hold = TextCombos.loopHold(combo)
+        return TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: hold)
+            GeometryReader { box in
+                let scale = box.size.width / ComboThumbCache.width
+                PageRenderView(design: page, page: page.pages[0])
+                    .environment(\.animationTime, (t, hold))
+                    .scaleEffect(scale, anchor: .topLeading)
+                    .frame(width: box.size.width, height: box.size.height, alignment: .topLeading)
+            }
+            .aspectRatio(ComboThumbCache.width / ComboThumbCache.height, contentMode: .fit)
+        }
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline, lineWidth: 1))
+    }
+}
+
 @MainActor
 enum ComboThumbCache {
     /// A tile's size in page units, and how much of it, either way, a
@@ -2372,16 +2419,23 @@ enum ComboThumbCache {
         let faces = combo.elements.map { "\($0.fontFamily ?? "")/\($0.fontWeight ?? 0)" }.joined(separator: ",")
         let key = "\(combo.id)#\(faces)" as NSString
         if let cached = cache.object(forKey: key) { return cached }
-        let scale = min(width * fill / combo.w, height * fill / max(combo.h, 1))
-        let placed = TextCombos.placed(combo, scale: scale, pageWidth: width, pageHeight: height)
-        var design = Design(title: combo.name, width: width, height: height)
-        design.pages = [Page(elements: TextCombos.measured(placed))]
+        let design = page(for: combo)
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[0]))
         renderer.scale = 1.5
         renderer.isOpaque = true
         let image = renderer.uiImage
         if let image { cache.setObject(image, forKey: key) }
         return image
+    }
+
+    /// A tile's page: `combo` as it goes on a page, `fill` of the tile's
+    /// size at most, its words measured in the real faces.
+    static func page(for combo: TextCombos.Combo) -> Design {
+        let scale = min(width * fill / combo.w, height * fill / max(combo.h, 1))
+        let placed = TextCombos.placed(combo, scale: scale, pageWidth: width, pageHeight: height)
+        var design = Design(title: combo.name, width: width, height: height)
+        design.pages = [Page(elements: TextCombos.measured(placed))]
+        return design
     }
 }
 

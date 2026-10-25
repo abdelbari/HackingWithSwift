@@ -26,7 +26,9 @@
 //
 // Beside them a colour well and A- and A+ colour the words chosen, or set
 // them a step smaller or larger, Aa sets them in a face of their own and
-// Link links them (see Spans) — only with words chosen — and the field
+// Link links them (see Spans) — only with words chosen — x² and x₂ raise
+// or lower them (a span's script), or, with nothing chosen, raise or lower
+// what is typed next at the caret, and the field
 // shows the words in those colours, sizes and faces, linked ones underlined,
 // as they are typed. A shape's words take none, so its bar leaves them out,
 // as the Android twin's bar keeps them off.
@@ -76,6 +78,12 @@ struct InlineTextField: UIViewRepresentable {
     var onWordLink: (NSRange) -> Void = { _ in }
     /// The highlighter, the marker colours for the words chosen.
     var onWordHighlight: (NSRange) -> Void = { _ in }
+    /// x² or x₂ (⌘. or ⌘,): the words chosen raised or lowered, or put back
+    /// on the line, as a step of its own.
+    var onWordScript: (NSRange, String) -> Void = { _, _ in }
+    /// Words typed while x² or x₂ waited at the caret: raised or lowered
+    /// with the typing, in its own step.
+    var onTypedScript: (NSRange, String) -> Void = { _, _ in }
     /// ⇧⌘K: capitals on or off for the whole box, as a step of its own
     /// (TextKeys).
     var onToggle: (TextToggle) -> Void = { _ in }
@@ -199,6 +207,8 @@ struct InlineTextField: UIViewRepresentable {
         private var styleItems: [UIBarButtonItem] = []
         /// The colour well, A- and A+, Aa and Link, for the words chosen.
         private var wordItems: [UIBarButtonItem] = []
+        /// x² and x₂: for the words chosen, or what is typed next.
+        private var scriptItems: [UIBarButtonItem] = []
         /// List, Outdent and Indent, for the lines the choice covers.
         private var lineItems: [UIBarButtonItem] = []
         /// The colours and sizes the words are shown in now, and the words
@@ -218,6 +228,10 @@ struct InlineTextField: UIViewRepresentable {
         /// A style waiting for what is typed next, and the caret it waits at.
         private var pending: RichText.Pending?
         private var pendingCaret: Int?
+        /// x² or x₂ waiting for what is typed next, and the caret it waits
+        /// at, in the stored words: it follows the typing until the caret
+        /// moves elsewhere or it is pressed again.
+        private var armedScript: (script: String, caret: Int)?
         /// True while the field changes its own words or choice, and while a
         /// key's change it let through is under way: neither is the person
         /// moving the caret.
@@ -371,6 +385,7 @@ struct InlineTextField: UIViewRepresentable {
             if verdict.closeFirst { parent.typing.step() }
             typedWords = words
             parent.onChange(words)
+            raiseTyped(from: before, to: words, in: view)
             lastCaret = view.selectedRange
             lastSelection = view.selectedRange
             parent.typing.selection(view.selectedRange)
@@ -384,6 +399,23 @@ struct InlineTextField: UIViewRepresentable {
                 parent.typing.step()
                 parent.onAutoList(auto.line, auto.prefix, auto.list)
             }
+        }
+
+        /// What was typed at the caret x² or x₂ waits at raised or lowered
+        /// with the typing, and the wait moved on to the caret after it; any
+        /// other change ends the wait.
+        private func raiseTyped(from before: String, to words: String, in view: UITextView) {
+            guard let armed = armedScript else { return }
+            let caret = view.selectedRange
+            let grown = (words as NSString).length - (before as NSString).length
+            guard let range = editRange, range.location == armed.caret, range.length == 0, grown > 0,
+                  caret.length == 0, caret.location == armed.caret + grown,
+                  let typed = RichText.plainRange(of: NSRange(location: armed.caret, length: grown), in: words) else {
+                armedScript = nil
+                return
+            }
+            parent.onTypedScript(typed, armed.script)
+            armedScript = (script: armed.script, caret: caret.location)
         }
 
         /// Whether a change over `range` carries on from where the change
@@ -410,6 +442,7 @@ struct InlineTextField: UIViewRepresentable {
                 pending = nil
                 pendingCaret = nil
             }
+            if let armed = armedScript, kept.length > 0 || kept.location != armed.caret { armedScript = nil }
             view.typingAttributes = FontLibrary.attributes(for: InlineTextField.drawn(parent.element))
             parent.typing.selection(kept)
         }
@@ -651,6 +684,13 @@ struct InlineTextField: UIViewRepresentable {
             let link = UIBarButtonItem(image: UIImage(systemName: "link"), style: .plain,
                                        target: self, action: #selector(linkWords))
             link.accessibilityLabel = tr("Link")
+            let raised = UIBarButtonItem(title: "x²", style: .plain, target: self, action: #selector(scriptWords(_:)))
+            raised.tag = 0
+            raised.accessibilityLabel = tr("Superscript")
+            let lowered = UIBarButtonItem(title: "x₂", style: .plain, target: self, action: #selector(scriptWords(_:)))
+            lowered.tag = 1
+            lowered.accessibilityLabel = tr("Subscript")
+            scriptItems = parent.wordStyles ? [raised, lowered] : []
             wordItems = parent.wordStyles ? [well, marker, smaller, larger, face, link] : []
             let list = UIBarButtonItem(image: UIImage(systemName: "list.bullet"), style: .plain,
                                        target: self, action: #selector(cycleList))
@@ -672,7 +712,7 @@ struct InlineTextField: UIViewRepresentable {
                 next.accessibilityLabel = tr("Next cell")
                 cellItems = [next]
             }
-            bar.items = cellItems + styleItems + wordItems + lineItems
+            bar.items = cellItems + styleItems + wordItems + scriptItems + lineItems
             bar.sizeToFit()
             return bar
         }
@@ -719,6 +759,30 @@ struct InlineTextField: UIViewRepresentable {
             guard let view, let range = chosenWords(view) else { return }
             coalescer.close()
             parent.onWordLink(range)
+        }
+
+        /// x² or x₂ pressed.
+        @objc private func scriptWords(_ sender: UIBarButtonItem) {
+            script(sender.tag == 0 ? Spans.raised : Spans.lowered)
+        }
+
+        /// x² or x₂, ⌘. or ⌘,: the words chosen raised or lowered — or back
+        /// on the line when they all already are — as a step of their own;
+        /// with nothing chosen, what is typed next at the caret waits to be
+        /// raised or lowered, or stops waiting when pressed again.
+        private func script(_ script: String) {
+            guard parent.wordStyles, let view, view.markedTextRange == nil else { return }
+            coalescer.close()
+            if let range = chosenWords(view) {
+                armedScript = nil
+                parent.onWordScript(range, script)
+            } else if view.selectedRange.location != NSNotFound {
+                let caret = view.selectedRange.location
+                let again = armedScript?.script == script && armedScript?.caret == caret
+                armedScript = again ? nil : (script: script, caret: caret)
+                parent.typing.step()
+            }
+            refreshStyles(view)
         }
 
         /// A- or A+: the words chosen a step smaller or larger, as a step of
@@ -809,6 +873,10 @@ struct InlineTextField: UIViewRepresentable {
                 guard parent.wordStyles, let range = chosenWords(view) else { return }
                 coalescer.close()
                 parent.onWordLink(range)
+            case .raise:
+                script(Spans.raised)
+            case .lower:
+                script(Spans.lowered)
             case .lineTighter, .lineLooser, .letterTighter, .letterLooser, .copyStyle, .pasteStyle:
                 guard view.markedTextRange == nil else { return }
                 coalescer.close()
@@ -868,6 +936,7 @@ struct InlineTextField: UIViewRepresentable {
                 link.tintColor = on ? UIColor(Theme.accent) : .label
                 link.accessibilityTraits = on ? [.button, .selected] : .button
             }
+            refreshScripts(picked)
             refreshLines(view)
             let atCaret = chosen.length == 0 ? caretStyle(view) : RichText.Style()
             for (item, mark) in zip(styleItems, RichText.Mark.allCases) {
@@ -877,6 +946,19 @@ struct InlineTextField: UIViewRepresentable {
                 } else {
                     on = mark.isOn(atCaret) || (TextToggle(mark)?.isOn(parent.element) ?? false)
                 }
+                item.tintColor = on ? UIColor(Theme.accent) : .label
+                item.accessibilityTraits = on ? [.button, .selected] : .button
+            }
+        }
+
+        /// x² and x₂ lit when the words chosen are all raised or lowered, or
+        /// with nothing chosen, while one waits at the caret.
+        private func refreshScripts(_ picked: NSRange?) {
+            guard scriptItems.count == 2 else { return }
+            let shared = picked.map { Spans.script(of: parent.element.liveSpans, in: $0) }
+            let now = picked == nil ? armedScript?.script : (shared?.shared == true ? shared?.script : nil)
+            for (item, script) in zip(scriptItems, [Spans.raised, Spans.lowered]) {
+                let on = now == script
                 item.tintColor = on ? UIColor(Theme.accent) : .label
                 item.accessibilityTraits = on ? [.button, .selected] : .button
             }
@@ -985,6 +1067,15 @@ struct InlineTextField: UIViewRepresentable {
             }
             if let highlight = span.highlight {
                 storage.addAttribute(.backgroundColor, value: UIColor(hex: highlight), range: range)
+            }
+        }
+        defer {
+            // Raised or lowered after the size and face are set, as the
+            // canvas draws them.
+            if span.script != nil {
+                for range in RichText.typedRanges(of: span.range, units: units) {
+                    RichText.setScript(span.script, in: storage, range: range)
+                }
             }
         }
         guard let font = attrs[.font] as? UIFont, span.font != nil || span.scale != nil else { return }

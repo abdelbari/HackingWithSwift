@@ -449,6 +449,15 @@
     "ja": "%@ フォントの組み合わせ",
     "pt-BR": "Combinação de fontes %@"
   },
+  "%@ font combination, animated": {
+    "ar": "تشكيلة خطوط %@، متحركة",
+    "de": "Schriftkombination %@, animiert",
+    "es": "Combinación de fuentes %@, animada",
+    "fr": "Combinaison de polices %@, animée",
+    "it": "Combinazione di font %@, animata",
+    "ja": "%@ フォントの組み合わせ（アニメーションあり）",
+    "pt-BR": "Combinação de fontes %@, animada"
+  },
   "%@ font, missing": {
     "ar": "خط %@، غير متوفر",
     "de": "Schrift %@, fehlt",
@@ -4718,6 +4727,15 @@
     "ja": "A と an（英語）",
     "pt-BR": "A ou an (inglês)"
   },
+  "A photo takes up to 4 adjusted areas. Delete one to add another.": {
+    "ar": "تقبل الصورة حتى 4 مناطق معدّلة. احذف واحدة لإضافة أخرى.",
+    "de": "Ein Foto kann bis zu 4 angepasste Bereiche haben. Lösche einen, um einen weiteren hinzuzufügen.",
+    "es": "Una foto admite hasta 4 zonas ajustadas. Elimina una para añadir otra.",
+    "fr": "Une photo accepte jusqu’à 4 zones ajustées. Supprimez-en une pour en ajouter une autre.",
+    "it": "Una foto accetta fino a 4 aree regolate. Eliminane una per aggiungerne un’altra.",
+    "ja": "1枚の写真で調整できる範囲は4つまでです。追加するには1つ削除してください。",
+    "pt-BR": "Uma foto aceita até 4 áreas ajustadas. Exclua uma para adicionar outra."
+  },
   "A picture of each page": {
     "ar": "صورة لكل صفحة",
     "de": "Ein Bild pro Seite",
@@ -8708,6 +8726,15 @@
     "ja": "クリア",
     "pt-BR": "Limpar"
   },
+  "Clear a colour": {
+    "ar": "مسح لون",
+    "de": "Eine Farbe entfernen",
+    "es": "Borrar un color",
+    "fr": "Effacer une couleur",
+    "it": "Rimuovi un colore",
+    "ja": "色を消す",
+    "pt-BR": "Remover uma cor"
+  },
   "Clear caches": {
     "ar": "مسح ذاكرات التخزين المؤقت",
     "de": "Caches leeren",
@@ -8752,6 +8779,24 @@
     "it": "Cancella la cronologia delle ricerche",
     "ja": "検索履歴を消去",
     "pt-BR": "Limpar histórico de pesquisa"
+  },
+  "Clear the colour at the centre": {
+    "ar": "مسح اللون في المنتصف",
+    "de": "Farbe in der Mitte entfernen",
+    "es": "Borrar el color del centro",
+    "fr": "Effacer la couleur au centre",
+    "it": "Rimuovi il colore al centro",
+    "ja": "中央の色を消す",
+    "pt-BR": "Remover a cor do centro"
+  },
+  "Clear the colour at the corners": {
+    "ar": "مسح اللون في الزوايا",
+    "de": "Farbe an den Ecken entfernen",
+    "es": "Borrar el color de las esquinas",
+    "fr": "Effacer la couleur aux coins",
+    "it": "Rimuovi il colore agli angoli",
+    "ja": "四隅の色を消す",
+    "pt-BR": "Remover a cor dos cantos"
   },
   "Clear word colours and sizes": {
     "ar": "مسح ألوان الكلمات وأحجامها",
@@ -8941,6 +8986,15 @@
     "it": "Colore e stile",
     "ja": "色とスタイル",
     "pt-BR": "Cor e estilo"
+  },
+  "Colour mix": {
+    "ar": "مزيج الألوان",
+    "de": "Farbmix",
+    "es": "Mezcla de colores",
+    "fr": "Mélange de couleurs",
+    "it": "Mix di colori",
+    "ja": "カラーミックス",
+    "pt-BR": "Mistura de cores"
   },
   "Colour of everything selected": {
     "ar": "لون كل ما هو محدد",
@@ -13232,6 +13286,15 @@
     "ja": "追加したものはすべて、最前面から順にここに表示され、ドラッグで並べ替えられます。",
     "pt-BR": "Tudo o que você adicionar vai aparecer aqui, de cima para baixo, e pode ser arrastado para outra ordem."
   },
+  "Everywhere": {
+    "ar": "في كل مكان",
+    "de": "Überall",
+    "es": "En todas partes",
+    "fr": "Partout",
+    "it": "Ovunque",
+    "ja": "すべての場所",
+    "pt-BR": "Em todo lugar"
+  },
   "Exact": {
     "ar": "دقيق",
     "de": "Genau",
@@ -16217,6 +16280,15 @@
     "ja": "両端揃え",
     "pt-BR": "Justificar"
   },
+  "Kaleidoscope": {
+    "ar": "مشكال",
+    "de": "Kaleidoskop",
+    "es": "Caleidoscopio",
+    "fr": "Kaléidoscope",
+    "it": "Caleidoscopio",
+    "ja": "万華鏡",
+    "pt-BR": "Caleidoscópio"
+  },
   "Keep": {
     "ar": "الاحتفاظ",
     "de": "Behalten",
@@ -18037,6 +18109,15 @@
     "it": "Altre dimensioni",
     "ja": "その他のサイズ",
     "pt-BR": "Mais tamanhos"
+  },
+  "Mosaic": {
+    "ar": "فسيفساء",
+    "de": "Mosaik",
+    "es": "Mosaico",
+    "fr": "Mosaïque",
+    "it": "Mosaico",
+    "ja": "モザイク",
+    "pt-BR": "Mosaico"
   },
   "Most pages": {
     "ar": "معظم الصفحات",
@@ -21224,6 +21305,15 @@
     "ja": "ペイントモードがオンです。もう一度タップすると終了します",
     "pt-BR": "O modo pintura está ativado. Toque de novo para parar"
   },
+  "Paint more": {
+    "ar": "رسم المزيد",
+    "de": "Mehr malen",
+    "es": "Pintar más",
+    "fr": "Peindre davantage",
+    "it": "Dipingi ancora",
+    "ja": "さらに塗る",
+    "pt-BR": "Pintar mais"
+  },
   "Paint over something to take it out of the photo.": {
     "ar": "اطلِ فوق شيء لإزالته من الصورة.",
     "de": "Male über etwas, um es aus dem Foto zu entfernen.",
@@ -21241,6 +21331,24 @@
     "it": "Dipingi sopra ciò che va tolto",
     "ja": "消したい部分をなぞってください",
     "pt-BR": "Pinte sobre o que deve sair"
+  },
+  "Painted area": {
+    "ar": "المنطقة المرسومة",
+    "de": "Gemalter Bereich",
+    "es": "Zona pintada",
+    "fr": "Zone peinte",
+    "it": "Area dipinta",
+    "ja": "塗った範囲",
+    "pt-BR": "Área pintada"
+  },
+  "Painted area %d": {
+    "ar": "المنطقة المرسومة %d",
+    "de": "Gemalter Bereich %d",
+    "es": "Zona pintada %d",
+    "fr": "Zone peinte %d",
+    "it": "Area dipinta %d",
+    "ja": "塗った範囲 %d",
+    "pt-BR": "Área pintada %d"
   },
   "Palette options": {
     "ar": "خيارات لوحة الألوان",
@@ -22376,6 +22484,15 @@
     "ja": "ポスター",
     "pt-BR": "Pôster"
   },
+  "Posterize": {
+    "ar": "تقليل الألوان",
+    "de": "Tontrennung",
+    "es": "Posterizar",
+    "fr": "Postériser",
+    "it": "Posterizza",
+    "ja": "ポスタリゼーション",
+    "pt-BR": "Posterizar"
+  },
   "PowerPoint": {
     "ar": "PowerPoint",
     "de": "PowerPoint",
@@ -23371,6 +23488,15 @@
     "it": "Rimuovi punto",
     "ja": "停止点を削除",
     "pt-BR": "Remover parada"
+  },
+  "Remove white background": {
+    "ar": "إزالة الخلفية البيضاء",
+    "de": "Weißen Hintergrund entfernen",
+    "es": "Quitar fondo blanco",
+    "fr": "Supprimer le fond blanc",
+    "it": "Rimuovi sfondo bianco",
+    "ja": "白い背景を削除",
+    "pt-BR": "Remover fundo branco"
   },
   "Remove “%@”": {
     "ar": "إزالة «%@»",
@@ -24890,6 +25016,15 @@
     "es": "Trama",
     "fr": "Superposition",
     "it": "Scolora",
+    "ja": "スクリーン",
+    "pt-BR": "Tela"
+  },
+  "Screen\u0004photo effect": {
+    "ar": "شاشة",
+    "de": "Bildschirm",
+    "es": "Pantalla",
+    "fr": "Écran",
+    "it": "Schermo",
     "ja": "スクリーン",
     "pt-BR": "Tela"
   },
@@ -27683,6 +27818,15 @@
     "ja": "件名",
     "pt-BR": "Assunto"
   },
+  "Subscript": {
+    "ar": "نص منخفض",
+    "de": "Tiefgestellt",
+    "es": "Subíndice",
+    "fr": "Indice",
+    "it": "Pedice",
+    "ja": "下付き",
+    "pt-BR": "Subscrito"
+  },
   "Subtitle": {
     "ar": "عنوان ثانوي",
     "de": "Untertitel",
@@ -27745,6 +27889,15 @@
     "it": "Tramonto",
     "ja": "サンセット",
     "pt-BR": "Pôr do sol"
+  },
+  "Superscript": {
+    "ar": "نص مرتفع",
+    "de": "Hochgestellt",
+    "es": "Superíndice",
+    "fr": "Exposant",
+    "it": "Apice",
+    "ja": "上付き",
+    "pt-BR": "Sobrescrito"
   },
   "Swap for %@": {
     "ar": "استبدل بـ %@",
@@ -27961,6 +28114,15 @@
     "it": "Tocca Aggiungi per inserirvi qualcosa, oppure parti da un design finito.",
     "ja": "「追加」をタップして何かを配置するか、完成したデザインから始めましょう。",
     "pt-BR": "Toque em Adicionar para colocar algo nela ou comece com um design pronto."
+  },
+  "Tap a colour on the photo to clear it.": {
+    "ar": "اضغط على لون في الصورة لمسحه.",
+    "de": "Tippe auf eine Farbe im Foto, um sie zu entfernen.",
+    "es": "Toca un color de la foto para borrarlo.",
+    "fr": "Touchez une couleur de la photo pour l'effacer.",
+    "it": "Tocca un colore della foto per rimuoverlo.",
+    "ja": "写真の色をタップすると消えます。",
+    "pt-BR": "Toque em uma cor da foto para removê-la."
   },
   "Tap one to change only that colour.": {
     "ar": "انقر على أحدها لتغيير ذلك اللون فقط.",
@@ -29638,6 +29800,15 @@
     "it": "Oggi",
     "ja": "今日",
     "pt-BR": "Hoje"
+  },
+  "Tolerance": {
+    "ar": "التفاوت",
+    "de": "Toleranz",
+    "es": "Tolerancia",
+    "fr": "Tolérance",
+    "it": "Tolleranza",
+    "ja": "許容値",
+    "pt-BR": "Tolerância"
   },
   "Tone curve": {
     "ar": "منحنى الدرجات",
@@ -31603,6 +31774,15 @@
     "it": "Pagina intera. Tocca per ingrandire al %d per cento.",
     "ja": "ページ全体。タップすると %d パーセントにズームします。",
     "pt-BR": "Página inteira. Toque para ampliar para %d por cento."
+  },
+  "Whole photo": {
+    "ar": "الصورة كاملة",
+    "de": "Ganzes Foto",
+    "es": "Toda la foto",
+    "fr": "Toute la photo",
+    "it": "Tutta la foto",
+    "ja": "写真全体",
+    "pt-BR": "Foto inteira"
   },
   "Whole stroke": {
     "ar": "الضربة كاملة",

@@ -78,7 +78,7 @@ struct ComboChoices: View {
             onPick(combo)
         } label: {
             VStack(spacing: 4) {
-                ComboThumb(combo: combo)
+                thumb(combo)
                 Text(combo.name)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -87,8 +87,19 @@ struct ComboChoices: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(combo.name) font combination")
+        .accessibilityLabel(TextCombos.isAnimated(combo) ? tr("%@ font combination, animated", combo.name)
+                                                         : tr("%@ font combination", combo.name))
         .accessibilityAddTraits(.isButton)
+    }
+
+    /// An animated combination plays in its tile; the rest are pictures.
+    @ViewBuilder
+    private func thumb(_ combo: TextCombos.Combo) -> some View {
+        if TextCombos.isAnimated(combo) {
+            AnimatedComboThumb(combo: combo)
+        } else {
+            ComboThumb(combo: combo)
+        }
     }
 
     private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {

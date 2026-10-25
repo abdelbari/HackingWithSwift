@@ -914,6 +914,16 @@ enum PptxExporter {
         var weight: Int? = nil
         /// A marker behind its words (Spans); nil is none.
         var highlight: String? = nil
+        /// Raised or lowered (Spans' script); nil is on the line.
+        var script: String? = nil
+    }
+
+    /// The a:rPr baseline a script is written with: raised 30%, lowered
+    /// 25%, as PowerPoint's own superscript and subscript.
+    static func baseline(_ script: String?) -> String? {
+        if script == Spans.raised { return "30000" }
+        if script == Spans.lowered { return "-25000" }
+        return nil
     }
 
     /// The words as typed — page numbers filled in, the inline style marks
@@ -971,11 +981,11 @@ enum PptxExporter {
             let linked = span?.link != nil ? Spans.linkColour : nil
             let run = TextRun(text: piece, style: style, color: span?.color ?? linked, scale: span?.scale,
                               font: span?.font, link: Links.followable(span?.link) ?? Links.pageId(span?.link).map(Links.pageLink),
-                              weight: span?.weight, highlight: span?.highlight)
+                              weight: span?.weight, highlight: span?.highlight, script: span?.script)
             let last = paragraphs.count - 1
             if var before = paragraphs[last].last, before.style == run.style, before.color == run.color,
                before.scale == run.scale, before.font == run.font, before.link == run.link,
-               before.weight == run.weight, before.highlight == run.highlight {
+               before.weight == run.weight, before.highlight == run.highlight, before.script == run.script {
                 before.text += piece
                 paragraphs[last][paragraphs[last].count - 1] = before
             } else {
@@ -1240,6 +1250,7 @@ enum PptxExporter {
         if run.style.italic { attributes += " i=\"1\"" }
         if run.style.underline { attributes += " u=\"sng\"" }
         if run.style.strike { attributes += " strike=\"sngStrike\"" }
+        if let shift = baseline(run.script) { attributes += " baseline=\"\(shift)\"" }
         if el.uppercase == true { attributes += " cap=\"all\"" }
         let tracking = (el.letterSpacing ?? 0) * unit
         let spacing = tracking.isFinite ? Int((min(max(tracking, -1000), 1000) * 75).rounded()) : 0

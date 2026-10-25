@@ -39,6 +39,13 @@ final class PdfTagsTests: XCTestCase {
         XCTAssertEqual(HTMLExporter.textLayer(d, page: Page()), "")
     }
 
+    /// Shared: raised and lowered words in the text layer as <sup> and <sub>.
+    func testTheTextLayerKeepsRaisedAndLoweredWords() throws {
+        let scripted = try XCTUnwrap(try fixture()["scripted"] as? [String: Any])
+        let d = try JSONDecoder().decode(Design.self, from: SharedFixture.encoded(try XCTUnwrap(scripted["design"])))
+        XCTAssertEqual(HTMLExporter.textLayer(d, page: d.pages[0]), try XCTUnwrap(scripted["textLayer"] as? String))
+    }
+
     func testInferenceRanksHeadingSizesAndNeverGuessesATitle() {
         let sizes = [96.0, 64, 48, 40]
         XCTAssertEqual(TextRoles.inferred(96, headingSizes: sizes), TextRoles.h1)

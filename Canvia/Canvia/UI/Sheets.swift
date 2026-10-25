@@ -838,21 +838,26 @@ struct FiltersSheet: View {
     /// Both are needed — a preset alone cannot rescue an underexposed photo,
     /// and a stack of dials is not a starting point.
     private var adjustmentDials: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let whole = store.adjustAreaShown == .whole
+        return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Adjust").font(.headline)
                 Spacer()
-                if !isCode {
+                if !isCode && whole {
                     Button("Auto adjust") { autoAdjust() }
                         .font(.callout)
                         .disabled(store.singleSelection?.src == nil)
                         .accessibilityHint("Sets the blacks, whites and brightness from the photo itself")
                 }
-                Button("Reset") {
-                    store.updateSelected { $0.adjustments = nil }
-                }
+                Button("Reset") { store.resetAllDials() }
                 .font(.callout)
-                .disabled(store.singleSelection?.adjustments?.isNeutral ?? true)
+                .disabled(store.dialsShown?.isNeutral ?? true)
+            }
+            if !isCode { applyToRow }
+            if !isCode { adjustLayerList }
+            if !whole && store.adjustAreaShown == .painted {
+                Button("Paint more") { if store.paintMoreOnAdjustArea() { dismiss() } }
+                    .font(.callout)
             }
             // The dials in Canva's three groups, each in its order.
             dialGroup(tr("Light", context: "photo adjustments"), .light) {
@@ -868,15 +873,83 @@ struct FiltersSheet: View {
                 dial(tr("Vibrance"), \.vibrance, in: -1...1)
                 dial(tr("Warmth"), \.warmth, in: -1...1)
                 dial(tr("Tint"), \.tint, in: -1...1)
-                if !isCode { selectiveColour }
+                if !isCode && whole { selectiveColour }
             }
             dialGroup(tr("Texture"), .texture) {
                 dial(tr("Clarity"), \.clarity, in: -1...1)
                 dial(tr("Sharpness"), \.sharpness, in: -1...1)
-                dial(tr("Vignette"), \.vignette, in: 0...1)
+                // An area is never vignetted, on either phone.
+                if whole { dial(tr("Vignette"), \.vignette, in: 0...1) }
                 dial(tr("Fade"), \.fade, in: 0...1)
             }
-            curveRow
+            if whole { curveRow }
+        }
+    }
+
+    /// Apply to: the dials for the whole photo, a painted area — the brush
+    /// taken up first, the sheet going meanwhile — the subject or the
+    /// background (AreaAdjust).
+    private var applyToRow: some View {
+        let shown = store.adjustAreaShown
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Apply to").font(.subheadline).foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(AdjustArea.allCases) { choice in
+                        areaChip(choice, chosen: choice == shown)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private func areaChip(_ choice: AdjustArea, chosen: Bool) -> some View {
+        Button {
+            if store.applyAdjust(to: choice) { dismiss() }
+        } label: {
+            Text(choice.name)
+                .font(.callout)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(chosen ? Theme.accent.opacity(0.18) : Color(.systemGray6)))
+                .overlay(Capsule().stroke(chosen ? Theme.accent : Theme.hairline, lineWidth: chosen ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    /// The photo's adjusted areas, each to choose for the dials and with a
+    /// delete button.
+    @ViewBuilder
+    private var adjustLayerList: some View {
+        let places = store.adjustLayers.map { $0.index }
+        if !places.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(places, id: \.self) { index in adjustLayerRow(index) }
+            }
+        }
+    }
+
+    private func adjustLayerRow(_ index: Int) -> some View {
+        let name = store.adjustLayerName(index)
+        let chosen = store.adjustTarget == index
+        return HStack {
+            Button {
+                store.adjustTarget = index
+            } label: {
+                Label(name, systemImage: chosen ? "checkmark.circle.fill" : "circle")
+                    .font(.callout)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(chosen ? .isSelected : [])
+            Spacer()
+            Button(role: .destructive) {
+                store.removeAdjustLayer(at: index)
+            } label: {
+                Image(systemName: "trash").frame(width: 30, height: 30)
+            }
+            .accessibilityLabel(tr("Delete %@", name))
         }
     }
 
@@ -969,7 +1042,7 @@ struct FiltersSheet: View {
     /// Reset that puts back only that group's dials, as one step.
     private func dialGroup<Dials: View>(_ name: String, _ group: DialPrecision.DialGroup,
                                         @ViewBuilder _ dials: () -> Dials) -> some View {
-        let moved = DialPrecision.isMoved(store.singleSelection?.adjustments, group)
+        let moved = DialPrecision.isMoved(store.dialsShown, group)
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(name)
@@ -978,7 +1051,7 @@ struct FiltersSheet: View {
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 Button("Reset") {
-                    store.updateSelected { $0.adjustments = DialPrecision.cleared($0.adjustments, group) }
+                    store.resetDials(group)
                 }
                 .font(.caption)
                 .disabled(!moved)
@@ -1030,10 +1103,10 @@ struct FiltersSheet: View {
                     }
                     edgeChip("outline", tr("Outline"), current: edge)
                     edgeChip("glow", tr("Glow"), current: edge)
-                    ForEach(PhotoFx.kinds, id: \.self) { kind in fxChip(kind, current: photo?.fx) }
                 }
                 .padding(.vertical, 2)
             }
+            fxTiles(photo)
             HStack(spacing: 10) {
                 brushButton(tr("Blur brush"), kind: .blur)
                 brushButton(tr("Pixelate brush"), kind: .pixelate)
@@ -1071,19 +1144,64 @@ struct FiltersSheet: View {
         .disabled(store.singleSelection?.type != .image)
     }
 
-    /// Glitch, slice, halftone or grain: one at a time, from one to another
-    /// keeping the amount and the seed; a new one at half, from a seed of
-    /// its own.
-    private func fxChip(_ kind: String, current fx: PhotoFx?) -> some View {
-        let on = fx?.kind == kind
-        return effectChip(PhotoFx.name(kind), on: on) { el in
-            if on {
-                el.fx = nil
-            } else {
-                el.fx = PhotoFx(kind: kind, amount: el.fx?.amount ?? PhotoEffects.defaultFx,
-                                seed: el.fx?.seed ?? PhotoEffects.newSeed())
+    /// The fx, a tile each in PhotoFx.kinds' order, each a live thumbnail
+    /// of the selected photo with that fx on it — the chosen one at its own
+    /// amount and seed, the rest as a tap gives them.
+    private func fxTiles(_ photo: Element?) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(PhotoFx.kinds, id: \.self) { kind in fxTile(kind, photo: photo) }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    /// One fx at a time, from one to another keeping the amount and the
+    /// seed; a new one at half, from a seed of its own; the ringed tile
+    /// again takes it off.
+    private func fxTile(_ kind: String, photo: Element?) -> some View {
+        let current = photo?.fx
+        let on = current?.kind == kind
+        let shown = on ? current : PhotoFx(kind: kind, amount: current?.amount ?? PhotoEffects.defaultFx,
+                                           seed: current?.seed ?? 1)
+        return Button {
+            store.updateSelected { el in
+                guard el.type == .image else { return }
+                if on {
+                    el.fx = nil
+                } else {
+                    el.fx = PhotoFx(kind: kind, amount: el.fx?.amount ?? PhotoEffects.defaultFx,
+                                    seed: el.fx?.seed ?? PhotoEffects.newSeed())
+                }
+            }
+        } label: {
+            VStack(spacing: 4) {
+                fxThumbnail(shown, photo: photo)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(on ? Theme.accent : Theme.hairline,
+                                                                      lineWidth: on ? 2 : 1))
+                Text(PhotoFx.name(kind)).font(.caption).lineLimit(1)
             }
         }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(PhotoFx.name(kind))
+        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+    }
+
+    /// A small copy of the selected photo with `fx` drawn on it.
+    private func fxThumbnail(_ fx: PhotoFx?, photo: Element?) -> some View {
+        Group {
+            if let fx, let src = photo.flatMap(VideoStore.atRest), let full = PhotoLibrary.resolve(src) {
+                Image(uiImage: PhotoEffects.fxPreview(PhotoLibrary.preview(full, key: src, maxEdge: 96), fx: fx,
+                                                      key: src))
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Color(.systemGray5)
+            }
+        }
+        .frame(width: 64, height: 48)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     /// How much of the fx, and Shuffle for another seed — other bands,
@@ -1095,7 +1213,7 @@ struct FiltersSheet: View {
                      readout: "\(Int((fx.share * 100).rounded()))") { v, el in
             el.fx?.amount = max(1, (v * 100).rounded()) / 100
         }
-        if fx.kind != "halftone" {
+        if PhotoFx.seeded.contains(fx.kind) {
             Button {
                 store.updateSelected { $0.fx?.seed = PhotoEffects.newSeed() }
             } label: {
@@ -1103,6 +1221,39 @@ struct FiltersSheet: View {
             }
             .font(.callout)
         }
+        if fx.kind == "posterize" { colourMixRow(fx) }
+    }
+
+    /// Posterize's Colour mix, as on the Android twin: None, each brand
+    /// palette of two colours or more, and the design's own colours ("In
+    /// this design") — a tap maps the photo's colours to the nearest of
+    /// them (PhotoFx `colours`, Canva's ColorMix), at most
+    /// PhotoFx.maxColours of them. No row when there is nothing to choose.
+    @ViewBuilder
+    private func colourMixRow(_ fx: PhotoFx) -> some View {
+        let choices = Self.colourMixChoices(store.design)
+        if choices.count > 1 {
+            Text("Colour mix").font(.callout)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(choices.enumerated()), id: \.offset) { _, choice in
+                        effectChip(choice.name, on: fx.colours == choice.colours) { $0.fx?.colours = choice.colours }
+                    }
+                }
+            }
+        }
+    }
+
+    /// The Colour mix choices: None first, then the brand's palettes, then
+    /// the design's own colours, each at most PhotoFx.maxColours long.
+    private static func colourMixChoices(_ design: Design) -> [(name: String, colours: [String]?)] {
+        var choices: [(name: String, colours: [String]?)] = [(tr("None"), nil)]
+        for palette in BrandKit.load().palettes where palette.colors.count >= 2 {
+            choices.append((palette.name, Array(palette.colors.prefix(PhotoFx.maxColours))))
+        }
+        let inDesign = Array(ColorTools.documentColors(design).prefix(PhotoFx.maxColours))
+        if inDesign.count >= 2 { choices.append((tr("In this design"), inDesign)) }
+        return choices
     }
 
     private func effectChip(_ name: String, on: Bool, _ toggle: @escaping (inout Element) -> Void) -> some View {
@@ -1243,12 +1394,12 @@ struct FiltersSheet: View {
     /// number typed, a reset or a VoiceOver step one step each.
     private func dial(_ label: String, _ key: WritableKeyPath<Adjustments, Double>,
                       in range: ClosedRange<Double>) -> some View {
-        let current = store.singleSelection?.adjustments ?? .neutral
+        let current = store.dialsShown ?? .neutral
         return PreciseDial(label: label, value: (current[keyPath: key] * 100).rounded(),
                            range: DialPrecision.steps(range),
-                           live: { v in store.updateSelectedTransient { $0.setAdjustment(key, to: v / 100) } },
+                           live: { v in store.setDial(key, to: v / 100, live: true) },
                            done: { store.commit() },
-                           set: { v in store.updateSelected { $0.setAdjustment(key, to: v / 100) } })
+                           set: { v in store.setDial(key, to: v / 100, live: false) })
     }
 
     private func filterPreview(_ preset: ImageFilterPreset) -> some View {

@@ -1,0 +1,31 @@
+{
+  "about": "Raised and lowered words (a span's script): how the spans move with the words, how a toggle reads, and what size and baseline the letters are drawn at. Shared with the Android twin row for row.",
+  "remap": [
+    {"old": "m2", "new": "m2", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
+    {"old": "H2O", "new": "H2O!", "spans": [{"start": 1, "end": 2, "script": "sub"}], "out": [{"start": 1, "end": 2, "script": "sub"}]},
+    {"old": "x2", "new": "x2y", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
+    {"old": "a123b", "new": "a1923b", "spans": [{"start": 1, "end": 4, "script": "super"}], "out": [{"start": 1, "end": 5, "script": "super"}]},
+    {"old": "m2 x", "new": "m x", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": []},
+    {"old": "m2", "new": "km2", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 2, "end": 3, "script": "super"}]},
+    {"old": "CO2", "new": "CO2", "spans": [{"start": 2, "end": 3, "color": "#ff0000", "script": "sub"}], "out": [{"start": 2, "end": 3, "color": "#ff0000", "script": "sub"}]},
+    {"old": "1st", "new": "1st", "spans": [{"start": 1, "end": 3, "script": "middle"}], "out": []}
+  ],
+  "toggle": [
+    {"spans": [], "range": [0, 2], "script": "super", "out": [{"start": 0, "end": 2, "script": "super"}]},
+    {"spans": [{"start": 0, "end": 2, "script": "super"}], "range": [0, 2], "script": "super", "out": []},
+    {"spans": [{"start": 0, "end": 2, "script": "super"}], "range": [0, 2], "script": "sub", "out": [{"start": 0, "end": 2, "script": "sub"}]},
+    {"spans": [{"start": 0, "end": 1, "script": "super"}], "range": [0, 2], "script": "super", "out": [{"start": 0, "end": 2, "script": "super"}]},
+    {"spans": [{"start": 0, "end": 3, "color": "#00ff00"}], "range": [1, 1], "script": "sub", "out": [{"start": 0, "end": 1, "color": "#00ff00"}, {"start": 1, "end": 2, "color": "#00ff00", "script": "sub"}, {"start": 2, "end": 3, "color": "#00ff00"}]}
+  ],
+  "layout": {
+    "columns": ["size", "script", "drawn size", "baseline offset"],
+    "rows": [
+      [40, "super", 24.8, 13.2],
+      [40, "sub", 24.8, -4.8],
+      [40, null, 40, 0],
+      [50, "super", 31, 16.5],
+      [50, "sub", 31, -6],
+      [42, "middle", 42, 0]
+    ]
+  }
+}

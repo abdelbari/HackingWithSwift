@@ -40,9 +40,12 @@ enum ImageMasking {
     static func masking(_ mask: ImageMask?, picture: UIImage, key: String) -> Shown {
         guard let mask, !mask.strokes.isEmpty else { return Shown(picture: picture, alpha: nil, restored: nil) }
         let pixels = CGSize(width: picture.size.width * picture.scale, height: picture.size.height * picture.scale)
-        var shown = Shown(picture: picture, alpha: alphaImage(mask, picture: pixels, key: key), restored: nil)
-        if mask.strokes.contains(where: \.restores), let base = mask.base,
-           let original = PhotoLibrary.resolve(base), let cover = restoreImage(mask, picture: pixels, key: key) {
+        // Taps of Clear a colour read the picture itself, at the grid's size.
+        let source = mask.strokes.contains(where: \.keys) ? picture : nil
+        var shown = Shown(picture: picture, alpha: alphaImage(mask, picture: pixels, key: key, source: source),
+                          restored: nil)
+        if mask.strokes.contains(where: \.restores), let base = mask.base, let original = PhotoLibrary.resolve(base),
+           let cover = restoreImage(mask, picture: pixels, key: key, source: source) {
             shown.restored = (original, cover)
         }
         return shown
@@ -52,25 +55,80 @@ enum ImageMasking {
     /// picture `picture` pixels in size, as a grey picture — white kept,
     /// black clear, top row first — from all kept: laid over the picture's
     /// own alpha, so a cut-out's edge is its own where no stroke went.
-    static func alphaImage(_ mask: ImageMask, picture: CGSize, key: String) -> CGImage? {
-        greyImage(mask, picture: picture, start: 1, key: key, tag: "")
+    static func alphaImage(_ mask: ImageMask, picture: CGSize, key: String, source: UIImage? = nil) -> CGImage? {
+        greyImage(mask, picture: picture, start: 1, key: key, tag: "", source: source)
     }
 
     /// Where `mask`'s Restore strokes reached, net of the Erase strokes
     /// after them, as a grey picture — white where the picture before the
     /// cut is painted back, black where the cut-out shows as it is.
-    static func restoreImage(_ mask: ImageMask, picture: CGSize, key: String) -> CGImage? {
-        greyImage(mask, picture: picture, start: 0, key: key, tag: "restore")
+    static func restoreImage(_ mask: ImageMask, picture: CGSize, key: String, source: UIImage? = nil) -> CGImage? {
+        greyImage(mask, picture: picture, start: 0, key: key, tag: "restore", source: source)
     }
 
-    private static func greyImage(_ mask: ImageMask, picture: CGSize, start: Float, key: String, tag: String) -> CGImage? {
+    /// `mask` painted into the grid; its taps of Clear a colour read
+    /// `source` sampled at the grid's size (gridPixels), and are passed
+    /// over without it.
+    private static func greyImage(_ mask: ImageMask, picture: CGSize, start: Float, key: String, tag: String,
+                                  source: UIImage?) -> CGImage? {
         let grid = MaskRaster.gridSize(width: Double(picture.width), height: Double(picture.height))
         let id = "\(key)|\(mask.hashValue)|\(grid.width)x\(grid.height)|\(tag)" as NSString
         if let kept = made.object(forKey: id) { return kept }
-        let painted = MaskRaster.raster(mask.strokes, width: grid.width, height: grid.height, start: start, initial: nil)
+        var keyed: MaskRaster.Keyed = { _ in nil }
+        if let source, let proxy = gridPixels(source, width: grid.width, height: grid.height) {
+            keyed = { entry in MaskRaster.keyCoverage(proxy, width: grid.width, height: grid.height, entry: entry) }
+        }
+        let painted = MaskRaster.raster(mask.strokes, width: grid.width, height: grid.height, start: start,
+                                        initial: nil, keyed: keyed)
         guard let image = grey(painted, width: grid.width, height: grid.height) else { return nil }
         made.setObject(image, forKey: id)
         return image
+    }
+
+    /// `picture` sampled onto `width` × `height` — the mask's grid — as
+    /// RGBA, not premultiplied, top row first: what a tap of Clear a colour
+    /// reads. Each grid pixel is the picture's own pixel under its centre —
+    /// column ⌊(gx + 0.5) × w / width⌋, row ⌊(gy + 0.5) × h / height⌋ —
+    /// never a blend, as the Android twin's MaskRaster.proxy samples, so
+    /// both phones measure a colour on the same pixels.
+    static func gridPixels(_ picture: UIImage, width: Int, height: Int) -> [UInt8]? {
+        guard width > 0, height > 0, let cg = picture.cgImage, cg.width > 0, cg.height > 0,
+              let full = rgba(cg) else { return nil }
+        let w = cg.width, h = cg.height
+        if w == width && h == height { return full }
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        for gy in 0..<height {
+            let y = min(h - 1, Int(((Double(gy) + 0.5) * Double(h) / Double(height)).rounded(.down)))
+            for gx in 0..<width {
+                let x = min(w - 1, Int(((Double(gx) + 0.5) * Double(w) / Double(width)).rounded(.down)))
+                let from = (y * w + x) * 4, to = (gy * width + gx) * 4
+                for c in 0..<4 { bytes[to + c] = full[from + c] }
+            }
+        }
+        return bytes
+    }
+
+    /// `cg` at its own size as RGBA, not premultiplied, top row first.
+    private static func rgba(_ cg: CGImage) -> [UInt8]? {
+        let width = cg.width, height = cg.height
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        let drawn: Bool = bytes.withUnsafeMutableBytes { raw in
+            guard let ctx = CGContext(data: raw.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                                      bytesPerRow: width * 4, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            ctx.interpolationQuality = .none
+            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        guard drawn else { return nil }
+        // Back from premultiplied, rounded, as the colours were.
+        for p in 0..<(width * height) {
+            let i = p * 4, alpha = Int(bytes[i + 3])
+            guard alpha > 0, alpha < 255 else { continue }
+            for c in 0..<3 { bytes[i + c] = UInt8(min(255, (Int(bytes[i + c]) * 255 + alpha / 2) / alpha)) }
+        }
+        return bytes
     }
 
     /// A grid of 0…1, top row first, as a grey picture.

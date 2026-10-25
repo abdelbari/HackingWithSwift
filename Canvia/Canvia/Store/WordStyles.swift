@@ -197,6 +197,33 @@ extension DesignStore {
         }
     }
 
+    // MARK: raised and lowered words
+
+    /// x² or x₂ on the typing bar, ⌘. or ⌘,: the words in `range` of box
+    /// `id` raised or lowered — or back on the line when they all already
+    /// are (Spans.toggledScript) — as one step, the same words left chosen.
+    func scriptWords(_ id: String, range: NSRange, script: String) {
+        guard range.length > 0 else { return }
+        updateSelected { el in
+            guard el.id == id else { return }
+            Self.restyleWords(&el, range) { Spans.toggledScript($0, range: $1, script: script) }
+        }
+    }
+
+    /// Words just typed while x² or x₂ waited at the caret: raised or
+    /// lowered in the typing's own open step, as the words themselves are
+    /// (typeWords).
+    func scriptTyped(_ id: String, range: NSRange, script: String) {
+        guard range.length > 0,
+              let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
+              design.pages[pageIndex].elements[i].type == .text,
+              !design.pages[pageIndex].elements[i].locked else { return }
+        beginGesture()
+        Self.restyleWords(&design.pages[pageIndex].elements[i], range) {
+            Spans.scripting($0, range: $1, script: script)
+        }
+    }
+
     // MARK: highlights on words
 
     /// The highlighter on the typing bar: the typing so far kept as its own

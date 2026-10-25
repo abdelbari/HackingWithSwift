@@ -7,7 +7,8 @@
 // key as `fontFamily` stores it, a font of your own's "custom:" too), a
 // weight and a slant of their own (the family's cut, as the box's
 // fontWeight and italic choose one), a link (a web address, email or phone
-// number, as Links reads one) or several.
+// number, as Links reads one), raised or lowered letters (a `script`,
+// "super" or "sub": footnote marks, m², H₂O) or several.
 // Beside them `spansText` holds the very words the offsets were made for:
 // should the words have been changed by a build that does not carry spans
 // along, the two no longer agree and the spans are ignored — never a colour
@@ -44,10 +45,13 @@ struct TextSpan: Codable, Equatable, Hashable {
     /// A marker colour behind the words, "#rrggbb" or "#rrggbbaa"; nil is
     /// none.
     var highlight: String?
+    /// "super" for raised letters, "sub" for lowered ones; nil is on the
+    /// line, as typed.
+    var script: String?
 
     init(start: Int, end: Int, color: String? = nil, scale: Double? = nil,
          font: String? = nil, link: String? = nil, weight: Int? = nil, italic: Bool? = nil,
-         highlight: String? = nil) {
+         highlight: String? = nil, script: String? = nil) {
         self.start = start
         self.end = end
         self.color = color
@@ -57,9 +61,12 @@ struct TextSpan: Codable, Equatable, Hashable {
         self.weight = weight
         self.italic = italic
         self.highlight = highlight
+        self.script = script
     }
 
-    private enum CodingKeys: String, CodingKey { case start, end, color, scale, font, link, weight, italic, highlight }
+    private enum CodingKeys: String, CodingKey {
+        case start, end, color, scale, font, link, weight, italic, highlight, script
+    }
 
     // Each key on its own: a stretch missing its ends reads as empty and is
     // dropped when the spans are tidied, never the design.
@@ -76,6 +83,7 @@ struct TextSpan: Codable, Equatable, Hashable {
         weight = try? c.decodeIfPresent(Int.self, forKey: .weight)
         italic = try? c.decodeIfPresent(Bool.self, forKey: .italic)
         highlight = try? c.decodeIfPresent(String.self, forKey: .highlight)
+        script = try? c.decodeIfPresent(String.self, forKey: .script)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -89,14 +97,16 @@ struct TextSpan: Codable, Equatable, Hashable {
         try c.encodeIfPresent(weight, forKey: .weight)
         try c.encodeIfPresent(italic, forKey: .italic)
         try c.encodeIfPresent(highlight, forKey: .highlight)
+        try c.encodeIfPresent(script, forKey: .script)
     }
 
     var range: NSRange { NSRange(location: start, length: max(0, end - start)) }
 
     /// Whether it says anything: a colour, a size, a font, a weight, a
-    /// slant, a link or a highlight.
+    /// slant, a link, a highlight or a script.
     var says: Bool {
-        color != nil || scale != nil || font != nil || link != nil || weight != nil || italic != nil || highlight != nil
+        color != nil || scale != nil || font != nil || link != nil || weight != nil || italic != nil
+            || highlight != nil || script != nil
     }
 
     /// Whether its letters are set in a face of their own: a font, a weight
@@ -116,6 +126,7 @@ struct TextSpan: Codable, Equatable, Hashable {
     func looksLike(_ other: TextSpan) -> Bool {
         color == other.color && scale == other.scale && font == other.font && link == other.link
             && weight == other.weight && italic == other.italic && highlight == other.highlight
+            && script == other.script
     }
 }
 
@@ -186,6 +197,11 @@ enum Spans {
             if let highlight = span.highlight {
                 let trimmed = highlight.trimmingCharacters(in: .whitespacesAndNewlines)
                 out.highlight = trimmed.isEmpty ? nil : trimmed
+            }
+            // Only "super" and "sub" are scripts; anything else is on the
+            // line, as on the Android twin.
+            if let script = span.script {
+                out.script = Spans.scripts.contains(script) ? script : nil
             }
             guard out.end > out.start, out.says else { return nil }
             return out
@@ -319,6 +335,12 @@ enum Spans {
         restyled(spans, range) { $0.highlight = highlight }
     }
 
+    /// The words in `range` raised ("super"), lowered ("sub") or back on
+    /// the line, with nil — keeping everything else they have.
+    static func scripting(_ spans: [TextSpan], range: NSRange, script: String?) -> [TextSpan] {
+        restyled(spans, range) { $0.script = script }
+    }
+
     /// The words in `range` slanted or upright — or back as the box is,
     /// with nil: the font sheet's Italic toggle for the selected words.
     static func italicising(_ spans: [TextSpan], range: NSRange, italic: Bool?) -> [TextSpan] {
@@ -350,11 +372,11 @@ enum Spans {
         normalised(spans.map { TextSpan(start: $0.start, end: $0.end, link: $0.link) })
     }
 
-    /// Whether some words have a colour, a size, a font, a weight, a slant
-    /// or a highlight of their own — what Clear word colours and sizes
-    /// takes off.
+    /// Whether some words have a colour, a size, a font, a weight, a slant,
+    /// a highlight or a script of their own — what Clear word colours and
+    /// sizes takes off.
     static func hasStyles(_ spans: [TextSpan]) -> Bool {
-        spans.contains { $0.color != nil || $0.scale != nil || $0.setsFace || $0.highlight != nil }
+        spans.contains { $0.color != nil || $0.scale != nil || $0.setsFace || $0.highlight != nil || $0.script != nil }
     }
 
     /// The words in `range` a step smaller or larger: each one's size times
@@ -434,6 +456,47 @@ enum Spans {
     static func highlight(of spans: [TextSpan], in range: NSRange) -> (highlight: String?, shared: Bool) {
         let shared = sharing(spans, range, \.highlight)
         return (shared.value, shared.shared)
+    }
+
+    /// The same for the script: nil for on the line.
+    static func script(of spans: [TextSpan], in range: NSRange) -> (script: String?, shared: Bool) {
+        let shared = sharing(spans, range, \.script)
+        return (shared.value, shared.shared)
+    }
+
+    // MARK: raised and lowered letters
+
+    /// The two scripts a span may have.
+    static let raised = "super"
+    static let lowered = "sub"
+    static let scripts: Set<String> = [raised, lowered]
+    /// Raised or lowered letters are this much of their run's size …
+    static let scriptSize = 0.62
+    /// … with their baseline this many ems of the run's size above the
+    /// line (super) or below it (sub). The line's height stays as it is.
+    static let superShift = 0.33
+    static let subShift = 0.12
+
+    /// The size letters in `script` are drawn at, from their run's size.
+    static func scriptedSize(_ size: Double, script: String?) -> Double {
+        scripts.contains(script ?? "") ? size * scriptSize : size
+    }
+
+    /// How far up (positive) or down (negative) the baseline of letters in
+    /// `script` moves, from their run's size: 0 on the line.
+    static func scriptOffset(_ size: Double, script: String?) -> Double {
+        if script == raised { return size * superShift }
+        if script == lowered { return -size * subShift }
+        return 0
+    }
+
+    /// What x² or x₂ (⌘. or ⌘,) does to the words in `range`: raises or
+    /// lowers them all when not all of them already are, and puts them back
+    /// on the line when they are — the toggle both phones share.
+    static func toggledScript(_ spans: [TextSpan], range: NSRange, script: String) -> [TextSpan] {
+        let now = Self.script(of: spans, in: range)
+        let on = now.shared && now.script == script
+        return scripting(spans, range: range, script: on ? nil : script)
     }
 
     // MARK: highlight marks

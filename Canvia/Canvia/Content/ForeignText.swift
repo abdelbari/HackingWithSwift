@@ -21,6 +21,9 @@
 //    share of the box's type size (boxSize) to two places, none when it is
 //    the box's own; a font-family or <font face> is kept only when it names
 //    one of the library's families (by name or key).
+//  - <sup> and vertical-align super raise their words, <sub> and
+//    vertical-align sub lower them (TextSpan.script); vertical-align
+//    baseline puts them back on the line.
 //  - <br> is a line break; <p>, <div>, the headings, <li>, <ul>, <ol>, <tr>
 //    and the other blocks (blocks) start a line of their own unless the
 //    line is empty; <li> makes its line an item of the list round it —
@@ -34,7 +37,8 @@
 //    dropped whole, and comments too.
 //  - RTF (read by the system) keeps bold, italic, underline, strike, links
 //    and colours, but not sizes, fonts or black — RTF's own ink, which the
-//    box's colour stands for — as the Android twin's RTF reader does.
+//    box's colour stands for — as the Android twin's RTF reader does — and
+//    \super and \sub as raised and lowered words.
 
 import Foundation
 import UIKit
@@ -64,6 +68,8 @@ enum ForeignText {
         var color: String?
         var scale: Double?
         var font: String?
+        /// "super" or "sub" (TextSpan.script); nil on the line.
+        var script: String?
     }
 
     /// Another app's styled words on `board` as a clip for a box of type
@@ -172,9 +178,9 @@ enum ForeignText {
             var offset = 0
             for (c, look) in zip(b.chars, b.looks) {
                 let length = c.utf16.count
-                if look.link != nil || look.color != nil || look.scale != nil || look.font != nil {
+                if look.link != nil || look.color != nil || look.scale != nil || look.font != nil || look.script != nil {
                     spans.append(TextSpan(start: offset, end: offset + length, color: look.color, scale: look.scale,
-                                          font: look.font, link: look.link))
+                                          font: look.font, link: look.link, script: look.script))
                 }
                 offset += length
             }
@@ -291,6 +297,8 @@ enum ForeignText {
             case "i", "em", "cite", "var", "dfn": next.style.italic = true
             case "u", "ins": next.style.underline = true
             case "s", "del", "strike": next.style.strike = true
+            case "sup": next.script = Spans.raised
+            case "sub": next.script = Spans.lowered
             case "a":
                 if let href = attributes["href"] { next.link = href.trimmingCharacters(in: .whitespacesAndNewlines) }
             case "font":
@@ -439,6 +447,14 @@ enum ForeignText {
                 if let colour = cssColour(value) { look.color = colour }
             case "font-size":
                 if let px = cssPixels(value) { look.scale = sizeScale(px, boxSize: boxSize) }
+            case "vertical-align":
+                if value == "super" {
+                    look.script = Spans.raised
+                } else if value == "sub" {
+                    look.script = Spans.lowered
+                } else if value == "baseline" {
+                    look.script = nil
+                }
             case "font-family":
                 let first = parts[1].split(separator: ",").first.map(String.init) ?? ""
                 if let key = fontKey(first) { look.font = key }
@@ -593,6 +609,15 @@ enum ForeignText {
         }
         if let colour = attrs[.foregroundColor] as? UIColor, colour.hexString != "#000000" {
             look.color = colour.hexString
+        }
+        // RTF's \super and \sub, as the system reads them: a superscript
+        // level, or else a baseline moved up or down.
+        let level = (attrs[NSAttributedString.Key("NSSuperScript")] as? NSNumber)?.intValue ?? 0
+        let offset = (attrs[.baselineOffset] as? NSNumber)?.doubleValue ?? 0
+        if level > 0 || (level == 0 && offset > 0) {
+            look.script = Spans.raised
+        } else if level < 0 || offset < 0 {
+            look.script = Spans.lowered
         }
         return look
     }

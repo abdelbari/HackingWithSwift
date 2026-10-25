@@ -1082,6 +1082,13 @@ struct EditorView: View {
                         store.detachImage()
                     } label: { Label("Detach image", systemImage: "photo.on.rectangle") }
                 }
+                // A logo or product shot on white: the white joined to its
+                // corners cleared, one Undo.
+                if store.canClearWhiteBackground {
+                    Button {
+                        store.removeWhiteBackground()
+                    } label: { Label("Remove white background", systemImage: "wand.and.stars.inverse") }
+                }
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -2115,6 +2122,12 @@ private struct WordRequests: ViewModifier {
                 guard asked else { return }
                 store.chartEditRequested = false
                 if store.selectedChart != nil { activeSheet = .chart }
+            }
+            // A painted area brushed for the dials: back to them.
+            .onChange(of: store.adjustAreaAsked) { _, asked in
+                guard asked else { return }
+                store.adjustAreaAsked = false
+                if store.singleSelection?.type == .image { activeSheet = .filters }
             }
             .modifier(WordLinkPrompt(store: store))
             .modifier(PhotoInLettersPrompts(store: store, openAdjust: { activeSheet = .photoInLetters }))

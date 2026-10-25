@@ -450,6 +450,18 @@ enum PptxReader {
         var weight: Int? = nil
         /// Its a:highlight's colour, "#rrggbb" or "#rrggbbaa"; nil for none.
         var highlight: String? = nil
+        /// Raised or lowered (TextSpan.script), from its a:rPr's baseline.
+        var script: String? = nil
+    }
+
+    /// The script an a:rPr's baseline — thousandths of a percent of the
+    /// size, as "30000" — gives its words: above 0 raised, below 0 lowered,
+    /// none on the line, on both phones.
+    static func script(baseline: String?) -> String? {
+        guard let raw = baseline?.trimmingCharacters(in: .whitespaces), let value = Int(raw), value != 0 else {
+            return nil
+        }
+        return value > 0 ? Spans.raised : Spans.lowered
     }
 
     /// A box's words: with the first run's own a:rPr (`props`), where the
@@ -857,7 +869,8 @@ enum PptxReader {
                                         bold: look.bold == true, italic: look.italic == true,
                                         underline: look.underline == true, colour: look.colour ?? "#000000",
                                         font: cut?.family ?? font(look.typeface), weight: cut?.weight,
-                                        highlight: part.child("rPr")?.child("highlight").flatMap(colour(in:))))
+                                        highlight: part.child("rPr")?.child("highlight").flatMap(colour(in:)),
+                                        script: PptxReader.script(baseline: part.child("rPr")?.attributes["baseline"])))
                     case "br":
                         plain += "\n"
                         length += 1
@@ -1490,7 +1503,7 @@ enum PptxReader {
                                     font: r.font == face ? nil : r.font,
                                     weight: weight == boxWeight ? nil : weight,
                                     italic: plainOnly && r.italic && !italic ? true : nil,
-                                    highlight: boxMarked ? nil : r.highlight)
+                                    highlight: boxMarked ? nil : r.highlight, script: r.script)
                 })
             }
             return el

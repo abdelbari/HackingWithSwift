@@ -1,5 +1,6 @@
 // A photo's effects — pixelate, focus, an outline or glow round what it
-// shows, and one of glitch, slice, halftone or grain (`fx`) — with the rules
+// shows, and one of glitch, slice, halftone, grain, screen, posterize,
+// mosaic or kaleido (`fx`) — with the rules
 // both phones draw them by. Blur is not here: it is the sharpness dial below
 // zero. The numbers are pure and tested (PhotoEffectsTests, the Android
 // twin's PhotoEffectsTest); the drawing is Core Image's in the filter
@@ -68,25 +69,42 @@ struct PhotoEdge: Codable, Equatable, Hashable {
     }
 }
 
-/// Glitch, slice, halftone or grain on a photo's pixels: the element's `fx`
-/// key, {kind, amount 0…1, seed}, as the Android twin writes it. The seed
-/// keeps the same bands, strips and noise on either phone (SeededRandom);
-/// the maths is PhotoLook.fx. An unknown kind is no fx; a missing amount is
-/// half and a missing seed 0, and an amount out of 0…1 is drawn within it.
+/// Glitch, slice, halftone, grain, screen, posterize, mosaic or kaleido on
+/// a photo's pixels: the element's `fx` key, {kind, amount 0…1, seed} and,
+/// for posterize, `colours` [hex…] to map onto (ColorMix), as the Android
+/// twin writes it. The seed keeps the same bands, strips, noise and tiles
+/// on either phone (SeededRandom); the maths is PhotoLook.fx. An unknown
+/// kind is no fx — so an older build draws none of the later four; a
+/// missing amount is half and a missing seed 0, and an amount out of 0…1
+/// is drawn within it.
 struct PhotoFx: Codable, Equatable, Hashable {
     var kind: String
     var amount: Double = 0.5
     var seed: Int = 0
+    /// Posterize's colours, "#rrggbb", each level mapped to the nearest;
+    /// nil for the levels themselves. Other kinds leave it out.
+    var colours: [String]? = nil
 
-    /// The four kinds, in the order the Filters sheet offers them.
-    static let kinds = ["glitch", "slice", "halftone", "grain"]
+    /// The kinds, in the order the Filters sheet offers them.
+    static let kinds = ["glitch", "slice", "halftone", "grain", "screen", "posterize", "mosaic", "kaleido"]
 
-    private enum CodingKeys: String, CodingKey { case kind, amount, seed }
+    /// The kinds a seed draws for, which Shuffle is offered for.
+    static let seeded: Set<String> = ["glitch", "slice", "grain", "mosaic"]
 
-    init(kind: String, amount: Double = 0.5, seed: Int = 0) {
+    /// The palette ColorMix offers for posterize: ink, red, paper, mist.
+    static let colourMix = ["#1d3557", "#e63946", "#f1faee", "#a8dadc"]
+
+    /// The most colours a posterize's palette keeps, read or chosen — the
+    /// Android twin's PhotoFx.MAX_COLOURS.
+    static let maxColours = 16
+
+    private enum CodingKeys: String, CodingKey { case kind, amount, seed, colours }
+
+    init(kind: String, amount: Double = 0.5, seed: Int = 0, colours: [String]? = nil) {
         self.kind = kind
         self.amount = amount
         self.seed = seed
+        self.colours = colours
     }
 
     init(from decoder: Decoder) throws {
@@ -98,6 +116,21 @@ struct PhotoFx: Codable, Equatable, Hashable {
         self.kind = kind
         amount = (try? c.decode(Double.self, forKey: .amount)).flatMap { $0.isFinite ? $0 : nil } ?? 0.5
         seed = (try? c.decode(Int.self, forKey: .seed)) ?? 0
+        // Only posterize keeps colours, and only ones it can read.
+        let given = (try? c.decode([String].self, forKey: .colours))?.filter { Self.rgb($0) != nil }
+            .prefix(Self.maxColours).map { $0 }
+        colours = kind == "posterize" && given?.isEmpty == false ? given : nil
+    }
+
+    /// "#rgb", "#rrggbb" or "#rrggbbaa" — the # optional — as red, green
+    /// and blue 0…255, its alpha left out; nil for anything else.
+    static func rgb(_ hex: String) -> [Int]? {
+        var digits = hex.trimmingCharacters(in: .whitespaces)
+        if digits.hasPrefix("#") { digits.removeFirst() }
+        if digits.count == 3 { digits = digits.map { "\($0)\($0)" }.joined() }
+        guard digits.count == 6 || digits.count == 8, digits.allSatisfy(\.isHexDigit),
+              let value = UInt32(digits.prefix(6), radix: 16) else { return nil }
+        return [Int(value >> 16 & 0xff), Int(value >> 8 & 0xff), Int(value & 0xff)]
     }
 
     /// Its amount within 0…1.
@@ -107,8 +140,20 @@ struct PhotoFx: Codable, Equatable, Hashable {
     var draws: Bool { Self.kinds.contains(kind) && share > 0 }
 
     /// What the Filters sheet calls it: "Glitch", "Slice", "Halftone",
-    /// "Grain".
-    static func name(_ kind: String) -> String { kind.capitalized }
+    /// "Grain", "Screen", "Posterize", "Mosaic", "Kaleidoscope".
+    static func name(_ kind: String) -> String {
+        switch kind {
+        case "glitch": return tr("Glitch")
+        case "slice": return tr("Slice")
+        case "halftone": return tr("Halftone")
+        case "grain": return tr("Grain")
+        case "screen": return tr("Screen", context: "photo effect")
+        case "posterize": return tr("Posterize")
+        case "mosaic": return tr("Mosaic")
+        case "kaleido": return tr("Kaleidoscope")
+        default: return kind.capitalized
+        }
+    }
 }
 
 enum PhotoEffects {
@@ -211,7 +256,10 @@ enum PhotoEffects {
             if let f = focus {
                 out += "|fo\(f.x),\(f.y),\(f.radius),\(f.amount)\(f.subject ? "s" : "")"
             }
-            if let fx { out += "|fx\(fx.kind)\(fx.share),\(fx.seed)" }
+            if let fx {
+                out += "|fx\(fx.kind)\(fx.share),\(fx.seed)"
+                if let colours = fx.colours { out += "," + colours.joined() }
+            }
             if !retouch.isEmpty { out += "|rt\(retouch.hashValue),\(blocks)" }
             if let mask { out += "|mk\(mask.hashValue)" }
             return out
@@ -318,6 +366,30 @@ enum PhotoEffects {
         mix.backgroundImage = image
         mix.maskImage = ramp.outputImage?.cropped(to: extent)
         return (mix.outputImage ?? image).cropped(to: extent)
+    }
+
+    // MARK: fx thumbnails
+
+    private static let fxPreviews: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 32
+        return c
+    }()
+
+    /// `base` — a small copy of the photo `key` names — with `fx` drawn on
+    /// it, as the Filters sheet's fx tiles show it; kept while the fx is
+    /// the same. `base` itself when it cannot be drawn.
+    @MainActor
+    static func fxPreview(_ base: UIImage, fx: PhotoFx, key: String) -> UIImage {
+        let id = "\(key)|\(fx.kind)|\(fx.share)|\(fx.seed)|\(fx.colours?.joined() ?? "")" as NSString
+        if let made = fxPreviews.object(forKey: id) { return made }
+        guard let cg = base.cgImage,
+              let drawn = withPixels(cg, { bytes, width, height in
+                  PhotoLook.fx(&bytes, width: width, height: height, fx: fx)
+              }) else { return base }
+        let made = UIImage(cgImage: drawn, scale: base.scale, orientation: base.imageOrientation)
+        fxPreviews.setObject(made, forKey: id)
+        return made
     }
 
     // MARK: drawing the edge, behind the frame

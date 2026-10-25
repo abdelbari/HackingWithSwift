@@ -1213,6 +1213,9 @@ struct ContextToolbar: View {
                 store.beginBrush(el.id, kind: .mask)
             } label: { Label("Erase and restore", systemImage: "eraser.line.dashed") }
             Button {
+                if store.beginBrush(el.id, kind: .mask) { store.brushing?.clearing = true }
+            } label: { Label("Clear a colour", systemImage: "drop.halffull") }
+            Button {
                 store.beginErasing(el.id)
             } label: { Label("Remove an object", systemImage: "wand.and.rays") }
         } label: {

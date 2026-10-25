@@ -16,7 +16,7 @@ final class TextCombosTests: XCTestCase {
         // The Android twin's TextCombosTest checks the same digest of its copy.
         let url = try XCTUnwrap(Bundle.main.url(forResource: "textcombos", withExtension: "json"))
         let digest = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(digest, "f940ced36d4307d0205c5cf3ab7f9beddc0cb099ce1a4bfa37ec9374b5281f54")
+        XCTAssertEqual(digest, "6c482c4dfe46c2df78f87d1280db2e8f2216281ab9fee5b011647f84777289a6")
     }
 
     /// The rows of the Android twin's TextCombosTest: every combination, and
@@ -45,6 +45,18 @@ final class TextCombosTests: XCTestCase {
             ("organic", 4), ("percent-off", 4), ("award-winner", 5), ("vegan", 4), ("limited-edition", 5), ("free-gift", 4),
             ("local", 5), ("guarantee", 5), ("first-birthday", 3), ("back-to-school", 3), ("story-time", 3), ("its-a-boy", 3),
             ("its-a-girl", 3), ("play-date", 3), ("dino-party", 3), ("star-pupil", 3), ("summer-camp", 3),
+            // Round 34: twelve more bent by a warp or a curve, then the Animated category.
+            ("arched-title", 2), ("perspective-news", 2), ("bulge-sale", 2), ("curved-quote", 2),
+            ("flag-festival", 2), ("curved-concert", 2), ("arched-names", 2), ("rise-follow", 2),
+            ("perspective-retro", 2), ("squeeze-minimal", 2), ("curved-badge", 2), ("bouncy-arch", 2),
+            ("typed-hello", 2), ("word-by-word", 2), ("letter-pop-party", 2), ("line-by-line", 1),
+            ("ascending-title", 2), ("shift-in", 1), ("merge-logo", 2), ("block-reveal", 2), ("burst-boom", 1),
+            ("bouncy-hello", 2), ("roll-credits", 2), ("skate-in", 2), ("spread-wide", 1), ("clarify-focus", 2),
+            ("tumble-fun", 2), ("signature-write", 2), ("neon-flicker", 2), ("glitch-title", 2), ("echo-drop", 2),
+            ("neon-breathe", 1), ("curved-hello", 2), ("arch-rise", 2), ("flag-wave", 2), ("bulge-pop", 2),
+            ("countdown", 2), ("breaking-wipe", 2), ("sale-ends", 2), ("swipe-up-bounce", 2),
+            ("coming-soon-typed", 2), ("thank-you-written", 1), ("new-drop", 2), ("live-now", 2),
+            ("drifting-dream", 2), ("big-reveal", 2), ("quote-reveal", 2), ("new-year-burst", 2),
         ]
         XCTAssertEqual(TextCombos.all.map(\.id), expected.map(\.0))
         XCTAssertEqual(TextCombos.all.map(\.elements.count), expected.map(\.1))
@@ -68,11 +80,11 @@ final class TextCombosTests: XCTestCase {
             // In a category the chips list.
             XCTAssertTrue(TextCombos.categories.contains(combo.category ?? ""), combo.id)
         }
-        // About a hundred and twenty, twelve in each category.
-        XCTAssertEqual(TextCombos.all.count, 120)
-        for category in TextCombos.categories {
-            XCTAssertEqual(TextCombos.search("", in: category).count, 12, category)
-        }
+        // About a hundred and seventy: twelve or more in each category,
+        // thirty-six of them Animated.
+        XCTAssertEqual(TextCombos.all.count, 168)
+        XCTAssertEqual(TextCombos.categories.map { TextCombos.search("", in: $0).count },
+                       [14, 13, 13, 14, 13, 13, 13, 13, 13, 13, 36])
         XCTAssertEqual(Set(TextCombos.all.map(\.id)).count, TextCombos.all.count)
     }
 
@@ -123,18 +135,20 @@ final class TextCombosTests: XCTestCase {
     func testASearchFindsNamesTagsAndCategoriesCaseAndAccentsAside() {
         XCTAssertEqual(TextCombos.search("Café").map(\.id), ["coffee-house"])
         XCTAssertEqual(TextCombos.search(" celebration ").map(\.id),
-                       ["happy-birthday", "baby-shower", "new-year-party", "anniversary"])
+                       ["happy-birthday", "baby-shower", "new-year-party", "anniversary", "new-year-burst"])
         XCTAssertEqual(TextCombos.search("eleg").map(\.id),
-                       ["luxury", "wedding-invitation", "save-the-date-script", "serif-whisper"])
+                       ["luxury", "wedding-invitation", "save-the-date-script", "serif-whisper", "arched-names"])
         XCTAssertEqual(TextCombos.search("real estate").map(\.id), ["open-house"])
         // A category's name finds all of it, and a tag outside it too.
         XCTAssertEqual(TextCombos.search("SALE").map(\.id), [
             "mega-sale", "black-friday", "flash-sale", "half-price", "clearance", "buy-one-get-one", "cyber-monday",
-            "summer-sale", "new-arrivals", "free-shipping", "limited-offer", "price-drop", "percent-off",
+            "summer-sale", "new-arrivals", "free-shipping", "limited-offer", "price-drop", "percent-off", "bulge-sale",
+            "bulge-pop", "sale-ends",
         ])
         XCTAssertEqual(TextCombos.search("sale", in: "Badge").map(\.id), ["percent-off"])
         XCTAssertEqual(TextCombos.search("love", in: "Wedding").map(\.id),
-                       ["wedding-invitation", "we-said-yes", "mr-and-mrs", "anniversary", "save-the-date-script", "love-story"])
+                       ["wedding-invitation", "we-said-yes", "mr-and-mrs", "anniversary", "save-the-date-script", "love-story",
+                        "arched-names"])
         XCTAssertEqual(TextCombos.search("").map(\.id), TextCombos.all.map(\.id))
         XCTAssertEqual(TextCombos.search("zzz").map(\.id), [])
         XCTAssertEqual(TextCombos.noneFound(" zzz "), "No font combinations match \u{201C}zzz\u{201D}.")
@@ -295,5 +309,61 @@ final class TextCombosTests: XCTestCase {
         let heading = s.page.elements[0]
         XCTAssertEqual(heading.x, 268.8, accuracy: 1e-6)
         XCTAssertEqual(heading.w, 1382.4, accuracy: 1e-6)
+    }
+}
+
+extension TextCombosTests {
+
+    /// Every animation in the file is one ElementAnimation knows — an
+    /// entrance one of its kinds, an exit one of its exits or a unit kind,
+    /// played backwards — and each combination of the Animated category
+    /// moves — and only those in it, so the tiles that play are that
+    /// category's.
+    func testTheAnimatedCombinationsMoveByKindsTheAppKnows() {
+        let known = Set(ElementAnimation.kinds)
+        let exits = Set(ElementAnimation.exitKinds).union(ElementAnimation.unitKinds)
+        for combo in TextCombos.all {
+            for el in combo.elements {
+                if let enter = el.animation { XCTAssertTrue(known.contains(enter.kind), "\(combo.id) \(enter.kind)") }
+                if let exit = el.exitAnimation { XCTAssertTrue(exits.contains(exit.kind), "\(combo.id) exit \(exit.kind)") }
+                for anim in [el.animation, el.exitAnimation].compactMap({ $0 }) {
+                    XCTAssertTrue(anim.by == nil || ElementAnimation.unitChoices.contains(anim.by ?? ""), combo.id)
+                }
+            }
+            XCTAssertEqual(TextCombos.isAnimated(combo), combo.category == TextCombos.animatedCategory, combo.id)
+        }
+        XCTAssertEqual(TextCombos.categories.last, "Animated")
+        // Among them typewriter, letter pop and line rise, exits, and the
+        // neon, glitch and echo effects, curves and warps.
+        let animated = TextCombos.search("", in: TextCombos.animatedCategory).flatMap(\.elements)
+        let kinds = Set(animated.compactMap { $0.animation?.kind })
+        XCTAssertTrue(kinds.isSuperset(of: ["typewriter", "words", "letterPop", "lineRise", "fade"]))
+        XCTAssertTrue(animated.contains { $0.exitAnimation != nil })
+        let effects = Set(animated.compactMap { $0.effect?.type })
+        XCTAssertTrue(effects.isSuperset(of: ["neon", "glitch", "echo"]))
+        XCTAssertTrue(animated.contains { ($0.curve ?? 0) != 0 })
+        XCTAssertTrue(animated.contains { $0.warp != nil })
+        // Twelve more in the other categories, after the hundred and
+        // twenty: eight bent by a warp, four by a curve.
+        let others = TextCombos.all.dropFirst(120).filter { $0.category != TextCombos.animatedCategory }
+        XCTAssertEqual(others.count, 12)
+        XCTAssertEqual(others.filter { $0.elements.contains { $0.warp != nil } }.count, 8)
+        XCTAssertEqual(others.filter { $0.elements.contains { ($0.curve ?? 0) != 0 } }.count, 4)
+    }
+
+    /// A tile's loop, the Android twin's rows of playLength: the latest
+    /// entrance's end (a loop kind one loopPeriod), a second to read, then
+    /// the longest exit — and the animation goes on the page with it.
+    func testATilesLoopAndTheAnimationGoOnThePage() throws {
+        let typed = try XCTUnwrap(TextCombos.combo("typed-hello"))
+        XCTAssertEqual(TextCombos.loopHold(typed), 1.6 + 0.6 + 1.0, accuracy: 1e-9)
+        XCTAssertEqual(TextCombos.loopHold(try XCTUnwrap(TextCombos.combo("countdown"))), 1.5 + 0.5 + 1.0 + 0.5,
+                       accuracy: 1e-9)
+        XCTAssertEqual(TextCombos.loopHold(try XCTUnwrap(TextCombos.combo("live-now"))),
+                       ElementAnimation.loopPeriod + 1.0, accuracy: 1e-9)
+        let placed = TextCombos.placed(typed, pageWidth: 1080, pageHeight: 1080)
+        XCTAssertEqual(placed[0].animation?.kind, "typewriter")
+        XCTAssertEqual(placed[0].animation?.by, "letter")
+        XCTAssertEqual(placed[1].animation?.delay, 1.6)
     }
 }
