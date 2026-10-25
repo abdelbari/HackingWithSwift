@@ -108,7 +108,7 @@ struct CaptionPage: Equatable {
 
     static func of(_ design: Design, _ page: Page) -> CaptionPage {
         let graded = page.elements.contains { $0.captions?.style == Captions.gradient }
-        let palette = graded ? ContentLibrary.suggestedPalette(for: page)?.colors ?? [] : []
+        let palette = graded ? ColorTools.suggestedPalette(for: page)?.colors ?? [] : []
         return CaptionPage(width: Double(design.size(for: page).width), palette: palette)
     }
 }

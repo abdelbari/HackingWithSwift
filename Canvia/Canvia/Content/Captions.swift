@@ -115,7 +115,7 @@ struct Captions: Codable, Equatable, Hashable {
     static func brandAccent(_ palettes: [[String]]) -> String? {
         guard let first = palettes.first(where: { !$0.isEmpty }) else { return nil }
         let hex = first.count > 1 ? first[1] : first[0]
-        return ContentLibrary.rgb255(hex).map(hexString)
+        return ColorTools.rgb255(hex).map(hexString)
     }
 
     /// "#rrggbb" for a colour, lower case.
@@ -157,7 +157,7 @@ struct Captions: Codable, Equatable, Hashable {
         self.place = place.flatMap { Self.places.contains($0) ? $0 : nil }
         let ink = (try? c.decodeIfPresent(String.self, forKey: .highlight)).flatMap { $0 }
         // Kept only when it is a colour, as the Android twin's parseHex reads one.
-        highlight = ink.flatMap { ContentLibrary.rgb255($0) != nil ? $0 : nil }
+        highlight = ink.flatMap { ColorTools.rgb255($0) != nil ? $0 : nil }
     }
 
     /// The source written as null when there is none, every cue with its
@@ -251,7 +251,7 @@ struct Captions: Codable, Equatable, Hashable {
     /// cue's time evenly, in the highlight colour — the first word in a
     /// still. "outline" draws white letters with a black stroke;
     /// "gradient" fills them with the first two of `palette` (the page's
-    /// palette, ContentLibrary.suggestedPalette), left to right. "pop",
+    /// palette, ColorTools.suggestedPalette), left to right. "pop",
     /// "karaoke" and "typewriter" move word by word (`frameFor`) while the
     /// cue is drawn at its own moment; a cue drawn at any other — a
     /// still's first cue, or one the moment stands before — is drawn
@@ -420,7 +420,7 @@ struct Captions: Codable, Equatable, Hashable {
 
     /// `hex` at `alpha`, alpha last as both phones write it.
     static func faded(_ hex: String, _ alpha: Double) -> String {
-        let base = ContentLibrary.rgb255(hex).map(hexString) ?? String(hex.prefix(7))
+        let base = ColorTools.rgb255(hex).map(hexString) ?? String(hex.prefix(7))
         return base + String(format: "%02x", Int((min(max(alpha, 0), 1) * 255).rounded()))
     }
 
@@ -465,7 +465,7 @@ struct Captions: Codable, Equatable, Hashable {
     /// "gradient"'s letters: the first two colours of `palette`, left to
     /// right — or `gradientFallback`. The Android twin's gradient.
     static func gradientFill(_ palette: [String]) -> Paint {
-        let colours = Array(palette.compactMap { ContentLibrary.rgb255($0).map(hexString) }.prefix(2))
+        let colours = Array(palette.compactMap { ColorTools.rgb255($0).map(hexString) }.prefix(2))
         let pair = colours.count == 2 ? colours : gradientFallback
         return Paint(kind: "gradient", color: nil, angle: 90,
                      stops: [GradientStop(offset: 0, color: pair[0]), GradientStop(offset: 1, color: pair[1])])
