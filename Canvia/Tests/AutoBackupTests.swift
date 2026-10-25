@@ -33,8 +33,9 @@ final class AutoBackupTests: XCTestCase {
         for row in rows {
             let files = try XCTUnwrap(row["files"] as? [String])
             let keep = try XCTUnwrap(row["keep"] as? Int)
-            XCTAssertEqual(AutoBackup.pruned(files, keep: keep), try XCTUnwrap(row["deleted"] as? [String]),
-                           try XCTUnwrap(row["name"] as? String))
+            let deleted = try XCTUnwrap(row["deleted"] as? [String])
+            let name = try XCTUnwrap(row["name"] as? String)
+            XCTAssertEqual(AutoBackup.pruned(files, keep: keep), deleted, name)
         }
     }
 
