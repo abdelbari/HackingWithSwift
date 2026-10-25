@@ -137,6 +137,24 @@ final class CollageTests: XCTestCase {
         XCTAssertNil(Crop.replaced(el, src: nil).mask)
     }
 
+    func testAltTextThatCameWithTheOldPictureGoesWithItInEveryFill() {
+        // Crop.replaced clears it itself, so a frame fill, a paste into a
+        // frame and a swap all drop it. The Android twin's CropTest, row for row.
+        var came = photo("media:x", x: 100, y: 100, w: 200, h: 200)
+        came.altText = "A boat"
+        came.altTextSource = "media:x"
+        let replaced = Crop.replaced(came, src: "media:y")
+        XCTAssertNil(replaced.altText)
+        XCTAssertNil(replaced.altTextSource)
+        XCTAssertNil(Crop.replaced(came, src: nil).altText)
+        // The same picture again: still true, kept.
+        XCTAssertEqual(Crop.replaced(came, src: "media:x").altText, "A boat")
+        // Alt text typed for the frame stays.
+        var typed = photo("media:x", x: 100, y: 100, w: 200, h: 200)
+        typed.altText = "Our boat"
+        XCTAssertEqual(Crop.replaced(typed, src: "media:y").altText, "Our boat")
+    }
+
     /// A free photo let go over a frame goes into it and is used up; the
     /// move and the drop are one Undo, felt, and the frame ends selected.
     func testAFreePhotoDroppedIntoAFrameFillsItAsOneStep() {
