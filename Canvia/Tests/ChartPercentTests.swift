@@ -93,9 +93,43 @@ final class ChartPercentTests: XCTestCase {
         }
         let both = made(spec(.stackedColumn, data, values: true, labelAs: "both"))
         XCTAssertEqual(both.filter { $0.chartPart == "value" }.map(\.text), ["1 (25%)", "3 (75%)", "2 (50%)", "2 (50%)"])
-        // As values, a stack writes its total above it, a 100% one too.
-        let totals = made(spec(.stackedColumn100, data, values: true))
+        // As values, a stack writes its total above it; a 100% one each
+        // value in its segment, as on the Android twin.
+        let totals = made(spec(.stackedColumn, data, values: true))
         XCTAssertEqual(totals.filter { $0.chartPart == "value" }.map(\.text), ["4", "4"])
+        let full = made(spec(.stackedBar100, "Q, N, S\nA, 10, 30", values: true))
+        XCTAssertEqual(full.filter { $0.chartPart == "value" }.map(\.text), ["10", "30"])
+        // A value below 0 draws nothing and counts for nothing in the shares.
+        let odd = made(spec(.stackedColumn100, "Q, N, S, T\nA, 2, -1, 2", values: true, labelAs: "percent"))
+        XCTAssertEqual(odd.filter { $0.chartPart == "value" }.map(\.text), ["50%", "50%"])
+    }
+
+    func testAHundredStackLabelsItsScaleFromNoneToAll() {
+        let column = made(spec(.stackedColumn100, "Q, N, S\nA, 1, 3\nB, 10, 10"))
+        XCTAssertEqual(column.filter { $0.chartPart == "axis" }.map(\.text), ["100%", "75%", "50%", "25%", "0%"])
+        let bar = made(spec(.stackedBar100, "Q, N, S\nA, 10, 30", values: true))
+        XCTAssertEqual(bar.filter { $0.chartPart == "axis" }.map(\.text), ["0%", "25%", "50%", "75%", "100%"])
+        // The columns stand right of the scale.
+        let left = column.filter { $0.chartPart == "axis" }.map { $0.x + $0.w }.max() ?? 0
+        XCTAssertTrue(series(column).allSatisfy { $0.x >= left })
+    }
+
+    func testTheSharedJsonRows() throws {
+        let rows = try XCTUnwrap(SharedFixture.object("chart-percent")["json"] as? [[String: Any]])
+        XCTAssertFalse(rows.isEmpty)
+        for row in rows {
+            var s = ChartSpec(id: "chart_t", kind: try XCTUnwrap(row["kind"] as? String), data: "A, 1")
+            s.labelAs = row["labelAs"] as? String
+            s.legendAt = row["legendAt"] as? String
+            let data = try JSONEncoder().encode(s)
+            let written = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let writes = try XCTUnwrap(row["writes"] as? [String: Any])
+            XCTAssertEqual(written["labelAs"] as? String, writes["labelAs"] as? String, "\(row)")
+            XCTAssertEqual(written["legendAt"] as? String, writes["legendAt"] as? String, "\(row)")
+            // And it reads back saying the same.
+            let back = try JSONDecoder().decode(ChartSpec.self, from: data)
+            XCTAssertEqual(DataGraphics.labelAs(back), DataGraphics.labelAs(s), "\(row)")
+        }
     }
 
     func testAPieReadsItsShareUnlessItsLabelsSayOtherwise() {

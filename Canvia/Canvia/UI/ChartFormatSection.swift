@@ -38,7 +38,7 @@ struct ChartFormatSection: View {
             if values && kind.isPartToWhole {
                 Picker("Labels", selection: labelAs) {
                     Text("Value").tag("value")
-                    Text(verbatim: "%").tag("percent")
+                    Text(verbatim: "%").tag("percent").accessibilityLabel(Text("Percentage"))
                     Text("Both").tag("both")
                 }
                 .pickerStyle(.segmented)

@@ -513,7 +513,13 @@ enum DataGraphics {
     static func labelAs(_ spec: ChartSpec) -> String {
         guard let kind = ChartKind(rawValue: spec.kind) else { return "value" }
         if kind.isPartToWhole, let set = spec.labelAs.flatMap(keptLabelAs) { return set }
-        return kind == .pie || kind == .donut ? "percent" : "value"
+        return ownLabelAs(spec.kind)
+    }
+
+    /// How a chart of `kind` reads its values when it says nothing: a pie's
+    /// or a donut's share, any other kind's value.
+    static func ownLabelAs(_ kind: String) -> String {
+        kind == ChartKind.pie.rawValue || kind == ChartKind.donut.rawValue ? "percent" : "value"
     }
 
     /// A part's label as `spec` reads it (labelAs): `v` as formatValue
@@ -528,11 +534,17 @@ enum DataGraphics {
         }
     }
 
+    /// What a stack adds up to as it is drawn: its values above 0, whose
+    /// shares its segments' labels say (the Android twin's wholeOf).
+    static func stackWhole(_ values: [Double]) -> Double {
+        values.reduce(0) { $0 + ($1 > 0 ? $1 : 0) }
+    }
+
     /// A 100% stack's values: each over the sum of the stack's values above
     /// 0, times 100. A value at or below 0 is 0, as a stack draws none, and
     /// a stack with nothing above 0 is all 0s.
     static func normalisedStack(_ values: [Double]) -> [Double] {
-        let sum = values.reduce(0) { $0 + ($1 > 0 ? $1 : 0) }
+        let sum = stackWhole(values)
         guard sum > 0, sum.isFinite else { return values.map { _ in 0 } }
         return values.map { $0 > 0 ? $0 / sum * 100 : 0 }
     }
@@ -857,10 +869,11 @@ enum DataGraphics {
             t.color = ColorTheory.readableInk(on: hex(n))
             return t
         }
-        func gridAcross(top: Double, plotH: Double) {
+        func gridAcross(top: Double, plotH: Double, left: Double? = nil, width: Double? = nil) {
             guard ruled else { return }
+            let x0 = left ?? Double(plot.minX), w0 = width ?? Double(plot.width)
             for g in 0...4 {
-                out.append(part(bar(w: plot.width.rounded(), h: 1, x: plot.minX.rounded(),
+                out.append(part(bar(w: w0.rounded(), h: 1, x: x0.rounded(),
                                     y: (top + plotH * Double(g) / 4).rounded(), fill: .solid(faint + "33")), "grid"))
             }
         }
@@ -1033,7 +1046,8 @@ enum DataGraphics {
             let icon = IconLibrary.icon(spec.icon ?? defaultIcon) ?? IconLibrary.icon(defaultIcon)
             let outline = icon?.path ?? wedge(from: 0, sweep: 2 * .pi, inner: 0)
             let labelW: Double = min(plot.width * 0.28, labelSize * 9)
-            let valueW: Double = values ? labelSize * 4 : 0
+            // Room for its values beside the icons; more when each says its share too.
+            let valueW: Double = values ? labelSize * (labelAs(spec) == "both" ? 6 : 4) : 0
             let areaW: Double = plot.width - labelW - valueW
             let left: Double = plot.minX + labelW
             let slot: Double = plot.height / Double(rows.count)
@@ -1133,14 +1147,20 @@ enum DataGraphics {
         switch kind {
         case .column, .stackedColumn, .stackedColumn100:
             let stacked = kind.isStacked
-            // Each segment labelled with its share, rather than the stack with its total.
-            let shares = values && labelAs(spec) != "value"
+            // Each segment labelled in itself — a 100% stack's, or one that
+            // says its share — rather than the stack with its total above,
+            // as on the Android twin.
+            let shares = values && stacked && (kind.isHundred || labelAs(spec) != "value")
             let labelH: Double = labelSize * 1.6
-            let valueH: Double = values ? labelH : 0
+            let valueH: Double = values && !shares ? labelH : 0
+            // A 100% stack's scale is labelled up the left: 0% to 100%.
+            let tickW: Double = kind.isHundred ? labelSize * 2.5 : 0
+            let plotX: Double = plot.minX + tickW
+            let plotW: Double = plot.width - tickW
             let top: Double = plot.minY + valueH
             let plotH: Double = plot.height - labelH - valueH
             let base: Double = top + plotH
-            let slot: Double = plot.width / Double(rows.count)
+            let slot: Double = plotW / Double(rows.count)
             let barW: Double = slot * barShare
             let range = kind.isHundred ? (low: 0.0, high: 100.0)
                 : axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
@@ -1149,12 +1169,19 @@ enum DataGraphics {
                 guard range.high > range.low else { return 0 }
                 return plotH * (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
             }
-            gridAcross(top: top, plotH: plotH)
+            gridAcross(top: top, plotH: plotH, left: plotX, width: plotW)
+            if kind.isHundred {
+                for g in 0...4 {
+                    var t = label("\(100 - 25 * g)%", x: plotX - tickW, y: 0, w: tickW - labelSize * 0.3, align: "right", part: "axis")
+                    t.y = top + plotH * Double(g) / 4 - t.h / 2
+                    out.append(t)
+                }
+            }
             for (i, row) in rows.enumerated() {
-                let left: Double = plot.minX + slot * Double(i) + (slot - barW) / 2
+                let left: Double = plotX + slot * Double(i) + (slot - barW) / 2
                 if stacked {
                     let shown = kind.isHundred ? normalisedStack(row.values) : row.values
-                    let whole = row.values.reduce(0) { $0 + ($1 > 0 ? $1 : 0) }
+                    let whole = stackWhole(row.values)
                     var below = 0.0
                     // Only the top segment of a stack has its end rounded.
                     let last = shown.lastIndex { $0 > 0 }
@@ -1163,8 +1190,8 @@ enum DataGraphics {
                         let y1 = (base - up(below)).rounded()
                         let segment = bar(w: barW.rounded(), h: y1 - y0, x: left.rounded(), y: y0, fill: paint(j))
                         out.append(said(j == last ? farEnd(segment, column: true) : segment, j, i))
-                        // A share inside its segment, where the segment is tall enough.
-                        if shares && y1 - y0 >= labelSize * 1.2 {
+                        // Its label in the middle of it, where it is tall enough to hold one.
+                        if shares && y1 - y0 >= labelSize * 1.25 {
                             let raw = row.values[j]
                             out.append(inside(labelText(raw, share: whole > 0 ? raw / whole : 0, spec),
                                               segment.frame, on: j))
@@ -1173,8 +1200,7 @@ enum DataGraphics {
                     }
                     let sum = row.values.reduce(0, +)
                     if values && !shares {
-                        let top = kind.isHundred ? shown.reduce(0, +) : sum
-                        out.append(valueAbove(sum, cx: left + barW / 2, foot: base - up(top), w: barW))
+                        out.append(valueAbove(sum, cx: left + barW / 2, foot: base - up(sum), w: barW))
                     }
                 } else {
                     let w = barW / Double(count)
@@ -1188,16 +1214,19 @@ enum DataGraphics {
                         if values { out.append(valueAbove(v, cx: x + w / 2, foot: base - h, w: w)) }
                     }
                 }
-                out.append(label(row.label, x: plot.minX + slot * Double(i), y: base + labelSize * 0.3, w: slot))
+                out.append(label(row.label, x: plotX + slot * Double(i), y: base + labelSize * 0.3, w: slot))
             }
         case .bar, .stackedBar, .stackedBar100:
             let stacked = kind.isStacked
-            let shares = values && labelAs(spec) != "value"
+            let shares = values && stacked && (kind.isHundred || labelAs(spec) != "value")
+            // A 100% stack's scale is labelled along the foot: 0% to 100%.
+            let tickH: Double = kind.isHundred ? labelSize * 1.6 : 0
+            let plotH: Double = plot.height - tickH
             let labelW: Double = min(plot.width * 0.28, labelSize * 9)
-            let valueW: Double = values ? labelSize * 4 : 0
+            let valueW: Double = values && !shares ? labelSize * 4 : 0
             let plotW: Double = plot.width - labelW - valueW
             let left: Double = plot.minX + labelW
-            let slot: Double = plot.height / Double(rows.count)
+            let slot: Double = plotH / Double(rows.count)
             let barH: Double = slot * barShare
             let range = kind.isHundred ? (low: 0.0, high: 100.0)
                 : axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
@@ -1206,12 +1235,19 @@ enum DataGraphics {
                 guard range.high > range.low else { return 0 }
                 return plotW * (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
             }
-            gridDown(left: left, plotW: plotW, top: Double(plot.minY), plotH: Double(plot.height))
+            gridDown(left: left, plotW: plotW, top: Double(plot.minY), plotH: plotH)
+            if kind.isHundred {
+                for g in 0...4 {
+                    var t = label("\(25 * g)%", x: 0, y: plot.minY + plotH + labelSize * 0.3, w: labelSize * 2.5, part: "axis")
+                    t.x = left + plotW * Double(g) / 4 - t.w / 2
+                    out.append(t)
+                }
+            }
             for (i, row) in rows.enumerated() {
                 let top: Double = (plot.minY + slot * Double(i) + (slot - barH) / 2).rounded()
                 if stacked {
                     let shown = kind.isHundred ? normalisedStack(row.values) : row.values
-                    let whole = row.values.reduce(0) { $0 + ($1 > 0 ? $1 : 0) }
+                    let whole = stackWhole(row.values)
                     var before = 0.0
                     let last = shown.lastIndex { $0 > 0 }
                     for (j, v) in shown.enumerated() where v > 0 && range.high > range.low {
@@ -1219,7 +1255,7 @@ enum DataGraphics {
                         let x1 = (left + along(before + v)).rounded()
                         let segment = bar(w: x1 - x0, h: barH.rounded(), x: x0, y: top, fill: paint(j))
                         out.append(said(j == last ? farEnd(segment, column: false) : segment, j, i))
-                        // A share inside its segment, where the segment is long enough.
+                        // Its label in the middle of it, where it is long enough to hold one.
                         if shares && x1 - x0 >= labelSize * 3 {
                             let raw = row.values[j]
                             out.append(inside(labelText(raw, share: whole > 0 ? raw / whole : 0, spec),
@@ -1229,8 +1265,7 @@ enum DataGraphics {
                     }
                     let sum = row.values.reduce(0, +)
                     if values && !shares {
-                        let end = kind.isHundred ? shown.reduce(0, +) : sum
-                        out.append(valueBeside(sum, end: left + along(end), y: top, h: barH.rounded(), valueW: valueW))
+                        out.append(valueBeside(sum, end: left + along(sum), y: top, h: barH.rounded(), valueW: valueW))
                     }
                 } else {
                     let h = barH / Double(count)

@@ -763,7 +763,11 @@ struct ChartSpec: Codable, Equatable, Hashable {
         try c.encodeIfPresent(lineWidth, forKey: .lineWidth)
         if points { try c.encode(true, forKey: .points) }
         if let icon, !icon.isEmpty, icon != DataGraphics.defaultIcon { try c.encode(icon, forKey: .icon) }
-        try c.encodeIfPresent(labelAs.flatMap(DataGraphics.keptLabelAs), forKey: .labelAs)
+        // Only when it is not its kind's own, as the Android twin writes it:
+        // a pie's "percent" is not written, its "value" is.
+        let ownLabels = DataGraphics.ownLabelAs(kind)
+        try c.encodeIfPresent(labelAs.flatMap(DataGraphics.keptLabelAs).flatMap { $0 == ownLabels ? nil : $0 },
+                              forKey: .labelAs)
         try c.encodeIfPresent(legendAt.flatMap(DataGraphics.keptLegendAt), forKey: .legendAt)
     }
 
