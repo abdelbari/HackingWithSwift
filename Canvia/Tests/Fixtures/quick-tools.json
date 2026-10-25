@@ -1,0 +1,562 @@
+{
+  "note": "QuickTools: what each quick file tool makes \u2014 file names and the pages in each, [input, page] from 0 \u2014 the resized picture (out, and the part of the original kept, crop [x, y, w, h]) and where a photo sits on a PDF page (page [w, h] and box [x, y, w, h] in points). Both phones read this file.",
+  "plans": [
+    {
+      "tool": "merge",
+      "inputs": [
+        {
+          "name": "Report.pdf",
+          "pages": 2
+        },
+        {
+          "name": "Appendix.pdf",
+          "pages": 1
+        }
+      ],
+      "options": {},
+      "outputs": [
+        {
+          "name": "Report merged.pdf",
+          "pages": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "split",
+      "inputs": [
+        {
+          "name": "Deck.pdf",
+          "pages": 4
+        }
+      ],
+      "options": {
+        "pages": [
+          2,
+          0,
+          9,
+          0
+        ]
+      },
+      "outputs": [
+        {
+          "name": "Deck split.pdf",
+          "pages": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              2
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "split",
+      "inputs": [
+        {
+          "name": "Deck.pdf",
+          "pages": 4
+        }
+      ],
+      "options": {
+        "pages": [
+          3,
+          1
+        ],
+        "each": true
+      },
+      "outputs": [
+        {
+          "name": "Deck page 2.pdf",
+          "pages": [
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "name": "Deck page 4.pdf",
+          "pages": [
+            [
+              0,
+              3
+            ]
+          ]
+        }
+      ],
+      "zip": "Deck split.zip"
+    },
+    {
+      "tool": "split",
+      "inputs": [
+        {
+          "name": "Deck.pdf",
+          "pages": 4
+        }
+      ],
+      "options": {
+        "pages": [
+          1
+        ],
+        "each": true
+      },
+      "outputs": [
+        {
+          "name": "Deck page 2.pdf",
+          "pages": [
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "pdfToPictures",
+      "inputs": [
+        {
+          "name": "Menu.pdf",
+          "pages": 3
+        }
+      ],
+      "options": {
+        "format": "jpg",
+        "zip": true
+      },
+      "outputs": [
+        {
+          "name": "Menu-1.jpg",
+          "pages": [
+            [
+              0,
+              0
+            ]
+          ]
+        },
+        {
+          "name": "Menu-2.jpg",
+          "pages": [
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "name": "Menu-3.jpg",
+          "pages": [
+            [
+              0,
+              2
+            ]
+          ]
+        }
+      ],
+      "zip": "Menu.zip"
+    },
+    {
+      "tool": "pdfToPictures",
+      "inputs": [
+        {
+          "name": "Menu.pdf",
+          "pages": 3
+        }
+      ],
+      "options": {
+        "pages": [
+          1
+        ]
+      },
+      "outputs": [
+        {
+          "name": "Menu.png",
+          "pages": [
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "photosToPdf",
+      "inputs": [
+        {
+          "name": "IMG_1.HEIC",
+          "pages": 1
+        },
+        {
+          "name": "b.png",
+          "pages": 1
+        }
+      ],
+      "options": {},
+      "outputs": [
+        {
+          "name": "IMG_1.pdf",
+          "pages": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "resize",
+      "inputs": [
+        {
+          "name": "cat.jpeg",
+          "pages": 1
+        },
+        {
+          "name": "dog.png",
+          "pages": 1
+        }
+      ],
+      "options": {},
+      "outputs": [
+        {
+          "name": "cat resized.jpg",
+          "pages": [
+            [
+              0,
+              0
+            ]
+          ]
+        },
+        {
+          "name": "dog resized.png",
+          "pages": [
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "convert",
+      "inputs": [
+        {
+          "name": "a.heic",
+          "pages": 1
+        },
+        {
+          "name": "a.png",
+          "pages": 1
+        }
+      ],
+      "options": {
+        "format": "png"
+      },
+      "outputs": [
+        {
+          "name": "a.png",
+          "pages": [
+            [
+              0,
+              0
+            ]
+          ]
+        },
+        {
+          "name": "a 2.png",
+          "pages": [
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "compress",
+      "inputs": [
+        {
+          "name": "Big.pdf",
+          "pages": 3
+        },
+        {
+          "name": "photo.jpg",
+          "pages": 1
+        }
+      ],
+      "options": {
+        "format": "jpg"
+      },
+      "outputs": [
+        {
+          "name": "Big compressed.pdf",
+          "pages": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ]
+          ]
+        },
+        {
+          "name": "photo compressed.jpg",
+          "pages": [
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "compress",
+      "inputs": [
+        {
+          "name": "shot.png",
+          "pages": 1
+        }
+      ],
+      "options": {},
+      "outputs": [
+        {
+          "name": "shot compressed.jpg",
+          "pages": [
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "compress",
+      "inputs": [
+        {
+          "name": "shot.png",
+          "pages": 1
+        }
+      ],
+      "options": {
+        "format": "png"
+      },
+      "outputs": [
+        {
+          "name": "shot compressed.png",
+          "pages": [
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    }
+  ],
+  "resize": [
+    {
+      "width": 4000,
+      "height": 3000,
+      "resize": {
+        "longEdge": 1080
+      },
+      "out": [
+        1080,
+        810
+      ],
+      "crop": [
+        0,
+        0,
+        4000,
+        3000
+      ]
+    },
+    {
+      "width": 1000,
+      "height": 500,
+      "resize": {
+        "percent": 33
+      },
+      "out": [
+        330,
+        165
+      ],
+      "crop": [
+        0,
+        0,
+        1000,
+        500
+      ]
+    },
+    {
+      "width": 4000,
+      "height": 3000,
+      "resize": {
+        "size": [
+          1080,
+          1920
+        ],
+        "cover": true
+      },
+      "out": [
+        1080,
+        1920
+      ],
+      "crop": [
+        1156.25,
+        0,
+        1687.5,
+        3000
+      ]
+    },
+    {
+      "width": 1000,
+      "height": 3000,
+      "resize": {
+        "size": [
+          1080,
+          1080
+        ],
+        "cover": true
+      },
+      "out": [
+        1080,
+        1080
+      ],
+      "crop": [
+        0,
+        1000.0,
+        1000,
+        1000.0
+      ]
+    },
+    {
+      "width": 4000,
+      "height": 3000,
+      "resize": {
+        "size": [
+          1080,
+          1920
+        ]
+      },
+      "out": [
+        1080,
+        810
+      ],
+      "crop": [
+        0,
+        0,
+        4000,
+        3000
+      ]
+    }
+  ],
+  "photoPage": [
+    {
+      "width": 3000,
+      "height": 4000,
+      "paper": "a4",
+      "margin": 0,
+      "page": [
+        595,
+        842
+      ],
+      "box": [
+        0.0,
+        24.333333333333314,
+        595.0,
+        793.3333333333334
+      ]
+    },
+    {
+      "width": 4000,
+      "height": 3000,
+      "paper": "a4",
+      "margin": 36,
+      "page": [
+        842,
+        595
+      ],
+      "box": [
+        72.33333333333331,
+        36.0,
+        697.3333333333334,
+        523.0
+      ]
+    },
+    {
+      "width": 1000,
+      "height": 1000,
+      "paper": "letter",
+      "margin": 18,
+      "page": [
+        612,
+        792
+      ],
+      "box": [
+        18.0,
+        108.0,
+        576.0,
+        576.0
+      ]
+    },
+    {
+      "width": 4000,
+      "height": 3000,
+      "paper": "fit",
+      "margin": 18,
+      "page": [
+        878.0,
+        667.5
+      ],
+      "box": [
+        18,
+        18,
+        842.0,
+        631.5
+      ]
+    }
+  ]
+}

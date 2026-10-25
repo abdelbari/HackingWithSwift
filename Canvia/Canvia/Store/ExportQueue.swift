@@ -399,7 +399,7 @@ final class ExportQueue {
                     let kept = failure(job, kind: kind)
                     failedExports = ExportFailure.kept(failedExports, kept)
                     // Why it failed is the design's last export (Details).
-                    DesignFacts.rememberFailedExport(job.designId, failure: kept.failure)
+                    if !job.designId.isEmpty { DesignFacts.rememberFailedExport(job.designId, failure: kept.failure) }
                     finished.append(Finished(id: job.id, label: job.label, designId: job.designId,
                                              result: Result(failed: kept.message)))
                     if host.isAway() {
@@ -430,9 +430,10 @@ final class ExportQueue {
     }
 
     /// `urls`, made from design `designId`, kept as its last export: the
-    /// first file's type; none made is nothing kept.
+    /// first file's type; none made is nothing kept, and so is a quick
+    /// file tool's, which is of no design (QuickToolRunner).
     static func noteFiles(_ designId: String, _ urls: [URL]) {
-        guard let ext = urls.first?.pathExtension.lowercased(), !ext.isEmpty else { return }
+        guard !designId.isEmpty, let ext = urls.first?.pathExtension.lowercased(), !ext.isEmpty else { return }
         DesignFacts.rememberExport(designId, type: ext)
     }
 

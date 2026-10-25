@@ -165,27 +165,31 @@ extension DesignLibrary {
     static let homeFoldersKey = "home-folders"
 
     /// One folder in the home-folders list.
+    ///
+    /// A folder deleted to Recently deleted is kept as an object too, with
+    /// "deleted": when, in epoch milliseconds, the "designs" that went to
+    /// Recently deleted with it and the "uploads" that did — each keeping
+    /// the folder path it was filed under, so restoring them brings the
+    /// folder and every folder inside it back as it was. The Android
+    /// twin's Shelf.HomeFolder.
     struct HomeFolder: Equatable, Sendable {
         var name: String
         var starred = false
+        var deleted: Double? = nil
+        var designs: [String] = []
+        var uploads: [String] = []
     }
 
     /// The list read back; anything that is not a name or an object with
     /// one is passed over, and a name listed twice counts once, starred if
-    /// either is.
+    /// either is — a deleted folder apart from a live one of its name.
     static func homeFolders(fromJSON text: String) -> [HomeFolder] {
         guard let data = text.data(using: .utf8),
               let raw = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return [] }
         var folders: [HomeFolder] = []
         for item in raw {
-            var folder: HomeFolder?
-            if let name = item as? String {
-                folder = folderName(name).map { HomeFolder(name: $0) }
-            } else if let object = item as? [String: Any], let name = folderName(object["name"] as? String) {
-                folder = HomeFolder(name: name, starred: (object["starred"] as? Bool) == true)
-            }
-            guard let folder else { continue }
-            if let i = folders.firstIndex(where: { $0.name == folder.name }) {
+            guard let folder = homeFolder(item) else { continue }
+            if let i = folders.firstIndex(where: { $0.name == folder.name && $0.deleted == folder.deleted }) {
                 folders[i].starred = folders[i].starred || folder.starred
             } else {
                 folders.append(folder)
@@ -194,10 +198,26 @@ extension DesignLibrary {
         return folders
     }
 
-    /// The list as written: a starred folder as {"name","starred":true},
-    /// any other as its bare name.
+    /// One entry of the list: a bare name, or an object with one.
+    private static func homeFolder(_ item: Any) -> HomeFolder? {
+        if let name = item as? String { return folderName(name).map { HomeFolder(name: $0) } }
+        guard let object = item as? [String: Any], let name = folderName(object["name"] as? String) else { return nil }
+        let deleted = object[Uploads.deletedKey] is Bool ? nil : (object[Uploads.deletedKey] as? NSNumber)?.doubleValue
+        return HomeFolder(name: name, starred: (object["starred"] as? Bool) == true, deleted: deleted,
+                          designs: object["designs"] as? [String] ?? [], uploads: object["uploads"] as? [String] ?? [])
+    }
+
+    /// The list as written: a starred or deleted folder as an object —
+    /// {"name","starred":true}, or with "deleted", "designs" and "uploads"
+    /// — any other as its bare name.
     static func homeFoldersJSON(_ folders: [HomeFolder]) -> String {
         let raw: [Any] = folders.map { folder -> Any in
+            if let deleted = folder.deleted {
+                var object: [String: Any] = ["name": folder.name, Uploads.deletedKey: Int64(deleted.rounded()),
+                                             "designs": folder.designs, "uploads": folder.uploads]
+                if folder.starred { object["starred"] = true }
+                return object
+            }
             guard folder.starred else { return folder.name }
             return ["name": folder.name, "starred": true] as [String: Any]
         }
@@ -205,17 +225,125 @@ extension DesignLibrary {
         return String(decoding: data, as: UTF8.self)
     }
 
-    /// The folders starred on Home.
+    /// The folders starred on Home: not those in Recently deleted.
     static func starredFolders(_ defaults: UserDefaults = .standard) -> Set<String> {
         let folders = homeFolders(fromJSON: defaults.string(forKey: homeFoldersKey) ?? "[]")
-        return Set(folders.filter(\.starred).map(\.name))
+        return Set(folders.filter { $0.starred && $0.deleted == nil }.map(\.name))
+    }
+
+    // MARK: folders in Recently deleted
+
+    /// The folders in Recently deleted among `folders`, the last deleted
+    /// first.
+    static func deletedFolders(_ folders: [HomeFolder]) -> [HomeFolder] {
+        folders.filter { $0.deleted != nil }.sorted { ($0.deleted ?? 0) > ($1.deleted ?? 0) }
+    }
+
+    /// `folders` after folder `path` went to Recently deleted at `now`
+    /// (epoch ms), with the `designs` and `uploads` that went with it: its
+    /// star kept with it, off the folders Home shows.
+    static func trashingFolder(_ folders: [HomeFolder], path: String, now: Double,
+                               designs: [String], uploads: [String]) -> [HomeFolder] {
+        let starred = folders.contains { $0.deleted == nil && $0.name == path && $0.starred }
+        return folders.filter { $0.deleted != nil || $0.name != path }
+            + [HomeFolder(name: path, starred: starred, deleted: now, designs: designs, uploads: uploads)]
+    }
+
+    /// `folders` without the deleted `folder` — restored, or gone for good
+    /// — and, `restored`, its star back on it.
+    static func leavingTrash(_ folders: [HomeFolder], folder: HomeFolder, restored: Bool) -> [HomeFolder] {
+        let rest = folders.filter { $0 != folder }
+        guard restored && folder.starred else { return rest }
+        return rest.filter { $0.deleted != nil || $0.name != folder.name } + [HomeFolder(name: folder.name, starred: true)]
+    }
+
+    /// The folders in Recently deleted among `folders` deleted longer ago
+    /// than it keeps them, at `now` (epoch ms) — as a design's.
+    static func staleFolders(_ folders: [HomeFolder], now: Double) -> [HomeFolder] {
+        let cutoff = now - trashRetention * 1000
+        return folders.filter { f in f.deleted.map { $0 < cutoff } ?? false }
+    }
+
+    /// The home-folders list as kept.
+    static func storedHomeFolders(_ defaults: UserDefaults = .standard) -> [HomeFolder] {
+        homeFolders(fromJSON: defaults.string(forKey: homeFoldersKey) ?? "[]")
+    }
+
+    /// The home-folders list kept as `folders`.
+    static func setHomeFolders(_ folders: [HomeFolder], defaults: UserDefaults = .standard) {
+        defaults.set(homeFoldersJSON(folders), forKey: homeFoldersKey)
+    }
+
+    /// Folder `path` to Recently deleted, with its `designs` — those in the
+    /// folders inside it too, which go to Recently deleted as any design
+    /// does — and its uploads, each keeping the path it is filed under:
+    /// the folder as it is now kept, for one Undo to bring it all back.
+    @discardableResult
+    static func trashFolder(_ path: String, designs: [String], now: Date = Date()) -> HomeFolder {
+        let ms = (now.timeIntervalSince1970 * 1000).rounded()
+        let uploads = Uploads.all().filter { isInside($0.folder, path) }.map(\.id)
+        for id in designs {
+            PostReminders.cancelAll(designId: id)
+            trash(id: id, now: now)
+        }
+        Uploads.trash(uploads, at: ms)
+        let folders = trashingFolder(storedHomeFolders(), path: path, now: ms, designs: designs, uploads: uploads)
+        setHomeFolders(folders)
+        return folders.last ?? HomeFolder(name: path, deleted: ms, designs: designs, uploads: uploads)
+    }
+
+    /// A deleted folder back as it was: its designs and uploads still in
+    /// Recently deleted back under their own paths, and its star.
+    static func restoreFolder(_ folder: HomeFolder) {
+        let inTrash = Set(trashed().map(\.id))
+        for id in folder.designs where inTrash.contains(id) {
+            restore(id: id)
+            PostReminders.restored(designId: id)
+        }
+        Uploads.restore(folder.uploads)
+        setHomeFolders(leavingTrash(storedHomeFolders(), folder: folder, restored: true))
+    }
+
+    /// A deleted folder gone for good: its designs and uploads still in
+    /// Recently deleted with it, then the folder.
+    static func deleteFolderForever(_ folder: HomeFolder) {
+        let inTrash = Set(trashed().map(\.id))
+        for id in folder.designs where inTrash.contains(id) { deleteTrashed(id: id) }
+        let trashedUploads = Set(Uploads.trashed().map(\.id))
+        for id in folder.uploads where trashedUploads.contains(id) { Uploads.deleteForever(id, font: false) }
+        setHomeFolders(leavingTrash(storedHomeFolders(), folder: folder, restored: false))
+    }
+
+    /// Everything in Recently deleted gone for good: designs, uploads,
+    /// fonts and folders — Settings' Empty Recently deleted.
+    static func emptyEveryTrash() {
+        for folder in deletedFolders(storedHomeFolders()) { deleteFolderForever(folder) }
+        emptyTrash()
+        for entry in Uploads.trashed() { Uploads.deleteForever(entry.id, font: false) }
+        for font in Uploads.trashedFonts() { Uploads.deleteForever(font.id, font: true) }
+    }
+
+    /// The launch sweep's part for uploads and folders, after the designs'
+    /// (purgeTrash) and before the prune: what has waited thirty days in
+    /// Recently deleted off the list — the prune then takes a photo's,
+    /// clip's or song's file unless something still uses it; a font's file
+    /// goes here, unless something does — and a folder's entry, its designs
+    /// and uploads having gone their own way.
+    static func purgeTrashedUploadsAndFolders(now: Date = Date()) {
+        let fonts = Uploads.sweepTrash(now: now)
+        if !fonts.isEmpty, let used = fontsInUse() {
+            for sha in fonts where !used.contains(sha) { FontStore.remove(sha) }
+        }
+        let folders = storedHomeFolders()
+        let stale = staleFolders(folders, now: now.timeIntervalSince1970 * 1000)
+        if !stale.isEmpty { setHomeFolders(folders.filter { !stale.contains($0) }) }
     }
 
     /// Stars or unstars a folder; the rest of the list is kept as it was.
     static func setFolderStarred(_ name: String, _ on: Bool, defaults: UserDefaults = .standard) {
         guard let name = folderName(name) else { return }
         var folders = homeFolders(fromJSON: defaults.string(forKey: homeFoldersKey) ?? "[]")
-        if let i = folders.firstIndex(where: { $0.name == name }) {
+        if let i = folders.firstIndex(where: { $0.name == name && $0.deleted == nil }) {
             folders[i].starred = on
         } else if on {
             folders.append(HomeFolder(name: name, starred: true))
@@ -235,7 +363,14 @@ extension DesignLibrary {
 
     /// `folders` after folder `from` is renamed, or moved, to `to` — the
     /// Android twin's Shelf.renamingFolder: stars are kept by whole path.
-    static func renamingFolder(_ folders: [HomeFolder], from: String, to: String?) -> [HomeFolder] {
+    static func renamingFolder(_ all: [HomeFolder], from: String, to: String?) -> [HomeFolder] {
+        // Those in Recently deleted stay as they are.
+        let gone = all.filter { $0.deleted != nil }
+        let folders = all.filter { $0.deleted == nil }
+        return renamingLive(folders, from: from, to: to) + gone
+    }
+
+    private static func renamingLive(_ folders: [HomeFolder], from: String, to: String?) -> [HomeFolder] {
         let starred = to != nil && folders.contains { ($0.name == from || $0.name == to) && $0.starred }
         let inside = folders.filter { isInside($0.name, from) && $0.name != from }.compactMap { f in
             movedFolder(f.name, from: from, to: to).map { HomeFolder(name: $0, starred: f.starred) }
@@ -260,8 +395,8 @@ extension DesignLibrary {
     static func removingFolder(_ folders: [HomeFolder], from: String, up: String?) -> [HomeFolder] {
         let moved = renamingFolder(folders, from: from, to: up)
         guard let up else { return moved }
-        let upStarred = folders.contains { $0.name == up && $0.starred }
-        return moved.filter { $0.name != up } + (upStarred ? [HomeFolder(name: up, starred: true)] : [])
+        let upStarred = folders.contains { $0.deleted == nil && $0.name == up && $0.starred }
+        return moved.filter { $0.deleted != nil || $0.name != up } + (upStarred ? [HomeFolder(name: up, starred: true)] : [])
     }
 
     /// Stars or unstars a design. Starring is not an edit, so the design's

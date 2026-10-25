@@ -19,6 +19,11 @@ enum HomeSheet: Identifiable, Equatable {
     case uploads
     /// The posts planned, across the designs (PostPlanner).
     case planned
+    /// Every version's What's new notes.
+    case whatsNew
+    /// The quick file tools, open on one of them (QuickTools.Tool's
+    /// raw value) or on their list.
+    case tools(String?)
 
     var id: String {
         switch self {
@@ -31,6 +36,8 @@ enum HomeSheet: Identifiable, Equatable {
         case .brandKit: return "brand-kit"
         case .uploads: return "uploads"
         case .planned: return "planned"
+        case .whatsNew: return "whats-new"
+        case .tools(let tool): return "tools-\(tool ?? "")"
         }
     }
 }
@@ -85,6 +92,10 @@ struct HomeView: View {
     @State private var renamingTemplate: UserTemplate?
     @State private var templateRenameText = ""
     @State private var deletingTemplate: UserTemplate?
+    /// A template of your own whose Send… was tapped.
+    @State private var sendingTemplate: UserTemplate?
+    /// A design file read in, while what to make of it is asked.
+    @State private var openedFile: DesignPackage.OpenedFile?
     @State private var renaming: RecentDesign?
     @State private var renameText = ""
     @State private var query = ""
@@ -106,12 +117,10 @@ struct HomeView: View {
     @State private var typeFilter = DesignLibrary.TypeFilter.all
     @State private var editedFilter = DesignLibrary.Edited.any
     @State private var trashed: [RecentDesign] = []
+    /// The uploads, fonts of your own and folders in Recently deleted.
+    @State private var trashedUploads: [TrashedUpload] = []
+    @State private var trashedFolders: [DesignLibrary.HomeFolder] = []
     @State private var showingTrash = false
-    /// The design in Recently deleted whose deletion for good is being
-    /// asked about.
-    @State private var deletingForever: RecentDesign?
-    /// Emptying Recently deleted is being asked about.
-    @State private var emptyingTrash = false
     @State private var importing = false
     @State private var favoritesVersion = 0
     @State private var importError: String?
@@ -141,6 +150,13 @@ struct HomeView: View {
     /// has gone; or an upload's file, landed as a share into Canvia is.
     @State private var openAfterSheet: Design?
     @State private var landAfterSheet: (file: URL, src: String?)?
+    /// What a quick file tool made, landed as files shared in once its
+    /// sheet has gone.
+    @State private var landFilesAfterSheet: [URL] = []
+    /// What's new's Show me for the quick file tools, from a sheet: they
+    /// come up once it has gone, as SwiftUI drops a second present while
+    /// the first is still leaving.
+    @State private var toolsAfterSheet = false
     /// The folders starred, from the home-folders preference.
     @State private var starredFolders: Set<String> = []
     /// The designs being filed, while Move to folder asks where.
@@ -168,9 +184,14 @@ struct HomeView: View {
     /// What Canvia is used for (UseProfile), which orders the hero row and
     /// the templates; "" when skipped or not asked.
     @AppStorage(UseProfile.key) private var use = ""
+    /// The newest What's new closed (WhatsNew.pref); "" for none.
+    @AppStorage(WhatsNew.pref) private var whatsNewSeen = ""
     /// The designs just moved to Recently deleted, all at once, while their
     /// one Undo is on offer.
     @State private var justTrashed: [RecentDesign] = []
+    /// The folder just moved to Recently deleted, with what went with it,
+    /// while its Undo is on offer.
+    @State private var justTrashedFolder: DesignLibrary.HomeFolder?
     /// The design Copy & resize is open for, from its card's menu.
     @State private var copyResizing: Design?
     /// The copies just made, while their toast offers to open them.
@@ -240,6 +261,13 @@ struct HomeView: View {
             .modifier(WordDocsOnHome(picking: $pickingWord, documents: $wordURLs, turning: $turningIntoDoc,
                                      onOpen: onOpen, changed: { reload() }))
             .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
+            .modifier(TemplateFiles(opened: $openedFile, sending: $sendingTemplate, onDesign: { onOpen($0) },
+                                    onTemplate: { added in
+                // Shown among Your templates, or said that it could not be.
+                if added == nil { importError = tr("Couldn't save the template") }
+                templateCategory = nil
+                yoursOnly = added != nil
+            }, onAdded: { reload() }))
             .modifier(HomeDialogs(renaming: $renaming, renameText: $renameText) { reload() })
             .modifier(FolderDialogs(filing: $filing, movingFolder: $movingFolder, folders: folders,
                                     move: move, moveFolder: moveFolder))
@@ -253,6 +281,8 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 20) {
                 Group {
                     hero
+                    // The quick file tools, which make no design.
+                    if query.isEmpty { QuickToolsRow { homeSheet = .tools($0.rawValue) } }
                     // What is coming up — Halloween, Black Friday — and its
                     // templates, under the sizes.
                     comingUpPart
@@ -260,6 +290,8 @@ struct HomeView: View {
                     // folder is chosen again in Settings (AutoBackups).
                     AutoBackupBanner { homeSheet = .settings }
                         .padding(.horizontal)
+                    // What's new, once for each update's notes, until closed.
+                    if query.isEmpty && WhatsNew.shows(whatsNewSeen) { whatsNewCard }
                 }
                 // Always there: it finds templates as well as designs, and
                 // an empty shelf still has templates to search.
@@ -298,7 +330,7 @@ struct HomeView: View {
                 if recents.isEmpty && hasUploads {
                     uploadsChip.padding(.horizontal)
                 }
-                if !trashed.isEmpty {
+                if !trashed.isEmpty || !trashedUploads.isEmpty || !trashedFolders.isEmpty {
                     trashSection
                 }
                 // Sizes the search names, above the templates: "tiktok"
@@ -340,10 +372,12 @@ struct HomeView: View {
         switch shown {
         case .start(let presetId):
             StartSheet(initialPresetId: presetId, onCreate: createFromSheet,
-                       onCustomSize: { homeSheet = .customSize }, onImport: importFromSheet)
+                       onCustomSize: { homeSheet = .customSize }, onImport: importFromSheet,
+                       onTool: { homeSheet = .tools($0.rawValue) })
         case .pickSize:
             StartSheet(initialPresetId: nil, onCreate: createFromSheet,
-                       onCustomSize: { homeSheet = .customSize }, onImport: importFromSheet)
+                       onCustomSize: { homeSheet = .customSize }, onImport: importFromSheet,
+                       onTool: { homeSheet = .tools($0.rawValue) })
         case .customSize:
             CustomSizeSheet(onCreate: createFromSheet)
         case .help:
@@ -357,7 +391,7 @@ struct HomeView: View {
             SettingsSheet(onTour: {
                 replayTour = true
                 homeSheet = nil
-            })
+            }, onPlace: { openPlace($0) })
             // A restore, or Recently deleted emptied, shows on the shelf.
             .onDisappear { reload() }
         case .brandKit:
@@ -372,6 +406,51 @@ struct HomeView: View {
                 homeSheet = nil
             })
             .onDisappear { reload() }
+        case .whatsNew:
+            WhatsNewSheet { openPlace($0) }
+        case .tools(let tool):
+            // What a tool made, as a new design: landed as files shared in,
+            // once the sheet has gone.
+            QuickToolsSheet(initial: tool.flatMap { QuickTools.Tool(rawValue: $0) }) { files in
+                landFilesAfterSheet = files
+                homeSheet = nil
+            }
+        }
+    }
+
+    /// What's new under the hero: a tap on an item goes to its place, See
+    /// all lists every version's notes, and either — or closing it — marks
+    /// them seen.
+    private var whatsNewCard: some View {
+        WhatsNewCard(items: WhatsNew.since(whatsNewSeen), onOpen: { openPlace($0) }, onSeeAll: {
+            whatsNewSeen = WhatsNew.current
+            homeSheet = .whatsNew
+        }, onDismiss: {
+            whatsNewSeen = WhatsNew.current
+        })
+    }
+
+    /// A place on Home What's new names: the quick file tools, Recently
+    /// deleted, or Your templates — once any sheet over Home has gone.
+    private func openPlace(_ place: String) {
+        whatsNewSeen = WhatsNew.current
+        switch place {
+        case WhatsNew.tools:
+            if homeSheet == nil {
+                homeSheet = .tools(nil)
+            } else {
+                toolsAfterSheet = true
+                homeSheet = nil
+            }
+        case WhatsNew.trash:
+            homeSheet = nil
+            showingTrash = true
+        case WhatsNew.templates:
+            homeSheet = nil
+            templateCategory = nil
+            yoursOnly = true
+        default:
+            break
         }
     }
 
@@ -449,9 +528,27 @@ struct HomeView: View {
             landAfterSheet = nil
             landUpload(landing.file, src: landing.src)
         }
+        if !landFilesAfterSheet.isEmpty {
+            let files = landFilesAfterSheet
+            landFilesAfterSheet = []
+            landFiles(files)
+        }
+        if toolsAfterSheet {
+            toolsAfterSheet = false
+            homeSheet = .tools(nil)
+        }
         guard let design = pendingOpen else { return }
         pendingOpen = nil
         create(design)
+    }
+
+    /// Files a quick tool made as a share into Canvia: copied into the
+    /// inbox, then the app's "New design from shared" sheet.
+    private func landFiles(_ files: [URL]) {
+        Task { @MainActor in
+            let box = await Task.detached(priority: .userInitiated) { SharedInbox.land(files) }.value
+            if let box { onImport(box) } else { importError = tr("Couldn't open that file") }
+        }
     }
 
     /// An upload's file as a share into Canvia: copied into the inbox, then
@@ -478,10 +575,13 @@ struct HomeView: View {
             }.value
             guard generation == reloads else { return }
             let uploads = await Task.detached(priority: .utility) {
-                (entries: Uploads.all(), fonts: Uploads.fonts().count)
+                (entries: Uploads.all(), fonts: Uploads.fonts().filter { $0.deleted == nil }.count,
+                 trashed: Uploads.trashed().map { TrashedUpload(upload: $0) } + Uploads.trashedFonts().map { TrashedUpload(font: $0) })
             }.value
             hasUploads = !uploads.entries.isEmpty || uploads.fonts > 0
             uploadFolders = uploads.entries.map(\.folder)
+            trashedUploads = uploads.trashed.sorted { $0.deleted > $1.deleted }
+            trashedFolders = DesignLibrary.deletedFolders(DesignLibrary.storedHomeFolders())
             userTemplates = mine
             brandKit = BrandKit.load()
             show(shelf, trashed: binned)
@@ -534,7 +634,8 @@ struct HomeView: View {
             Task { @MainActor in
                 defer { openingFile = false }
                 do {
-                    onOpen(try await DesignPackage.importFileInBackground(at: url, taken: taken))
+                    // A template, or a design: which, is asked.
+                    openedFile = try await DesignPackage.importingFileInBackground(at: url, taken: taken)
                 } catch {
                     importError = error.localizedDescription
                 }
@@ -856,16 +957,22 @@ struct HomeView: View {
 
     /// The folder goes. Move contents up puts its designs, uploads and
     /// folders in the folder it is in (or in none, at the top); Recently
-    /// deleted sends its designs — those in the folders inside it too —
-    /// there with one Undo for them all, its uploads moving up either way.
-    /// Deleted with its designs, the folder keeps its star should they come
-    /// back, as on the Android twin.
+    /// deleted sends the folder there, with its designs and uploads — those
+    /// in the folders inside it too — to be restored as they were, with
+    /// one Undo for them all; its star waits with it, as on the Android
+    /// twin.
     private func deleteFolder(_ name: String, trashingDesigns: Bool) {
         let up = DesignLibrary.parentOf(name)
         folder = up
         if trashingDesigns {
-            trash(DesignLibrary.designs(recents, in: name, recursive: true))
-            Uploads.refile(from: name, to: up)
+            let ids = DesignLibrary.designs(recents, in: name, recursive: true).map(\.id)
+            let gone = DesignLibrary.trashFolder(name, designs: ids)
+            reload()
+            withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) {
+                justTrashed = []
+                justTrashedFolder = gone
+            }
+            AccessibilityNotification.Announcement(tr("Moved to Recently deleted")).post()
         } else {
             refile(name, to: up, deleting: true)
         }
@@ -1191,87 +1298,15 @@ struct HomeView: View {
 
     // MARK: trash
 
-    /// Collapsed by default: what was deleted is not what the home screen is
-    /// for, but it has to be findable for the thirty days it is kept.
+    /// Recently deleted: designs, uploads and folders apart (HomeTrash).
     private var trashSection: some View {
-        DisclosureGroup(isExpanded: $showingTrash) {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(trashed) { entry in
-                    HStack(spacing: 12) {
-                        ShelfThumbnail(id: entry.id, stamp: entry.thumbnailStamp, trashed: true)
-                            .frame(width: 56, height: 42)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.title).font(.subheadline.weight(.semibold)).lineLimit(1)
-                            Text("Deleted \(RelativeTime.lowercasedFirst(RelativeTime.text(ms: entry.updatedAt)))")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button("Restore") {
-                            DesignLibrary.restore(id: entry.id)
-                            PostReminders.restored(designId: entry.id)
-                            reload()
-                        }
-                        .buttonStyle(.bordered)
-                        Button(role: .destructive) {
-                            deletingForever = entry
-                        } label: { Image(systemName: "trash") }
-                        .accessibilityLabel("Delete forever")
-                    }
-                }
-                Text("Designs in the trash are removed after 30 days.")
-                    .font(.caption).foregroundStyle(.secondary)
-                Button("Empty Recently deleted", role: .destructive) { emptyingTrash = true }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.red)
-                    .padding(.top, 4)
-            }
-            .padding(.top, 8)
-        } label: {
-            Text("Recently deleted (\(trashed.count))")
-                .font(.title3.weight(.bold))
-        }
-        .padding(.horizontal)
-        // Asked first, both: there is no coming back from either, and the
-        // one design's bin sat a finger's width from its Restore.
-        .confirmationDialog(deleteForeverQuestion,
-                            isPresented: Binding(get: { deletingForever != nil },
-                                                 set: { if !$0 { deletingForever = nil } }),
-                            titleVisibility: .visible) {
-            Button("Delete forever", role: .destructive) {
-                if let entry = deletingForever {
-                    DesignLibrary.deleteTrashed(id: entry.id)
-                    // Gone for good is past undoing; the rest still come
-                    // back with Undo.
-                    if justTrashed.contains(where: { $0.id == entry.id }) {
-                        justTrashed.removeAll { $0.id == entry.id }
-                        if justTrashed.isEmpty { hideTrashed() }
-                    }
-                }
-                deletingForever = nil
-                reload()
-            }
-            Button("Cancel", role: .cancel) { deletingForever = nil }
-        } message: {
-            Text(DesignLibrary.cannotBeUndone)
-        }
-        .confirmationDialog(DesignLibrary.emptyTrashQuestion(count: trashed.count),
-                            isPresented: $emptyingTrash, titleVisibility: .visible) {
-            Button("Delete forever", role: .destructive) {
-                DesignLibrary.emptyTrash()
-                hideTrashed()
-                reload()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(DesignLibrary.cannotBeUndone)
-        }
-    }
-
-    /// What deleting one design for good asks first.
-    private var deleteForeverQuestion: String {
-        guard let entry = deletingForever else { return "" }
-        return tr("Delete “%@” forever?", entry.title)
+        RecentlyDeletedSection(designs: trashed, uploads: trashedUploads, folders: trashedFolders,
+                               expanded: $showingTrash, onGoneForGood: { ids in
+            // Gone for good is past undoing; the rest still come back with
+            // Undo.
+            justTrashed.removeAll { ids.contains($0.id) }
+            if justTrashed.isEmpty && justTrashedFolder == nil { hideTrashed() }
+        }, onChanged: { reload() })
     }
 
     // MARK: undo a delete
@@ -1281,12 +1316,16 @@ struct HomeView: View {
     /// times out is gone before a screen reader has finished saying it.
     @ViewBuilder
     private var trashedToast: some View {
-        if !justTrashed.isEmpty {
+        if !justTrashed.isEmpty || justTrashedFolder != nil {
             HStack(spacing: 12) {
-                Text(Self.trashedText(justTrashed))
+                Text(justTrashedFolder == nil ? Self.trashedText(justTrashed) : tr("Moved to Recently deleted"))
                     .font(.subheadline)
                     .lineLimit(2)
                 Button("Undo") {
+                    if let folder = justTrashedFolder {
+                        // The folder, its designs and its uploads, as they were.
+                        DesignLibrary.restoreFolder(folder)
+                    }
                     for gone in justTrashed {
                         DesignLibrary.restore(id: gone.id)
                         PostReminders.restored(designId: gone.id)
@@ -1372,12 +1411,18 @@ struct HomeView: View {
 
     private func showTrashed(_ designs: [RecentDesign]) {
         guard !designs.isEmpty else { return }
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { justTrashed = designs }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) {
+            justTrashed = designs
+            justTrashedFolder = nil
+        }
         AccessibilityNotification.Announcement(Self.trashedText(designs)).post()
     }
 
     private func hideTrashed() {
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { justTrashed = [] }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+            justTrashed = []
+            justTrashedFolder = nil
+        }
     }
 
     /// What the toast says: the design by name, or how many went at once.
@@ -2155,6 +2200,8 @@ struct HomeView: View {
                 templateRenameText = entry.name
                 renamingTemplate = entry
             } label: { Label("Rename", systemImage: "pencil") }
+            // A template file for someone else.
+            Button { sendingTemplate = entry } label: { Label("Send…", systemImage: "square.and.arrow.up") }
             Button(role: .destructive) { deletingTemplate = entry } label: {
                 Label("Delete", systemImage: "trash")
             }

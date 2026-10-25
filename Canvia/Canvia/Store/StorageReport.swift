@@ -81,7 +81,7 @@ struct StorageReport: Equatable, Sendable {
     /// The photos, clips and songs you brought in, in bytes: Settings'
     /// "Your uploads", and the figure on Home's Uploads.
     static func uploadsBytes() -> Int64 {
-        Uploads.all().reduce(0) { $0 + size(ofFile: file(of: $1)) }
+        Uploads.withTrashed().reduce(0) { $0 + size(ofFile: file(of: $1)) }
     }
 
     /// "12.4 MB", as the Files app says a size.

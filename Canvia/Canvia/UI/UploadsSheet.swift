@@ -91,7 +91,8 @@ enum UploadsHome {
             }
             out.append(item)
         }
-        for font in Uploads.fonts() {
+        // Those in Recently deleted are listed there instead.
+        for font in Uploads.fonts() where font.deleted == nil {
             let file = FontStore.directory.appendingPathComponent(font.file)
             guard FileManager.default.fileExists(atPath: file.path) else { continue }
             let listed = Uploads.Listed(id: font.id, kind: Uploads.fontKind, added: font.added)
@@ -152,7 +153,9 @@ struct UploadsSheet: View {
     @State private var previewing: UploadItem?
     @State private var listing: UploadItem?
     @State private var sharing: ShareURL?
-    @State private var deleting: [UploadItem]?
+    /// The uploads just moved to Recently deleted, while their one Undo is
+    /// on offer.
+    @State private var justTrashed: [UploadItem] = []
     /// The upload being filed, while Move to folder… asks where.
     @State private var filing: UploadItem?
 
@@ -172,13 +175,10 @@ struct UploadsSheet: View {
             FolderPicker(heading: tr("Move to folder"), current: item.folder, folders: folders,
                          onMove: { to in file(item, in: to) })
         }
-        .confirmationDialog(deleteQuestion.title, isPresented: Binding(
-            get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
-                            titleVisibility: .visible, presenting: deleting) { chosen in
-            Button("Delete", role: .destructive) { delete(chosen) }
-            Button("Cancel", role: .cancel) {}
-        } message: { _ in
-            if let text = deleteQuestion.text { Text(text) }
+        .overlay(alignment: .bottom) {
+            if !justTrashed.isEmpty {
+                MovedToTrashToast(onUndo: undoDelete, onDismiss: { justTrashed = [] })
+            }
         }
     }
 
@@ -334,7 +334,7 @@ struct UploadsSheet: View {
         if item.kind != Uploads.fontKind {
             Button { filing = item } label: { Label("Move to folder…", systemImage: "folder") }
         }
-        Button(role: .destructive) { deleting = [item] } label: { Label("Delete", systemImage: "trash") }
+        Button(role: .destructive) { delete([item]) } label: { Label("Delete", systemImage: "trash") }
     }
 
     private var selectBar: some View {
@@ -343,7 +343,7 @@ struct UploadsSheet: View {
             Text(trn("%d selected|%d selected", chosen.count))
                 .font(.subheadline.weight(.semibold))
             Spacer()
-            Button("Delete", role: .destructive) { deleting = chosen }
+            Button("Delete", role: .destructive) { delete(chosen) }
                 .disabled(chosen.isEmpty)
         }
         .padding()
@@ -369,16 +369,6 @@ struct UploadsSheet: View {
     private func endSelect() {
         selecting = false
         picked = []
-    }
-
-    /// The question for what is being deleted: every design any of them is
-    /// in, once each.
-    private var deleteQuestion: (title: String, text: String?) {
-        let chosen = deleting ?? []
-        var designs = Set<String>()
-        for item in chosen { for design in usages[item.id] ?? [] { designs.insert(design.id) } }
-        return Uploads.deletingFromHome(max(chosen.count, 1), designs: designs.count,
-                                        brandKit: chosen.contains { inBrandKit($0) })
     }
 
     // MARK: work
@@ -422,23 +412,22 @@ struct UploadsSheet: View {
         onNewDesign(item.file, SharedInbox.uploadSrc(kind: item.kind, id: item.id))
     }
 
-    /// Off the list, and unstarred — or the star would keep their files —
-    /// as the editor's Add sheet deletes one; a font's file goes too. The
-    /// designs that used them show an empty frame once the sweep has taken
-    /// the files.
+    /// To Recently deleted, unasked: their files stay — a font's stays
+    /// registered — so a design that shows one goes on showing it, and one
+    /// Undo brings them all back, as on the Android twin.
     private func delete(_ chosen: [UploadItem]) {
-        deleting = nil
         endSelect()
         let gone = Set(chosen.map(\.id))
         items = items?.filter { !gone.contains($0.id) }
-        for item in chosen {
-            if item.kind == Uploads.fontKind {
-                FontStore.remove(item.id)
-            } else {
-                Uploads.remove(item.id)
-                if Favorites.isFavorite("upload", item.id) { Favorites.toggle("upload", item.id) }
-            }
-        }
+        Uploads.trash(chosen.map(\.id))
+        justTrashed = chosen
+        Task { await load() }
+    }
+
+    /// The uploads just deleted, back where they were.
+    private func undoDelete() {
+        Uploads.restore(justTrashed.map(\.id))
+        justTrashed = []
         Task { await load() }
     }
 }

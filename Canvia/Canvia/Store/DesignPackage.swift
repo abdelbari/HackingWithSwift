@@ -6,6 +6,13 @@
 // backed up, or opened on another device — and importing one stores the
 // media under fresh ids and rewrites the references, so two imports of the
 // same package never share a file.
+//
+// A template of your own sent to someone else is the same package with a
+// top-level "asTemplate": {"category", "name"} (AsTemplate) and the file
+// name "<name>.canvia-template.json" (templateExt); opened, it is offered as
+// a template rather than a design. A build that does not know the key
+// reads it as a plain design. The Android twin's DesignPackage, with the
+// shared fixture template-package.canvia-template.json.
 
 import Foundation
 
@@ -14,6 +21,45 @@ enum DesignPackage {
     static let format = "canvia-package"
     static let version = 1
     static let ext = "canvia.json"
+
+    /// A template's file: "<name>.canvia-template.json", of the same type
+    /// as a design's.
+    static let templateExt = "canvia-template.json"
+
+    /// The file a template called `name` is sent as.
+    static func templateFileName(_ name: String) -> String { "\(name).\(templateExt)" }
+
+    /// What makes a package a template: the name and category it is filed
+    /// under in Your templates. Read whatever it holds — a key of the wrong
+    /// kind is read as none — so a package is never turned away for it;
+    /// `template(of:)` says whether it names one.
+    struct AsTemplate: Codable, Equatable, Sendable {
+        var name: String
+        var category: String
+
+        init(name: String, category: String) {
+            self.name = name
+            self.category = category
+        }
+
+        private enum CodingKeys: String, CodingKey { case category, name }
+
+        init(from decoder: Decoder) throws {
+            let c = try? decoder.container(keyedBy: CodingKeys.self)
+            name = (try? c?.decode(String.self, forKey: .name)) ?? ""
+            category = (try? c?.decode(String.self, forKey: .category)) ?? ""
+        }
+    }
+
+    /// The template `package` is sent as, its name and category trimmed;
+    /// nil with no name. A category missing is UserTemplates' own,
+    /// "Personal".
+    static func template(of package: Package) -> AsTemplate? {
+        guard let raw = package.asTemplate else { return nil }
+        let name = raw.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+        return AsTemplate(name: name, category: UserTemplates.category(raw.category))
+    }
 
     struct Media: Codable {
         var ext: String
@@ -45,6 +91,9 @@ enum DesignPackage {
         /// the rest travel as their first frame (`packingAnimations`).
         /// Optional like `videos`, and left out when there are none.
         var animations: [String: Media]?
+        /// Sent as a template: its name and category (AsTemplate); none
+        /// for a design file.
+        var asTemplate: AsTemplate?
     }
 
     /// The longest clip a file carries, in bytes; a longer one travels as
@@ -549,6 +598,12 @@ enum DesignPackage {
     /// `normalize: false` leaves the text boxes unmeasured, for a caller off
     /// the main thread: the type measurer's caches are the main thread's.
     static func importFile(at url: URL, taken: [String], normalize: Bool = true) throws -> Design {
+        try importingFile(at: url, taken: taken, normalize: normalize).design
+    }
+
+    /// `importFile`, with the template the file was sent as, if it was one.
+    static func importingFile(at url: URL, taken: [String],
+                              normalize: Bool = true) throws -> (design: Design, asTemplate: AsTemplate?) {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
@@ -557,9 +612,9 @@ enum DesignPackage {
         // a hundred megabytes and more, and mapped, its pages are the file's
         // rather than the app's memory.
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
-        var design = try `import`(data, normalize: normalize)
-        design.title = Titles.unique(design.title, taken: taken)
-        return design
+        var read = try importing(data, normalize: normalize)
+        read.design.title = Titles.unique(read.design.title, taken: taken)
+        return read
     }
 
     /// importFile, away from the main thread: decoding a package of up to
@@ -569,11 +624,59 @@ enum DesignPackage {
     /// measurer keeps its caches.
     @MainActor
     static func importFileInBackground(at url: URL, taken: [String]) async throws -> Design {
-        var design = try await Task.detached(priority: .userInitiated) {
-            try DesignPackage.importFile(at: url, taken: taken, normalize: false)
+        try await importingFileInBackground(at: url, taken: taken).design
+    }
+
+    /// `importFileInBackground`, with the template the file was sent as.
+    @MainActor
+    static func importingFileInBackground(at url: URL, taken: [String]) async throws -> OpenedFile {
+        let read = try await Task.detached(priority: .userInitiated) {
+            try DesignPackage.importingFile(at: url, taken: taken, normalize: false)
         }.value
+        var design = read.design
         design.normalizeTextHeights()
-        return design
+        return OpenedFile(design: design, asTemplate: read.asTemplate)
+    }
+
+    /// A design file read in, while what to make of it is asked: a
+    /// template's ("asTemplate") added to Your templates unless opened as a
+    /// design; a plain design's opened unless added as a template.
+    struct OpenedFile: Identifiable {
+        var id: String { design.id }
+        var design: Design
+        var asTemplate: AsTemplate?
+    }
+
+    /// `opened` kept as a template of your own — under the name and
+    /// category it was sent with, else its title in Personal — its photos
+    /// stored afresh as it was read, and its picture drawn. Nil when it
+    /// could not be written.
+    @MainActor
+    @discardableResult
+    static func addAsTemplate(_ opened: OpenedFile) -> UserTemplate? {
+        let name = opened.asTemplate?.name ?? opened.design.title
+        let category = opened.asTemplate?.category ?? UserTemplates.defaultCategory
+        guard let entry = UserTemplates.save(opened.design, name: name, category: category),
+              let saved = UserTemplates.load(id: entry.id) else { return nil }
+        UserTemplates.writeThumbnail(for: saved)
+        return entry
+    }
+
+    /// A template of your own as a file for someone else: the design
+    /// package, photos and all, under its name and category, at
+    /// "<name>.canvia-template.json". Away from the main actor for the
+    /// writing.
+    @MainActor
+    static func templateFile(_ template: UserTemplate) async throws -> URL {
+        guard let design = UserTemplates.load(id: template.id) else { throw ImportError.notAPackage }
+        var contents = DesignPackage.contents(of: design)
+        contents.asTemplate = AsTemplate(name: template.name, category: template.category)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(templateFileName(DesignExporter.fileBaseName(template.name)))
+        try await Task.detached(priority: .userInitiated) {
+            try DesignPackage.encode(contents).write(to: url)
+        }.value
+        return url
     }
 
     /// The copy the system puts in Documents/Inbox when a file is handed
@@ -628,8 +731,18 @@ enum DesignPackage {
     /// title marked as imported so it is not mistaken for the original).
     static func `import`(_ data: Data, mediaDirectory: URL = MediaStore.directory,
                          normalize: Bool = true) throws -> Design {
+        try importing(data, mediaDirectory: mediaDirectory, normalize: normalize).design
+    }
+
+    /// `import`, with the template the file was sent as, if it was one.
+    static func importing(_ data: Data, mediaDirectory: URL = MediaStore.directory,
+                          normalize: Bool = true) throws -> (design: Design, asTemplate: AsTemplate?) {
         guard let package = try? JSONDecoder().decode(Package.self, from: data),
               package.format == format else { throw ImportError.notAPackage }
+        return (try imported(package, mediaDirectory: mediaDirectory, normalize: normalize), template(of: package))
+    }
+
+    private static func imported(_ package: Package, mediaDirectory: URL, normalize: Bool) throws -> Design {
         var remap: [String: String] = [:]
         for (oldId, item) in package.media {
             let newId = UID.make("img")

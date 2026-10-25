@@ -131,7 +131,7 @@ enum Backup {
     }
 
     /// The same, with Back up automatically's preference under
-    /// "autoBackup" (AutoBackup) — what a backup writes.
+    /// "autoBackup" (AutoBackup).
     static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool, proofTypography: Bool,
                                accessibility: AccessibilityPrefs.Settings,
                                recentSearches: [String], recentTemplates: [String],
@@ -140,11 +140,24 @@ enum Backup {
                      accessibility: accessibility, recent: (recentSearches, recentTemplates), autoBackup: autoBackup)
     }
 
+    /// The same, with the newest What's new seen under "whatsNewSeen"
+    /// (WhatsNew.pref) when there is one — what a backup writes.
+    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool, proofTypography: Bool,
+                               accessibility: AccessibilityPrefs.Settings,
+                               recentSearches: [String], recentTemplates: [String],
+                               autoBackup: AutoBackup.Config, whatsNewSeen: String?) -> Data {
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge, proofTypography: proofTypography,
+                     accessibility: accessibility, recent: (recentSearches, recentTemplates), autoBackup: autoBackup,
+                     whatsNewSeen: whatsNewSeen)
+    }
+
     private static func settingsData(autoLists: Bool, use: String?, exportA11yNudge: Bool?, proofTypography: Bool?,
                                      accessibility: AccessibilityPrefs.Settings,
                                      recent: ([String]?, [String]?) = (nil, nil),
-                                     autoBackup: AutoBackup.Config? = nil) -> Data {
+                                     autoBackup: AutoBackup.Config? = nil,
+                                     whatsNewSeen: String? = nil) -> Data {
         var object: [String: Any] = ["autoLists": autoLists]
+        if let whatsNewSeen { object[WhatsNew.pref] = whatsNewSeen }
         if let use { object[UseProfile.key] = use }
         if let exportA11yNudge { object[ExportPlan.a11yNudgeKey] = exportA11yNudge }
         if let proofTypography { object[Proofing.typographySetting] = proofTypography }
@@ -196,6 +209,13 @@ enum Backup {
         guard let data, let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let config = object[AutoBackup.key] as? [String: Any] else { return nil }
         return AutoBackup.read(config)
+    }
+
+    /// The backup's "whatsNewSeen" (WhatsNew.pref); nil when it has none,
+    /// or not a string.
+    static func decodeWhatsNewSeen(_ data: Data?) -> String? {
+        guard let data, let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
+        return object[WhatsNew.pref] as? String
     }
 
     /// The backup's "autoLists"; nil when it has none, as an older backup.
@@ -329,7 +349,8 @@ enum Backup {
         let live = designFiles(in: DesignLibrary.designsDir)
         let binned = designFiles(in: DesignLibrary.trashDir)
         let templates = UserTemplates.all()
-        let uploads = Uploads.all()
+        // Those in Recently deleted too: they wait there after a restore.
+        let uploads = Uploads.withTrashed()
         let fonts = FontStore.installed()
         let kits = BrandKits.load()
         let total = Double(live.count + binned.count + templates.count + uploads.count + fonts.count + 1)
@@ -391,7 +412,8 @@ enum Backup {
                                                     accessibility: AccessibilityPrefs.current(),
                                                     recentSearches: RecentSearches.searches(),
                                                     recentTemplates: RecentSearches.usedTemplates(),
-                                                    autoBackup: AutoBackups.shared.config))
+                                                    autoBackup: AutoBackups.shared.config,
+                                                    whatsNewSeen: WhatsNew.seen().isEmpty ? nil : WhatsNew.seen()))
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
@@ -606,6 +628,8 @@ enum Backup {
         if let auto = decodeAutoBackup(reader.file(settingsFile)) {
             AutoBackups.shared.update { $0.every = auto.every; $0.keep = auto.keep }
         }
+        // What's new seen there counts as seen here; never older.
+        WhatsNew.restore(decodeWhatsNewSeen(reader.file(settingsFile)))
         // What Canvia is used for, on a phone with no answer yet.
         if UseProfile.current() == nil, let use = UseProfile.decodeSettings(reader.file(UseProfile.settingsFile)) {
             UseProfile.set(use)
@@ -757,7 +781,7 @@ enum Backup {
     /// list themselves as they are added. Returns how many were new.
     private static func restoreUploads(_ data: Data?) -> Int {
         guard let data, let raw = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return 0 }
-        let here = Set(Uploads.all().map(\.id))
+        let here = Set(Uploads.withTrashed().map(\.id))
         var added = 0
         for case let item as [String: Any] in raw {
             guard let id = item["id"] as? String, !here.contains(id),
@@ -766,7 +790,10 @@ enum Backup {
             // With the file name it came with: what a suggested description
             // is drawn from, as on the Android twin.
             Uploads.record(id, kind: kind, name: item["name"] as? String, now: Date(timeIntervalSince1970: ms / 1000))
-            if Uploads.all(kind).contains(where: { $0.id == id }) { added += 1 }
+            // One in Recently deleted there waits there here too, from when
+            // it was deleted.
+            if let deleted = Uploads.deletedTime(item) { Uploads.trash([id], at: deleted) }
+            if Uploads.withTrashed().contains(where: { $0.id == id && $0.kind == kind }) { added += 1 }
         }
         return added
     }

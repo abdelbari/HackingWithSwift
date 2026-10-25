@@ -1,0 +1,48 @@
+[
+  {
+    "version": "1.36",
+    "items": [
+      {
+        "id": "quick-tools",
+        "title": "Quick file tools",
+        "body": "Merge or split PDFs, turn pictures into a PDF and resize, convert or compress a picture, all from Tools on Home.",
+        "opens": "tools"
+      },
+      {
+        "id": "trash",
+        "title": "Restore uploads and folders",
+        "body": "Deleted uploads and folders now wait in Recently deleted for 30 days, as designs do.",
+        "opens": "trash"
+      },
+      {
+        "id": "version-page",
+        "title": "Bring back one page",
+        "body": "In Version history, bring back a single page from an earlier version without losing later work.",
+        "opens": null
+      },
+      {
+        "id": "template-files",
+        "title": "Send your templates",
+        "body": "Send one of your templates as a file. Whoever opens it can add it to their templates.",
+        "opens": "templates"
+      }
+    ]
+  },
+  {
+    "version": "1.35",
+    "items": [
+      {
+        "id": "diagrams",
+        "title": "Diagrams",
+        "body": "Add a flow chart, a cycle or a mind map from Add, and edit its steps as a list.",
+        "opens": null
+      },
+      {
+        "id": "present-pen",
+        "title": "Pointer and pen in Present",
+        "body": "Point at a slide or write on it while you present.",
+        "opens": null
+      }
+    ]
+  }
+]

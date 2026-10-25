@@ -3,7 +3,7 @@
 import SwiftUI
 
 struct HelpSheet: View {
-    var onOpen: (EditorSheet) -> Void
+    var onOpen: (HelpTarget) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
 
@@ -14,25 +14,7 @@ struct HelpSheet: View {
                 if topics.isEmpty {
                     ContentUnavailableView.search(text: query)
                 } else {
-                    List {
-                        ForEach(topics) { topic in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(topic.title).font(.headline)
-                                Text(topic.body).font(.subheadline).foregroundStyle(.secondary)
-                                if let sheet = topic.opens {
-                                    Button("Show me") {
-                                        dismiss()
-                                        onOpen(sheet)
-                                    }
-                                    .font(.subheadline.weight(.semibold))
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                        Section {
-                            TipsAgainButton()
-                        }
-                    }
+                    topicList(topics)
                 }
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
@@ -44,6 +26,89 @@ struct HelpSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+
+    /// The tools the search names, then the topics found.
+    private func topicList(_ topics: [HelpTopic]) -> some View {
+        List {
+            HelpToolsSection(tools: HelpTopics.tools(query)) { target in
+                dismiss()
+                onOpen(target)
+            }
+            ForEach(topics) { topic in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(topic.title).font(.headline)
+                    Text(topic.body).font(.subheadline).foregroundStyle(.secondary)
+                    if let target = topic.opens {
+                        Button("Show me") {
+                            dismiss()
+                            onOpen(target)
+                        }
+                        .font(.subheadline.weight(.semibold))
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            Section {
+                TipsAgainButton()
+            }
+        }
+    }
+}
+
+/// The Tools section: a row for each tool a search names
+/// (HelpTopics.tools), a tap opening it there and then — in help, and above
+/// what Add's search finds. Nothing at all when there are none.
+struct HelpToolsSection: View {
+    var tools: [HelpTopic]
+    var onOpen: (HelpTarget) -> Void
+
+    var body: some View {
+        if !tools.isEmpty {
+            Section("Tools") {
+                ForEach(tools) { tool in
+                    if let target = tool.opens {
+                        Button {
+                            onOpen(target)
+                        } label: {
+                            Label(tool.title, systemImage: "wrench.and.screwdriver")
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// The Tools section outside a list: Add's search shows it above the
+/// elements it finds, under the same heading.
+struct HelpToolsList: View {
+    var tools: [HelpTopic]
+    var onOpen: (HelpTarget) -> Void
+
+    var body: some View {
+        if !tools.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Tools")
+                    .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
+                ForEach(tools) { tool in
+                    if let target = tool.opens {
+                        Button {
+                            onOpen(target)
+                        } label: {
+                            Label(tool.title, systemImage: "wrench.and.screwdriver")
+                                .lineLimit(1)
+                                .frame(minHeight: 44)
+                        }
+                        .tint(Theme.accent)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding([.horizontal, .top])
+        }
     }
 }
 

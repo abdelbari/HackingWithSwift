@@ -2696,6 +2696,39 @@
       "other": "%d elementos"
     }
   },
+  "%d file couldn't be read.|%d files couldn't be read.": {
+    "ar": {
+      "few": "تعذّرت قراءة %d ملفات.",
+      "many": "تعذّرت قراءة %d ملفًا.",
+      "one": "تعذّرت قراءة ملف واحد (%d).",
+      "other": "تعذّرت قراءة %d ملف.",
+      "two": "تعذّرت قراءة ملفين (%d).",
+      "zero": "تعذّرت قراءة %d ملف."
+    },
+    "de": {
+      "one": "%d Datei konnte nicht gelesen werden.",
+      "other": "%d Dateien konnten nicht gelesen werden."
+    },
+    "es": {
+      "one": "No se pudo leer %d archivo.",
+      "other": "No se pudieron leer %d archivos."
+    },
+    "fr": {
+      "one": "Impossible de lire %d fichier.",
+      "other": "Impossible de lire %d fichiers."
+    },
+    "it": {
+      "one": "Impossibile leggere %d file.",
+      "other": "Impossibile leggere %d file."
+    },
+    "ja": {
+      "other": "%d 個のファイルを読み込めませんでした。"
+    },
+    "pt-BR": {
+      "one": "Não foi possível ler %d arquivo.",
+      "other": "Não foi possível ler %d arquivos."
+    }
+  },
   "%d file, one a slide, in order|%d files, one a slide, in order": {
     "ar": {
       "few": "%d ملفات، ملف لكل شريحة، بالترتيب",
@@ -4787,6 +4820,15 @@
     "ja": "2. データを接続",
     "pt-BR": "2. Conectar dados"
   },
+  "256 colours (PNG)": {
+    "ar": "256 لونًا (PNG)",
+    "de": "256 Farben (PNG)",
+    "es": "256 colores (PNG)",
+    "fr": "256 couleurs (PNG)",
+    "it": "256 colori (PNG)",
+    "ja": "256色（PNG）",
+    "pt-BR": "256 cores (PNG)"
+  },
   "3 across": {
     "ar": "3 أفقيًا",
     "de": "3 nebeneinander",
@@ -4940,6 +4982,15 @@
     "ja": "ハロウィンやディワリなど、次のイベントのテンプレートを「もうすぐ」の列に表示します。",
     "pt-BR": "Uma linha Em breve com modelos para a próxima ocasião, como Halloween ou Diwali."
   },
+  "A Doc is a long page of headings, words, lists, tables and pictures that flows on as you type. Export it as a Word file or a PDF, or turn a design into a Doc.": {
+    "ar": "المستند صفحة طويلة من العناوين والنصوص والقوائم والجداول والصور تمتد كلما كتبت. صدّره كملف Word أو PDF، أو حوّل تصميمًا إلى مستند.",
+    "de": "Ein Doc ist eine lange Seite aus Überschriften, Text, Listen, Tabellen und Bildern, die beim Tippen weiterfließt. Exportiere es als Word-Datei oder PDF oder mach aus einem Design ein Doc.",
+    "es": "Un Doc es una página larga de títulos, texto, listas, tablas e imágenes que fluye a medida que escribes. Expórtalo como archivo de Word o PDF, o convierte un diseño en un Doc.",
+    "fr": "Un Doc est une longue page de titres, de texte, de listes, de tableaux et d’images qui s’allonge au fil de la saisie. Exportez-le en fichier Word ou en PDF, ou transformez un design en Doc.",
+    "it": "Un Doc è una lunga pagina di titoli, testo, elenchi, tabelle e immagini che scorre mentre scrivi. Esportalo come file Word o PDF, oppure trasforma un design in un Doc.",
+    "ja": "Doc は見出し、文章、リスト、表、画像からなる長いページで、入力に合わせて続いていきます。Word ファイルや PDF として書き出したり、デザインを Doc に変えたりできます。",
+    "pt-BR": "Um Doc é uma página longa de títulos, texto, listas, tabelas e imagens que flui enquanto você digita. Exporte-o como arquivo do Word ou PDF, ou transforme um design em um Doc."
+  },
   "A QR code is used whole, so it can't be cropped.": {
     "ar": "يُستخدم رمز QR كاملًا، لذا لا يمكن اقتصاصه.",
     "de": "Ein QR-Code wird vollständig verwendet und kann daher nicht zugeschnitten werden.",
@@ -4993,6 +5044,15 @@
     "it": "Un colore del brand",
     "ja": "ブランドカラー",
     "pt-BR": "Uma cor da marca"
+  },
+  "A brand kit keeps your colours, fonts, logos, photos and text styles for every design. Pick its colours from a logo, and make a brand guidelines page from it.": {
+    "ar": "تحفظ مجموعة العلامة التجارية ألوانك وخطوطك وشعاراتك وصورك وأنماط النصوص لكل تصميم. اختر ألوانها من شعار، وأنشئ منها صفحة إرشادات العلامة التجارية.",
+    "de": "Ein Markenkit bewahrt deine Farben, Schriften, Logos, Fotos und Textstile für jedes Design auf. Übernimm seine Farben aus einem Logo und mach daraus eine Seite mit Markenrichtlinien.",
+    "es": "Un kit de marca guarda tus colores, fuentes, logotipos, fotos y estilos de texto para cada diseño. Elige sus colores a partir de un logotipo y crea con él una página de guía de marca.",
+    "fr": "Un kit de marque garde vos couleurs, polices, logos, photos et styles de texte pour chaque design. Tirez ses couleurs d’un logo et créez-en une page de charte graphique.",
+    "it": "Un kit del brand conserva colori, font, loghi, foto e stili di testo per ogni design. Ricava i colori da un logo e crea una pagina di linee guida del brand.",
+    "ja": "ブランドキットには、どのデザインでも使える色、フォント、ロゴ、写真、テキストスタイルを保存します。ロゴから色を取り込み、ブランドガイドラインのページも作れます。",
+    "pt-BR": "Um kit de marca guarda suas cores, fontes, logotipos, fotos e estilos de texto para cada design. Escolha as cores a partir de um logotipo e crie com ele uma página de diretrizes da marca."
   },
   "A cell of this table is locked. Unlock it to change the table.": {
     "ar": "إحدى خلايا هذا الجدول مقفلة. ألغِ قفلها لتغيير الجدول.",
@@ -5219,6 +5279,15 @@
     "ja": "スナップラインには、何に揃えたか（ページの中央、他の素材、自分のガイド）が表示されます。",
     "pt-BR": "Uma linha de ajuste diz com o que alinhou os itens — o centro da página, outro elemento, sua própria guia."
   },
+  "A table can have rows and columns added and removed, cells merged, borders and colours of its own, and a design to start from.": {
+    "ar": "يمكنك في الجدول إضافة الصفوف والأعمدة وحذفها ودمج الخلايا ومنحه حدودًا وألوانًا خاصة به، والبدء من تصميم جاهز.",
+    "de": "Einer Tabelle kannst du Zeilen und Spalten hinzufügen und entfernen, Zellen verbinden, eigene Rahmen und Farben geben und ein Design als Ausgangspunkt wählen.",
+    "es": "A una tabla puedes añadirle y quitarle filas y columnas, combinar celdas, darle bordes y colores propios y partir de un diseño.",
+    "fr": "Un tableau peut recevoir ou perdre des lignes et des colonnes, fusionner des cellules, avoir ses propres bordures et couleurs, et partir d’un design prêt à l’emploi.",
+    "it": "A una tabella puoi aggiungere e togliere righe e colonne, unire celle, dare bordi e colori propri e partire da un design.",
+    "ja": "表では行と列の追加と削除、セルの結合、独自の罫線や色の設定ができ、元にするデザインも選べます。",
+    "pt-BR": "Uma tabela pode ter linhas e colunas adicionadas e removidas, células mescladas, bordas e cores próprias e um design para começar."
+  },
   "A table keeps at least one column.": {
     "ar": "يحتفظ الجدول بعمود واحد على الأقل.",
     "de": "Eine Tabelle behält mindestens eine Spalte.",
@@ -5281,6 +5350,15 @@
     "it": "Una pagina web: le pagine come sezioni, con menu, link e video.",
     "ja": "ウェブページ：ページをセクションにし、メニュー、リンク、動画付き。",
     "pt-BR": "Uma página da web: as páginas como seções, com menu, links e vídeo."
+  },
+  "A whiteboard is one page that grows as you add to it, for sticky notes, drawing, diagrams and ideas.": {
+    "ar": "السبورة صفحة واحدة تتسع كلما أضفت إليها، للملاحظات اللاصقة والرسم والمخططات والأفكار.",
+    "de": "Ein Whiteboard ist eine einzige Seite, die mitwächst, wenn du etwas hinzufügst – für Haftnotizen, Zeichnungen, Diagramme und Ideen.",
+    "es": "Una pizarra es una sola página que crece a medida que añades cosas: notas adhesivas, dibujos, diagramas e ideas.",
+    "fr": "Un tableau blanc est une seule page qui s’agrandit au fil des ajouts : notes autocollantes, dessins, diagrammes et idées.",
+    "it": "Una lavagna è un'unica pagina che si allarga man mano che aggiungi elementi: note adesive, disegni, diagrammi e idee.",
+    "ja": "ホワイトボードは、付箋、手描き、ダイアグラム、アイデアを追加するたびに広がる1枚のページです。",
+    "pt-BR": "Um quadro branco é uma única página que cresce conforme você adiciona coisas: notas adesivas, desenhos, diagramas e ideias."
   },
   "A4 at 300 dpi (3508)": {
     "ar": "A4 بدقة 300 dpi (3508)",
@@ -5486,6 +5564,15 @@
     "ja": "QR コードを追加",
     "pt-BR": "Adicionar um código QR"
   },
+  "Add a QR code for a link, an email, a phone number or Wi-Fi, in your own colours, or a barcode. Canvia warns when a code may not scan.": {
+    "ar": "أضف رمز QR لرابط أو بريد إلكتروني أو رقم هاتف أو شبكة Wi-Fi بألوانك الخاصة، أو رمزًا شريطيًا. ينبّهك Canvia حين قد يتعذّر مسح الرمز.",
+    "de": "Füge einen QR-Code für einen Link, eine E-Mail, eine Telefonnummer oder WLAN in deinen eigenen Farben hinzu, oder einen Barcode. Canvia warnt, wenn ein Code sich vielleicht nicht scannen lässt.",
+    "es": "Añade un código QR para un enlace, un correo, un número de teléfono o una red Wi-Fi, con tus propios colores, o un código de barras. Canvia te avisa si un código podría no escanearse.",
+    "fr": "Ajoutez un code QR pour un lien, une adresse e-mail, un numéro de téléphone ou un réseau Wi-Fi, dans vos couleurs, ou un code-barres. Canvia prévient quand un code risque de ne pas être lu.",
+    "it": "Aggiungi un codice QR per un link, un'email, un numero di telefono o una rete Wi-Fi, con i tuoi colori, oppure un codice a barre. Canvia ti avvisa se un codice potrebbe non essere letto.",
+    "ja": "リンク、メール、電話番号、Wi-Fi の QR コードを好きな色で、またはバーコードを追加できます。読み取れないおそれがあるときは Canvia が知らせます。",
+    "pt-BR": "Adicione um código QR para um link, um e-mail, um telefone ou uma rede Wi-Fi, com suas próprias cores, ou um código de barras. O Canvia avisa quando um código pode não ser lido."
+  },
   "Add a barcode": {
     "ar": "إضافة رمز شريطي",
     "de": "Strichcode hinzufügen",
@@ -5512,6 +5599,15 @@
     "it": "Aggiungi una didascalia",
     "ja": "キャプションを追加",
     "pt-BR": "Adicionar uma legenda"
+  },
+  "Add a chart, then type its numbers in its table, paste them or import a CSV. Pick a kind — bar, line, pie, donut, scatter and more — and its colours and labels.": {
+    "ar": "أضف مخططًا، ثم اكتب أرقامه في جدوله أو الصقها أو استورد ملف CSV. اختر نوعًا — أعمدة أو خطوط أو دائري أو حلقي أو مبعثر وغيرها — وألوانه وتسمياته.",
+    "de": "Füge ein Diagramm hinzu und tippe seine Zahlen in die Tabelle, füge sie ein oder importiere eine CSV-Datei. Wähle eine Art – Balken, Linie, Kreis, Ring, Streuung und mehr – sowie Farben und Beschriftungen.",
+    "es": "Añade un gráfico y escribe sus números en su tabla, pégalos o importa un CSV. Elige un tipo —barras, líneas, circular, anillo, dispersión y más— y sus colores y etiquetas.",
+    "fr": "Ajoutez un graphique, puis saisissez ses chiffres dans son tableau, collez-les ou importez un CSV. Choisissez un type — barres, courbes, secteurs, anneau, nuage de points et plus — ainsi que ses couleurs et étiquettes.",
+    "it": "Aggiungi un grafico, poi scrivi i numeri nella sua tabella, incollali o importa un CSV. Scegli un tipo — barre, linee, torta, ciambella, dispersione e altri — e i suoi colori ed etichette.",
+    "ja": "グラフを追加したら、表に数値を入力するか、貼り付けるか、CSV を読み込みます。棒、折れ線、円、ドーナツ、散布図などの種類と、色やラベルを選べます。",
+    "pt-BR": "Adicione um gráfico e digite os números na tabela dele, cole-os ou importe um CSV. Escolha um tipo — barras, linhas, pizza, rosca, dispersão e mais — e suas cores e rótulos."
   },
   "Add a circle": {
     "ar": "إضافة دائرة",
@@ -5548,6 +5644,15 @@
     "it": "Aggiungi una voce",
     "ja": "キューを追加",
     "pt-BR": "Adicionar uma entrada"
+  },
+  "Add a flow chart, a cycle or a mind map from Add, and edit its steps as a list.": {
+    "ar": "أضف مخططًا انسيابيًا أو دورة أو خريطة ذهنية من «إضافة»، وعدّل خطواتها كقائمة.",
+    "de": "Füge über Hinzufügen ein Flussdiagramm, einen Kreislauf oder eine Mindmap hinzu und bearbeite die Schritte als Liste.",
+    "es": "Añade un diagrama de flujo, un ciclo o un mapa mental desde Añadir y edita sus pasos como una lista.",
+    "fr": "Ajoutez un organigramme, un cycle ou une carte mentale depuis Ajouter, et modifiez ses étapes sous forme de liste.",
+    "it": "Aggiungi un diagramma di flusso, un ciclo o una mappa mentale da Aggiungi e modifica i passaggi come elenco.",
+    "ja": "「追加」からフローチャート、サイクル図、マインドマップを追加し、各ステップをリストで編集できます。",
+    "pt-BR": "Adicione um fluxograma, um ciclo ou um mapa mental em Adicionar e edite as etapas como uma lista."
   },
   "Add a font…": {
     "ar": "إضافة خط…",
@@ -5963,6 +6068,15 @@
     "ja": "写真からロゴを追加…",
     "pt-BR": "Adicionar logo das fotos…"
   },
+  "Add more": {
+    "ar": "إضافة المزيد",
+    "de": "Weitere hinzufügen",
+    "es": "Añadir más",
+    "fr": "En ajouter",
+    "it": "Aggiungi altri",
+    "ja": "さらに追加",
+    "pt-BR": "Adicionar mais"
+  },
   "Add music": {
     "ar": "إضافة موسيقى",
     "de": "Musik hinzufügen",
@@ -6106,6 +6220,15 @@
     "it": "Aggiungi alla schermata Home",
     "ja": "ホーム画面に追加",
     "pt-BR": "Adicionar à tela inicial"
+  },
+  "Add to Your templates": {
+    "ar": "إضافة إلى قوالبك",
+    "de": "Zu Deine Vorlagen hinzufügen",
+    "es": "Añadir a Tus plantillas",
+    "fr": "Ajouter à Vos modèles",
+    "it": "Aggiungi a I tuoi modelli",
+    "ja": "あなたのテンプレートに追加",
+    "pt-BR": "Adicionar a Seus modelos"
   },
   "Add to a design": {
     "ar": "إضافة إلى تصميم",
@@ -6770,6 +6893,15 @@
     "ja": "アニメーションの単位",
     "pt-BR": "Animar por"
   },
+  "Animate gives a page or an element a way in and out, and text can come in word by word. Page transitions play between pages in Present and in videos.": {
+    "ar": "يمنح التحريك الصفحة أو العنصر طريقة للدخول والخروج، ويمكن للنص أن يظهر كلمة بكلمة. تُعرض انتقالات الصفحات بين الصفحات أثناء التقديم وفي الفيديوهات.",
+    "de": "Animieren gibt einer Seite oder einem Element einen Auftritt und Abgang, und Text kann Wort für Wort erscheinen. Seitenübergänge laufen beim Präsentieren und in Videos zwischen den Seiten.",
+    "es": "Animar da a una página o a un elemento una forma de entrar y salir, y el texto puede aparecer palabra por palabra. Las transiciones de página se reproducen entre páginas al presentar y en los vídeos.",
+    "fr": "Animer donne à une page ou à un élément une entrée et une sortie, et le texte peut apparaître mot par mot. Les transitions de page s’enchaînent entre les pages en présentation et dans les vidéos.",
+    "it": "Anima dà a una pagina o a un elemento un modo di entrare e uscire, e il testo può comparire parola per parola. Le transizioni di pagina si vedono tra le pagine nella presentazione e nei video.",
+    "ja": "アニメーションでページや要素に登場と退場の動きを付けられ、テキストは1語ずつ表示することもできます。ページの切り替え効果は、プレゼンテーションや動画でページ間に再生されます。",
+    "pt-BR": "Animar dá a uma página ou elemento uma forma de entrar e sair, e o texto pode aparecer palavra por palavra. As transições de página tocam entre as páginas na apresentação e nos vídeos."
+  },
   "Animated": {
     "ar": "متحرك",
     "de": "Animiert",
@@ -7247,6 +7379,15 @@
     "ja": "オーディオ（M4A）",
     "pt-BR": "Áudio (M4A)"
   },
+  "Audio adds music from the library, your own songs and sound effects. Each track can be trimmed, faded, set louder or quieter and fitted to the beat.": {
+    "ar": "يضيف الصوت موسيقى من المكتبة وأغانيك الخاصة والمؤثرات الصوتية. يمكن قص كل مسار وتلاشيه ورفع صوته أو خفضه ومطابقته مع الإيقاع.",
+    "de": "Audio fügt Musik aus der Bibliothek, eigene Songs und Soundeffekte hinzu. Jede Spur lässt sich kürzen, ein- und ausblenden, lauter oder leiser stellen und an den Takt anpassen.",
+    "es": "Audio añade música de la biblioteca, tus propias canciones y efectos de sonido. Cada pista se puede recortar, desvanecer, subir o bajar de volumen y ajustar al ritmo.",
+    "fr": "Audio ajoute de la musique de la bibliothèque, vos propres morceaux et des effets sonores. Chaque piste peut être coupée, fondue, rendue plus forte ou plus douce et calée sur le rythme.",
+    "it": "Audio aggiunge musica dalla libreria, brani tuoi ed effetti sonori. Ogni traccia si può tagliare, sfumare, alzare o abbassare e adattare al ritmo.",
+    "ja": "「オーディオ」では、ライブラリの音楽や自分の曲、効果音を追加できます。各トラックはトリミング、フェード、音量調整、ビートへの合わせ込みができます。",
+    "pt-BR": "Áudio adiciona músicas da biblioteca, suas próprias músicas e efeitos sonoros. Cada faixa pode ser cortada, ter fade, ficar mais alta ou mais baixa e se ajustar à batida."
+  },
   "Audio tracks and voice-over": {
     "ar": "المسارات الصوتية والتعليق الصوتي",
     "de": "Audiospuren und Sprachaufnahme",
@@ -7408,6 +7549,15 @@
     "it": "Fai il backup di tutto",
     "ja": "すべてをバックアップ",
     "pt-BR": "Fazer backup de tudo"
+  },
+  "Back up everything, in Settings, keeps your designs, uploads, templates and settings in one file that either phone can restore. Back up automatically writes one to a folder you choose.": {
+    "ar": "يحفظ «نسخ كل شيء احتياطيًا» في الإعدادات تصاميمك وتحميلاتك وقوالبك وإعداداتك في ملف واحد يمكن لأي من الهاتفين استعادته. ويكتب النسخ الاحتياطي التلقائي نسخة في مجلد تختاره.",
+    "de": "„Alles sichern“ in den Einstellungen speichert deine Designs, Uploads, Vorlagen und Einstellungen in einer Datei, die jedes der beiden Telefone wiederherstellen kann. Die automatische Sicherung schreibt sie in einen Ordner deiner Wahl.",
+    "es": "Hacer copia de todo, en Ajustes, guarda tus diseños, archivos subidos, plantillas y ajustes en un solo archivo que cualquiera de los dos teléfonos puede restaurar. La copia automática escribe una en la carpeta que elijas.",
+    "fr": "Tout sauvegarder, dans Réglages, garde vos designs, importations, modèles et réglages dans un seul fichier que l’un ou l’autre téléphone peut restaurer. La sauvegarde automatique en écrit une dans le dossier de votre choix.",
+    "it": "Esegui backup di tutto, in Impostazioni, salva design, caricamenti, modelli e impostazioni in un unico file che entrambi i telefoni possono ripristinare. Il backup automatico ne scrive uno nella cartella che scegli.",
+    "ja": "設定の「すべてをバックアップ」で、デザイン、アップロード、テンプレート、設定を1つのファイルに保存でき、どちらのスマートフォンでも復元できます。自動バックアップは選んだフォルダに書き出します。",
+    "pt-BR": "Fazer backup de tudo, em Configurações, guarda seus designs, uploads, modelos e configurações em um só arquivo que qualquer um dos celulares pode restaurar. O backup automático grava um em uma pasta que você escolher."
   },
   "Back up now": {
     "ar": "انسخ احتياطيًا الآن",
@@ -8279,6 +8429,15 @@
     "ja": "ブランドキットを適用しました",
     "pt-BR": "Kit de marca aplicado"
   },
+  "Brand kits": {
+    "ar": "مجموعات العلامة التجارية",
+    "de": "Markenkits",
+    "es": "Kits de marca",
+    "fr": "Kits de marque",
+    "it": "Kit del brand",
+    "ja": "ブランドキット",
+    "pt-BR": "Kits de marca"
+  },
   "Brand kit…": {
     "ar": "مجموعة العلامة التجارية…",
     "de": "Brand Kit …",
@@ -8387,6 +8546,33 @@
     "ja": "明るさ",
     "pt-BR": "Brilho"
   },
+  "Bring back one page": {
+    "ar": "استعادة صفحة واحدة",
+    "de": "Eine einzelne Seite zurückholen",
+    "es": "Recupera una sola página",
+    "fr": "Récupérez une seule page",
+    "it": "Recupera una sola pagina",
+    "ja": "1ページだけ戻す",
+    "pt-BR": "Recupere uma só página"
+  },
+  "Bring back page": {
+    "ar": "استعادة الصفحة",
+    "de": "Seite zurückholen",
+    "es": "Recuperar página",
+    "fr": "Récupérer la page",
+    "it": "Recupera pagina",
+    "ja": "ページを戻す",
+    "pt-BR": "Recuperar página"
+  },
+  "Bring back this page": {
+    "ar": "استعادة هذه الصفحة",
+    "de": "Diese Seite zurückholen",
+    "es": "Recuperar esta página",
+    "fr": "Récupérer cette page",
+    "it": "Recupera questa pagina",
+    "ja": "このページを戻す",
+    "pt-BR": "Recuperar esta página"
+  },
   "Bring forward": {
     "ar": "تقديم للأمام",
     "de": "Eine Ebene nach vorne",
@@ -8458,6 +8644,15 @@
     "it": "Lo riporta in vista",
     "ja": "表示範囲に戻します",
     "pt-BR": "Traz de volta à vista"
+  },
+  "Brought back page %d": {
+    "ar": "تمت استعادة الصفحة %d",
+    "de": "Seite %d zurückgeholt",
+    "es": "Página %d recuperada",
+    "fr": "Page %d récupérée",
+    "it": "Pagina %d recuperata",
+    "ja": "%d ページ目を戻しました",
+    "pt-BR": "Página %d recuperada"
   },
   "Brought in %d page|Brought in %d pages": {
     "ar": {
@@ -8555,6 +8750,15 @@
     "ja": "波のブラシ",
     "pt-BR": "Pincelada ondulada"
   },
+  "Brushes: erase, restore and blur": {
+    "ar": "الفُرش: المسح والاستعادة والتمويه",
+    "de": "Pinsel: radieren, wiederherstellen und weichzeichnen",
+    "es": "Pinceles: borrar, restaurar y desenfocar",
+    "fr": "Pinceaux : effacer, restaurer et flouter",
+    "it": "Pennelli: cancella, ripristina e sfoca",
+    "ja": "ブラシ：消去・復元・ぼかし",
+    "pt-BR": "Pincéis: apagar, restaurar e desfocar"
+  },
   "Bubble": {
     "ar": "فقاعات",
     "de": "Blasen",
@@ -8599,6 +8803,15 @@
     "it": "Creazione in blocco",
     "ja": "一括作成",
     "pt-BR": "Criação em massa"
+  },
+  "Bulk create makes a page for each row of a table you type or paste, filling texts and photos from its columns.": {
+    "ar": "ينشئ الإنشاء المجمّع صفحة لكل صف من جدول تكتبه أو تلصقه، مالئًا النصوص والصور من أعمدته.",
+    "de": "Massenerstellung macht für jede Zeile einer eingegebenen oder eingefügten Tabelle eine Seite und füllt Texte und Fotos aus ihren Spalten.",
+    "es": "Crear en lote hace una página por cada fila de una tabla que escribas o pegues, rellenando textos y fotos con sus columnas.",
+    "fr": "La création en masse crée une page pour chaque ligne d’un tableau saisi ou collé, en remplissant textes et photos à partir de ses colonnes.",
+    "it": "Creazione in blocco crea una pagina per ogni riga di una tabella che scrivi o incolli, riempiendo testi e foto dalle sue colonne.",
+    "ja": "一括作成では、入力または貼り付けた表の行ごとにページを作り、列の内容でテキストや写真を埋めます。",
+    "pt-BR": "Criar em lote faz uma página para cada linha de uma tabela que você digitar ou colar, preenchendo textos e fotos a partir das colunas."
   },
   "Bulk create…": {
     "ar": "إنشاء جماعي…",
@@ -8924,6 +9137,15 @@
     "ja": "字幕",
     "pt-BR": "Legendas"
   },
+  "Captions write what is said in a clip or a voice-over as words on the page, made on the phone. Change their words, their style and where they sit, or bring them in from an SRT file.": {
+    "ar": "تكتب التسميات التوضيحية ما يُقال في مقطع أو تعليق صوتي كلمات على الصفحة، وتُنشأ على الهاتف. غيّر كلماتها ونمطها وموضعها، أو استوردها من ملف SRT.",
+    "de": "Untertitel schreiben auf der Seite, was in einem Clip oder Voice-over gesagt wird – erstellt auf dem Telefon. Ändere Wörter, Stil und Position oder importiere sie aus einer SRT-Datei.",
+    "es": "Los subtítulos escriben en la página lo que se dice en un clip o una locución, creados en el teléfono. Cambia sus palabras, su estilo y su posición, o impórtalos de un archivo SRT.",
+    "fr": "Les sous-titres écrivent sur la page ce qui est dit dans un clip ou une voix off, créés sur le téléphone. Modifiez leurs mots, leur style et leur position, ou importez-les depuis un fichier SRT.",
+    "it": "I sottotitoli scrivono sulla pagina ciò che si dice in un clip o in una voce fuori campo, creati sul telefono. Cambiane parole, stile e posizione, oppure importali da un file SRT.",
+    "ja": "字幕は、クリップやナレーションで話された内容をページ上の文字にします。スマートフォン上で作成され、言葉やスタイル、位置を変えたり、SRT ファイルから読み込んだりできます。",
+    "pt-BR": "As legendas escrevem na página o que é dito em um clipe ou narração, criadas no celular. Mude as palavras, o estilo e a posição, ou importe-as de um arquivo SRT."
+  },
   "Card": {
     "ar": "بطاقة",
     "de": "Karte",
@@ -9137,6 +9359,15 @@
     "ja": "文字と色を変更しましょう。ページ上のものをタップすると選択、ドラッグすると移動できます。テキストをダブルタップするとその場で入力でき、写真をダブルタップすると切り抜けます。",
     "pt-BR": "Altere as palavras e as cores. Toque em qualquer item da página para selecioná-lo; arraste-o para movê-lo. Toque duas vezes em um texto para digitar nele onde está, e em uma foto para cortá-la."
   },
+  "Changed since": {
+    "ar": "تغيّرت منذ ذلك الحين",
+    "de": "Seitdem geändert",
+    "es": "Cambiada desde entonces",
+    "fr": "Modifiée depuis",
+    "it": "Modificata da allora",
+    "ja": "その後変更あり",
+    "pt-BR": "Alterada desde então"
+  },
   "Changed the colour of %d element|Changed the colour of %d elements": {
     "ar": {
       "few": "تم تغيير لون %d عناصر",
@@ -9269,6 +9500,15 @@
     "ja": "グラフと表",
     "pt-BR": "Gráficos e tabelas"
   },
+  "Charts and their data": {
+    "ar": "المخططات وبياناتها",
+    "de": "Diagramme und ihre Daten",
+    "es": "Gráficos y sus datos",
+    "fr": "Graphiques et leurs données",
+    "it": "Grafici e i loro dati",
+    "ja": "グラフとそのデータ",
+    "pt-BR": "Gráficos e seus dados"
+  },
   "Cheap": {
     "ar": "رخيص",
     "de": "Günstig",
@@ -9295,6 +9535,15 @@
     "it": "Verifica accessibilità",
     "ja": "アクセシビリティをチェック",
     "pt-BR": "Verificar acessibilidade"
+  },
+  "Check accessibility looks for small text, low contrast, pictures without alt text and clips without captions, and takes you to each.": {
+    "ar": "يبحث «التحقق من إمكانية الوصول» عن النص الصغير والتباين المنخفض والصور التي لا نص بديلًا لها والمقاطع التي لا تسميات توضيحية لها، وينقلك إلى كل منها.",
+    "de": "Barrierefreiheit prüfen sucht nach kleinem Text, geringem Kontrast, Bildern ohne Alternativtext und Clips ohne Untertitel und führt dich zu jedem davon.",
+    "es": "Comprobar la accesibilidad busca texto pequeño, poco contraste, imágenes sin texto alternativo y clips sin subtítulos, y te lleva a cada uno.",
+    "fr": "Vérifier l’accessibilité repère le petit texte, le faible contraste, les images sans texte alternatif et les clips sans sous-titres, et vous mène à chacun.",
+    "it": "Verifica accessibilità cerca testo piccolo, contrasto basso, immagini senza testo alternativo e clip senza sottotitoli, e ti porta a ciascuno.",
+    "ja": "アクセシビリティのチェックは、小さな文字、低いコントラスト、代替テキストのない画像、字幕のないクリップを探し、それぞれの場所に案内します。",
+    "pt-BR": "Verificar acessibilidade procura texto pequeno, pouco contraste, imagens sem texto alternativo e clipes sem legendas, e leva você a cada um."
   },
   "Check accessibility…": {
     "ar": "التحقق من إمكانية الوصول…",
@@ -9349,6 +9598,15 @@
     "it": "Selezionata, la pagina sullo schermo",
     "ja": "チェック済み、画面上のページ",
     "pt-BR": "Marcado, a página na tela"
+  },
+  "Checking accessibility": {
+    "ar": "التحقق من إمكانية الوصول",
+    "de": "Barrierefreiheit prüfen",
+    "es": "Comprobar la accesibilidad",
+    "fr": "Vérifier l’accessibilité",
+    "it": "Verificare l'accessibilità",
+    "ja": "アクセシビリティのチェック",
+    "pt-BR": "Verificar a acessibilidade"
   },
   "Checking every page…": {
     "ar": "جارٍ التحقق من كل الصفحات…",
@@ -9457,6 +9715,33 @@
     "it": "Scegli un video",
     "ja": "動画を選択",
     "pt-BR": "Escolher um vídeo"
+  },
+  "Choose another": {
+    "ar": "اختيار ملف آخر",
+    "de": "Andere auswählen",
+    "es": "Elegir otro",
+    "fr": "En choisir un autre",
+    "it": "Scegli un altro",
+    "ja": "別のファイルを選ぶ",
+    "pt-BR": "Escolher outro"
+  },
+  "Choose at least one page.": {
+    "ar": "اختر صفحة واحدة على الأقل.",
+    "de": "Wähle mindestens eine Seite aus.",
+    "es": "Elige al menos una página.",
+    "fr": "Choisissez au moins une page.",
+    "it": "Scegli almeno una pagina.",
+    "ja": "ページを1つ以上選んでください。",
+    "pt-BR": "Escolha pelo menos uma página."
+  },
+  "Choose files": {
+    "ar": "اختيار ملفات",
+    "de": "Dateien auswählen",
+    "es": "Elegir archivos",
+    "fr": "Choisir des fichiers",
+    "it": "Scegli file",
+    "ja": "ファイルを選ぶ",
+    "pt-BR": "Escolher arquivos"
   },
   "Choose folder": {
     "ar": "اختيار مجلد",
@@ -9736,6 +10021,15 @@
     "it": "Chiudi %@",
     "ja": "%@を閉じる",
     "pt-BR": "Fechar %@"
+  },
+  "Close What's new": {
+    "ar": "إغلاق الجديد",
+    "de": "Neuigkeiten schließen",
+    "es": "Cerrar Novedades",
+    "fr": "Fermer Nouveautés",
+    "it": "Chiudi Novità",
+    "ja": "新機能を閉じる",
+    "pt-BR": "Fechar Novidades"
   },
   "Close the page grid": {
     "ar": "إغلاق شبكة الصفحات",
@@ -10262,6 +10556,24 @@
     "ja": "コントラスト：すべてのテキストがはっきり読めます",
     "pt-BR": "Contraste: todos os textos estão legíveis"
   },
+  "Convert a picture": {
+    "ar": "تحويل صورة",
+    "de": "Bild umwandeln",
+    "es": "Convertir una imagen",
+    "fr": "Convertir une image",
+    "it": "Converti un'immagine",
+    "ja": "画像を変換",
+    "pt-BR": "Converter uma imagem"
+  },
+  "Convert to": {
+    "ar": "تحويل إلى",
+    "de": "Umwandeln in",
+    "es": "Convertir a",
+    "fr": "Convertir en",
+    "it": "Converti in",
+    "ja": "変換先",
+    "pt-BR": "Converter para"
+  },
   "Convert to design": {
     "ar": "تحويل إلى تصميم",
     "de": "In Design umwandeln",
@@ -10742,6 +11054,15 @@
     "ja": "デザインファイルを作成できませんでした",
     "pt-BR": "Não foi possível criar o arquivo de design"
   },
+  "Couldn't make the file": {
+    "ar": "تعذّر إنشاء الملف",
+    "de": "Die Datei konnte nicht erstellt werden",
+    "es": "No se pudo crear el archivo",
+    "fr": "Impossible de créer le fichier",
+    "it": "Impossibile creare il file",
+    "ja": "ファイルを作成できませんでした",
+    "pt-BR": "Não foi possível criar o arquivo"
+  },
   "Couldn't make the image": {
     "ar": "تعذّر إنشاء الصورة",
     "de": "Das Bild konnte nicht erstellt werden",
@@ -10777,6 +11098,15 @@
     "it": "Impossibile creare il PDF per la stampa",
     "ja": "印刷用 PDF を作成できませんでした",
     "pt-BR": "Não foi possível criar o PDF para impressão"
+  },
+  "Couldn't make the template file": {
+    "ar": "تعذّر إنشاء ملف القالب",
+    "de": "Die Vorlagendatei konnte nicht erstellt werden",
+    "es": "No se pudo crear el archivo de plantilla",
+    "fr": "Impossible de créer le fichier du modèle",
+    "it": "Impossibile creare il file del modello",
+    "ja": "テンプレートファイルを作成できませんでした",
+    "pt-BR": "Não foi possível criar o arquivo do modelo"
   },
   "Couldn't make the video": {
     "ar": "تعذّر إنشاء الفيديو",
@@ -11137,6 +11467,15 @@
     "it": "Segni di taglio",
     "ja": "トンボ",
     "pt-BR": "Marcas de corte"
+  },
+  "Crop mode": {
+    "ar": "وضع القص",
+    "de": "Zuschneidemodus",
+    "es": "Modo de recorte",
+    "fr": "Mode recadrage",
+    "it": "Modalità ritaglio",
+    "ja": "切り抜きモード",
+    "pt-BR": "Modo de corte"
   },
   "Cropping the graphic. Pull the corners and edges to show only part of it. Done and Cancel are in the bar below.": {
     "ar": "جارٍ اقتصاص الرسم. اسحب الزوايا والحواف لإظهار جزء منه فقط. «تم» و«إلغاء» في الشريط بالأسفل.",
@@ -11771,6 +12110,39 @@
       "other": "Excluir %d designs para sempre?"
     }
   },
+  "Delete %d folder forever?|Delete %d folders forever?": {
+    "ar": {
+      "few": "حذف %d مجلدات نهائيًا؟",
+      "many": "حذف %d مجلدًا نهائيًا؟",
+      "one": "حذف مجلد واحد (%d) نهائيًا؟",
+      "other": "حذف %d مجلد نهائيًا؟",
+      "two": "حذف مجلدين (%d) نهائيًا؟",
+      "zero": "حذف %d مجلد نهائيًا؟"
+    },
+    "de": {
+      "one": "%d Ordner endgültig löschen?",
+      "other": "%d Ordner endgültig löschen?"
+    },
+    "es": {
+      "one": "¿Eliminar %d carpeta para siempre?",
+      "other": "¿Eliminar %d carpetas para siempre?"
+    },
+    "fr": {
+      "one": "Supprimer %d dossier définitivement ?",
+      "other": "Supprimer %d dossiers définitivement ?"
+    },
+    "it": {
+      "one": "Eliminare %d cartella per sempre?",
+      "other": "Eliminare %d cartelle per sempre?"
+    },
+    "ja": {
+      "other": "%d 個のフォルダを完全に削除しますか？"
+    },
+    "pt-BR": {
+      "one": "Excluir %d pasta para sempre?",
+      "other": "Excluir %d pastas para sempre?"
+    }
+  },
   "Delete %d page?|Delete %d pages?": {
     "ar": {
       "few": "هل تريد حذف %d صفحات؟",
@@ -11802,6 +12174,39 @@
     "pt-BR": {
       "one": "Excluir %d página?",
       "other": "Excluir %d páginas?"
+    }
+  },
+  "Delete %d upload forever?|Delete %d uploads forever?": {
+    "ar": {
+      "few": "حذف %d تحميلات نهائيًا؟",
+      "many": "حذف %d تحميلًا نهائيًا؟",
+      "one": "حذف تحميل واحد (%d) نهائيًا؟",
+      "other": "حذف %d تحميل نهائيًا؟",
+      "two": "حذف تحميلين (%d) نهائيًا؟",
+      "zero": "حذف %d تحميل نهائيًا؟"
+    },
+    "de": {
+      "one": "%d Upload endgültig löschen?",
+      "other": "%d Uploads endgültig löschen?"
+    },
+    "es": {
+      "one": "¿Eliminar %d archivo subido para siempre?",
+      "other": "¿Eliminar %d archivos subidos para siempre?"
+    },
+    "fr": {
+      "one": "Supprimer %d importation définitivement ?",
+      "other": "Supprimer %d importations définitivement ?"
+    },
+    "it": {
+      "one": "Eliminare %d caricamento per sempre?",
+      "other": "Eliminare %d caricamenti per sempre?"
+    },
+    "ja": {
+      "other": "%d 個のアップロードを完全に削除しますか？"
+    },
+    "pt-BR": {
+      "one": "Excluir %d upload para sempre?",
+      "other": "Excluir %d uploads para sempre?"
     }
   },
   "Delete %d upload?|Delete %d uploads?": {
@@ -12164,6 +12569,15 @@
     "ja": "ページ %d を削除しました",
     "pt-BR": "Página %d excluída"
   },
+  "Deleted since": {
+    "ar": "حُذفت منذ ذلك الحين",
+    "de": "Seitdem gelöscht",
+    "es": "Eliminada desde entonces",
+    "fr": "Supprimée depuis",
+    "it": "Eliminata da allora",
+    "ja": "その後削除済み",
+    "pt-BR": "Excluída desde então"
+  },
   "Deleted the track": {
     "ar": "تم حذف المسار",
     "de": "Spur gelöscht",
@@ -12172,6 +12586,15 @@
     "it": "Traccia eliminata",
     "ja": "トラックを削除しました",
     "pt-BR": "A faixa foi excluída"
+  },
+  "Deleted uploads and folders now wait in Recently deleted for 30 days, as designs do.": {
+    "ar": "تبقى الآن التحميلات والمجلدات المحذوفة في «المحذوفة مؤخرًا» مدة 30 يومًا، كما هي الحال مع التصاميم.",
+    "de": "Gelöschte Uploads und Ordner warten jetzt 30 Tage in „Zuletzt gelöscht“, so wie Designs.",
+    "es": "Los archivos subidos y las carpetas eliminados ahora esperan en Eliminados recientemente durante 30 días, como los diseños.",
+    "fr": "Les importations et dossiers supprimés attendent désormais 30 jours dans Suppressions récentes, comme les designs.",
+    "it": "Caricamenti e cartelle eliminati ora restano in Eliminati di recente per 30 giorni, come i design.",
+    "ja": "削除したアップロードとフォルダも、デザインと同じく「最近削除した項目」に30日間残るようになりました。",
+    "pt-BR": "Uploads e pastas excluídos agora ficam em Excluídos recentemente por 30 dias, como os designs."
   },
   "Depth": {
     "ar": "العمق",
@@ -12253,6 +12676,15 @@
     "it": "Responsabile design",
     "ja": "デザインリード",
     "pt-BR": "Líder de design"
+  },
+  "Design size": {
+    "ar": "مقاس تصميم",
+    "de": "Designgröße",
+    "es": "Tamaño de diseño",
+    "fr": "Taille de design",
+    "it": "Dimensione del design",
+    "ja": "デザインサイズ",
+    "pt-BR": "Tamanho de design"
   },
   "Design type: %@, %@": {
     "ar": "نوع التصميم: %@، %@",
@@ -12872,6 +13304,15 @@
     "ja": "両面印刷には、表面と裏面の 2 ページのデザインが必要です。",
     "pt-BR": "Frente e verso usa um design de duas páginas, ambas impressas: uma frente e um verso."
   },
+  "Double-tap a photo or a clip to crop it where it sits. Drag the picture, pinch it, pull the frame in, pick a shape such as 1:1 or 9:16, straighten it with the dial, turn it a quarter or flip it. Done keeps it.": {
+    "ar": "انقر مرتين على صورة أو مقطع لقصّه في مكانه. اسحب الصورة أو قرّب إصبعيك عليها، واسحب الإطار إلى الداخل، واختر شكلًا مثل 1:1 أو 9:16، وقوّمها بالقرص، أو أدرها ربع دورة أو اقلبها. «تم» يحفظ القص.",
+    "de": "Tippe doppelt auf ein Foto oder einen Clip, um es an Ort und Stelle zuzuschneiden. Zieh das Bild, zieh es mit zwei Fingern auf, zieh den Rahmen ein, wähle ein Format wie 1:1 oder 9:16, richte es mit dem Drehregler gerade, dreh es um 90° oder spiegle es. Fertig übernimmt es.",
+    "es": "Toca dos veces una foto o un clip para recortarlo donde está. Arrastra la imagen, pellízcala, ajusta el marco, elige una forma como 1:1 o 9:16, enderézala con el dial, gírala un cuarto o voltéala. Listo la conserva.",
+    "fr": "Touchez deux fois une photo ou un clip pour le recadrer sur place. Faites glisser l’image, pincez-la, resserrez le cadre, choisissez un format comme 1:1 ou 9:16, redressez-la avec la molette, tournez-la d’un quart ou retournez-la. OK la garde.",
+    "it": "Tocca due volte una foto o un clip per ritagliarlo dove si trova. Trascina l'immagine, pizzicala, stringi la cornice, scegli una forma come 1:1 o 9:16, raddrizzala con la ghiera, ruotala di un quarto o capovolgila. Fine la conserva.",
+    "ja": "写真やクリップをダブルタップすると、その場で切り抜けます。画像をドラッグしたりピンチしたり、枠を縮めたり、1:1 や 9:16 などの形を選んだり、ダイヤルで傾きを直したり、90°回転や反転もできます。「完了」で確定します。",
+    "pt-BR": "Toque duas vezes em uma foto ou clipe para cortá-lo onde está. Arraste a imagem, faça pinça, ajuste a moldura, escolha um formato como 1:1 ou 9:16, endireite com o dial, gire um quarto ou espelhe. Concluído mantém o corte."
+  },
   "Double-tap a photo to crop it where it sits. Edit has filters at any strength, adjustments with Auto adjust, curves, duotone, effects — blur, pixelate, focus, outline, glow, glitch, slice, halftone and grain — with Hold to compare showing the photo without them while it is held, a frame in any shape, rounded corners, and Erase part to take something out.": {
     "ar": "انقر مرتين على صورة لاقتصاصها في مكانها. يتضمن «تعديل» فلاتر بأي قوة، وتعديلات مع الضبط التلقائي، ومنحنيات، وثنائي اللون، وتأثيرات — التمويه والبكسلة والتركيز والإطار الخارجي والتوهج والتشويش والتقطيع ونصف التدرج والحبيبات — مع «اضغط مطولًا للمقارنة» الذي يعرض الصورة بدونها ما دمت ضاغطًا، وإطارًا بأي شكل، وزوايا مستديرة، و«مسح جزء» لإزالة شيء منها.",
     "de": "Tippe doppelt auf ein Foto, um es direkt zuzuschneiden. „Bearbeiten“ bietet Filter in jeder Stärke, Anpassungen mit „Automatisch anpassen“, Kurven, Duoton, Effekte – Weichzeichnen, Verpixeln, Fokus, Kontur, Leuchten, Glitch, Schnitt, Raster und Körnung –, wobei „Zum Vergleichen halten“ das Foto ohne sie zeigt, solange du hältst, außerdem einen Rahmen in jeder Form, abgerundete Ecken und „Teil radieren“, um etwas zu entfernen.",
@@ -13123,6 +13564,15 @@
     "it": "Disegna",
     "ja": "描画",
     "pt-BR": "Desenhar"
+  },
+  "Draw has pens, a marker and a highlighter in any colour and size, and an eraser. Shape assist turns a rough circle or arrow into a neat one.": {
+    "ar": "يتضمن الرسم أقلامًا وقلم تحديد وقلم تظليل بأي لون وحجم، وممحاة. ويحوّل مساعد الأشكال الدائرة أو السهم المرسوم بتقريب إلى شكل أنيق.",
+    "de": "Zeichnen bietet Stifte, einen Marker und einen Textmarker in jeder Farbe und Größe sowie einen Radierer. Die Formhilfe macht aus einem groben Kreis oder Pfeil einen sauberen.",
+    "es": "Dibujar tiene bolígrafos, un rotulador y un subrayador de cualquier color y tamaño, y una goma. La ayuda de formas convierte un círculo o una flecha a mano alzada en uno limpio.",
+    "fr": "Dessiner propose des stylos, un marqueur et un surligneur de toute couleur et taille, ainsi qu’une gomme. L’aide aux formes transforme un cercle ou une flèche approximatifs en formes nettes.",
+    "it": "Disegna offre penne, un pennarello ed evidenziatore di qualsiasi colore e misura, e una gomma. L'assistente forme trasforma un cerchio o una freccia approssimativi in forme pulite.",
+    "ja": "「描画」には、好きな色と太さのペン、マーカー、蛍光ペンと消しゴムがあります。図形アシストは、手描きの円や矢印をきれいな形に整えます。",
+    "pt-BR": "Desenhar tem canetas, um marcador e um marca-texto em qualquer cor e tamanho, e uma borracha. A assistência de formas transforma um círculo ou seta tortos em formas perfeitas."
   },
   "Draw with stylus only": {
     "ar": "الرسم بالقلم فقط",
@@ -13394,6 +13844,15 @@
     "ja": "各ページを見た目そのままの画像にします。",
     "pt-BR": "Cada página como uma imagem, exatamente como aparece."
   },
+  "Each page as its own PDF": {
+    "ar": "كل صفحة في ملف PDF خاص بها",
+    "de": "Jede Seite als eigenes PDF",
+    "es": "Cada página en su propio PDF",
+    "fr": "Chaque page dans son propre PDF",
+    "it": "Ogni pagina in un PDF a sé",
+    "ja": "各ページを別々の PDF に",
+    "pt-BR": "Cada página em seu próprio PDF"
+  },
   "Each page holds %@s unless it has its own time, and cuts to the next.": {
     "ar": "تبقى كل صفحة %@ ث ما لم يكن لها وقتها الخاص، ثم تنتقل مباشرةً إلى التالية.",
     "de": "Jede Seite steht %@ s, sofern sie keine eigene Zeit hat, und schneidet dann zur nächsten.",
@@ -13645,6 +14104,24 @@
     "it": "Modifica link…",
     "ja": "リンクを編集…",
     "pt-BR": "Editar link…"
+  },
+  "Edit on a photo can take its background out: erase what you do not want with the brush, or remove a white background from a logo. The Restore brush brings back what was taken.": {
+    "ar": "يمكن لـ«تعديل» في الصورة إزالة خلفيتها: امسح بالفرشاة ما لا تريده، أو أزِل الخلفية البيضاء من شعار. وتعيد فرشاة الاستعادة ما أُزيل.",
+    "de": "Bearbeiten an einem Foto kann den Hintergrund entfernen: Radiere mit dem Pinsel weg, was du nicht willst, oder entferne den weißen Hintergrund eines Logos. Der Wiederherstellen-Pinsel holt Entferntes zurück.",
+    "es": "Editar en una foto puede quitarle el fondo: borra lo que no quieras con el pincel o elimina el fondo blanco de un logotipo. El pincel Restaurar recupera lo que se quitó.",
+    "fr": "Modifier sur une photo peut en retirer l’arrière-plan : effacez au pinceau ce que vous ne voulez pas, ou supprimez le fond blanc d’un logo. Le pinceau Restaurer rend ce qui a été retiré.",
+    "it": "Modifica su una foto può toglierne lo sfondo: cancella con il pennello ciò che non vuoi o rimuovi lo sfondo bianco di un logo. Il pennello Ripristina riporta ciò che è stato tolto.",
+    "ja": "写真の「編集」で背景を取り除けます。不要な部分をブラシで消したり、ロゴの白い背景を除去したりできます。「復元」ブラシで消した部分を戻せます。",
+    "pt-BR": "Editar em uma foto pode tirar o fundo: apague com o pincel o que não quiser ou remova o fundo branco de um logotipo. O pincel Restaurar traz de volta o que foi tirado."
+  },
+  "Edit on a photo has brushes that erase part of it, bring an erased part back, blur or pixelate where you paint. The size slider sets the brush, and Undo takes back a stroke.": {
+    "ar": "يتضمن «تعديل» في الصورة فُرَشًا تمسح جزءًا منها، أو تعيد جزءًا ممسوحًا، أو تموّه أو تبكسل حيث ترسم. يضبط شريط الحجم الفرشاة، ويتراجع «تراجع» عن ضربة واحدة.",
+    "de": "Bearbeiten an einem Foto bietet Pinsel, die einen Teil wegradieren, Radiertes zurückholen oder dort weichzeichnen oder verpixeln, wo du malst. Der Größenregler stellt den Pinsel ein, und Rückgängig nimmt einen Strich zurück.",
+    "es": "Editar en una foto tiene pinceles que borran parte de ella, recuperan una parte borrada, o desenfocan o pixelan donde pintas. El control de tamaño ajusta el pincel y Deshacer anula un trazo.",
+    "fr": "Modifier sur une photo propose des pinceaux qui en effacent une partie, rétablissent une partie effacée, ou floutent ou pixellisent là où vous peignez. Le curseur de taille règle le pinceau et Annuler retire un trait.",
+    "it": "Modifica su una foto ha pennelli che ne cancellano una parte, ripristinano una parte cancellata, o sfocano o pixelano dove dipingi. Il cursore della dimensione regola il pennello e Annulla toglie un tratto.",
+    "ja": "写真の「編集」には、一部を消す、消した部分を戻す、塗った部分をぼかす・モザイクにするブラシがあります。サイズのスライダーでブラシを調整し、「取り消す」で1ストローク戻せます。",
+    "pt-BR": "Editar em uma foto tem pincéis que apagam parte dela, trazem de volta uma parte apagada, ou desfocam ou pixelizam onde você pinta. O controle de tamanho ajusta o pincel e Desfazer volta um traço."
   },
   "Edit photo": {
     "ar": "تعديل الصورة",
@@ -13924,6 +14401,15 @@
     "it": "Emoji",
     "ja": "絵文字",
     "pt-BR": "Emojis"
+  },
+  "Empty": {
+    "ar": "إفراغ",
+    "de": "Leeren",
+    "es": "Vaciar",
+    "fr": "Vider",
+    "it": "Svuota",
+    "ja": "空にする",
+    "pt-BR": "Esvaziar"
   },
   "Empty %@ frame": {
     "ar": "إطار %@ فارغ",
@@ -14936,6 +15422,15 @@
     "ja": "埋める",
     "pt-BR": "Preencher"
   },
+  "Fill and crop": {
+    "ar": "ملء وقص",
+    "de": "Füllen und zuschneiden",
+    "es": "Rellenar y recortar",
+    "fr": "Remplir et rogner",
+    "it": "Riempi e ritaglia",
+    "ja": "埋めて切り抜く",
+    "pt-BR": "Preencher e cortar"
+  },
   "Fill colour": {
     "ar": "لون التعبئة",
     "de": "Füllfarbe",
@@ -15043,6 +15538,15 @@
     "it": "Filtri",
     "ja": "フィルター",
     "pt-BR": "Filtros"
+  },
+  "Filters set a look at any strength. Adjust has light, colour, curves and selective colour. Effects add blur, glow, duotone, shadows and more; hold Compare to see the photo without them.": {
+    "ar": "تضفي الفلاتر مظهرًا بأي شدة. ويضم «ضبط» الإضاءة واللون والمنحنيات واللون الانتقائي. وتضيف التأثيرات التمويه والتوهج واللونين والظلال وغيرها؛ اضغط مطولًا على «مقارنة» لرؤية الصورة من دونها.",
+    "de": "Filter geben einen Look in beliebiger Stärke. Anpassen bietet Licht, Farbe, Kurven und selektive Farbe. Effekte fügen Weichzeichnen, Leuchten, Duoton, Schatten und mehr hinzu; halte Vergleichen gedrückt, um das Foto ohne sie zu sehen.",
+    "es": "Los filtros aplican un estilo con la intensidad que quieras. Ajustar tiene luz, color, curvas y color selectivo. Los efectos añaden desenfoque, brillo, duotono, sombras y más; mantén pulsado Comparar para ver la foto sin ellos.",
+    "fr": "Les filtres donnent un style à l’intensité voulue. Ajuster propose lumière, couleur, courbes et couleur sélective. Les effets ajoutent flou, halo, bichromie, ombres et plus ; maintenez Comparer pour voir la photo sans eux.",
+    "it": "I filtri danno un look con l'intensità che vuoi. Regola ha luce, colore, curve e colore selettivo. Gli effetti aggiungono sfocatura, bagliore, bicromia, ombre e altro; tieni premuto Confronta per vedere la foto senza.",
+    "ja": "フィルターは好きな強さで雰囲気を加えます。「調整」には明るさ、色、トーンカーブ、特定色域があります。エフェクトではぼかし、グロー、デュオトーン、影などを追加でき、「比較」を長押しすると効果なしの写真を確認できます。",
+    "pt-BR": "Os filtros aplicam um visual na intensidade que quiser. Ajustar tem luz, cor, curvas e cor seletiva. Os efeitos adicionam desfoque, brilho, duotone, sombras e mais; mantenha Comparar pressionado para ver a foto sem eles."
   },
   "Find": {
     "ar": "بحث",
@@ -15205,6 +15709,15 @@
     "it": "Adatta al foglio",
     "ja": "用紙に合わせる",
     "pt-BR": "Ajustar ao papel"
+  },
+  "Fit to photo": {
+    "ar": "ملاءمة للصورة",
+    "de": "An Foto anpassen",
+    "es": "Ajustar a la foto",
+    "fr": "Ajuster à la photo",
+    "it": "Adatta alla foto",
+    "ja": "写真に合わせる",
+    "pt-BR": "Ajustar à foto"
   },
   "Fit to the photo": {
     "ar": "ملاءمة للصورة",
@@ -15439,6 +15952,57 @@
     "it": "Nome cartella",
     "ja": "フォルダー名",
     "pt-BR": "Nome da pasta"
+  },
+  "Folders": {
+    "ar": "المجلدات",
+    "de": "Ordner",
+    "es": "Carpetas",
+    "fr": "Dossiers",
+    "it": "Cartelle",
+    "ja": "フォルダ",
+    "pt-BR": "Pastas"
+  },
+  "Folders and starred": {
+    "ar": "المجلدات والمميّزة بنجمة",
+    "de": "Ordner und Markiert",
+    "es": "Carpetas y destacados",
+    "fr": "Dossiers et favoris",
+    "it": "Cartelle e preferiti",
+    "ja": "フォルダとスター付き",
+    "pt-BR": "Pastas e com estrela"
+  },
+  "Folders in Recently deleted are removed after %d day.|Folders in Recently deleted are removed after %d days.": {
+    "ar": {
+      "few": "تُزال المجلدات في «المحذوفة مؤخرًا» بعد %d أيام.",
+      "many": "تُزال المجلدات في «المحذوفة مؤخرًا» بعد %d يومًا.",
+      "one": "تُزال المجلدات في «المحذوفة مؤخرًا» بعد %d يوم.",
+      "other": "تُزال المجلدات في «المحذوفة مؤخرًا» بعد %d يوم.",
+      "two": "تُزال المجلدات في «المحذوفة مؤخرًا» بعد %d يومين.",
+      "zero": "تُزال المجلدات في «المحذوفة مؤخرًا» بعد %d يوم."
+    },
+    "de": {
+      "one": "Ordner in „Zuletzt gelöscht“ werden nach %d Tag entfernt.",
+      "other": "Ordner in „Zuletzt gelöscht“ werden nach %d Tagen entfernt."
+    },
+    "es": {
+      "one": "Las carpetas de Eliminados recientemente se borran después de %d día.",
+      "other": "Las carpetas de Eliminados recientemente se borran después de %d días."
+    },
+    "fr": {
+      "one": "Les dossiers des Suppressions récentes sont effacés au bout de %d jour.",
+      "other": "Les dossiers des Suppressions récentes sont effacés au bout de %d jours."
+    },
+    "it": {
+      "one": "Le cartelle in Eliminati di recente vengono rimosse dopo %d giorno.",
+      "other": "Le cartelle in Eliminati di recente vengono rimosse dopo %d giorni."
+    },
+    "ja": {
+      "other": "「最近削除した項目」のフォルダは %d 日後に削除されます。"
+    },
+    "pt-BR": {
+      "one": "As pastas em Excluídos recentemente são removidas após %d dia.",
+      "other": "As pastas em Excluídos recentemente são removidas após %d dias."
+    }
   },
   "Font": {
     "ar": "الخط",
@@ -17306,6 +17870,15 @@
     "ja": "プレゼンテーションと動画で、ページの時間内に。",
     "pt-BR": "Em Apresentar e em um vídeo, ao longo do tempo da página."
   },
+  "In Version history, bring back a single page from an earlier version without losing later work.": {
+    "ar": "في سجل الإصدارات، استعد صفحة واحدة من إصدار سابق دون أن تفقد ما عملته بعده.",
+    "de": "Hol im Versionsverlauf eine einzelne Seite aus einer früheren Version zurück, ohne spätere Arbeit zu verlieren.",
+    "es": "En el Historial de versiones, recupera una sola página de una versión anterior sin perder el trabajo posterior.",
+    "fr": "Dans l’Historique des versions, récupérez une seule page d’une version antérieure sans perdre le travail fait depuis.",
+    "it": "In Cronologia versioni, recupera una sola pagina da una versione precedente senza perdere il lavoro successivo.",
+    "ja": "バージョン履歴で、後の作業を失わずに以前のバージョンから1ページだけ戻せます。",
+    "pt-BR": "No Histórico de versões, recupere uma só página de uma versão anterior sem perder o trabalho feito depois."
+  },
   "In its frame": {
     "ar": "في إطاره",
     "de": "In seinem Rahmen",
@@ -17314,6 +17887,15 @@
     "it": "Nella sua cornice",
     "ja": "フレーム内",
     "pt-BR": "Na moldura"
+  },
+  "In the order shown.": {
+    "ar": "بالترتيب المعروض.",
+    "de": "In der angezeigten Reihenfolge.",
+    "es": "En el orden mostrado.",
+    "fr": "Dans l’ordre affiché.",
+    "it": "Nell'ordine mostrato.",
+    "ja": "表示されている順番で。",
+    "pt-BR": "Na ordem mostrada."
   },
   "In this design": {
     "ar": "في هذا التصميم",
@@ -17992,6 +18574,15 @@
     "it": "Continua la scansione",
     "ja": "スキャンを続ける",
     "pt-BR": "Continuar digitalizando"
+  },
+  "Keep shape": {
+    "ar": "الإبقاء على الشكل",
+    "de": "Form beibehalten",
+    "es": "Mantener la forma",
+    "fr": "Garder la forme",
+    "it": "Mantieni la forma",
+    "ja": "形を保つ",
+    "pt-BR": "Manter a forma"
   },
   "Keep the designs": {
     "ar": "الاحتفاظ بالتصاميم",
@@ -19607,6 +20198,15 @@
     "ja": "結合",
     "pt-BR": "Mesclar"
   },
+  "Merge PDFs": {
+    "ar": "دمج ملفات PDF",
+    "de": "PDFs zusammenführen",
+    "es": "Unir PDF",
+    "fr": "Fusionner des PDF",
+    "it": "Unisci PDF",
+    "ja": "PDF を結合",
+    "pt-BR": "Juntar PDFs"
+  },
   "Merge cells": {
     "ar": "دمج الخلايا",
     "de": "Zellen verbinden",
@@ -19624,6 +20224,15 @@
     "it": "Unire in “%@”?",
     "ja": "「%@」に結合しますか？",
     "pt-BR": "Mesclar em “%@”?"
+  },
+  "Merge or split PDFs, turn pictures into a PDF and resize, convert or compress a picture, all from Tools on Home.": {
+    "ar": "ادمج ملفات PDF أو قسّمها، وحوّل الصور إلى PDF، وغيّر حجم صورة أو حوّلها أو اضغطها، كل ذلك من «الأدوات» في الشاشة الرئيسية.",
+    "de": "PDFs zusammenführen oder aufteilen, Bilder in ein PDF verwandeln und ein Bild in der Größe ändern, umwandeln oder komprimieren – alles über Werkzeuge auf der Startseite.",
+    "es": "Une o divide PDF, convierte imágenes en un PDF y cambia el tamaño, convierte o comprime una imagen, todo desde Herramientas en Inicio.",
+    "fr": "Fusionnez ou divisez des PDF, transformez des images en PDF et redimensionnez, convertissez ou compressez une image, le tout depuis Outils sur l’accueil.",
+    "it": "Unisci o dividi PDF, trasforma immagini in un PDF e ridimensiona, converti o comprimi un'immagine, tutto da Strumenti nella Home.",
+    "ja": "ホームの「ツール」から、PDF の結合や分割、画像の PDF 化、画像のサイズ変更・変換・圧縮ができます。",
+    "pt-BR": "Junte ou divida PDFs, transforme imagens em PDF e redimensione, converta ou comprima uma imagem, tudo em Ferramentas na tela inicial."
   },
   "Message": {
     "ar": "الرسالة",
@@ -20519,6 +21128,15 @@
     "ja": "%@ に移動しました",
     "pt-BR": "Movido para %@"
   },
+  "Moved to Recently deleted": {
+    "ar": "نُقل إلى المحذوفة مؤخرًا",
+    "de": "In „Zuletzt gelöscht“ verschoben",
+    "es": "Movido a Eliminados recientemente",
+    "fr": "Déplacé dans Suppressions récentes",
+    "it": "Spostato in Eliminati di recente",
+    "ja": "「最近削除した項目」に移動しました",
+    "pt-BR": "Movido para Excluídos recentemente"
+  },
   "Moved to page %d": {
     "ar": "تم النقل إلى الصفحة %d",
     "de": "Auf Seite %d verschoben",
@@ -20581,6 +21199,15 @@
     "it": "Musica",
     "ja": "音楽",
     "pt-BR": "Música"
+  },
+  "Music and sound": {
+    "ar": "الموسيقى والصوت",
+    "de": "Musik und Ton",
+    "es": "Música y sonido",
+    "fr": "Musique et son",
+    "it": "Musica e suono",
+    "ja": "音楽とサウンド",
+    "pt-BR": "Música e som"
   },
   "Music and voice-overs you add show here.": {
     "ar": "تظهر هنا الموسيقى والتعليقات الصوتية التي تضيفها.",
@@ -22364,6 +22991,15 @@
     "ja": "オン",
     "pt-BR": "Ativado"
   },
+  "On Home, keep designs and uploads in folders and folders inside folders. Star a design or a folder to find it under Starred.": {
+    "ar": "في الشاشة الرئيسية، احفظ التصاميم والتحميلات في مجلدات ومجلدات داخل مجلدات. ميّز تصميمًا أو مجلدًا بنجمة لتجده ضمن «المميّزة بنجمة».",
+    "de": "Bewahre auf der Startseite Designs und Uploads in Ordnern und Unterordnern auf. Markiere ein Design oder einen Ordner, um ihn unter Markiert wiederzufinden.",
+    "es": "En Inicio, guarda diseños y archivos subidos en carpetas, y carpetas dentro de carpetas. Destaca un diseño o una carpeta para encontrarlo en Destacados.",
+    "fr": "Sur l’accueil, rangez designs et importations dans des dossiers, et des dossiers dans des dossiers. Ajoutez un design ou un dossier aux favoris pour le retrouver dans Favoris.",
+    "it": "Nella Home, tieni design e caricamenti in cartelle e cartelle dentro cartelle. Aggiungi un design o una cartella ai preferiti per trovarli in Preferiti.",
+    "ja": "ホームでは、デザインやアップロードをフォルダに、さらにフォルダの中のフォルダに整理できます。デザインやフォルダにスターを付けると「スター付き」で見つけられます。",
+    "pt-BR": "Na tela inicial, guarde designs e uploads em pastas e pastas dentro de pastas. Marque um design ou uma pasta com estrela para encontrá-lo em Com estrela."
+  },
   "On for the whole page.": {
     "ar": "مفعّل للصفحة كلها.",
     "de": "Für die ganze Seite eingeschaltet.",
@@ -22417,6 +23053,15 @@
     "it": "Una coppia “Etichetta, valore” per riga, o una riga di intestazione per le serie",
     "ja": "1 行に「ラベル, 値」を 1 つ、または系列用の見出し行",
     "pt-BR": "Um “Rótulo, valor” por linha, ou uma linha de cabeçalho para séries"
+  },
+  "One ZIP": {
+    "ar": "ملف ZIP واحد",
+    "de": "Eine ZIP-Datei",
+    "es": "Un ZIP",
+    "fr": "Un ZIP",
+    "it": "Un unico ZIP",
+    "ja": "1つの ZIP",
+    "pt-BR": "Um ZIP"
   },
   "One couldn't be opened": {
     "ar": "تعذّر فتح عنصر واحد",
@@ -22679,6 +23324,15 @@
     "ja": "ブランドキットのファイルを開く…",
     "pt-BR": "Abrir um arquivo de kit de marca…"
   },
+  "Open as a design": {
+    "ar": "فتح كتصميم",
+    "de": "Als Design öffnen",
+    "es": "Abrir como diseño",
+    "fr": "Ouvrir comme design",
+    "it": "Apri come design",
+    "ja": "デザインとして開く",
+    "pt-BR": "Abrir como design"
+  },
   "Open design": {
     "ar": "فتح التصميم",
     "de": "Design öffnen",
@@ -22732,6 +23386,15 @@
     "it": "Apri ora",
     "ja": "今すぐ開く",
     "pt-BR": "Abrir agora"
+  },
+  "Open this file as a design, or add it to Your templates to start designs from it.": {
+    "ar": "افتح هذا الملف كتصميم، أو أضفه إلى قوالبك لتبدأ منه تصاميم جديدة.",
+    "de": "Öffne diese Datei als Design oder füge sie zu Deine Vorlagen hinzu, um Designs daraus zu beginnen.",
+    "es": "Abre este archivo como diseño o añádelo a Tus plantillas para crear diseños a partir de él.",
+    "fr": "Ouvrez ce fichier comme design, ou ajoutez-le à Vos modèles pour créer des designs à partir de lui.",
+    "it": "Apri questo file come design o aggiungilo a I tuoi modelli per creare design partendo da esso.",
+    "ja": "このファイルをデザインとして開くか、あなたのテンプレートに追加してデザインの元にします。",
+    "pt-BR": "Abra este arquivo como design ou adicione-o a Seus modelos para começar designs a partir dele."
   },
   "Opening the PDF…": {
     "ar": "جارٍ فتح PDF…",
@@ -23038,6 +23701,15 @@
     "it": "Pagina PDF",
     "ja": "PDF ページ",
     "pt-BR": "Página PDF"
+  },
+  "PDF to pictures": {
+    "ar": "PDF إلى صور",
+    "de": "PDF in Bilder",
+    "es": "PDF a imágenes",
+    "fr": "PDF en images",
+    "it": "Da PDF a immagini",
+    "ja": "PDF を画像に",
+    "pt-BR": "PDF para imagens"
   },
   "PDF…": {
     "ar": "ملف PDF…",
@@ -23846,6 +24518,15 @@
     "ja": "五角形",
     "pt-BR": "Pentágono"
   },
+  "Percent": {
+    "ar": "نسبة مئوية",
+    "de": "Prozent",
+    "es": "Porcentaje",
+    "fr": "Pourcentage",
+    "it": "Percentuale",
+    "ja": "パーセント",
+    "pt-BR": "Porcentagem"
+  },
   "Percent of the size, from %d to %d": {
     "ar": "نسبة مئوية من الحجم، من %d إلى %d",
     "de": "Prozent der Größe, von %d bis %d",
@@ -23944,6 +24625,15 @@
     "it": "Foto 4×6",
     "ja": "写真 4×6",
     "pt-BR": "Foto 4×6"
+  },
+  "Photo effects and filters": {
+    "ar": "تأثيرات الصور وفلاترها",
+    "de": "Fotoeffekte und Filter",
+    "es": "Efectos y filtros de fotos",
+    "fr": "Effets et filtres photo",
+    "it": "Effetti e filtri per foto",
+    "ja": "写真のエフェクトとフィルター",
+    "pt-BR": "Efeitos e filtros de fotos"
   },
   "Photo fill": {
     "ar": "تعبئة بصورة",
@@ -24097,6 +24787,24 @@
     "it": "Foto non è riuscita a salvarlo (%@).",
     "ja": "写真に保存できませんでした（%@）。",
     "pt-BR": "O app Fotos não conseguiu salvar (%@)."
+  },
+  "Photos in the PDF are brought down to 150 dpi.": {
+    "ar": "تُخفَّض الصور في ملف PDF إلى 150 نقطة في البوصة.",
+    "de": "Fotos im PDF werden auf 150 dpi verkleinert.",
+    "es": "Las fotos del PDF se reducen a 150 ppp.",
+    "fr": "Les photos du PDF sont ramenées à 150 dpi.",
+    "it": "Le foto nel PDF vengono ridotte a 150 dpi.",
+    "ja": "PDF 内の写真は 150 dpi に縮小されます。",
+    "pt-BR": "As fotos do PDF são reduzidas para 150 dpi."
+  },
+  "Photos to PDF": {
+    "ar": "صور إلى PDF",
+    "de": "Fotos in PDF",
+    "es": "Fotos a PDF",
+    "fr": "Photos en PDF",
+    "it": "Da foto a PDF",
+    "ja": "写真を PDF に",
+    "pt-BR": "Fotos para PDF"
   },
   "Photos you add show here.": {
     "ar": "تظهر هنا الصور التي تضيفها.",
@@ -24440,6 +25148,15 @@
     "ja": "投稿を予定",
     "pt-BR": "Planejar uma publicação"
   },
+  "Plan a post sets a day and time to post a design, with its caption. The planner on Home shows them on a calendar and reminds you when it is time.": {
+    "ar": "يحدد «تخطيط منشور» يومًا ووقتًا لنشر تصميم مع تعليقه. ويعرضها المخطِّط في الشاشة الرئيسية على تقويم ويذكّرك حين يحين الوقت.",
+    "de": "Beitrag planen legt Tag und Uhrzeit fest, um ein Design mit seiner Bildunterschrift zu posten. Der Planer auf der Startseite zeigt sie in einem Kalender und erinnert dich rechtzeitig.",
+    "es": "Planificar una publicación fija un día y una hora para publicar un diseño, con su texto. El planificador de Inicio las muestra en un calendario y te avisa cuando llega el momento.",
+    "fr": "Planifier une publication fixe un jour et une heure pour publier un design, avec sa légende. Le planificateur de l’accueil les affiche dans un calendrier et vous prévient le moment venu.",
+    "it": "Pianifica un post imposta giorno e ora per pubblicare un design, con la sua didascalia. Il planner nella Home li mostra in un calendario e ti avvisa quando è il momento.",
+    "ja": "「投稿を予定」でデザインを投稿する日時とキャプションを設定します。ホームのプランナーはカレンダーに表示し、時間になると知らせます。",
+    "pt-BR": "Planejar uma publicação define dia e hora para publicar um design, com a legenda. O planejador na tela inicial mostra tudo em um calendário e lembra você na hora certa."
+  },
   "Plan a post…": {
     "ar": "خطّط لمنشور…",
     "de": "Beitrag planen …",
@@ -24475,6 +25192,15 @@
     "it": "Post pianificati",
     "ja": "予定した投稿",
     "pt-BR": "Publicações planejadas"
+  },
+  "Planning posts": {
+    "ar": "تخطيط المنشورات",
+    "de": "Beiträge planen",
+    "es": "Planificar publicaciones",
+    "fr": "Planifier des publications",
+    "it": "Pianificare i post",
+    "ja": "投稿の予定を立てる",
+    "pt-BR": "Planejar publicações"
   },
   "Plaque": {
     "ar": "لوحة",
@@ -24647,6 +25373,15 @@
     "ja": "ページを表示したときに再生されます。複数ある場合は順に登場します。",
     "pt-BR": "Reproduz quando a página é apresentada. Vários ao mesmo tempo entram um após o outro."
   },
+  "Point at a slide or write on it while you present.": {
+    "ar": "أشِر إلى شريحة أو اكتب عليها أثناء التقديم.",
+    "de": "Zeig auf eine Folie oder schreib darauf, während du präsentierst.",
+    "es": "Señala una diapositiva o escribe en ella mientras presentas.",
+    "fr": "Pointez une diapositive ou écrivez dessus pendant la présentation.",
+    "it": "Indica una diapositiva o scrivici sopra mentre presenti.",
+    "ja": "プレゼンテーション中にスライドを指し示したり、書き込んだりできます。",
+    "pt-BR": "Aponte para um slide ou escreva nele enquanto apresenta."
+  },
   "Pointed arch": {
     "ar": "قوس مدبب",
     "de": "Spitzbogen",
@@ -24655,6 +25390,15 @@
     "it": "Arco a sesto acuto",
     "ja": "尖頭アーチ",
     "pt-BR": "Arco ogival"
+  },
+  "Pointer and pen in Present": {
+    "ar": "المؤشر والقلم أثناء التقديم",
+    "de": "Zeiger und Stift beim Präsentieren",
+    "es": "Puntero y lápiz al presentar",
+    "fr": "Pointeur et stylo en présentation",
+    "it": "Puntatore e penna nella presentazione",
+    "ja": "プレゼンテーションでのポインタとペン",
+    "pt-BR": "Ponteiro e caneta ao apresentar"
   },
   "Points": {
     "ar": "نقاط",
@@ -24899,6 +25643,15 @@
     "ja": "全画面でプレゼンテーション、すべてのページが非表示です",
     "pt-BR": "Apresentar em tela cheia, todas as páginas estão ocultas"
   },
+  "Present shows the design full screen, page by page. Tap or swipe to move on, or use the arrow keys on a keyboard. Magic shortcuts play confetti, a drumroll and more.": {
+    "ar": "يعرض التقديم التصميم بملء الشاشة صفحة بصفحة. انقر أو اسحب للانتقال، أو استخدم مفاتيح الأسهم في لوحة المفاتيح. وتُطلق الاختصارات السحرية القصاصات الملوّنة وقرع الطبول وغيرها.",
+    "de": "Präsentieren zeigt das Design im Vollbild, Seite für Seite. Tippe oder wische zum Weiterblättern oder nutze die Pfeiltasten einer Tastatur. Magische Kürzel lösen Konfetti, einen Trommelwirbel und mehr aus.",
+    "es": "Presentar muestra el diseño a pantalla completa, página a página. Toca o desliza para avanzar, o usa las flechas de un teclado. Los atajos mágicos lanzan confeti, un redoble de tambor y más.",
+    "fr": "Présenter affiche le design en plein écran, page par page. Touchez ou balayez pour avancer, ou utilisez les flèches d’un clavier. Les raccourcis magiques font tomber des confettis, jouent un roulement de tambour et plus.",
+    "it": "Presenta mostra il design a schermo intero, pagina per pagina. Tocca o scorri per andare avanti, oppure usa le frecce di una tastiera. Le scorciatoie magiche fanno partire coriandoli, un rullo di tamburi e altro.",
+    "ja": "プレゼンテーションでは、デザインを1ページずつ全画面で表示します。タップやスワイプ、キーボードの矢印キーで進みます。マジックショートカットで紙吹雪やドラムロールなどを再生できます。",
+    "pt-BR": "Apresentar mostra o design em tela cheia, página por página. Toque ou deslize para avançar, ou use as setas de um teclado. Os atalhos mágicos soltam confete, um rufar de tambores e mais."
+  },
   "Present shows the design full screen: tap the right or left side, or swipe, to change page. Press and hold on the slide to point at it with a red laser dot that follows your finger. Pen draws on the slide in red, yellow or white at three widths; Clear wipes it, and with Fade ink on each stroke fades 3 seconds after you lift your finger. Ink is never saved. With a keyboard, L locks the laser on, P turns the pen on and off and E clears the ink; the magic shortcuts' keys play a countdown, blur, confetti, bubbles, quiet, a curtain, D a drumroll and M a mic drop. With TalkBack, each page says its number and title, then its headings, text, pictures, charts, tables and links in reading order.": {
     "ar": "يعرض العرض التقديمي التصميم بملء الشاشة: انقر على الجانب الأيمن أو الأيسر، أو اسحب، لتغيير الصفحة. اضغط مطولًا على الشريحة للإشارة إليها بنقطة ليزر حمراء تتبع إصبعك. يرسم القلم على الشريحة بالأحمر أو الأصفر أو الأبيض بثلاثة سماكات؛ ويمحوه زر مسح، ومع تشغيل تلاشي الحبر يتلاشى كل خط بعد 3 ثوانٍ من رفع إصبعك. لا يُحفظ الحبر أبدًا. باستخدام لوحة المفاتيح، يثبّت L الليزر، ويشغّل P القلم ويوقفه، ويمسح E الحبر؛ وتشغّل مفاتيح الاختصارات السحرية عدًّا تنازليًا وتمويهًا وقصاصات ملونة وفقاعات وهدوءًا وستارة، وD قرع الطبول وM إسقاط الميكروفون. مع TalkBack، تذكر كل صفحة رقمها وعنوانها، ثم عناوينها ونصوصها وصورها ومخططاتها وجداولها وروابطها بترتيب القراءة.",
     "de": "Präsentieren zeigt das Design im Vollbild: Tippe auf die rechte oder linke Seite oder wische, um die Seite zu wechseln. Halte den Finger auf der Folie, um mit einem roten Laserpunkt darauf zu zeigen, der deinem Finger folgt. Stift zeichnet in Rot, Gelb oder Weiß in drei Stärken auf die Folie; Löschen entfernt es, und mit Tinte ausblenden verblasst jeder Strich 3 Sekunden nachdem du den Finger hebst. Die Tinte wird nie gespeichert. Mit einer Tastatur hält L den Laser an, P schaltet den Stift ein und aus und E löscht die Tinte; die Tasten der magischen Kurzbefehle spielen einen Countdown, Unschärfe, Konfetti, Blasen, Ruhe, einen Vorhang, D einen Trommelwirbel und M einen Mic-Drop. Mit TalkBack nennt jede Seite ihre Nummer und ihren Titel, dann ihre Überschriften, Texte, Bilder, Diagramme, Tabellen und Links in Lesereihenfolge.",
@@ -24925,6 +25678,24 @@
     "it": "Presentazioni",
     "ja": "プレゼンテーション",
     "pt-BR": "Apresentações"
+  },
+  "Presenter view and recording": {
+    "ar": "عرض المقدِّم والتسجيل",
+    "de": "Referentenansicht und Aufnahme",
+    "es": "Vista del presentador y grabación",
+    "fr": "Mode présentateur et enregistrement",
+    "it": "Vista relatore e registrazione",
+    "ja": "発表者ビューと録画",
+    "pt-BR": "Visão do apresentador e gravação"
+  },
+  "Presenter view shows your notes, the next page and a timer while the audience sees only the slides. Present and record keeps you, the slides and your voice as a video to share.": {
+    "ar": "يعرض وضع المقدِّم ملاحظاتك والصفحة التالية ومؤقتًا بينما لا يرى الجمهور سوى الشرائح. ويحفظ «تقديم وتسجيل» صورتك والشرائح وصوتك في فيديو للمشاركة.",
+    "de": "Die Referentenansicht zeigt deine Notizen, die nächste Seite und einen Timer, während das Publikum nur die Folien sieht. Präsentieren und aufnehmen hält dich, die Folien und deine Stimme als Video zum Teilen fest.",
+    "es": "La vista del presentador muestra tus notas, la página siguiente y un cronómetro mientras el público solo ve las diapositivas. Presentar y grabar te guarda a ti, las diapositivas y tu voz como un vídeo para compartir.",
+    "fr": "Le mode présentateur affiche vos notes, la page suivante et un minuteur pendant que le public ne voit que les diapositives. Présenter et enregistrer garde vous, les diapositives et votre voix dans une vidéo à partager.",
+    "it": "La vista relatore mostra le tue note, la pagina successiva e un timer mentre il pubblico vede solo le diapositive. Presenta e registra conserva te, le diapositive e la tua voce in un video da condividere.",
+    "ja": "発表者ビューでは、聴衆にはスライドだけを見せながら、自分にはメモ、次のページ、タイマーが表示されます。「プレゼンして録画」で、あなたとスライドと声を共有できる動画として残せます。",
+    "pt-BR": "A visão do apresentador mostra suas notas, a próxima página e um cronômetro enquanto o público vê só os slides. Apresentar e gravar guarda você, os slides e sua voz em um vídeo para compartilhar."
   },
   "Presenting": {
     "ar": "العرض التقديمي",
@@ -25112,6 +25883,15 @@
     "ja": "印刷と印刷用 PDF には、上で選んだ %@ を使用します。",
     "pt-BR": "Imprimir e o PDF para impressão usam %@, como escolhido acima."
   },
+  "Print sends pages to a printer, or several to a sheet of A4 or Letter. The print-ready PDF adds bleed and crop marks.": {
+    "ar": "ترسل الطباعة الصفحات إلى طابعة، أو عدة صفحات على ورقة A4 أو Letter. ويضيف ملف PDF الجاهز للطباعة هوامش النزف وعلامات القص.",
+    "de": "Drucken schickt Seiten an einen Drucker oder mehrere auf ein A4- oder Letter-Blatt. Das druckfertige PDF ergänzt Beschnittzugabe und Schnittmarken.",
+    "es": "Imprimir envía páginas a una impresora, o varias en una hoja A4 o Carta. El PDF listo para imprenta añade sangrado y marcas de corte.",
+    "fr": "Imprimer envoie des pages à une imprimante, ou plusieurs sur une feuille A4 ou Letter. Le PDF prêt à imprimer ajoute fond perdu et traits de coupe.",
+    "it": "Stampa invia le pagine a una stampante, o più pagine su un foglio A4 o Letter. Il PDF pronto per la stampa aggiunge abbondanza e segni di taglio.",
+    "ja": "印刷では、ページをプリンタに送るか、A4 やレターの用紙に複数ページをまとめて印刷します。印刷用 PDF には塗り足しとトンボが付きます。",
+    "pt-BR": "Imprimir envia páginas para uma impressora, ou várias em uma folha A4 ou Carta. O PDF pronto para impressão adiciona sangria e marcas de corte."
+  },
   "Print-ready PDF": {
     "ar": "PDF جاهز للطباعة",
     "de": "Druckfertige PDF",
@@ -25138,6 +25918,15 @@
     "it": "Documento pronto per la stampa, %@",
     "ja": "印刷用ドキュメント、%@",
     "pt-BR": "Documento para impressão, %@"
+  },
+  "Printing and paper layout": {
+    "ar": "الطباعة وتخطيط الورق",
+    "de": "Drucken und Papierlayout",
+    "es": "Impresión y disposición en papel",
+    "fr": "Impression et mise en page",
+    "it": "Stampa e impaginazione",
+    "ja": "印刷と用紙のレイアウト",
+    "pt-BR": "Impressão e layout de papel"
   },
   "Prints at actual size, %@ × %@ mm.": {
     "ar": "يُطبع بالحجم الفعلي، %@ × %@ مم.",
@@ -25319,6 +26108,15 @@
     "ja": "%@ へのリンクの QR コード",
     "pt-BR": "Código QR com link para %@"
   },
+  "QR codes and barcodes": {
+    "ar": "رموز QR والرموز الشريطية",
+    "de": "QR-Codes und Barcodes",
+    "es": "Códigos QR y de barras",
+    "fr": "Codes QR et codes-barres",
+    "it": "Codici QR e a barre",
+    "ja": "QR コードとバーコード",
+    "pt-BR": "Códigos QR e de barras"
+  },
   "Qty": {
     "ar": "الكمية",
     "de": "Menge",
@@ -25327,6 +26125,15 @@
     "it": "Qtà",
     "ja": "数量",
     "pt-BR": "Qtd."
+  },
+  "Quality": {
+    "ar": "الجودة",
+    "de": "Qualität",
+    "es": "Calidad",
+    "fr": "Qualité",
+    "it": "Qualità",
+    "ja": "画質",
+    "pt-BR": "Qualidade"
   },
   "Quality %d% — about %@": {
     "ar": "الجودة %d% — حوالي %@",
@@ -25390,6 +26197,15 @@
     "it": "Azioni rapide sulla selezione",
     "ja": "選択位置のクイックアクション",
     "pt-BR": "Ações rápidas na seleção"
+  },
+  "Quick file tools": {
+    "ar": "أدوات سريعة للملفات",
+    "de": "Schnelle Dateiwerkzeuge",
+    "es": "Herramientas rápidas de archivos",
+    "fr": "Outils de fichiers rapides",
+    "it": "Strumenti rapidi per i file",
+    "ja": "クイックファイルツール",
+    "pt-BR": "Ferramentas rápidas de arquivos"
   },
   "Quiet": {
     "ar": "هادئ",
@@ -25642,6 +26458,15 @@
     "it": "Registra voce fuori campo",
     "ja": "ナレーションを録音",
     "pt-BR": "Gravar narração"
+  },
+  "Record your voice over a page in Audio, or have a text read aloud as a track. Enhance voice cleans it up.": {
+    "ar": "سجّل صوتك على صفحة في «الصوت»، أو اجعل نصًا يُقرأ بصوت عالٍ كمسار. ويُنقّيه «تحسين الصوت».",
+    "de": "Nimm in Audio deine Stimme zu einer Seite auf oder lass einen Text als Spur vorlesen. Stimme verbessern macht sie klarer.",
+    "es": "Graba tu voz sobre una página en Audio, o haz que un texto se lea en voz alta como pista. Mejorar la voz la limpia.",
+    "fr": "Enregistrez votre voix sur une page dans Audio, ou faites lire un texte à voix haute comme piste. Améliorer la voix la nettoie.",
+    "it": "Registra la tua voce su una pagina in Audio, oppure fai leggere un testo ad alta voce come traccia. Migliora voce la ripulisce.",
+    "ja": "「オーディオ」でページに合わせて声を録音したり、テキストを読み上げてトラックにしたりできます。「声を補正」で聞き取りやすく整えます。",
+    "pt-BR": "Grave sua voz sobre uma página em Áudio, ou faça um texto ser lido em voz alta como faixa. Melhorar voz deixa o som mais limpo."
   },
   "Recording": {
     "ar": "جارٍ التسجيل",
@@ -25976,6 +26801,15 @@
     "ja": "トラックを削除しました",
     "pt-BR": "A faixa foi removida"
   },
+  "Removing a photo's background": {
+    "ar": "إزالة خلفية صورة",
+    "de": "Hintergrund eines Fotos entfernen",
+    "es": "Quitar el fondo de una foto",
+    "fr": "Supprimer l’arrière-plan d’une photo",
+    "it": "Rimuovere lo sfondo di una foto",
+    "ja": "写真の背景を取り除く",
+    "pt-BR": "Remover o fundo de uma foto"
+  },
   "Rename": {
     "ar": "إعادة تسمية",
     "de": "Umbenennen",
@@ -26228,6 +27062,15 @@
     "ja": "画像を置き換える",
     "pt-BR": "Substituir imagem"
   },
+  "Replace page": {
+    "ar": "استبدال الصفحة",
+    "de": "Seite ersetzen",
+    "es": "Reemplazar página",
+    "fr": "Remplacer la page",
+    "it": "Sostituisci pagina",
+    "ja": "ページを置き換える",
+    "pt-BR": "Substituir página"
+  },
   "Replace photo": {
     "ar": "استبدال الصورة",
     "de": "Foto ersetzen",
@@ -26477,6 +27320,15 @@
     "ja": "サイズを変更",
     "pt-BR": "Redimensionar"
   },
+  "Resize a picture": {
+    "ar": "تغيير حجم صورة",
+    "de": "Bildgröße ändern",
+    "es": "Cambiar tamaño de imagen",
+    "fr": "Redimensionner une image",
+    "it": "Ridimensiona un'immagine",
+    "ja": "画像のサイズを変更",
+    "pt-BR": "Redimensionar uma imagem"
+  },
   "Resize design": {
     "ar": "تغيير حجم التصميم",
     "de": "Designgröße ändern",
@@ -26593,6 +27445,15 @@
     "it": "Ripristinare questa versione?",
     "ja": "このバージョンを復元しますか？",
     "pt-BR": "Restaurar esta versão?"
+  },
+  "Restore uploads and folders": {
+    "ar": "استعادة التحميلات والمجلدات",
+    "de": "Uploads und Ordner wiederherstellen",
+    "es": "Restaura archivos subidos y carpetas",
+    "fr": "Restaurez importations et dossiers",
+    "it": "Ripristina caricamenti e cartelle",
+    "ja": "アップロードとフォルダを復元",
+    "pt-BR": "Restaure uploads e pastas"
   },
   "Restored \"%@\" as it last was": {
     "ar": "تمت استعادة «%@» كما كان آخر مرة",
@@ -27080,6 +27941,15 @@
     "ja": "セール",
     "pt-BR": "Promoção"
   },
+  "Same as now": {
+    "ar": "مثل الآن",
+    "de": "Wie jetzt",
+    "es": "Igual que ahora",
+    "fr": "Identique à maintenant",
+    "it": "Uguale ad ora",
+    "ja": "現在と同じ",
+    "pt-BR": "Igual a agora"
+  },
   "Sample: %@": {
     "ar": "عيّنة: %@",
     "de": "Beispiel: %@",
@@ -27196,6 +28066,15 @@
     "it": "Salva come modello",
     "ja": "テンプレートとして保存",
     "pt-BR": "Salvar como modelo"
+  },
+  "Save as template keeps a design to start from again. Your templates can be renamed, starred, sent to someone else and brought in from a file.": {
+    "ar": "يحفظ «الحفظ كقالب» تصميمًا لتبدأ منه من جديد. ويمكن إعادة تسمية قوالبك وتمييزها بنجمة وإرسالها إلى شخص آخر واستيرادها من ملف.",
+    "de": "Als Vorlage speichern bewahrt ein Design auf, um wieder davon auszugehen. Deine Vorlagen lassen sich umbenennen, markieren, an andere senden und aus einer Datei holen.",
+    "es": "Guardar como plantilla conserva un diseño para volver a empezar desde él. Tus plantillas se pueden renombrar, destacar, enviar a otra persona e importar desde un archivo.",
+    "fr": "Enregistrer comme modèle garde un design pour repartir de lui. Vos modèles peuvent être renommés, ajoutés aux favoris, envoyés à quelqu’un et importés depuis un fichier.",
+    "it": "Salva come modello conserva un design da cui ripartire. I tuoi modelli si possono rinominare, aggiungere ai preferiti, inviare ad altri e importare da un file.",
+    "ja": "「テンプレートとして保存」でデザインを残し、また使い始められます。あなたのテンプレートは名前の変更、スター付け、他の人への送信、ファイルからの読み込みができます。",
+    "pt-BR": "Salvar como modelo guarda um design para começar de novo a partir dele. Seus modelos podem ser renomeados, marcados com estrela, enviados a outra pessoa e trazidos de um arquivo."
   },
   "Save as template…": {
     "ar": "حفظ كقالب…",
@@ -28190,6 +29069,15 @@
     "ja": "背面へ",
     "pt-BR": "Enviar para trás"
   },
+  "Send one of your templates as a file. Whoever opens it can add it to their templates.": {
+    "ar": "أرسل أحد قوالبك كملف. ويمكن لمن يفتحه إضافته إلى قوالبه.",
+    "de": "Sende eine deiner Vorlagen als Datei. Wer sie öffnet, kann sie zu den eigenen Vorlagen hinzufügen.",
+    "es": "Envía una de tus plantillas como archivo. Quien lo abra podrá añadirla a sus plantillas.",
+    "fr": "Envoyez l’un de vos modèles sous forme de fichier. La personne qui l’ouvre peut l’ajouter à ses modèles.",
+    "it": "Invia uno dei tuoi modelli come file. Chi lo apre può aggiungerlo ai propri modelli.",
+    "ja": "テンプレートをファイルとして送れます。受け取った人は自分のテンプレートに追加できます。",
+    "pt-BR": "Envie um dos seus modelos como arquivo. Quem abrir pode adicioná-lo aos próprios modelos."
+  },
   "Send to a printer": {
     "ar": "إرسال إلى طابعة",
     "de": "An einen Drucker senden",
@@ -28217,6 +29105,24 @@
     "ja": "最背面へ移動",
     "pt-BR": "Enviar para o fundo"
   },
+  "Send your templates": {
+    "ar": "أرسل قوالبك",
+    "de": "Deine Vorlagen senden",
+    "es": "Envía tus plantillas",
+    "fr": "Envoyez vos modèles",
+    "it": "Invia i tuoi modelli",
+    "ja": "テンプレートを送る",
+    "pt-BR": "Envie seus modelos"
+  },
+  "Send…": {
+    "ar": "إرسال…",
+    "de": "Senden…",
+    "es": "Enviar…",
+    "fr": "Envoyer…",
+    "it": "Invia…",
+    "ja": "送信…",
+    "pt-BR": "Enviar…"
+  },
   "Sentence case": {
     "ar": "أول حرف من الجملة كبير",
     "de": "Satzanfang groß",
@@ -28225,6 +29131,15 @@
     "it": "Maiuscola a inizio frase",
     "ja": "文頭を大文字",
     "pt-BR": "Primeira letra da frase maiúscula"
+  },
+  "Separate files": {
+    "ar": "ملفات منفصلة",
+    "de": "Einzelne Dateien",
+    "es": "Archivos separados",
+    "fr": "Fichiers séparés",
+    "it": "File separati",
+    "ja": "個別のファイル",
+    "pt-BR": "Arquivos separados"
   },
   "Serif": {
     "ar": "Serif",
@@ -28685,6 +29600,15 @@
     "ja": "共有しましょう。ページを画像として、全体を PDF として、またはデザイン自体を別のスマートフォン（Android または iPhone）で開けるように書き出せます。",
     "pt-BR": "Compartilhe. Exporte a página como imagem, tudo como PDF ou o próprio design para abrir em outro celular — Android ou iPhone."
   },
+  "Share makes a video or a GIF of animated pages, a ZIP of every page, an SVG, a PowerPoint, a web page or a smaller PDF, and suggests the type that suits the design.": {
+    "ar": "تنشئ المشاركة فيديو أو صورة GIF للصفحات المتحركة، وملف ZIP لكل الصفحات، وملف SVG، وعرض PowerPoint، وصفحة ويب، أو ملف PDF أصغر، وتقترح النوع الأنسب للتصميم.",
+    "de": "Teilen macht ein Video oder GIF aus animierten Seiten, eine ZIP-Datei aller Seiten, ein SVG, eine PowerPoint, eine Webseite oder ein kleineres PDF und schlägt den passenden Typ für das Design vor.",
+    "es": "Compartir crea un vídeo o un GIF de las páginas animadas, un ZIP con todas las páginas, un SVG, un PowerPoint, una página web o un PDF más ligero, y sugiere el tipo que mejor encaja con el diseño.",
+    "fr": "Partager crée une vidéo ou un GIF des pages animées, un ZIP de toutes les pages, un SVG, un PowerPoint, une page web ou un PDF plus léger, et suggère le type qui convient au design.",
+    "it": "Condividi crea un video o una GIF delle pagine animate, uno ZIP di tutte le pagine, un SVG, un PowerPoint, una pagina web o un PDF più leggero, e suggerisce il tipo adatto al design.",
+    "ja": "「共有」では、アニメーションのあるページの動画や GIF、全ページの ZIP、SVG、PowerPoint、ウェブページ、軽い PDF を作成でき、デザインに合った形式を提案します。",
+    "pt-BR": "Compartilhar cria um vídeo ou GIF das páginas animadas, um ZIP de todas as páginas, um SVG, um PowerPoint, uma página web ou um PDF menor, e sugere o tipo que combina com o design."
+  },
   "Share now": {
     "ar": "شارك الآن",
     "de": "Jetzt teilen",
@@ -28693,6 +29617,15 @@
     "it": "Condividi ora",
     "ja": "今すぐ共有",
     "pt-BR": "Compartilhar agora"
+  },
+  "Share photos, videos, PDFs or design files to Canvia from another app to start a design, or add them to the one that is open.": {
+    "ar": "شارك الصور أو الفيديوهات أو ملفات PDF أو ملفات التصميم إلى Canvia من تطبيق آخر لتبدأ تصميمًا، أو أضفها إلى التصميم المفتوح.",
+    "de": "Teile Fotos, Videos, PDFs oder Designdateien aus einer anderen App mit Canvia, um ein Design zu beginnen, oder füge sie dem geöffneten hinzu.",
+    "es": "Comparte fotos, vídeos, PDF o archivos de diseño con Canvia desde otra app para empezar un diseño, o añádelos al que tengas abierto.",
+    "fr": "Partagez des photos, vidéos, PDF ou fichiers de design vers Canvia depuis une autre app pour commencer un design, ou ajoutez-les à celui qui est ouvert.",
+    "it": "Condividi foto, video, PDF o file di design con Canvia da un'altra app per iniziare un design, o aggiungili a quello aperto.",
+    "ja": "他のアプリから写真、動画、PDF、デザインファイルを Canvia に共有して、デザインを始めたり、開いているデザインに追加したりできます。",
+    "pt-BR": "Compartilhe fotos, vídeos, PDFs ou arquivos de design com o Canvia a partir de outro app para começar um design ou adicioná-los ao que está aberto."
   },
   "Share this kit…": {
     "ar": "مشاركة هذه المجموعة…",
@@ -28747,6 +29680,15 @@
     "it": "Condividi…",
     "ja": "共有…",
     "pt-BR": "Compartilhar…"
+  },
+  "Sharing into Canvia": {
+    "ar": "المشاركة إلى Canvia",
+    "de": "In Canvia teilen",
+    "es": "Compartir con Canvia",
+    "fr": "Partager vers Canvia",
+    "it": "Condividere in Canvia",
+    "ja": "Canvia に共有する",
+    "pt-BR": "Compartilhar com o Canvia"
   },
   "Sharing to %@": {
     "ar": "جارٍ المشاركة على %@",
@@ -29929,6 +30871,15 @@
     "it": "Dividi",
     "ja": "分割",
     "pt-BR": "Divididas"
+  },
+  "Split a PDF": {
+    "ar": "تقسيم ملف PDF",
+    "de": "PDF aufteilen",
+    "es": "Dividir un PDF",
+    "fr": "Diviser un PDF",
+    "it": "Dividi un PDF",
+    "ja": "PDF を分割",
+    "pt-BR": "Dividir um PDF"
   },
   "Split audio": {
     "ar": "تقسيم الصوت",
@@ -31114,6 +32065,15 @@
     "it": "Modelli (%d)",
     "ja": "テンプレート（%d）",
     "pt-BR": "Modelos (%d)"
+  },
+  "Templates start a design from a finished one. Search them, filter by style and colour, or add one as a new page of the design you have open.": {
+    "ar": "تبدأ القوالب تصميمًا من تصميم جاهز. ابحث فيها، وصفِّها حسب النمط واللون، أو أضف أحدها كصفحة جديدة في التصميم المفتوح.",
+    "de": "Vorlagen beginnen ein Design mit einem fertigen. Durchsuche sie, filtere nach Stil und Farbe oder füge eine als neue Seite zum geöffneten Design hinzu.",
+    "es": "Las plantillas empiezan un diseño a partir de uno terminado. Búscalas, fíltralas por estilo y color, o añade una como página nueva del diseño que tienes abierto.",
+    "fr": "Les modèles font partir un design d’un design fini. Recherchez-les, filtrez par style et couleur, ou ajoutez-en un comme nouvelle page du design ouvert.",
+    "it": "I modelli fanno partire un design da uno già pronto. Cercali, filtrali per stile e colore, o aggiungine uno come nuova pagina del design aperto.",
+    "ja": "テンプレートを使うと、完成したデザインから作り始められます。検索したり、スタイルや色で絞り込んだり、開いているデザインに新しいページとして追加したりできます。",
+    "pt-BR": "Os modelos começam um design a partir de um pronto. Pesquise-os, filtre por estilo e cor ou adicione um como nova página do design aberto."
   },
   "Tetradic": {
     "ar": "رباعية",
@@ -32315,6 +33275,15 @@
     "ja": "この要素はロックされています",
     "pt-BR": "Este elemento está bloqueado"
   },
+  "This file is a template. Add it to Your templates to start designs from it, or open it as a design.": {
+    "ar": "هذا الملف قالب. أضفه إلى قوالبك لتبدأ منه تصاميم جديدة، أو افتحه كتصميم.",
+    "de": "Diese Datei ist eine Vorlage. Füge sie zu Deine Vorlagen hinzu, um Designs daraus zu beginnen, oder öffne sie als Design.",
+    "es": "Este archivo es una plantilla. Añádelo a Tus plantillas para crear diseños a partir de él, o ábrelo como diseño.",
+    "fr": "Ce fichier est un modèle. Ajoutez-le à Vos modèles pour créer des designs à partir de lui, ou ouvrez-le comme design.",
+    "it": "Questo file è un modello. Aggiungilo a I tuoi modelli per creare design partendo da esso, oppure aprilo come design.",
+    "ja": "このファイルはテンプレートです。あなたのテンプレートに追加してデザインの元にするか、デザインとして開きます。",
+    "pt-BR": "Este arquivo é um modelo. Adicione-o a Seus modelos para começar designs a partir dele ou abra-o como design."
+  },
   "This file is not a Canvia backup.": {
     "ar": "هذا الملف ليس نسخة احتياطية من Canvia.",
     "de": "Diese Datei ist keine Canvia-Sicherung.",
@@ -32774,6 +33743,15 @@
     "ja": "タイムライン",
     "pt-BR": "Linha do tempo"
   },
+  "Timeline and clips": {
+    "ar": "المخطط الزمني والمقاطع",
+    "de": "Zeitleiste und Clips",
+    "es": "Línea de tiempo y clips",
+    "fr": "Chronologie et clips",
+    "it": "Timeline e clip",
+    "ja": "タイムラインとクリップ",
+    "pt-BR": "Linha do tempo e clipes"
+  },
   "Tint": {
     "ar": "الصبغة",
     "de": "Tönung",
@@ -32836,6 +33814,15 @@
     "it": "A",
     "ja": "宛先",
     "pt-BR": "Para"
+  },
+  "To Photos": {
+    "ar": "إلى الصور",
+    "de": "In Fotos",
+    "es": "A Fotos",
+    "fr": "Dans Photos",
+    "it": "In Foto",
+    "ja": "写真へ",
+    "pt-BR": "Para Fotos"
   },
   "To back": {
     "ar": "إلى الخلف",
@@ -32926,6 +33913,24 @@
     "it": "Troppo piccolo per le maniglie? Pizzicalo con due dita per ridimensionarlo e ruotale per girarlo.",
     "ja": "小さくてハンドルを使いにくいときは、2 本指でピンチしてサイズを変え、ひねって回転できます。",
     "pt-BR": "Pequeno demais para as alças? Pince com dois dedos sobre ele para redimensioná-lo e gire-os para girá-lo."
+  },
+  "Tools": {
+    "ar": "الأدوات",
+    "de": "Werkzeuge",
+    "es": "Herramientas",
+    "fr": "Outils",
+    "it": "Strumenti",
+    "ja": "ツール",
+    "pt-BR": "Ferramentas"
+  },
+  "Tools on Home merge and split PDFs, turn a PDF into pictures and photos into a PDF, and resize, convert or compress a picture, without making a design.": {
+    "ar": "تدمج «الأدوات» في الشاشة الرئيسية ملفات PDF وتقسّمها، وتحوّل ملف PDF إلى صور والصور إلى PDF، وتغيّر حجم صورة أو تحوّلها أو تضغطها، دون إنشاء تصميم.",
+    "de": "Werkzeuge auf der Startseite führen PDFs zusammen und teilen sie auf, machen aus einem PDF Bilder und aus Fotos ein PDF und ändern, wandeln oder komprimieren ein Bild – ohne ein Design zu erstellen.",
+    "es": "Herramientas en Inicio une y divide PDF, convierte un PDF en imágenes y fotos en un PDF, y cambia el tamaño, convierte o comprime una imagen, sin crear un diseño.",
+    "fr": "Outils sur l’accueil fusionne et divise des PDF, transforme un PDF en images et des photos en PDF, et redimensionne, convertit ou compresse une image, sans créer de design.",
+    "it": "Strumenti nella Home unisce e divide PDF, trasforma un PDF in immagini e foto in un PDF, e ridimensiona, converte o comprime un'immagine, senza creare un design.",
+    "ja": "ホームの「ツール」では、デザインを作らずに PDF の結合や分割、PDF の画像化や写真の PDF 化、画像のサイズ変更・変換・圧縮ができます。",
+    "pt-BR": "Ferramentas na tela inicial junta e divide PDFs, transforma um PDF em imagens e fotos em PDF, e redimensiona, converte ou comprime uma imagem, sem criar um design."
   },
   "Top": {
     "ar": "أعلى",
@@ -33358,6 +34363,15 @@
     "it": "Attiva Sequenza temporale in Altro per temporizzarlo con l’indicatore di riproduzione.",
     "ja": "再生ヘッドでタイミングを設定するには、「その他」でタイムラインをオンにしてください。",
     "pt-BR": "Ative Linha do tempo em Mais para cronometrar pelo indicador de reprodução."
+  },
+  "Turn on the timeline in the editor's menu to see each page's length, its clips and its sound. Drag a clip's ends to trim it, split it at the playhead, and set its speed and volume.": {
+    "ar": "شغّل المخطط الزمني من قائمة المحرر لترى مدة كل صفحة ومقاطعها وصوتها. اسحب طرفَي المقطع لقصّه، وقسّمه عند مؤشر التشغيل، واضبط سرعته وصوته.",
+    "de": "Schalte im Menü des Editors die Zeitleiste ein, um Länge, Clips und Ton jeder Seite zu sehen. Zieh die Enden eines Clips, um ihn zu kürzen, teile ihn am Abspielkopf und stelle Tempo und Lautstärke ein.",
+    "es": "Activa la línea de tiempo en el menú del editor para ver la duración de cada página, sus clips y su sonido. Arrastra los extremos de un clip para recortarlo, divídelo en el cabezal y ajusta su velocidad y volumen.",
+    "fr": "Activez la chronologie dans le menu de l’éditeur pour voir la durée de chaque page, ses clips et son son. Faites glisser les bords d’un clip pour le couper, divisez-le à la tête de lecture et réglez sa vitesse et son volume.",
+    "it": "Attiva la timeline nel menu dell'editor per vedere la durata di ogni pagina, i suoi clip e il suo audio. Trascina le estremità di un clip per tagliarlo, dividilo alla testina e regolane velocità e volume.",
+    "ja": "エディタのメニューでタイムラインをオンにすると、各ページの長さ、クリップ、サウンドが表示されます。クリップの端をドラッグしてトリミングし、再生ヘッドの位置で分割し、速度や音量を設定できます。",
+    "pt-BR": "Ative a linha do tempo no menu do editor para ver a duração de cada página, seus clipes e seu som. Arraste as pontas de um clipe para cortá-lo, divida-o no cursor de reprodução e ajuste a velocidade e o volume."
   },
   "Turn the table back to level to change its rows and columns.": {
     "ar": "أعد الجدول إلى الوضع المستوي لتغيير صفوفه وأعمدته.",
@@ -34052,6 +35066,15 @@
     "ja": "アップロード",
     "pt-BR": "Uploads"
   },
+  "Uploads and Recently deleted": {
+    "ar": "التحميلات والمحذوفة مؤخرًا",
+    "de": "Uploads und „Zuletzt gelöscht“",
+    "es": "Subidos y Eliminados recientemente",
+    "fr": "Importations et Suppressions récentes",
+    "it": "Caricamenti ed Eliminati di recente",
+    "ja": "アップロードと最近削除した項目",
+    "pt-BR": "Uploads e Excluídos recentemente"
+  },
   "Uploads in %@": {
     "ar": "الملفات المرفوعة في %@",
     "de": "Uploads in %@",
@@ -34060,6 +35083,48 @@
     "it": "Caricamenti in %@",
     "ja": "%@ のアップロード",
     "pt-BR": "Uploads em %@"
+  },
+  "Uploads in Recently deleted are removed after %d day.|Uploads in Recently deleted are removed after %d days.": {
+    "ar": {
+      "few": "تُزال التحميلات في «المحذوفة مؤخرًا» بعد %d أيام.",
+      "many": "تُزال التحميلات في «المحذوفة مؤخرًا» بعد %d يومًا.",
+      "one": "تُزال التحميلات في «المحذوفة مؤخرًا» بعد %d يوم.",
+      "other": "تُزال التحميلات في «المحذوفة مؤخرًا» بعد %d يوم.",
+      "two": "تُزال التحميلات في «المحذوفة مؤخرًا» بعد %d يومين.",
+      "zero": "تُزال التحميلات في «المحذوفة مؤخرًا» بعد %d يوم."
+    },
+    "de": {
+      "one": "Uploads in „Zuletzt gelöscht“ werden nach %d Tag entfernt.",
+      "other": "Uploads in „Zuletzt gelöscht“ werden nach %d Tagen entfernt."
+    },
+    "es": {
+      "one": "Los archivos subidos de Eliminados recientemente se borran después de %d día.",
+      "other": "Los archivos subidos de Eliminados recientemente se borran después de %d días."
+    },
+    "fr": {
+      "one": "Les importations des Suppressions récentes sont effacées au bout de %d jour.",
+      "other": "Les importations des Suppressions récentes sont effacées au bout de %d jours."
+    },
+    "it": {
+      "one": "I caricamenti in Eliminati di recente vengono rimossi dopo %d giorno.",
+      "other": "I caricamenti in Eliminati di recente vengono rimossi dopo %d giorni."
+    },
+    "ja": {
+      "other": "「最近削除した項目」のアップロードは %d 日後に削除されます。"
+    },
+    "pt-BR": {
+      "one": "Os uploads em Excluídos recentemente são removidos após %d dia.",
+      "other": "Os uploads em Excluídos recentemente são removidos após %d dias."
+    }
+  },
+  "Uploads on Home lists the photos, videos, music and fonts you brought in. Deleted designs, uploads and folders wait in Recently deleted for 30 days, where they can be restored.": {
+    "ar": "تعرض «التحميلات» في الشاشة الرئيسية الصور والفيديوهات والموسيقى والخطوط التي أضفتها. وتبقى التصاميم والتحميلات والمجلدات المحذوفة 30 يومًا في «المحذوفة مؤخرًا» حيث يمكن استعادتها.",
+    "de": "Uploads auf der Startseite listet die Fotos, Videos, Musik und Schriften auf, die du hinzugefügt hast. Gelöschte Designs, Uploads und Ordner warten 30 Tage in „Zuletzt gelöscht“, wo du sie wiederherstellen kannst.",
+    "es": "Subidos en Inicio muestra las fotos, vídeos, música y fuentes que has importado. Los diseños, archivos subidos y carpetas eliminados esperan 30 días en Eliminados recientemente, donde se pueden restaurar.",
+    "fr": "Importations sur l’accueil liste les photos, vidéos, musiques et polices que vous avez importées. Les designs, importations et dossiers supprimés attendent 30 jours dans Suppressions récentes, où on peut les restaurer.",
+    "it": "Caricamenti nella Home elenca foto, video, musica e font che hai importato. Design, caricamenti e cartelle eliminati restano 30 giorni in Eliminati di recente, dove puoi ripristinarli.",
+    "ja": "ホームの「アップロード」には、取り込んだ写真、動画、音楽、フォントが並びます。削除したデザイン、アップロード、フォルダは「最近削除した項目」に30日間残り、そこから復元できます。",
+    "pt-BR": "Uploads na tela inicial lista as fotos, vídeos, músicas e fontes que você trouxe. Designs, uploads e pastas excluídos ficam 30 dias em Excluídos recentemente, onde podem ser restaurados."
   },
   "Uppercase": {
     "ar": "أحرف كبيرة",
@@ -34415,6 +35480,15 @@
     "ja": "バージョン",
     "pt-BR": "Versão"
   },
+  "Version %@": {
+    "ar": "الإصدار %@",
+    "de": "Version %@",
+    "es": "Versión %@",
+    "fr": "Version %@",
+    "it": "Versione %@",
+    "ja": "バージョン %@",
+    "pt-BR": "Versão %@"
+  },
   "Version history": {
     "ar": "سجل الإصدارات",
     "de": "Versionsverlauf",
@@ -34423,6 +35497,15 @@
     "it": "Cronologia versioni",
     "ja": "バージョン履歴",
     "pt-BR": "Histórico de versões"
+  },
+  "Version history keeps how the design looked earlier. Preview a version page by page, restore it whole, make a copy of it, or bring back just one page.": {
+    "ar": "يحتفظ سجل الإصدارات بشكل التصميم في السابق. استعرض إصدارًا صفحة بصفحة، أو استعده كاملًا، أو أنشئ نسخة منه، أو استعد صفحة واحدة فقط.",
+    "de": "Der Versionsverlauf bewahrt frühere Stände des Designs auf. Sieh dir eine Version Seite für Seite an, stelle sie ganz wieder her, mach eine Kopie oder hol nur eine Seite zurück.",
+    "es": "El Historial de versiones guarda cómo era antes el diseño. Revisa una versión página a página, restáurala entera, haz una copia o recupera solo una página.",
+    "fr": "L’Historique des versions garde l’aspect antérieur du design. Parcourez une version page par page, restaurez-la entièrement, faites-en une copie ou récupérez une seule page.",
+    "it": "La Cronologia versioni conserva com'era il design in precedenza. Sfoglia una versione pagina per pagina, ripristinala per intero, creane una copia o recupera una sola pagina.",
+    "ja": "バージョン履歴には、以前のデザインの状態が残ります。バージョンを1ページずつ確認し、まるごと復元したり、コピーを作ったり、1ページだけ戻したりできます。",
+    "pt-BR": "O Histórico de versões guarda como o design era antes. Veja uma versão página por página, restaure-a inteira, faça uma cópia ou recupere só uma página."
   },
   "Version history…": {
     "ar": "سجل الإصدارات…",
@@ -34699,6 +35782,15 @@
     "it": "I video che importi vengono conservati qui.",
     "ja": "取り込んだ動画はここに保存されます。",
     "pt-BR": "Os vídeos que você importa ficam guardados aqui."
+  },
+  "Videos, GIFs and file types": {
+    "ar": "الفيديوهات وصور GIF وأنواع الملفات",
+    "de": "Videos, GIFs und Dateitypen",
+    "es": "Vídeos, GIF y tipos de archivo",
+    "fr": "Vidéos, GIF et types de fichiers",
+    "it": "Video, GIF e tipi di file",
+    "ja": "動画・GIF とファイル形式",
+    "pt-BR": "Vídeos, GIFs e tipos de arquivo"
   },
   "View as": {
     "ar": "العرض كـ",
@@ -35005,6 +36097,15 @@
     "it": "Ciò che dici viene sottotitolato nel video e salvato accanto come .srt.",
     "ja": "話した内容が動画に字幕として入り、.srt として一緒に保存されます。",
     "pt-BR": "O que você diz aparece legendado no vídeo e é salvo junto como .srt."
+  },
+  "What's new": {
+    "ar": "الجديد",
+    "de": "Neuigkeiten",
+    "es": "Novedades",
+    "fr": "Nouveautés",
+    "it": "Novità",
+    "ja": "新機能",
+    "pt-BR": "Novidades"
   },
   "What's on this page": {
     "ar": "محتوى هذه الصفحة",
@@ -35338,6 +36439,15 @@
     "it": "Testo sotto le barre",
     "ja": "バーの下に文字",
     "pt-BR": "Texto sob as barras"
+  },
+  "Work on files without making a design.": {
+    "ar": "تعامل مع الملفات دون إنشاء تصميم.",
+    "de": "Bearbeite Dateien, ohne ein Design zu erstellen.",
+    "es": "Trabaja con archivos sin crear un diseño.",
+    "fr": "Travaillez sur des fichiers sans créer de design.",
+    "it": "Lavora sui file senza creare un design.",
+    "ja": "デザインを作らずにファイルを扱います。",
+    "pt-BR": "Trabalhe com arquivos sem criar um design."
   },
   "Wrap words in **two stars** for bold, *one star* for italic, __two underscores__ for underline and ~~two tildes~~ to strike them through. The rest of the box keeps its own style.": {
     "ar": "أحِط الكلمات بـ **نجمتين** للغامق، و*نجمة واحدة* للمائل، و__شرطتين سفليتين__ للتسطير، و~~علامتي تلدة~~ ليتوسطها خط. يحتفظ باقي المربع بنمطه الخاص.",

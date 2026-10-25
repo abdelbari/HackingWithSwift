@@ -62,6 +62,9 @@ enum EditorSheet: String, Identifiable {
     case details
     /// Crop mode's Expand: the photo grown to a new shape (ExpandSheet).
     case expand
+    /// Help's Show me on planning posts: Plan a post (PlanPostSheet), as
+    /// the export sheet opens it.
+    case planPost
     var id: String { rawValue }
 }
 
@@ -166,6 +169,72 @@ struct EditorView: View {
     /// background, the refusal, with Unlock, instead.
     private func openBackground() {
         if !store.refusesLockedPage() { activeSheet = .background }
+    }
+
+    /// Help's "Show me", or a tool Add's search found, once the sheet that
+    /// asked is gone: SwiftUI drops a second present while the first is
+    /// still leaving.
+    private func openAfterSheet(_ target: HelpTarget) {
+        activeSheet = nil
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            openHelp(target)
+        }
+    }
+
+    /// Where a help topic's "Show me" goes: its sheet, or what the editor
+    /// does — as the Android twin's helpTarget does.
+    private func openHelp(_ target: HelpTarget) {
+        if let sheet = helpSheet(for: target) {
+            if target == .versions { DesignLibrary.snapshot(store.design) }
+            activeSheet = sheet
+            return
+        }
+        switch target {
+        case .style: openBackground()
+        case .present: present()
+        // The timeline turned on, over the pages.
+        case .timeline: timeline = true
+        case .draw: if store.drawing == nil { store.toggleDrawing() }
+        default: break
+        }
+    }
+
+    /// The sheet `target` opens; nil for one that is not a sheet.
+    private func helpSheet(for target: HelpTarget) -> EditorSheet? {
+        let selected = store.singleSelection
+        switch target {
+        case .add: return .insert
+        case .text: return .fonts
+        case .crop: return .crop
+        // A photo's filters with a photo selected; else the background.
+        case .style: return selected?.type == .image ? .filters : nil
+        case .layers: return .layers
+        case .theme: return .theme
+        case .find: return .find
+        case .versions: return .history
+        // Print is on the export sheet, as Plan a post is.
+        case .export, .print: return .export
+        case .resize: return .resize
+        case .pages: return .pages
+        case .snapping: return .snapping
+        case .shadow: return .shadow
+        case .brand: return .brand
+        case .planner: return .planPost
+        case .audio: return .audio
+        // A clip's captions are in its Clip sheet; else the voice-over's,
+        // in Audio.
+        case .captions: return selected.map { VideoStore.isVideo($0.src) } == true ? .clip : .audio
+        case .bulk: return .bulk
+        case .a11yCheck: return .accessibility
+        // A selected chart's or table's own sheet; else Add, where they
+        // come from.
+        case .chartData: return store.selectedChart != nil ? .chart : .insert
+        case .table: return store.tableSelection != nil ? .table : .insert
+        // Back up everything is in Settings.
+        case .backup: return .settings
+        case .present, .timeline, .draw: return nil
+        }
     }
 
     /// The editor's stack and the modifiers that answer the canvas — split
@@ -1731,7 +1800,7 @@ struct EditorView: View {
     private func sheetView(_ sheet: EditorSheet) -> some View {
         switch sheet {
         case .insert:
-            InsertSheet(store: store, uploads: insertUploads)
+            InsertSheet(store: store, uploads: insertUploads) { target in openAfterSheet(target) }
         case .colorFill:
             // An SVG's line or outline part takes a colour as its ink.
             ColorPickerSheet(store: store, title: tr("Fill colour"),
@@ -1915,16 +1984,12 @@ struct EditorView: View {
                     }
             }
             .presentationDetents([.medium, .large])
+        case .planPost:
+            PlanPostSheet(store: store)
         case .help:
             // The help sheet is itself presented; the one it opens has to
             // wait for it to be gone, or SwiftUI drops the second present.
-            HelpSheet { sheet in
-                activeSheet = nil
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(400))
-                    activeSheet = sheet
-                }
-            }
+            HelpSheet { target in openAfterSheet(target) }
         }
     }
 

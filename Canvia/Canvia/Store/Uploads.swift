@@ -25,6 +25,15 @@
 // "scripts" it covers (FontLibrary.scriptKeys). An entry an earlier build
 // wrote without them is described from its file once (FontStore.installed).
 // See CustomFonts and FontStore.
+//
+// Deleted from Home or Add, an entry is kept with "deleted": when, in epoch
+// milliseconds, and its file stays: it waits in Recently deleted, hidden
+// from Add, Home's Uploads and search, while a design that shows it goes on
+// showing it. Restored, the key goes; after DesignLibrary.trashRetention
+// the launch sweep takes the entry off the list (swept), and the file goes
+// with the prune that follows unless a design, a version, a brand kit or a
+// template still uses it. The Android twin's Uploads.trashing by the same
+// rules, with the shared fixture uploads-trash.json.
 
 import Foundation
 
@@ -47,6 +56,9 @@ enum Uploads {
         /// For a clip converted as it came in (VideoImport), how many
         /// bytes it was before; nil for one kept as it came.
         var optimisedFrom: Int64? = nil
+        /// When it went to Recently deleted, in epoch milliseconds; nil
+        /// while it is not there.
+        var deleted: Double? = nil
     }
 
     /// A font of your own, as uploads.json lists it.
@@ -69,6 +81,10 @@ enum Uploads {
         var described: Bool
         /// The scripts it covers, when the entry says (FontLibrary.covers).
         var scripts: [String]?
+        /// When it went to Recently deleted, in epoch milliseconds; nil
+        /// while it is not there. Its file stays registered meanwhile, so
+        /// a text set in it still draws.
+        var deleted: Double? = nil
 
         init(id: String, name: String, file: String, added: Double, family: String? = nil, weight: Int = 400,
              italic: Bool = false, wght: ClosedRange<Double>? = nil, described: Bool = true,
@@ -104,8 +120,26 @@ enum Uploads {
 
     // MARK: reading
 
-    /// Every upload whose file is still here, newest first.
+    /// Every upload whose file is still here, newest first — those in
+    /// Recently deleted left out.
     static func all() -> [Entry] {
+        withTrashed().filter { $0.deleted == nil }
+    }
+
+    /// The uploads in Recently deleted whose files are still here, the last
+    /// deleted first.
+    static func trashed() -> [Entry] {
+        withTrashed().filter { $0.deleted != nil }.sorted { ($0.deleted ?? 0) > ($1.deleted ?? 0) }
+    }
+
+    /// The fonts of your own in Recently deleted, the last deleted first.
+    static func trashedFonts() -> [FontEntry] {
+        fonts().filter { $0.deleted != nil }.sorted { ($0.deleted ?? 0) > ($1.deleted ?? 0) }
+    }
+
+    /// Every upload whose file is still here, in Recently deleted or not,
+    /// newest first: what a backup keeps, and Storage counts.
+    static func withTrashed() -> [Entry] {
         lock.lock()
         let raw = list()
         lock.unlock()
@@ -230,7 +264,7 @@ enum Uploads {
                   let id = item["id"] as? String, CustomFonts.sha(CustomFonts.key(id)) != nil else { return nil }
             let name = (item["name"] as? String) ?? id
             let weight = (item["weight"] as? NSNumber)?.intValue
-            return FontEntry(id: id, name: name,
+            var entry = FontEntry(id: id, name: name,
                              file: (item["file"] as? String) ?? "\(id).ttf",
                              added: (item["added"] as? NSNumber)?.doubleValue ?? 0,
                              family: item["family"] as? String,
@@ -239,6 +273,8 @@ enum Uploads {
                              wght: wghtAxis(item),
                              described: weight != nil,
                              scripts: item["scripts"] as? [String])
+            entry.deleted = deletedTime(item)
+            return entry
         }
         .enumerated()
         .sorted { $0.element.added != $1.element.added ? $0.element.added > $1.element.added : $0.offset > $1.offset }
@@ -319,6 +355,106 @@ enum Uploads {
         let raw = list()
         let moved = refiled(raw, from: from, to: to)
         if !NSArray(array: moved).isEqual(to: raw) { write(moved) }
+    }
+
+    // MARK: Recently deleted
+
+    /// The key an entry's time in Recently deleted is kept under.
+    static let deletedKey = "deleted"
+
+    /// When `item` went to Recently deleted: a number, in epoch
+    /// milliseconds; nil for none, or anything else kept there.
+    static func deletedTime(_ item: [String: Any]) -> Double? {
+        guard let number = item[deletedKey] as? NSNumber, !(item[deletedKey] is Bool) else { return nil }
+        return number.doubleValue
+    }
+
+    /// `raw` with `ids` in Recently deleted from `now` (epoch ms); one there
+    /// already keeps its time. Anything else each holds as it was.
+    static func trashing(_ raw: [[String: Any]], ids: Set<String>, now: Double) -> [[String: Any]] {
+        raw.map { item in
+            guard let id = item["id"] as? String, ids.contains(id), deletedTime(item) == nil else { return item }
+            var out = item
+            out[deletedKey] = Int64(now.rounded())
+            return out
+        }
+    }
+
+    /// `raw` with `ids` out of Recently deleted, where they were.
+    static func restoring(_ raw: [[String: Any]], ids: Set<String>) -> [[String: Any]] {
+        raw.map { item in
+            guard let id = item["id"] as? String, ids.contains(id), item[deletedKey] != nil else { return item }
+            var out = item
+            out[deletedKey] = nil
+            return out
+        }
+    }
+
+    /// The ids in `raw` deleted longer ago than Recently deleted keeps
+    /// them, at `now` (epoch ms): before now − 30 days, as a design's; one
+    /// deleted exactly 30 days ago stays this launch.
+    static func stale(_ raw: [[String: Any]], now: Double) -> [String] {
+        let cutoff = now - DesignLibrary.trashRetention * 1000
+        return raw.compactMap { item in
+            guard let id = item["id"] as? String, let when = deletedTime(item), when < cutoff else { return nil }
+            return id
+        }
+    }
+
+    /// What the launch sweep leaves of `raw` at `now`: those `stale` off
+    /// the list, the rest as they were.
+    static func swept(_ raw: [[String: Any]], now: Double) -> [[String: Any]] {
+        let gone = Set(stale(raw, now: now))
+        return raw.filter { item in !gone.contains(item["id"] as? String ?? "") }
+    }
+
+    /// Uploads `ids` to Recently deleted now: hidden from Add, Home's
+    /// Uploads and search, their files left where they are.
+    static func trash(_ ids: [String]) {
+        trash(ids, at: Date().timeIntervalSince1970 * 1000)
+    }
+
+    /// The same, deleted at `at`, in epoch milliseconds.
+    static func trash(_ ids: [String], at: Double) {
+        lock.lock()
+        defer { lock.unlock() }
+        write(trashing(list(), ids: Set(ids), now: at))
+    }
+
+    /// Uploads `ids` back out of Recently deleted.
+    static func restore(_ ids: [String]) {
+        lock.lock()
+        defer { lock.unlock() }
+        write(restoring(list(), ids: Set(ids)))
+    }
+
+    /// The launch sweep's part, before the prune: what has waited thirty
+    /// days in Recently deleted off the list, so the prune takes each
+    /// photo's, clip's or song's file unless something still uses it.
+    /// Returns the fonts it took off, whose files no prune reads.
+    @discardableResult
+    static func sweepTrash(now: Date = Date()) -> [String] {
+        lock.lock()
+        let raw = list()
+        let ms = now.timeIntervalSince1970 * 1000
+        let gone = Set(stale(raw, now: ms))
+        if !gone.isEmpty { write(swept(raw, now: ms)) }
+        lock.unlock()
+        let fonts = raw.filter { gone.contains($0["id"] as? String ?? "") && $0["kind"] as? String == fontKind }
+        return fonts.compactMap { $0["id"] as? String }
+    }
+
+    /// An upload out of Recently deleted for good: off the list and
+    /// unstarred — or the star would keep its file — its file left for the
+    /// next launch sweep, which takes it once nothing uses it; a font's
+    /// file goes now, as deleting one always did.
+    static func deleteForever(_ id: String, font: Bool) {
+        if font {
+            FontStore.remove(id)
+        } else {
+            remove(id)
+            if Favorites.isFavorite("upload", id) { Favorites.toggle("upload", id) }
+        }
     }
 
     /// The entries `raw` lists, for a test: as all() reads them, whether
@@ -490,7 +626,8 @@ enum Uploads {
             let optimised = item[VideoImport.optimisedKey] as? Bool == true
             return Entry(id: id, kind: kind, added: added, fileName: item["name"] as? String,
                          folder: DesignLibrary.folderName(item[folderKey] as? String),
-                         optimisedFrom: optimised ? (item[VideoImport.originalBytesKey] as? NSNumber)?.int64Value : nil)
+                         optimisedFrom: optimised ? (item[VideoImport.originalBytesKey] as? NSNumber)?.int64Value : nil,
+                         deleted: deletedTime(item))
         }
     }
 
