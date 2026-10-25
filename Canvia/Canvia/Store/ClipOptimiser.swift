@@ -91,6 +91,8 @@ final class ClipOptimiser {
 
     private func convert(_ id: String) async {
         defer {
+            // An early return leaves no Keep original behind for a later turn.
+            keptOriginal.remove(id)
             running = nil
             session = nil
             next()
@@ -116,6 +118,12 @@ final class ClipOptimiser {
             session.videoComposition = composition
         }
         self.session = session
+        // Keep original tapped while the clip was still being read: there
+        // was no session to cancel then, so stop before it starts.
+        if keptOriginal.contains(id) {
+            try? FileManager.default.removeItem(at: out)
+            return
+        }
         let ticking = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(250))
