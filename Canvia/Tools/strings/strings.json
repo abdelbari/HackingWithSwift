@@ -12920,6 +12920,15 @@
     "ja": "形を編集",
     "pt-BR": "Editar forma"
   },
+  "Edit speech": {
+    "ar": "تعديل الكلام",
+    "de": "Sprache bearbeiten",
+    "es": "Editar voz",
+    "fr": "Modifier la voix",
+    "it": "Modifica voce",
+    "ja": "読み上げを編集",
+    "pt-BR": "Editar fala"
+  },
   "Edit text": {
     "ar": "تعديل النص",
     "de": "Text bearbeiten",
@@ -16498,6 +16507,15 @@
     "it": "Post Instagram (1080)",
     "ja": "Instagram 投稿（1080）",
     "pt-BR": "Post do Instagram (1080)"
+  },
+  "Install voices": {
+    "ar": "تثبيت الأصوات",
+    "de": "Stimmen installieren",
+    "es": "Instalar voces",
+    "fr": "Installer des voix",
+    "it": "Installa voci",
+    "ja": "音声をインストール",
+    "pt-BR": "Instalar vozes"
   },
   "Instant square": {
     "ar": "صورة فورية مربعة",
@@ -20297,6 +20315,15 @@
     "ja": "「%@」に一致する動画はありません",
     "pt-BR": "Nenhum vídeo corresponde a “%@”"
   },
+  "No voice for this language is installed on this phone.": {
+    "ar": "لا يوجد صوت مثبّت لهذه اللغة على هذا الهاتف.",
+    "de": "Auf diesem Telefon ist keine Stimme für diese Sprache installiert.",
+    "es": "No hay ninguna voz instalada para este idioma en este teléfono.",
+    "fr": "Aucune voix pour cette langue n'est installée sur ce téléphone.",
+    "it": "Su questo telefono non è installata alcuna voce per questa lingua.",
+    "ja": "この端末にはこの言語の音声がインストールされていません。",
+    "pt-BR": "Nenhuma voz para este idioma está instalada neste celular."
+  },
   "No voice to read with. Add one in Settings, under Text-to-speech.": {
     "ar": "لا يوجد صوت للقراءة. أضف واحدًا في الإعدادات، ضمن تحويل النص إلى كلام.",
     "de": "Keine Stimme zum Vorlesen. Füge in den Einstellungen unter „Sprachausgabe“ eine hinzu.",
@@ -22858,6 +22885,15 @@
     "it": "Fissato",
     "ja": "ピン留め",
     "pt-BR": "Fixado"
+  },
+  "Pitch": {
+    "ar": "طبقة الصوت",
+    "de": "Tonhöhe",
+    "es": "Tono",
+    "fr": "Hauteur",
+    "it": "Tono",
+    "ja": "ピッチ",
+    "pt-BR": "Tom"
   },
   "Pixel size": {
     "ar": "حجم البكسل",
@@ -29264,6 +29300,15 @@
     "ja": "文字サイズ",
     "pt-BR": "Tamanho do texto"
   },
+  "Text to speech": {
+    "ar": "تحويل النص إلى كلام",
+    "de": "Text zu Sprache",
+    "es": "Texto a voz",
+    "fr": "Synthèse vocale",
+    "it": "Sintesi vocale",
+    "ja": "テキスト読み上げ",
+    "pt-BR": "Texto para fala"
+  },
   "Text, photos, shapes, stickers, charts and QR codes. Draw freehand with the pen, or drop pictures in from other apps.": {
     "ar": "نصوص وصور وأشكال وملصقات ومخططات ورموز QR. ارسم بحرية بالقلم، أو أفلت الصور من تطبيقات أخرى.",
     "de": "Text, Fotos, Formen, Sticker, Diagramme und QR-Codes. Zeichne freihändig mit dem Stift oder ziehe Bilder aus anderen Apps hinein.",
@@ -29915,6 +29960,15 @@
     "ja": "選択範囲",
     "pt-BR": "A seleção"
   },
+  "The speech could not be kept.": {
+    "ar": "تعذّر حفظ الكلام.",
+    "de": "Die Sprachaufnahme konnte nicht gespeichert werden.",
+    "es": "No se pudo guardar la voz.",
+    "fr": "La voix n'a pas pu être enregistrée.",
+    "it": "Non è stato possibile salvare la voce.",
+    "ja": "読み上げを保存できませんでした。",
+    "pt-BR": "Não foi possível guardar a fala."
+  },
   "The spelling checker didn't answer. Try again in a moment.": {
     "ar": "لم يستجب المدقق الإملائي. حاول مرة أخرى بعد قليل.",
     "de": "Die Rechtschreibprüfung hat nicht geantwortet. Versuche es gleich noch einmal.",
@@ -29941,6 +29995,15 @@
     "it": "Il video è %d × %d.",
     "ja": "動画のサイズは %d × %d です。",
     "pt-BR": "O vídeo tem %d × %d."
+  },
+  "The voice could not read that.": {
+    "ar": "تعذّر على الصوت قراءة ذلك.",
+    "de": "Die Stimme konnte das nicht vorlesen.",
+    "es": "La voz no pudo leer eso.",
+    "fr": "La voix n'a pas pu lire ce texte.",
+    "it": "La voce non è riuscita a leggerlo.",
+    "ja": "音声で読み上げられませんでした。",
+    "pt-BR": "A voz não conseguiu ler isso."
   },
   "The welcome tour shows next time you're on Home.": {
     "ar": "ستظهر الجولة الترحيبية في المرة القادمة التي تكون فيها في الرئيسية.",
@@ -30400,6 +30463,15 @@
     "it": "Questo telefono disegna %@ come Normale; viene mantenuto e si vede su iPhone o su Android 10 e successivi.",
     "ja": "このスマートフォンでは %@ を「標準」として描画します。設定は保持され、iPhone や Android 10 以降では表示されます。",
     "pt-BR": "Este celular desenha %@ como Normal; o modo é mantido e aparece em um iPhone ou no Android 10 e posteriores."
+  },
+  "This phone has no voices to install.": {
+    "ar": "لا توجد أصوات لتثبيتها على هذا الهاتف.",
+    "de": "Dieses Telefon hat keine Stimmen zum Installieren.",
+    "es": "Este teléfono no tiene voces para instalar.",
+    "fr": "Ce téléphone n'a pas de voix à installer.",
+    "it": "Questo telefono non ha voci da installare.",
+    "ja": "この端末にはインストールできる音声がありません。",
+    "pt-BR": "Este celular não tem vozes para instalar."
   },
   "This phone keeps the focus circle sharp; an iPhone keeps the subject itself sharp.": {
     "ar": "يُبقي هذا الهاتف دائرة التركيز واضحة؛ أما iPhone فيُبقي العنصر الرئيسي نفسه واضحًا.",
@@ -32429,6 +32501,15 @@
     "ja": "ビビッド",
     "pt-BR": "Vívido"
   },
+  "Voice": {
+    "ar": "الصوت",
+    "de": "Stimme",
+    "es": "Voz",
+    "fr": "Voix",
+    "it": "Voce",
+    "ja": "音声",
+    "pt-BR": "Voz"
+  },
   "Voice level": {
     "ar": "مستوى الصوت البشري",
     "de": "Stimmpegel",
@@ -32968,6 +33049,15 @@
     "it": "Le parole stanno dentro la forma. Aggiungi parole qui, o tocca due volte la forma, per scriverle sopra.",
     "ja": "文字は図形の中に配置されます。ここで文字を追加するか、図形をダブルタップして入力してください。",
     "pt-BR": "As palavras ficam dentro da forma. Adicione palavras aqui, ou toque duas vezes na forma, para digitá-las nela."
+  },
+  "Words to speak": {
+    "ar": "الكلمات المراد نطقها",
+    "de": "Zu sprechender Text",
+    "es": "Texto que se leerá",
+    "fr": "Texte à lire",
+    "it": "Testo da leggere",
+    "ja": "読み上げる文章",
+    "pt-BR": "Texto a ser falado"
   },
   "Words under the bars": {
     "ar": "النص أسفل الأشرطة",

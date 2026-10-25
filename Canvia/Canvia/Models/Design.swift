@@ -541,7 +541,10 @@ struct PresentSettings: Codable, Equatable {
 /// into a track (AudioTracks.detached) has the clip's own source,
 /// "video:<VideoStore id>", and is read from the clip's file. `enhance` is
 /// true while Enhance voice cleans and levels it (VoiceEnhance), and
-/// written only then.
+/// written only then. `tts` is what a spoken track was read from — its
+/// words, voice, speed and pitch (Narration) — so Edit speech reads it
+/// again in place; written only for one, and a build that does not know it
+/// just plays the file.
 struct AudioTrack: Codable, Equatable, Identifiable {
     var id: String = UID.make("track")
     var src: String
@@ -555,6 +558,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     var name: String = ""
     var beatSync: Bool = false
     var enhance: Bool = false
+    var tts: Narration.Spec?
 
     static let prefix = "audio:"
     /// A built-in sound effect's source: "sfx:<id>" (SoundEffects).
@@ -661,7 +665,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, src, start, trimStart, trimEnd, volume, fadeIn, fadeOut, loop, name, beatSync, enhance
+        case id, src, start, trimStart, trimEnd, volume, fadeIn, fadeOut, loop, name, beatSync, enhance, tts
     }
 
     init(from decoder: Decoder) throws {
@@ -685,11 +689,12 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
         beatSync = (try? c.decodeIfPresent(Bool.self, forKey: .beatSync)) == true
         enhance = (try? c.decodeIfPresent(Bool.self, forKey: .enhance)) == true
+        tts = try? c.decodeIfPresent(Narration.Spec.self, forKey: .tts)
     }
 
     /// Every key but `trimEnd`, which is written only when the track stops
-    /// short of its file's end, and `beatSync` and `enhance`, written only
-    /// when on.
+    /// short of its file's end, `beatSync` and `enhance`, written only
+    /// when on, and `tts`, only for a spoken track.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
@@ -704,6 +709,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         try c.encode(name, forKey: .name)
         if beatSync { try c.encode(true, forKey: .beatSync) }
         if enhance { try c.encode(true, forKey: .enhance) }
+        try c.encodeIfPresent(tts, forKey: .tts)
     }
 
     /// One track of an `audio` array: none, rather than the whole array,

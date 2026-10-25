@@ -234,6 +234,24 @@ extension DesignStore {
         }
     }
 
+    /// Words read into audio `id` (Text to speech) as a new track, last in
+    /// the list, as one step: from where the page on screen starts in the
+    /// film, named for its first words and keeping what it was spoken from
+    /// (Narration.track), as on the Android twin.
+    @discardableResult
+    func addSpokenTrack(_ id: String, spec: Narration.Spec) -> AudioTrack {
+        let track = Narration.track(audioId: id, spec: spec, start: AudioMix.pageStart(design: design, index: pageIndex))
+        apply { $0.audioTracks.append(track) }
+        return track
+    }
+
+    /// Spoken track `trackId` read again into audio `id` (Edit speech), as
+    /// one step: its file, name and words new, its start, trim, volume,
+    /// fades and loop kept (Narration.regenerated).
+    func respeakTrack(_ trackId: String, audioId id: String, spec: Narration.Spec) {
+        updateAudioTrack(trackId) { $0 = Narration.regenerated($0, audioId: id, spec: spec) }
+    }
+
     /// One of the built-in sound effects as a new track, last in the list,
     /// as one step: from where the page on screen starts in the film, once,
     /// called by its name (SoundEffects.track), as on the Android twin.

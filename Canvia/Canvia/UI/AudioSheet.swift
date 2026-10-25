@@ -30,6 +30,8 @@ struct AudioSheet: View {
     @State private var showingEffects = false
     /// The built-in music, over the list.
     @State private var showingMusic = false
+    /// Text to speech, over the list.
+    @State private var speaking = false
     /// The track open over the list, by id.
     @State private var path: [String] = []
 
@@ -61,6 +63,7 @@ struct AudioSheet: View {
         .fileImporter(isPresented: $importing, allowedContentTypes: [.audio]) { result in
             bringIn(result)
         }
+        .sheet(isPresented: $speaking) { TextToSpeechSheet(store: store) }
         .task(id: tracks.compactMap(\.audioId)) { await readLengths() }
         // Check accessibility's Add captions on a voice-over: its track,
         // which opens its captions (AudioTrackView).
@@ -156,6 +159,10 @@ struct AudioSheet: View {
             }
             Button { startRecording() } label: {
                 Label("Record voice-over", systemImage: "mic")
+            }
+            // Beside Record: words read by one of the phone's voices.
+            Button { speaking = true } label: {
+                Label("Text to speech", systemImage: "person.wave.2")
             }
             if !tracks.isEmpty { playButton }
         }
@@ -254,6 +261,8 @@ struct AudioTrackView: View {
     @State private var draftFadeOut: Double?
     /// The Captions sheet, over this one.
     @State private var captioning = false
+    /// Edit speech, over the track.
+    @State private var speakingAgain = false
     /// The song's beats, once read, ticked over its waveform.
     @State private var beats: [Double] = []
     /// Beat Sync reading the song's beats before it turns on.
@@ -274,6 +283,7 @@ struct AudioTrackView: View {
                     write { $0.enhance = on }
                 }
                 beatSection(track)
+                speechSection(track)
                 captionsSection(track)
                 Section {
                     Button(role: .destructive) { delete() } label: {
@@ -302,6 +312,21 @@ struct AudioTrackView: View {
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(400))
                 captioning = true
+            }
+        }
+    }
+
+    /// A spoken track's words, read again in place (Narration).
+    @ViewBuilder
+    private func speechSection(_ track: AudioTrack) -> some View {
+        if track.tts != nil {
+            Section {
+                Button {
+                    speakingAgain = true
+                } label: {
+                    Label("Edit speech", systemImage: "person.wave.2")
+                }
+                .sheet(isPresented: $speakingAgain) { TextToSpeechSheet(store: store, editing: track.id) }
             }
         }
     }
