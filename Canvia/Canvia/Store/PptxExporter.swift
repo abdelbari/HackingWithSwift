@@ -210,10 +210,10 @@ enum PptxExporter {
         // preset or path has no crop of its own.
         if GraphicClip.ownRect(el) != nil { return .picture }
         if el.shadow != nil && !(styled && el.type == .text) { return .picture }
-        // A sticker's or a graphic's outline or glow (PhotoEffects
-        // .takesDrawnEdge) is a picture: a group's laid under its shapes
-        // alone, a shape on its own with it.
-        if el.edgeOnly || (el.type == .shape && PhotoEffects.hasDrawnEdge(el)) { return .picture }
+        // A graphic's outline or glow laid alone (Element.edgeOnly) is a
+        // picture under its shape or shapes (drawnElements), which stay
+        // shapes.
+        if el.edgeOnly { return .picture }
         let flipped = el.flipH || el.flipV
         switch el.type {
         case .text:
@@ -371,13 +371,50 @@ enum PptxExporter {
     static func drawnElements(design: Design, page: Page) -> [Element] {
         let pageNumber = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
         // A graphic's outline or glow as a picture under its shapes, which
-        // stay shapes (PhotoEffects.withGroupEdges).
-        return PhotoEffects.withGroupEdges(design.drawnElements(on: PageAnimation.playing(page))).map { el in
+        // stay shapes (PhotoEffects.withGroupEdges, shapeEdges).
+        let laid = PhotoEffects.withGroupEdges(design.drawnElements(on: PageAnimation.playing(page)))
+        return shapeEdges(laid).map { el in
             var resolved = el
             if ShapeText.carriesWords(el) {
                 resolved.fillPageTokens(number: pageNumber, count: design.pages.count)
             }
             return resolved
+        }
+    }
+
+    /// `drawn` with each shape in no group that has a drawn edge and goes
+    /// out as a shape laid as two: its edge alone, a picture, just under
+    /// it, and the shape without its edge — so it stays editable, as the
+    /// Android twin's PptxWriter lays its underlay. A shape that goes out
+    /// as a picture anyway keeps its edge in that picture.
+    static func shapeEdges(_ drawn: [Element]) -> [Element] {
+        var out: [Element] = []
+        for el in drawn {
+            guard el.group == nil, el.type == .shape, !el.edgeOnly, PhotoEffects.hasDrawnEdge(el) else {
+                out.append(el)
+                continue
+            }
+            var bare = el
+            bare.edge = nil
+            guard isShapeForm(form(of: bare)) else {
+                out.append(el)
+                continue
+            }
+            var only = el
+            only.id = el.id + "#edge"
+            only.edgeOnly = true
+            only.shadow = nil
+            out.append(only)
+            out.append(bare)
+        }
+        return out
+    }
+
+    /// Whether `form` is a shape PowerPoint edits — a preset or its outline.
+    static func isShapeForm(_ form: Form) -> Bool {
+        switch form {
+        case .shape, .geometry: return true
+        default: return false
         }
     }
 
