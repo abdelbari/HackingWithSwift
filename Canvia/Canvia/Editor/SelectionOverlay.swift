@@ -355,7 +355,7 @@ struct SelectionOverlay: View {
     /// began with (DesignStore.heldTurnSide), so the handle under the thumb
     /// never jumps across mid-gesture — as the Android twin holds it.
     private static func turnSide(_ el: Element, outsetY: Double, iz: Double, store: DesignStore) -> Geometry.TurnSide {
-        if store.canvasTouchActive, let held = store.heldTurnSide, held.id == el.id { return held.side }
+        if store.hasPendingChanges, let held = store.heldTurnSide, held.id == el.id { return held.side }
         return Geometry.turnHandleSide(el, outsetY: outsetY, offset: 28 * iz, reachable: reachable(store))
     }
 
