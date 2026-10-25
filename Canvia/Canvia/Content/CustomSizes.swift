@@ -104,6 +104,14 @@ enum CustomSizes {
         return landscape ? (long, short) : (short, long)
     }
 
+    /// Which way `width` × `height` stands: true landscape, false portrait,
+    /// nil for a square, which has no way round — Resize's Portrait |
+    /// Landscape shows it, and is off for a square. The Android twin's
+    /// SizePresets.isLandscape.
+    static func isLandscape(width: Double, height: Double) -> Bool? {
+        width == height ? nil : width > height
+    }
+
     /// The fields as Portrait or Landscape leaves them: swapped when what
     /// they hold stands the other way; as they are when square, or when
     /// either does not read as a number.

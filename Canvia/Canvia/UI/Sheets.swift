@@ -2452,9 +2452,11 @@ struct ResizeSheet: View {
     @State private var unit = "px"
     @State private var reflow = true
     @State private var pageOnly = false
-    /// Portrait | Landscape: the way a preset chosen stands, and the
-    /// custom fields with it (CustomSizes.turned); nil, as each preset
-    /// stands, until one is picked.
+    /// The preset chosen to resize to, by id; nil while the size is the
+    /// one typed under Custom. It opens on the page's own size's preset.
+    @State private var chosen: String?
+    /// Portrait | Landscape picked for the chosen preset: it turned to stand
+    /// that way (CustomSizes.turned); nil as the preset is listed.
     @State private var landscape: Bool?
     @State private var ticked: [ResizeTarget] = []
     @State private var progress: String?
@@ -2476,6 +2478,14 @@ struct ResizeSheet: View {
         _unit = State(initialValue: own)
         _customW = State(initialValue: Units.format(Units.value(ofPixels: store.pageWidth, unit: own, dpi: dpi), unit: own))
         _customH = State(initialValue: Units.format(Units.value(ofPixels: store.pageHeight, unit: own, dpi: dpi), unit: own))
+        // The preset the page is now, either way round, in the design's
+        // unit — turned, when it stands the other way — as on Android.
+        let w = store.pageWidth, h = store.pageHeight
+        let match = SizePreset.all.first { p in
+            p.unit == store.design.physicalUnit && ((p.w == w && p.h == h) || (p.w == h && p.h == w))
+        }
+        _chosen = State(initialValue: match?.id)
+        _landscape = State(initialValue: match.flatMap { $0.w != w ? CustomSizes.isLandscape(width: w, height: h) : nil })
     }
 
     private func resize(_ w: Double, _ h: Double, units: UnitChoice) {
@@ -2553,42 +2563,73 @@ struct ResizeSheet: View {
             ForEach(SizePreset.all) { preset in
                 presetRow(preset)
             }
+            if let preset = chosenPreset {
+                presetButton(preset)
+            }
         }
+        // A size typed under Custom is not remembered among the recent
+        // sizes: only a preset is, on both phones.
         ResizeCustomSection(customW: $customW, customH: $customH, unit: $unit) { w, h in
             resize(w, h, units: .typed(unit))
             dismiss()
         }
+        .onChange(of: customW) { _, _ in chosen = nil }
+        .onChange(of: customH) { _, _ in chosen = nil }
     }
 
-    /// Portrait | Landscape, under the Presets heading: once picked, every
-    /// preset that is not square turned to stand that way, and the custom
-    /// fields with it.
+    private var chosenPreset: SizePreset? {
+        chosen.flatMap { id in SizePreset.all.first { $0.id == id } }
+    }
+
+    /// `preset` turned the way picked for it, or as it is listed.
+    private func turnedSize(_ preset: SizePreset) -> (width: Double, height: Double) {
+        landscape.map { CustomSizes.turned(width: preset.w, height: preset.h, landscape: $0) }
+            ?? (width: preset.w, height: preset.h)
+    }
+
+    /// The size Resize makes: the chosen preset, turned the way picked, or
+    /// the size typed under Custom.
+    private var target: (width: Double, height: Double)? {
+        guard let preset = chosenPreset else { return CustomSizes.size(width: customW, height: customH, unit: unit) }
+        return turnedSize(preset)
+    }
+
+    /// Portrait | Landscape, under the Presets heading: the way the size
+    /// Resize makes stands — the chosen preset, or the size typed — and off
+    /// for a square. Picking the other way turns the chosen preset (A4 to
+    /// 297 × 210 mm) or swaps the fields typed. Both phones' rule.
     private var orientationRow: some View {
-        Picker(selection: $landscape) {
+        let wide = target.flatMap { CustomSizes.isLandscape(width: $0.width, height: $0.height) }
+        return Picker(selection: Binding(get: { wide }, set: { turn(to: $0) })) {
             Text("Portrait").tag(Bool?.some(false))
             Text("Landscape").tag(Bool?.some(true))
         } label: {
             EmptyView()
         }
         .pickerStyle(.segmented)
-        .onChange(of: landscape) { _, turned in
-            guard let turned else { return }
-            let fields = CustomSizes.turnedFields(width: customW, height: customH, landscape: turned)
+        .disabled(wide == nil)
+    }
+
+    private func turn(to pick: Bool?) {
+        guard let pick else { return }
+        if chosen != nil {
+            landscape = pick
+        } else {
+            let fields = CustomSizes.turnedFields(width: customW, height: customH, landscape: pick)
             customW = fields.width
             customH = fields.height
         }
     }
 
-    /// A preset, turned the way chosen: a tap resizes to it — one step,
-    /// Reflow or Scale, the whole design or this page — and it joins the
-    /// recent sizes as it was made.
+    /// A preset to resize to: a tap chooses it as it is listed, for
+    /// Portrait | Landscape to turn; the chosen one is ticked, at the size
+    /// it will make.
     private func presetRow(_ preset: SizePreset) -> some View {
-        let size = landscape.map { CustomSizes.turned(width: preset.w, height: preset.h, landscape: $0) }
-            ?? (width: preset.w, height: preset.h)
+        let picked = chosen == preset.id
+        let size = picked ? turnedSize(preset) : (width: preset.w, height: preset.h)
         return Button {
-            resize(size.width, size.height, units: UnitChoice(unit: preset.unit, dpi: preset.dpi))
-            CustomSizes.remember(width: size.width, height: size.height)
-            dismiss()
+            chosen = preset.id
+            landscape = nil
         } label: {
             HStack {
                 Label(preset.name, systemImage: preset.icon)
@@ -2596,9 +2637,27 @@ struct ResizeSheet: View {
                 Text(Units.dimensions(width: size.width, height: size.height, unit: preset.unit, dpi: preset.dpi))
                     .foregroundStyle(.secondary)
                     .font(.footnote)
+                if picked {
+                    Image(systemName: "checkmark").foregroundStyle(.tint)
+                }
             }
         }
         .foregroundStyle(.primary)
+        .accessibilityAddTraits(picked ? .isSelected : [])
+    }
+
+    /// Resize to the chosen preset — one step, Reflow or Scale, the whole
+    /// design or this page — and it joins the recent sizes as it was made,
+    /// turned if it was turned.
+    private func presetButton(_ preset: SizePreset) -> some View {
+        let size = turnedSize(preset)
+        let title = Units.dimensions(width: size.width, height: size.height, unit: preset.unit, dpi: preset.dpi)
+        return Button(tr("Resize to %@", title)) {
+            resize(size.width, size.height, units: UnitChoice(unit: preset.unit, dpi: preset.dpi))
+            CustomSizes.remember(width: size.width, height: size.height)
+            dismiss()
+        }
+        .fontWeight(.semibold)
     }
 
     /// One copy per size ticked, of the design as it is on screen; this

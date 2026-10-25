@@ -144478,7 +144478,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dahinterliegendes auswählen"
+            "value" : "Dahinter auswählen"
           }
         },
         "en" : {
@@ -144496,13 +144496,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sélectionner ce qui est derrière"
+            "value" : "Sélectionner derrière"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seleziona ciò che sta dietro"
+            "value" : "Seleziona dietro"
           }
         },
         "ja" : {
@@ -144531,7 +144531,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dahinterliegendes auswählen ▸"
+            "value" : "Dahinter auswählen ▸"
           }
         },
         "en" : {
@@ -144549,13 +144549,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sélectionner ce qui est derrière ▸"
+            "value" : "Sélectionner derrière ▸"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seleziona ciò che sta dietro ▸"
+            "value" : "Seleziona dietro ▸"
           }
         },
         "ja" : {

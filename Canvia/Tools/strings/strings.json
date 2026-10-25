@@ -25183,19 +25183,19 @@
   },
   "Select behind": {
     "ar": "تحديد ما خلفه",
-    "de": "Dahinterliegendes auswählen",
+    "de": "Dahinter auswählen",
     "es": "Seleccionar lo de detrás",
-    "fr": "Sélectionner ce qui est derrière",
-    "it": "Seleziona ciò che sta dietro",
+    "fr": "Sélectionner derrière",
+    "it": "Seleziona dietro",
     "ja": "背面を選択",
     "pt-BR": "Selecionar o que está atrás"
   },
   "Select behind ▸": {
     "ar": "تحديد ما خلفه ◂",
-    "de": "Dahinterliegendes auswählen ▸",
+    "de": "Dahinter auswählen ▸",
     "es": "Seleccionar lo de detrás ▸",
-    "fr": "Sélectionner ce qui est derrière ▸",
-    "it": "Seleziona ciò che sta dietro ▸",
+    "fr": "Sélectionner derrière ▸",
+    "it": "Seleziona dietro ▸",
     "ja": "背面を選択 ▸",
     "pt-BR": "Selecionar o que está atrás ▸"
   },

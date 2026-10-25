@@ -46,6 +46,15 @@ final class ResizeOrientationTests: XCTestCase {
         XCTAssertEqual(CustomSizes.turnedFields(width: "", height: "900", landscape: true).height, "900")
     }
 
+    /// The row reads the way the chosen size stands, and is off for a
+    /// square — the Android twin's SizePresets.isLandscape rows.
+    func testTheRowReadsTheWayTheChosenSizeStands() throws {
+        let a4 = try XCTUnwrap(SizePreset.all.first { $0.id == "a4" })
+        XCTAssertEqual(CustomSizes.isLandscape(width: a4.w, height: a4.h), false)
+        XCTAssertEqual(CustomSizes.isLandscape(width: 1920, height: 1080), true)
+        XCTAssertNil(CustomSizes.isLandscape(width: 1080, height: 1080))
+    }
+
     @MainActor
     func testATurnedPresetIsOneUndoStep() {
         let store = DesignStore(design: Design(title: "a4", width: 2480, height: 3508))
