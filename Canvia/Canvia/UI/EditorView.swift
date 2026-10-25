@@ -398,6 +398,8 @@ struct EditorView: View {
             closeRename()
             saveNow()
         }
+        // Opened where it was left, and the place kept as it goes.
+        .modifier(KeepsPlace(store: store))
         // The design being edited, for Siri suggestions and Handoff.
         .userActivity(DesignActivity.type, element: store.design.id) { _, activity in
             DesignActivity.configure(activity, design: store.design)

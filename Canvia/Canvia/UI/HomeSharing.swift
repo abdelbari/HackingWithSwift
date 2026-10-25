@@ -14,6 +14,9 @@ struct HomeSharing: ViewModifier {
     /// Either asked for on a design whose file does not read.
     @Binding var unopened: Bool
     @Binding var mockingUp: Design?
+    /// The page Present starts on: 0, or where the design was left
+    /// (LastPlace).
+    var presentStart = 0
     /// Opens a design made on Home.
     var open: (Design) -> Void = { _ in }
     /// A design saved from here, changed: Home reads its cards again.
@@ -31,7 +34,7 @@ struct HomeSharing: ViewModifier {
             }
             .fullScreenCover(item: $presenting) { design in
                 // A Doc as its pages.
-                PresentationView(design: DocPages.drawn(design), startPage: 0)
+                PresentationView(design: DocPages.drawn(design), startPage: presentStart)
             }
             .alert("That design can't be opened", isPresented: $unopened) {
                 Button("OK", role: .cancel) {}

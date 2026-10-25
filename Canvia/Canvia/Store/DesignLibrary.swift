@@ -104,6 +104,8 @@ enum DesignLibrary {
     /// Gone for good: the document, its thumbnail and its versions.
     static func delete(id: String) {
         SpotlightIndexer.remove(id)
+        // Where it was left goes with it (LastPlace).
+        LastPlace.forget([id])
         try? FileManager.default.removeItem(at: designsDir.appendingPathComponent("\(id).json"))
         try? FileManager.default.removeItem(at: thumbsDir.appendingPathComponent("\(id).jpg"))
         try? FileManager.default.removeItem(at: trashDir.appendingPathComponent("\(id).json"))
@@ -120,6 +122,7 @@ enum DesignLibrary {
         guard !FileManager.default.fileExists(atPath: designsDir.appendingPathComponent("\(id).json").path) else { return }
         try? FileManager.default.removeItem(at: historyDir(for: id))
         SpotlightIndexer.remove(id)
+        LastPlace.forget([id])
     }
 
     // MARK: trash
@@ -140,6 +143,8 @@ enum DesignLibrary {
     /// restore brings its history back too.
     static func trash(id: String, now: Date = Date()) {
         SpotlightIndexer.remove(id)
+        // Deleting a design forgets where it was left (LastPlace).
+        LastPlace.forget([id])
         let json = trashDir.appendingPathComponent("\(id).json")
         try? FileManager.default.removeItem(at: json)
         try? FileManager.default.moveItem(at: designsDir.appendingPathComponent("\(id).json"), to: json)

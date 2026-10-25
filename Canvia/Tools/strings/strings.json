@@ -485,6 +485,24 @@
     "ja": "このページは %@。各ページはそれぞれのサイズで",
     "pt-BR": "%@ para esta página; cada página no próprio tamanho"
   },
+  "%@ found": {
+    "ar": "تم العثور على %@",
+    "de": "%@ gefunden",
+    "es": "%@ encontradas",
+    "fr": "%@ trouvés",
+    "it": "%@ trovati",
+    "ja": "%@ が見つかりました",
+    "pt-BR": "%@ encontradas"
+  },
+  "%@ found on %@": {
+    "ar": "تم العثور على %@ في %@",
+    "de": "%@ gefunden auf %@",
+    "es": "%@ encontradas en %@",
+    "fr": "%@ trouvés sur %@",
+    "it": "%@ trovati in %@",
+    "ja": "%@ が見つかりました（%@）",
+    "pt-BR": "%@ encontradas em %@"
+  },
   "%@ four-point sparkle": {
     "ar": "بريق رباعي (%@)",
     "de": "Vierzackiges Funkeln (%@)",
@@ -2943,6 +2961,39 @@
     "pt-BR": {
       "one": "%d item",
       "other": "%d itens"
+    }
+  },
+  "%d layer|%d layers": {
+    "ar": {
+      "few": "%d طبقات",
+      "many": "%d طبقة",
+      "one": "%d طبقة",
+      "other": "%d طبقة",
+      "two": "%d طبقتان",
+      "zero": "%d طبقة"
+    },
+    "de": {
+      "one": "%d Ebene",
+      "other": "%d Ebenen"
+    },
+    "es": {
+      "one": "%d capa",
+      "other": "%d capas"
+    },
+    "fr": {
+      "one": "%d calque",
+      "other": "%d calques"
+    },
+    "it": {
+      "one": "%d livello",
+      "other": "%d livelli"
+    },
+    "ja": {
+      "other": "%d 件のレイヤー"
+    },
+    "pt-BR": {
+      "one": "%d camada",
+      "other": "%d camadas"
     }
   },
   "%d locked page is kept. Undo brings the rest back.|%d locked pages are kept. Undo brings the rest back.": {
@@ -15350,6 +15401,15 @@
     "ja": "グループ（%d）",
     "pt-BR": "Agrupar (%d)"
   },
+  "Groups": {
+    "ar": "المجموعات",
+    "de": "Gruppen",
+    "es": "Grupos",
+    "fr": "Groupes",
+    "it": "Gruppi",
+    "ja": "グループ",
+    "pt-BR": "Grupos"
+  },
   "Grow": {
     "ar": "نمو",
     "de": "Wachsen",
@@ -18968,6 +19028,15 @@
     "ja": "前面へ",
     "pt-BR": "Mover para a frente"
   },
+  "Move inside": {
+    "ar": "النقل إلى الداخل",
+    "de": "Nach innen verschieben",
+    "es": "Mover dentro",
+    "fr": "Déplacer à l’intérieur",
+    "it": "Sposta all’interno",
+    "ja": "内側へ移動",
+    "pt-BR": "Mover para dentro"
+  },
   "Move into group above": {
     "ar": "نقل إلى المجموعة أعلاه",
     "de": "In die Gruppe darüber verschieben",
@@ -19013,6 +19082,15 @@
     "ja": "ページを移動",
     "pt-BR": "Mover página"
   },
+  "Move page down": {
+    "ar": "نقل الصفحة للأسفل",
+    "de": "Seite nach unten",
+    "es": "Bajar página",
+    "fr": "Descendre la page",
+    "it": "Sposta pagina giù",
+    "ja": "ページを下へ移動",
+    "pt-BR": "Mover página para baixo"
+  },
   "Move page earlier": {
     "ar": "نقل الصفحة إلى موضع أبكر",
     "de": "Seite nach vorne verschieben",
@@ -19048,6 +19126,15 @@
     "it": "Sposta la pagina a destra",
     "ja": "ページを右へ移動",
     "pt-BR": "Mover página para a direita"
+  },
+  "Move page up": {
+    "ar": "نقل الصفحة للأعلى",
+    "de": "Seite nach oben",
+    "es": "Subir página",
+    "fr": "Monter la page",
+    "it": "Sposta pagina su",
+    "ja": "ページを上へ移動",
+    "pt-BR": "Mover página para cima"
   },
   "Move right": {
     "ar": "تحريك لليمين",
@@ -21350,6 +21437,15 @@
     "ja": "デザインを開く",
     "pt-BR": "Abrir design"
   },
+  "Open designs where I left off": {
+    "ar": "فتح التصاميم من حيث توقفت",
+    "de": "Designs an der zuletzt bearbeiteten Stelle öffnen",
+    "es": "Abrir los diseños donde los dejé",
+    "fr": "Ouvrir les designs là où je m’étais arrêté",
+    "it": "Apri i design da dove avevo lasciato",
+    "ja": "デザインを前回の続きから開く",
+    "pt-BR": "Abrir os designs de onde parei"
+  },
   "Open in another window": {
     "ar": "مفتوح في نافذة أخرى",
     "de": "In einem anderen Fenster geöffnet",
@@ -21709,6 +21805,15 @@
     "it": "La pagina %d è bloccata, quindi è finito nella pagina %d",
     "ja": "ページ %d はロックされているため、ページ %d に追加しました",
     "pt-BR": "A página %d está bloqueada, então isto foi para a página %d"
+  },
+  "Page %d moved to %d": {
+    "ar": "تم نقل الصفحة %d إلى %d",
+    "de": "Seite %d nach %d verschoben",
+    "es": "Página %d movida a %d",
+    "fr": "Page %d déplacée en %d",
+    "it": "Pagina %d spostata in %d",
+    "ja": "ページ %d を %d に移動しました",
+    "pt-BR": "Página %d movida para %d"
   },
   "Page %d of %d": {
     "ar": "الصفحة %d من %d",
@@ -22589,6 +22694,15 @@
     "ja": "写真とグラフィックは、どのデザインでも「追加」の「ブランド」タブに表示されます。長押しすると削除できます。",
     "pt-BR": "Fotos e gráficos aparecem na aba Marca de Adicionar, em todos os designs. Toque e segure um para removê-lo."
   },
+  "Photos and videos": {
+    "ar": "الصور ومقاطع الفيديو",
+    "de": "Fotos und Videos",
+    "es": "Fotos y vídeos",
+    "fr": "Photos et vidéos",
+    "it": "Foto e video",
+    "ja": "写真と動画",
+    "pt-BR": "Fotos e vídeos"
+  },
   "Photos couldn't save it (%@).": {
     "ar": "تعذّر على الصور حفظه (%@).",
     "de": "Fotos konnte es nicht speichern (%@).",
@@ -23299,6 +23413,15 @@
     "it": "Presenta da questa pagina",
     "ja": "このページからプレゼンテーション",
     "pt-BR": "Apresentar desta página"
+  },
+  "Present from where I left off": {
+    "ar": "العرض من حيث توقفت",
+    "de": "Ab der zuletzt bearbeiteten Stelle präsentieren",
+    "es": "Presentar desde donde lo dejé",
+    "fr": "Présenter là où je me suis arrêté",
+    "it": "Presenta da dove avevo lasciato",
+    "ja": "前回の続きからプレゼンテーション",
+    "pt-BR": "Apresentar de onde parei"
   },
   "Present full screen": {
     "ar": "عرض تقديمي بملء الشاشة",
@@ -25328,6 +25451,15 @@
     "ja": "SMS",
     "pt-BR": "SMS"
   },
+  "Safe zone": {
+    "ar": "المنطقة الآمنة",
+    "de": "Sicherer Bereich",
+    "es": "Zona segura",
+    "fr": "Zone de sécurité",
+    "it": "Zona sicura",
+    "ja": "セーフゾーン",
+    "pt-BR": "Zona segura"
+  },
   "Sale": {
     "ar": "تخفيضات",
     "de": "Angebot",
@@ -25952,6 +26084,15 @@
     "ja": "ヘルプを検索",
     "pt-BR": "Pesquisar na ajuda"
   },
+  "Search layers": {
+    "ar": "البحث في الطبقات",
+    "de": "Ebenen suchen",
+    "es": "Buscar capas",
+    "fr": "Rechercher des calques",
+    "it": "Cerca livelli",
+    "ja": "レイヤーを検索",
+    "pt-BR": "Pesquisar camadas"
+  },
   "Search music": {
     "ar": "ابحث عن موسيقى",
     "de": "Musik suchen",
@@ -26221,6 +26362,15 @@
     "it": "Seleziona più elementi",
     "ja": "複数を選択",
     "pt-BR": "Selecionar vários"
+  },
+  "Select several on one page at a time": {
+    "ar": "حدد عدة عناصر في صفحة واحدة في كل مرة",
+    "de": "Mehrere nur auf einer Seite gleichzeitig auswählen",
+    "es": "Selecciona varios en una página a la vez",
+    "fr": "Sélectionnez-en plusieurs sur une seule page à la fois",
+    "it": "Seleziona più elementi su una pagina alla volta",
+    "ja": "複数選択は一度に 1 ページ内でのみできます",
+    "pt-BR": "Selecione vários em uma página de cada vez"
   },
   "Select something on the page to animate it on its own.": {
     "ar": "حدّد شيئًا في الصفحة لتحريكه وحده.",
@@ -26644,6 +26794,15 @@
     "it": "Forme",
     "ja": "図形",
     "pt-BR": "Formas"
+  },
+  "Shapes and lines": {
+    "ar": "الأشكال والخطوط",
+    "de": "Formen und Linien",
+    "es": "Formas y líneas",
+    "fr": "Formes et lignes",
+    "it": "Forme e linee",
+    "ja": "図形と線",
+    "pt-BR": "Formas e linhas"
   },
   "Share": {
     "ar": "مشاركة",
@@ -27220,6 +27379,15 @@
     "it": "Mostra l’esportazione",
     "ja": "書き出したファイルを表示します",
     "pt-BR": "Mostra a exportação"
+  },
+  "Shows where the app's own buttons and captions cover the page. Never exported.": {
+    "ar": "يُظهر أين تغطي أزرار التطبيق وتسمياته الصفحة. لا يُصدَّر أبدًا.",
+    "de": "Zeigt, wo die Schaltflächen und Beschriftungen der App die Seite verdecken. Wird nie exportiert.",
+    "es": "Muestra dónde los botones y textos de la propia app cubren la página. Nunca se exporta.",
+    "fr": "Montre où les boutons et légendes de l’app recouvrent la page. Jamais exporté.",
+    "it": "Mostra dove i pulsanti e le didascalie dell’app coprono la pagina. Mai esportato.",
+    "ja": "アプリのボタンやキャプションがページを覆う場所を表示します。書き出されることはありません。",
+    "pt-BR": "Mostra onde os botões e legendas do próprio app cobrem a página. Nunca é exportado."
   },
   "Shrink the box to the text": {
     "ar": "تصغير المربع ليلائم النص",
@@ -29237,6 +29405,15 @@
     "ja": "テキストは背景に対して読みやすく、画像には内容の説明があり、小さすぎるものや点滅するものはなく、レイヤーは正しい順序で読み上げられます。",
     "pt-BR": "O texto se destaca do que está atrás, as imagens dizem o que mostram, nada é pequeno demais nem pisca e as camadas são lidas em ordem."
   },
+  "Text sits under the app's buttons": {
+    "ar": "النص يقع تحت أزرار التطبيق",
+    "de": "Text liegt unter den Schaltflächen der App",
+    "es": "El texto queda bajo los botones de la app",
+    "fr": "Le texte est sous les boutons de l’app",
+    "it": "Il testo si trova sotto i pulsanti dell’app",
+    "ja": "テキストがアプリのボタンの下にあります",
+    "pt-BR": "O texto fica sob os botões do app"
+  },
   "Text size": {
     "ar": "حجم النص",
     "de": "Textgröße",
@@ -30283,6 +30460,15 @@
     "it": "Questa musica è stata scelta su un altro telefono. Aggiungila di nuovo qui per sentirla.",
     "ja": "この音楽は別のスマートフォンで選ばれたものです。聴くには、ここでもう一度追加してください。",
     "pt-BR": "Esta música foi escolhida em outro celular. Adicione-a de novo aqui para ouvi-la."
+  },
+  "This page": {
+    "ar": "هذه الصفحة",
+    "de": "Diese Seite",
+    "es": "Esta página",
+    "fr": "Cette page",
+    "it": "Questa pagina",
+    "ja": "このページ",
+    "pt-BR": "Esta página"
   },
   "This page %@": {
     "ar": "هذه الصفحة %@",
@@ -32681,6 +32867,15 @@
     "ja": "タイミング",
     "pt-BR": "Quando"
   },
+  "While dragging, hold ⇧ to keep a move to one direction or to turn in 15° steps, hold ⌘ to stop snapping for a moment, and hold ⌥ as you start to drag a copy. ⇧ on a corner of a text box or shape changes whether it keeps its proportions.": {
+    "ar": "أثناء السحب، اضغط باستمرار على ⇧ لإبقاء الحركة في اتجاه واحد أو للتدوير بخطوات 15°، وعلى ⌘ لإيقاف الالتصاق مؤقتًا، وعلى ⌥ عند البدء لسحب نسخة. يغيّر ⇧ على زاوية مربع نص أو شكل ما إذا كان يحافظ على تناسبه.",
+    "de": "Halten Sie beim Ziehen ⇧, um in einer Richtung zu bleiben oder in 15°-Schritten zu drehen, ⌘, um das Einrasten kurz auszusetzen, und ⌥ zu Beginn, um eine Kopie zu ziehen. ⇧ an einer Ecke eines Textfelds oder einer Form ändert, ob die Proportionen erhalten bleiben.",
+    "es": "Al arrastrar, mantén ⇧ para mover en una sola dirección o girar en pasos de 15°, mantén ⌘ para dejar de ajustar un momento y mantén ⌥ al empezar para arrastrar una copia. ⇧ en una esquina de un cuadro de texto o una forma cambia si mantiene sus proporciones.",
+    "fr": "Pendant un glissement, maintenez ⇧ pour rester dans une seule direction ou tourner par pas de 15°, maintenez ⌘ pour suspendre l’aimantation un instant, et maintenez ⌥ au départ pour glisser une copie. ⇧ sur un coin d’une zone de texte ou d’une forme change si elle garde ses proportions.",
+    "it": "Durante il trascinamento, tieni premuto ⇧ per restare in una direzione o ruotare a passi di 15°, ⌘ per sospendere l’aggancio per un momento e ⌥ all’inizio per trascinare una copia. ⇧ su un angolo di una casella di testo o di una forma cambia se ne mantiene le proporzioni.",
+    "ja": "ドラッグ中に ⇧ を押すと一方向にだけ移動したり 15° ずつ回転したりでき、⌘ を押すと一時的にスナップしなくなり、ドラッグ開始時に ⌥ を押すとコピーをドラッグします。テキストボックスや図形の角で ⇧ を押すと、縦横比を保つかどうかが切り替わります。",
+    "pt-BR": "Ao arrastar, segure ⇧ para manter o movimento em uma direção ou girar em passos de 15°, segure ⌘ para parar o encaixe por um momento e segure ⌥ ao começar para arrastar uma cópia. ⇧ em um canto de uma caixa de texto ou forma muda se ela mantém as proporções."
+  },
   "While typing": {
     "ar": "أثناء الكتابة",
     "de": "Beim Tippen",
@@ -34867,5 +35062,14 @@
     "it": "…e altri %d",
     "ja": "…ほか %d 件",
     "pt-BR": "…e mais %d"
+  },
+  "⌥⇧↑ and ⌥⇧↓ move this page up and down.": {
+    "ar": "⌥⇧↑ و⌥⇧↓ تنقلان هذه الصفحة للأعلى وللأسفل.",
+    "de": "⌥⇧↑ und ⌥⇧↓ verschieben diese Seite nach oben und unten.",
+    "es": "⌥⇧↑ y ⌥⇧↓ suben y bajan esta página.",
+    "fr": "⌥⇧↑ et ⌥⇧↓ montent et descendent cette page.",
+    "it": "⌥⇧↑ e ⌥⇧↓ spostano questa pagina su e giù.",
+    "ja": "⌥⇧↑ と ⌥⇧↓ でこのページを上下に移動します。",
+    "pt-BR": "⌥⇧↑ e ⌥⇧↓ movem esta página para cima e para baixo."
   }
 }

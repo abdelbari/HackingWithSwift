@@ -51,6 +51,9 @@ struct DocEditorView: View {
     @State fileprivate var highlightFor: WordRange?
     @State fileprivate var linkFor: WordRange?
     @State fileprivate var linkDraft = ""
+    /// The block at the top of the view, which a reopened Doc scrolls back
+    /// to (KeepsDocPlace).
+    @State private var topBlock: String?
 
     private var blocks: [DocBlock] { Docs.blocks(store.design) }
     private var setup: DocPage { Docs.pageSetup(store.design) }
@@ -70,6 +73,7 @@ struct DocEditorView: View {
         .onChange(of: focused) { _, _ in store.commit() }
         .modifier(DocEditorSheets(editor: self))
         .onAppear { store.onCommit = { scheduleSave() } }
+        .modifier(KeepsDocPlace(store: store, blockIds: blocks.map(\.id), top: $topBlock))
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { saveDocument() }
         }
@@ -86,9 +90,11 @@ struct DocEditorView: View {
                     }
                     addButton
                 }
+                .scrollTargetLayout()
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
+            .scrollPosition(id: $topBlock, anchor: .top)
             .scrollDismissesKeyboard(.interactively)
             // A match or a finding shown: its block brought into sight.
             .onChange(of: store.findHighlight) { _, match in

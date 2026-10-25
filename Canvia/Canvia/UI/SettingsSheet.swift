@@ -113,6 +113,8 @@ struct SettingsSheet: View {
     /// A typed "- " or "1. " starts a list (TextLists.autoStart).
     @AppStorage(TextLists.autoListsKey) private var autoLists = true
     @AppStorage(ForeignText.keepsFormattingKey) private var keepsFormatting = true
+    /// Designs open on the page they were left on (LastPlace).
+    @AppStorage(LastPlace.resumeKey) private var resumePlace = true
     /// Check spelling's typographic rules: curly quotes, ellipses and
     /// dashes in ranges (Proofing.typography).
     @AppStorage(Proofing.typographySetting) private var proofTypography = true
@@ -233,10 +235,13 @@ struct SettingsSheet: View {
             Toggle("Zoom in to type small text", isOn: $typingZoom)
             Toggle("Pinch resizes what is selected", isOn: $pinchSelection)
             Toggle("Show distances", isOn: $showDistances)
-            Toggle("Start lists as you type", isOn: $autoLists)
-            Toggle("Keep formatting when pasting", isOn: $keepsFormatting)
-            Picker("Custom sizes start in", selection: $unit) {
-                ForEach(Units.all, id: \.self) { Text($0).tag($0) }
+            Group {
+                Toggle("Start lists as you type", isOn: $autoLists)
+                Toggle("Keep formatting when pasting", isOn: $keepsFormatting)
+                Toggle("Open designs where I left off", isOn: $resumePlace)
+                Picker("Custom sizes start in", selection: $unit) {
+                    ForEach(Units.all, id: \.self) { Text($0).tag($0) }
+                }
             }
         }
         // The open design snaps as the defaults now say, and keeps them.
