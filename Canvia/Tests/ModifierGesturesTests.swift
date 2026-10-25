@@ -69,4 +69,32 @@ final class ModifierGesturesTests: XCTestCase {
         store.undo()
         XCTAssertEqual(store.page.elements.map(\.id), [card.id])
     }
+
+    /// The Android twin's row: an Option-drag copies only what is free to
+    /// move, a position-locked element left out.
+    @MainActor
+    func testOptionDragCopiesOnlyWhatIsFreeToMove() {
+        var d = Design(title: "Drag", width: 1080, height: 1080)
+        let free = Element.shape("rect")
+        var pinned = Element.shape("rect")
+        pinned.lockPosition = true
+        d.pages = [Page(elements: [free, pinned])]
+        let store = DesignStore(design: d)
+        store.select(free.id)
+        store.select(pinned.id, additive: true)
+        store.beginGesture()
+        XCTAssertTrue(store.duplicateForDrag())
+        XCTAssertEqual(store.page.elements.count, 3)
+        let copy = store.page.elements[2]
+        XCTAssertEqual(store.selection, [copy.id])
+        XCTAssertTrue(copy.id != free.id && copy.id != pinned.id)
+        store.commit()
+        // Only a position lock selected: nothing to copy.
+        var lone = Design(title: "Drag", width: 1080, height: 1080)
+        lone.pages = [Page(elements: [pinned])]
+        let only = DesignStore(design: lone)
+        only.select(pinned.id)
+        only.beginGesture()
+        XCTAssertFalse(only.duplicateForDrag())
+    }
 }
