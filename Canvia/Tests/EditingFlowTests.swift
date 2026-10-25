@@ -227,6 +227,16 @@ final class EditingFlowTests: XCTestCase {
         XCTAssertFalse(QuickFlow.offers(locked))
     }
 
+    func testACopyOfADiagramsBoxIsNoPartOfTheDiagram() throws {
+        let made = Diagrams.make(Diagrams.starter(.process), in: CGRect(x: 0, y: 0, width: 600, height: 200),
+                                 palette: ["#1a6bff", "#ff7a00"])
+        let box = try XCTUnwrap(made.first { $0.diagramPart == "item:0" })
+        let copy = QuickFlow.copy(of: box, at: CGRect(x: 0, y: 400, width: box.w, height: box.h))
+        XCTAssertNil(copy.diagram)
+        XCTAssertNil(copy.diagramPart)
+        XCTAssertNil(copy.group)
+    }
+
     func testTheConnectorTakesThePagesLastConnectorsLook() {
         var a = Element.shape("rect", w: 100, h: 100)
         a.x = 0
