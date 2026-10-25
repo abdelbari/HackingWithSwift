@@ -133,6 +133,32 @@ final class FrameColourFillTests: XCTestCase {
         XCTAssertEqual(Crop.replaced(shape, src: nil).fill, shape.fill)
     }
 
+    func testAPhotoCellSwappedOntoAColourCellTakesItsColourBack() throws {
+        var colour = emptyFrame()
+        colour.id = "b"
+        colour.group = "g"
+        colour.fill = dark
+        var photo = Element.image("media:1", w: 200, h: 200)
+        photo.id = "a"
+        photo.x = 300
+        photo.group = "g"
+        let out = try XCTUnwrap(PhotoFrames.dropped([colour, photo], dragged: "a", onto: "b",
+                                                    home: CGPoint(x: 300, y: 0)))
+        let target = try XCTUnwrap(out.first { $0.id == "b" })
+        let back = try XCTUnwrap(out.first { $0.id == "a" })
+        XCTAssertEqual(target.src, "media:1")
+        XCTAssertNil(target.fill)
+        XCTAssertTrue(PhotoFrames.isEmpty(back))
+        XCTAssertEqual(back.fill, dark)
+        XCTAssertEqual(back.x, 300)
+        // An empty cell gives no colour back.
+        var plain = colour
+        plain.fill = nil
+        let again = try XCTUnwrap(PhotoFrames.dropped([plain, photo], dragged: "a", onto: "b",
+                                                      home: CGPoint(x: 300, y: 0)))
+        XCTAssertNil(again.first { $0.id == "a" }?.fill)
+    }
+
     @MainActor
     func testSVGWritesAColouredFrameAsAPathInItsFramesShape() {
         var el = emptyFrame()
