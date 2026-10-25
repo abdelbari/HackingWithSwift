@@ -1172,6 +1172,7 @@ struct ImageElementView: View {
         let picture = code == nil && barcode == nil ? resolvedPicture() : nil
         let waits = waitsForSubject()
         let later = makesLookLater()
+        let edgeLater = makesEdgeLater()
         let resolved = picture.map {
             ImageFilterEngine.apply(look: element, to: $0.image, cacheKey: $0.key, waits: waits, later: later)
         }
@@ -1234,7 +1235,8 @@ struct ImageElementView: View {
         // is part of what casts the element's shadow (ElementView's), as the
         // Android twin casts a photo's shadow from its edge.
         .background {
-            if let picture, let edge = PhotoEffects.edge(element, picture: picture.image, key: picture.key) {
+            if let picture, let edge = PhotoEffects.edge(element, picture: picture.image, key: picture.key,
+                                                         later: edgeLater) {
                 Image(uiImage: edge.image)
                     .resizable()
                     .frame(width: element.w + 2 * edge.pad, height: element.h + 2 * edge.pad)
@@ -1266,6 +1268,15 @@ struct ImageElementView: View {
     /// Whether clarity or pixelate is made off the main thread: on screen
     /// it is, the photo showing its last look meanwhile, and reading the
     /// count of looks made draws it again when its own is ready.
+    /// Whether the edge waits, on screen, for a mask with taps of Clear a
+    /// colour to be made off the main thread; reading the count of masks
+    /// made draws it again when the mask lands.
+    private func makesEdgeLater() -> Bool {
+        guard onScreen, element.edge != nil, element.mask?.strokes.contains(where: \.keys) == true else { return false }
+        _ = ImageMasking.prepared.version
+        return true
+    }
+
     private func makesLookLater() -> Bool {
         guard onScreen, ImageFilterEngine.makesLater(element) else { return false }
         _ = ImageFilterEngine.looksBaked.version
