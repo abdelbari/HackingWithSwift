@@ -1,0 +1,63 @@
+{
+ "note": "LiveCaptionLines.wrap's shared rows: the words heard, the most characters a line holds, and the lines shown - the last two.",
+ "rows": [
+  {
+   "text": "",
+   "maxChars": 40,
+   "lines": []
+  },
+  {
+   "text": "Hello everyone",
+   "maxChars": 40,
+   "lines": [
+    "Hello everyone"
+   ]
+  },
+  {
+   "text": "Welcome to the quarterly review of our sales and marketing results",
+   "maxChars": 20,
+   "lines": [
+    "our sales and",
+    "marketing results"
+   ]
+  },
+  {
+   "text": "one two three four five six",
+   "maxChars": 9,
+   "lines": [
+    "four five",
+    "six"
+   ]
+  },
+  {
+   "text": "  spaced out\twords\n",
+   "maxChars": 40,
+   "lines": [
+    "spaced out words"
+   ]
+  },
+  {
+   "text": "supercalifragilistic",
+   "maxChars": 8,
+   "lines": [
+    "ifragili",
+    "stic"
+   ]
+  },
+  {
+   "text": "a bb ccc",
+   "maxChars": 4,
+   "lines": [
+    "a bb",
+    "ccc"
+   ]
+  },
+  {
+   "text": "exactly ten",
+   "maxChars": 11,
+   "lines": [
+    "exactly ten"
+   ]
+  }
+ ]
+}

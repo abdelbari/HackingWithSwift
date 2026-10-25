@@ -143,21 +143,35 @@ enum Uploads {
     /// Puts something the person brought in on the list; once, however
     /// often it is recorded.
     static func record(_ id: String, kind: Kind, now: Date = Date()) {
+        record(id, kind: kind, name: nil, now: now)
+    }
+
+    /// As `record(_:kind:now:)`, with the `name` its file had, where it came
+    /// with one, kept as "name": what a suggested description is drawn from
+    /// (AltText.suggest), as on the Android twin.
+    static func record(_ id: String, kind: Kind, name: String?, now: Date = Date()) {
         lock.lock()
         defer { lock.unlock() }
         var raw = list(now: now)
         guard !raw.contains(where: { $0["id"] as? String == id }) else { return }
-        raw.append(["id": id, "kind": kind.rawValue, "added": milliseconds(now)])
+        var item: [String: Any] = ["id": id, "kind": kind.rawValue, "added": milliseconds(now)]
+        if let name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty { item["name"] = name }
+        raw.append(item)
         write(raw)
     }
 
     /// A photo or clip by the source that shows it: "media:<id>" or
     /// "video:<id>".
     static func record(source: String, now: Date = Date()) {
+        record(source: source, name: nil, now: now)
+    }
+
+    /// As `record(source:now:)`, with the name its file had.
+    static func record(source: String, name: String?, now: Date = Date()) {
         if source.hasPrefix("media:") {
-            record(String(source.dropFirst("media:".count)), kind: .image, now: now)
+            record(String(source.dropFirst("media:".count)), kind: .image, name: name, now: now)
         } else if let clip = VideoStore.split(source) {
-            record(clip.id, kind: .video, now: now)
+            record(clip.id, kind: .video, name: name, now: now)
         }
     }
 

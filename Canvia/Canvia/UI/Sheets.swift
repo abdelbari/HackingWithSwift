@@ -1077,8 +1077,8 @@ struct FiltersSheet: View {
 
     // MARK: effects
 
-    /// The photo's effects, a chip each — Blur, Pixelate, Focus, Outline and
-    /// Glow — a tap turning one on at its usual setting, or off, as one step;
+    /// The photo's effects, a chip each — Blur, Pixelate, Focus, Outline,
+    /// Glow and, for a still photo, Face retouch — a tap turning one on at its usual setting, or off, as one step;
     /// the dials of each that is on beneath, live and one step per drag.
     /// Blur is the sharpness dial below zero; an outline and a glow are the
     /// one edge, of two kinds, with its own colour well.
@@ -1103,6 +1103,7 @@ struct FiltersSheet: View {
                     }
                     edgeChip("outline", tr("Outline"), current: edge)
                     edgeChip("glow", tr("Glow"), current: edge)
+                    if DesignStore.isStillPhoto(photo) { faceRetouchChip(photo) }
                 }
                 .padding(.vertical, 2)
             }
@@ -1110,6 +1111,7 @@ struct FiltersSheet: View {
             HStack(spacing: 10) {
                 brushButton(tr("Blur brush"), kind: .blur)
                 brushButton(tr("Pixelate brush"), kind: .pixelate)
+                if DesignStore.isStillPhoto(photo) { brushButton(tr("Retouch brush"), kind: .smooth) }
             }
             if blurred {
                 effectSlider(tr("Blur"), value: -sharpness, in: 0.01...1,
@@ -1126,6 +1128,7 @@ struct FiltersSheet: View {
             if let focus { focusControls(focus) }
             if let edge { edgeControls(edge) }
             if let fx = photo?.fx { fxControls(fx) }
+            faceRetouchRows(photo)
         }
     }
 
@@ -1137,11 +1140,19 @@ struct FiltersSheet: View {
             dismiss()
             store.beginBrush(id, kind: kind)
         } label: {
-            Label(name, systemImage: kind == .blur ? "drop" : "square.grid.3x3")
+            Label(name, systemImage: Self.brushSymbol(kind))
                 .font(.callout)
         }
         .buttonStyle(.bordered)
         .disabled(store.singleSelection?.type != .image)
+    }
+
+    private static func brushSymbol(_ kind: BrushSession.Kind) -> String {
+        switch kind {
+        case .blur: return "drop"
+        case .smooth: return "wand.and.stars"
+        default: return "square.grid.3x3"
+        }
     }
 
     /// The fx, a tile each in PhotoFx.kinds' order, each a live thumbnail
@@ -1263,15 +1274,62 @@ struct FiltersSheet: View {
                 toggle(&el)
             }
         } label: {
-            Text(name)
-                .font(.callout)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(on ? Theme.accent.opacity(0.18) : Color(.systemGray6)))
-                .overlay(Capsule().stroke(on ? Theme.accent : Theme.hairline, lineWidth: on ? 2 : 1))
+            chipLabel(name, on: on)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    private func chipLabel(_ name: String, on: Bool) -> some View {
+        Text(name)
+            .font(.callout)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(on ? Theme.accent.opacity(0.18) : Color(.systemGray6)))
+            .overlay(Capsule().stroke(on ? Theme.accent : Theme.hairline, lineWidth: on ? 2 : 1))
+    }
+
+    // MARK: face retouch
+
+    /// Face retouch: on, its faces found once and kept (FaceRetouching.swift),
+    /// or off; while they are looked for it says so. Only for a still photo.
+    private func faceRetouchChip(_ photo: Element?) -> some View {
+        let on = photo?.retouchFace != nil
+        let finding = photo != nil && store.findingFaces == photo?.id
+        return Button {
+            guard let id = photo?.id else { return }
+            if on {
+                store.turnOffFaceRetouch()
+            } else {
+                store.turnOnFaceRetouch(id)
+            }
+        } label: {
+            chipLabel(finding ? tr("Finding faces…") : tr("Face retouch"), on: on)
+        }
+        .buttonStyle(.plain)
+        .disabled(finding)
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    /// Under the effects: how much the faces are smoothed, while it is on;
+    /// and, when none were found, that said, with the Retouch brush to
+    /// smooth by hand.
+    @ViewBuilder
+    private func faceRetouchRows(_ photo: Element?) -> some View {
+        if let retouch = photo?.retouchFace {
+            effectSlider(tr("Face retouch"), value: retouch.amount, in: 0...1,
+                         readout: "\(Int((retouch.amount * 100).rounded()))") { v, el in
+                el = FaceRetouch.withAmount(el, Self.hundredths(v))
+            }
+        } else if let photo, store.noFacesIn == photo.id {
+            HStack(spacing: 10) {
+                Label("No faces found", systemImage: "face.dashed")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                brushButton(tr("Retouch brush"), kind: .smooth)
+            }
+        }
     }
 
     /// An outline or a glow; from one kind to the other keeps the size and

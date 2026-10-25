@@ -80,7 +80,7 @@ enum SubjectMask {
     /// comes back for a rotated version of the picture and the cutout is
     /// nonsense. Everything the media store holds is already upright, so this
     /// is a guard against a future source rather than a cost paid today.
-    private static func upright(_ image: UIImage) -> CGImage? {
+    static func upright(_ image: UIImage) -> CGImage? {
         if image.imageOrientation == .up, let cg = image.cgImage { return cg }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1

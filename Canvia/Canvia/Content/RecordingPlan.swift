@@ -81,7 +81,10 @@ enum RecordingPlan {
     /// span's frames at `fps`, counted from the talk's start so no rounding
     /// builds up, cut from one to the next; and the voice under it as a
     /// track, the design's own tracks `duck`ed beneath. A span whose page
-    /// has gone shows the page before it, or the first.
+    /// has gone shows the page before it, or the first. A talk with captions
+    /// (Burn in captions) has each of its pages given a caption box
+    /// (Captions.element, "box") holding the words said while it was up,
+    /// timed from when it came up.
     static func film(_ design: Design, _ recording: Recording, fps: Int) -> Design {
         let rate = Double(max(fps, 1))
         func frame(_ t: Double) -> Double { (t * rate + 0.5).rounded(.down) }
@@ -100,6 +103,12 @@ enum RecordingPlan {
                     shown.hidden = nil
                     shown.holdSeconds = hold
                     shown.transition = "cut"
+                    let said = Captions.cut(Captions.cut(recording.captions, at: frame(from) / rate).second, at: hold).first
+                    if !said.isEmpty {
+                        let size = design.size(for: page)
+                        shown.elements.append(Captions.element(width: Double(size.width), height: Double(size.height),
+                                                               captions: Captions(cues: said, style: Captions.box)))
+                    }
                     pages.append(shown)
                 }
                 from = to

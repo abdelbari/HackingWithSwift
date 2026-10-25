@@ -149,7 +149,7 @@ enum CanvasDrop {
                     // An animated GIF or WebP, kept as it came, to play.
                     stored = animated
                 } else if let data, let prepared = ImageDownsampler.prepare(data), let src = MediaStore.store(prepared) {
-                    Uploads.record(source: src)
+                    Uploads.record(source: src, name: provider.suggestedName)
                     stored = (src, prepared.natural)
                 }
                 let result = stored

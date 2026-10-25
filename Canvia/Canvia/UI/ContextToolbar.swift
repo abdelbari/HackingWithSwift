@@ -35,6 +35,10 @@ struct ContextToolbar: View {
     /// What Suggest drafted, to tell alt text drawn from the picture from
     /// alt text typed (Element.altTextSource).
     @State private var altSuggested: String?
+    /// What the app already knows of the picture, offered as "Use: …"
+    /// while it has no description (AltText.suggest); read off the main
+    /// thread before the prompt opens (`openAltText`).
+    @State private var altChip: String?
     @State private var editingLink = false
     @State private var linkDraft = ""
     @State private var namingStyle = false
@@ -671,6 +675,47 @@ struct ContextToolbar: View {
             }
         } label: {
             toolLabel("circle.lefthalf.filled", "Blend", active: !BlendModes.isNormal(el.blendMode))
+        }
+    }
+
+    /// Alt text's prompt for `el`. With no description yet, its "Use: …"
+    /// chip is read first — what the phone knows of the picture besides the
+    /// design (AltText.hints: its upload's name, its decoded colours) off
+    /// the main thread, as the accessibility sheet and the Android twin
+    /// read it — and the prompt opens when it is ready, the editor free
+    /// meanwhile.
+    private func openAltText(_ el: Element) {
+        altDraft = el.altText ?? ""
+        altSuggested = el.altTextSource == nil ? nil : el.altText
+        altChip = nil
+        guard (el.altText ?? "").isEmpty else {
+            editingAlt = true
+            return
+        }
+        Task { @MainActor in
+            let hints = await Task.detached(priority: .userInitiated) { AltText.hints(for: el) }.value
+            altChip = AltText.suggest(el, hints: hints)
+            editingAlt = true
+        }
+    }
+
+    /// Suggest: Vision's classifier, and where it is unsure what the app
+    /// already knows, its hints read off the main thread; the prompt opens
+    /// again with the draft in its field.
+    private func suggestAlt(_ el: Element) {
+        if let draft = PhotoLibrary.resolve(el.src).flatMap({ AltText.describe($0) }) {
+            altDraft = draft
+            altSuggested = draft
+            editingAlt = true
+            return
+        }
+        Task { @MainActor in
+            let hints = await Task.detached(priority: .userInitiated) { AltText.hints(for: el) }.value
+            if let draft = AltText.suggest(el, hints: hints) {
+                altDraft = draft
+                altSuggested = draft
+            }
+            editingAlt = true
         }
     }
 
@@ -1325,20 +1370,20 @@ struct ContextToolbar: View {
         } label: {
             toolLabel("doc.text.magnifyingglass", "Read")
         }
-        toolButton("text.below.photo", "Alt text") {
-            altDraft = el.altText ?? ""
-            altSuggested = el.altTextSource == nil ? nil : el.altText
-            editingAlt = true
-        }
+        toolButton("text.below.photo", "Alt text") { openAltText(el) }
         .alert("Describe this picture", isPresented: $editingAlt) {
             TextField("What it shows", text: $altDraft)
-            Button("Suggest") {
-                if let ui = PhotoLibrary.resolve(el.src), let draft = AltText.describe(ui) {
-                    altDraft = draft
-                    altSuggested = draft
+            // Taken, it is kept with the picture's src, so a Replace takes it
+            // away; nothing is written until it is.
+            if let chip = altChip {
+                Button(tr("Use: %@", chip)) {
+                    store.updateSelected { e in
+                        e.altText = chip
+                        e.altTextSource = e.src
+                    }
                 }
-                editingAlt = true
             }
+            Button("Suggest") { suggestAlt(el) }
             Button("Save") {
                 let text = altDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                 let drawn = !text.isEmpty && text == altSuggested

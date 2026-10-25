@@ -55,6 +55,12 @@ final class PresentSession {
     /// turn forward — Loop's round to the first page too — and one lower
     /// for each turn back.
     var layer: Double = 0
+    /// Live captions, while they are on: what the presenter has said in the
+    /// stretch of speech now going, and when it last changed (LiveCaptioner),
+    /// drawn over the slide on the phone and the screen alike; nil when off.
+    var captions: LiveCaptionLines.Settings?
+    var captionText = ""
+    var captionHeardAt: Date?
 
     init(design: Design) {
         self.design = design
@@ -129,6 +135,13 @@ struct PresentStage: View {
         // The pages turn and the pointer goes as the video draws them, left
         // to right in any language.
         .designDirection()
+        // Live captions over it all, for the audience; never in an export.
+        .overlay {
+            if let captions = session.captions, captions.on {
+                LiveCaptionBand(text: session.captionText, heardAt: session.captionHeardAt, settings: captions,
+                                size: size)
+            }
+        }
     }
 
     private var pageView: some View {

@@ -400,13 +400,13 @@ enum SharedInbox {
                 return [page(src: animated.src, natural: animated.natural, size: pageSize)]
             }
             guard let prepared = ImageDownsampler.prepare(data), let src = MediaStore.store(prepared) else { return [] }
-            Uploads.record(source: src)
+            Uploads.record(source: src, name: item.name)
             return [page(src: src, natural: prepared.natural, size: pageSize)]
         case .video:
             guard let data = try? Data(contentsOf: url),
                   let id = VideoStore.store(data, ext: url.pathExtension),
                   let poster = VideoStore.poster(id) else { return [] }
-            Uploads.record(id, kind: .video)
+            Uploads.record(id, kind: .video, name: item.name)
             return [page(src: VideoStore.src(id, at: nil), natural: poster.size, size: pageSize)]
         case .pdf:
             guard let data = try? Data(contentsOf: url) else { return [] }

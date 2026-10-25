@@ -263,6 +263,9 @@ enum DesignPackage {
                 if let src = el.textFill?.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
                 // The picture before a Cut out, which Restore paints back.
                 if let src = el.mask?.base, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
+                // The picture an expanded photo was grown from, which Undo
+                // expand and Change fill go back to.
+                if let src = el.expandedFrom?.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
                 // A QR code's logo, a photo of its own.
                 if let src = el.qrLogo, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
             }
@@ -500,6 +503,10 @@ enum DesignPackage {
                     mask.base = moved(mask.base)
                     out.pages[p].elements[i].mask = mask
                 }
+                if var origin = out.pages[p].elements[i].expandedFrom {
+                    origin.src = moved(origin.src) ?? origin.src
+                    out.pages[p].elements[i].expandedFrom = origin
+                }
                 if let logo = out.pages[p].elements[i].qrLogo {
                     out.pages[p].elements[i].qrLogo = moved(logo)
                 }
@@ -692,6 +699,11 @@ enum DesignPackage {
                 if var mask = design.pages[p].elements[i].mask, mask.base != nil {
                     mask.base = rewrite(mask.base)
                     design.pages[p].elements[i].mask = mask
+                }
+                // An expanded photo's original moves as its picture does.
+                if var origin = design.pages[p].elements[i].expandedFrom {
+                    origin.src = rewrite(origin.src) ?? origin.src
+                    design.pages[p].elements[i].expandedFrom = origin
                 }
                 // A QR code's logo moves as a photo does.
                 if let logo = design.pages[p].elements[i].qrLogo {

@@ -266,7 +266,10 @@ struct MockupSheet: View {
             // Onto the next unlocked page first, so the size is that page's.
             guard store.landsOnUnlockedPage() else { return }
             let size = Self.placed(image.size, pageWidth: store.pageWidth)
-            if store.add(.image(src, w: size.width, h: size.height)) {
+            // Marked with its scene, which a suggested description names.
+            var picture = Element.image(src, w: size.width, h: size.height)
+            picture.mockupId = sceneId
+            if store.add(picture) {
                 store.buzz(.confirm)
                 dismiss()
             }
@@ -287,6 +290,7 @@ struct MockupSheet: View {
         let page = design.size(for: design.pages[target])
         let size = Self.placed(image.size, pageWidth: Double(page.width))
         var picture = Element.image(src, w: size.width, h: size.height)
+        picture.mockupId = sceneId
         picture.x = (Double(page.width) - size.width) / 2
         picture.y = (Double(page.height) - size.height) / 2
         var changed = design

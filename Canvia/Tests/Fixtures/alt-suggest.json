@@ -1,0 +1,285 @@
+{
+ "note": "AltText.suggest's shared rows: an element as a design file holds it, what the phone knows of it (fileName, clipSeconds, colours) and the English suggestion, or null for none.",
+ "rows": [
+  {
+   "name": "a graphic from the pack: its name and the tags it does not already say",
+   "element": {
+    "id": "e",
+    "type": "shape",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "shapeId": "svg:path",
+    "graphicId": "arrow-01"
+   },
+   "want": "Curved arrow (doodle, pointer, hand drawn)"
+  },
+  {
+   "name": "an icon",
+   "element": {
+    "id": "e",
+    "type": "shape",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "shapeId": "svg:path",
+    "iconId": "arrow_forward"
+   },
+   "want": "Arrow forward (right, next)"
+  },
+  {
+   "name": "a moving picture",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "motion:motion-mesh-1"
+   },
+   "want": "Sunset drift (gradient, mesh, abstract)"
+  },
+  {
+   "name": "a stock picture: its name",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "asset:mesh-sunset"
+   },
+   "want": "Sunset Mesh"
+  },
+  {
+   "name": "a mockup: its scene",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "media:m1",
+    "mockupId": "phone-front"
+   },
+   "want": "Phone, front mockup"
+  },
+  {
+   "name": "a sticker: its first word",
+   "element": {
+    "id": "e",
+    "type": "sticker",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "glyph": "🎉"
+   },
+   "want": "Party sticker"
+  },
+  {
+   "name": "an upload's file name, cleaned",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "media:u1"
+   },
+   "fileName": "beach_sunset-2024.jpg",
+   "want": "Beach sunset"
+  },
+  {
+   "name": "a camera's file name says nothing: its colours instead",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "media:u2"
+   },
+   "fileName": "IMG_1234.JPG",
+   "colours": [
+    "#1e88e5",
+    "#ffffff"
+   ],
+   "want": "Mostly blue and white photo"
+  },
+  {
+   "name": "two colours of one family say it once",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "media:u3"
+   },
+   "fileName": "PXL_20250101_123456789.PORTRAIT.jpg",
+   "colours": [
+    "#0d47a1",
+    "#1e88e5"
+   ],
+   "want": "Mostly blue photo"
+  },
+  {
+   "name": "nothing known: no suggestion",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "media:u4"
+   },
+   "fileName": "Screenshot_20250101-101010.png",
+   "want": null
+  },
+  {
+   "name": "a QR code with a web link: its site",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "qr:https://www.example.com/menu?x=1"
+   },
+   "want": "QR code linking to example.com"
+  },
+  {
+   "name": "a QR code with words",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "qr:hello there"
+   },
+   "want": "QR code"
+  },
+  {
+   "name": "a barcode: what it reads",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "barcode:upca:036000291452"
+   },
+   "want": "Barcode for 036000291452"
+  },
+  {
+   "name": "a chart: its kind, series and the header's first cell",
+   "element": {
+    "id": "e",
+    "type": "shape",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "shapeId": "rect",
+    "chart": {
+     "id": "chart_1",
+     "kind": "bar",
+     "data": "Month, Sales\nJan, 4\nFeb, 6"
+    }
+   },
+   "want": "Bar chart of Sales by Month"
+  },
+  {
+   "name": "a chart of two series",
+   "element": {
+    "id": "e",
+    "type": "shape",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "shapeId": "rect",
+    "chart": {
+     "id": "chart_1",
+     "kind": "line",
+     "data": "Quarter, North, South\nQ1, 4, 5\nQ2, 6, 7"
+    }
+   },
+   "want": "Line chart of North, South by Quarter"
+  },
+  {
+   "name": "a chart without a header: its kind",
+   "element": {
+    "id": "e",
+    "type": "shape",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "shapeId": "rect",
+    "chart": {
+     "id": "chart_1",
+     "kind": "pie",
+     "data": "A, 4\nB, 6"
+    }
+   },
+   "want": "Pie chart"
+  },
+  {
+   "name": "a clip and its length, rounded",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "video:abc"
+   },
+   "clipSeconds": 12.4,
+   "want": "Video clip, 12 seconds"
+  },
+  {
+   "name": "a clip of one second",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "video:abc"
+   },
+   "clipSeconds": 0.6,
+   "want": "Video clip, 1 second"
+  },
+  {
+   "name": "a library item before its file name",
+   "element": {
+    "id": "e",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 100,
+    "src": "asset:geo-dots"
+   },
+   "fileName": "dots.png",
+   "want": "Dot Grid"
+  }
+ ]
+}

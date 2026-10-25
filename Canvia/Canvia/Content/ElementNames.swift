@@ -111,8 +111,17 @@ enum ElementNames {
         tr(englishColourName(hex))
     }
 
+    /// A colour's family, in English, without its "dark" or "light": "blue"
+    /// for #023e8a — what a photo is said to be mostly (AltText.suggest).
+    /// The Android twin's Palettes.familyOf.
+    static func colourFamily(_ hex: String?) -> String {
+        var name = englishColourName(hex)
+        for depth in ["dark ", "light "] where name.hasPrefix(depth) { name.removeFirst(depth.count) }
+        return name
+    }
+
     /// colourName's English, the catalogue's key for it.
-    private static func englishColourName(_ hex: String?) -> String {
+    static func englishColourName(_ hex: String?) -> String {
         guard let rgb = rgb(hex) else { return "colour" }
         let r = rgb.r, g = rgb.g, b = rgb.b
         let high = max(r, g, b), low = min(r, g, b)
