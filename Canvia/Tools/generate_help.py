@@ -142,7 +142,7 @@ WHATS_NEW = [
     ]),
     ('1.35', [
         ('diagrams', 'Diagrams',
-         'Add a flow chart, a cycle or a mind map from Add, and edit its steps as a list.', None),
+         'Add a Venn diagram, a cycle, a timeline or an org chart from Add, and edit its items as a list.', None),
         ('present-pen', 'Pointer and pen in Present',
          'Point at a slide or write on it while you present.', None),
     ]),

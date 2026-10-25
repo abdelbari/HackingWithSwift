@@ -30220,6 +30220,59 @@
         }
       }
     },
+    "Add a Venn diagram, a cycle, a timeline or an org chart from Add, and edit its items as a list." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أضف مخطط فن أو دورة أو مخططًا زمنيًا أو مخططًا تنظيميًا من «إضافة»، وعدّل عناصره كقائمة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge über Hinzufügen ein Venn-Diagramm, einen Kreislauf, eine Zeitleiste oder ein Organigramm hinzu und bearbeite die Einträge als Liste."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a Venn diagram, a cycle, a timeline or an org chart from Add, and edit its items as a list."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade un diagrama de Venn, un ciclo, una línea de tiempo o un organigrama desde Añadir y edita sus elementos como una lista."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez un diagramme de Venn, un cycle, une chronologie ou un organigramme depuis Ajouter, et modifiez ses éléments sous forme de liste."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi un diagramma di Venn, un ciclo, una sequenza temporale o un organigramma da Aggiungi e modifica gli elementi come elenco."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「追加」からベン図、サイクル図、タイムライン、組織図を追加し、各項目をリストで編集できます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicione um diagrama de Venn, um ciclo, uma linha do tempo ou um organograma em Adicionar e edite os itens como uma lista."
+          }
+        }
+      }
+    },
     "Add a barcode" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30640,59 +30693,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adicionar uma entrada"
-          }
-        }
-      }
-    },
-    "Add a flow chart, a cycle or a mind map from Add, and edit its steps as a list." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "أضف مخططًا انسيابيًا أو دورة أو خريطة ذهنية من «إضافة»، وعدّل خطواتها كقائمة."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Füge über Hinzufügen ein Flussdiagramm, einen Kreislauf oder eine Mindmap hinzu und bearbeite die Schritte als Liste."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add a flow chart, a cycle or a mind map from Add, and edit its steps as a list."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añade un diagrama de flujo, un ciclo o un mapa mental desde Añadir y edita sus pasos como una lista."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ajoutez un organigramme, un cycle ou une carte mentale depuis Ajouter, et modifiez ses étapes sous forme de liste."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi un diagramma di flusso, un ciclo o una mappa mentale da Aggiungi e modifica i passaggi come elenco."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「追加」からフローチャート、サイクル図、マインドマップを追加し、各ステップをリストで編集できます。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adicione um fluxograma, um ciclo ou um mapa mental em Adicionar e edite as etapas como uma lista."
           }
         }
       }
