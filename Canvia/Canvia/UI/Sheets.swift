@@ -2051,6 +2051,9 @@ struct PositionSheet: View {
 /// rows are read only, each with a padlock, under a line with Unlock.
 /// Select ticks several rows — buried and hidden ones too — to group,
 /// align, lock, hide or delete together, or drag as one block.
+/// The search box, the kind chips and All pages list what matches, a
+/// section a page (LayerSearch); a row on another page goes there and
+/// selects it.
 struct LayersSheet: View {
     @Bindable var store: DesignStore
     /// The bar's Align: the Position sheet, with its alignment.
@@ -2067,6 +2070,30 @@ struct LayersSheet: View {
     @State private var typedName = ""
     /// The rows' elements a swipe would delete, while it asks first.
     @State private var askingDelete: [String]?
+    /// What is searched for, kept while the app runs (LayerSearch.session).
+    @State private var search = LayerSearch.session
+    /// What the search found, matched a moment after the typing rests.
+    @State private var found: [LayerSearch.PageHits] = []
+    /// The query last said aloud, so only a new one is.
+    @State private var spokenQuery: LayerSearch.Query?
+
+    /// Whether the list shows what the search found rather than the page.
+    private var searching: Bool { search.narrows || search.allPages }
+
+    /// What a search runs again on: the query, the list, the page, what is
+    /// selected (for Overlapping) and every change to the design.
+    private struct SearchKey: Equatable {
+        var query: LayerSearch.Query
+        var filter: LayerRows.Filter
+        var page: Int
+        var selection: Set<String>
+        var version: Int
+    }
+
+    private var searchKey: SearchKey {
+        SearchKey(query: search, filter: filter, page: store.pageIndex, selection: store.selection,
+                  version: store.historyVersion)
+    }
 
     private var rows: [LayerRows.Row] {
         switch filter {
@@ -2077,12 +2104,14 @@ struct LayersSheet: View {
         }
     }
 
-    var body: some View {
-        NavigationStack {
-            let rows = self.rows
-            let locked = store.isPageLocked
-            List {
-                if locked { lockedNote }
+    /// The page's rows, or what the search found, with the search box, the
+    /// chips and the scope over them and Select's bar under them.
+    private func layerList(_ rows: [LayerRows.Row], locked: Bool) -> some View {
+        List {
+            if locked { lockedNote }
+            if searching {
+                foundSections
+            } else {
                 if rows.isEmpty { emptyState }
                 ForEach(rows) { row in
                     rowView(row, in: rows)
@@ -2092,47 +2121,128 @@ struct LayersSheet: View {
                 .onMove(perform: moveAction(rows))
                 .onDelete { offsets in delete(offsets.map { rows[$0] }) }
             }
-            .environment(\.editMode, .constant(.active))
-            .safeAreaInset(edge: .top) { filterPicker }
-            .safeAreaInset(edge: .bottom) { if selecting { selectBar } }
-            .navigationTitle("Layers")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-                ToolbarItem(placement: .topBarLeading) { selectToggle }
-            }
-            .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } }),
-                   presenting: renaming) { el in
-                TextField(madeName(el), text: $typedName)
-                Button("Rename") { store.renameLayer(el.id, to: typedName) }
-                Button("Cancel", role: .cancel) {}
-            } message: { _ in
-                Text("Up to \(LayerNames.maxLength) characters. Leave it empty for the name Canvia gives it.")
-            }
-            .alert((askingDelete?.count ?? 0) > 1 ? tr("Delete these?") : tr("Delete this?"),
-                   isPresented: Binding(get: { askingDelete != nil }, set: { if !$0 { askingDelete = nil } }),
-                   presenting: askingDelete) { ids in
-                Button("Delete", role: .destructive) { remove(Set(ids)) }
-                Button("Cancel", role: .cancel) {}
-            } message: { ids in
-                Text(ids.count > 1 ? tr("Some of them have their position locked.") : tr("Its position is locked."))
-            }
+        }
+        .environment(\.editMode, .constant(searching ? .inactive : .active))
+        .searchable(text: $search.text, placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: Text("Search layers"))
+        .task(id: searchKey) { await match() }
+        .onChange(of: search) { _, now in LayerSearch.session = now }
+        .safeAreaInset(edge: .top) { LayerSearchBar(query: $search, filter: $filter) }
+        .safeAreaInset(edge: .bottom) { if selecting { selectBar } }
+    }
+
+    var body: some View {
+        NavigationStack {
+            layerList(rows, locked: store.isPageLocked)
+                .navigationTitle("Layers")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                    ToolbarItem(placement: .topBarLeading) { selectToggle }
+                }
+                .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } }),
+                       presenting: renaming) { el in
+                    TextField(madeName(el), text: $typedName)
+                    Button("Rename") { store.renameLayer(el.id, to: typedName) }
+                    Button("Cancel", role: .cancel) {}
+                } message: { _ in
+                    Text("Up to \(LayerNames.maxLength) characters. Leave it empty for the name Canvia gives it.")
+                }
+                .alert((askingDelete?.count ?? 0) > 1 ? tr("Delete these?") : tr("Delete this?"),
+                       isPresented: Binding(get: { askingDelete != nil }, set: { if !$0 { askingDelete = nil } }),
+                       presenting: askingDelete) { ids in
+                    Button("Delete", role: .destructive) { remove(Set(ids)) }
+                    Button("Cancel", role: .cancel) {}
+                } message: { ids in
+                    Text(ids.count > 1 ? tr("Some of them have their position locked.") : tr("Its position is locked."))
+                }
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
-    private var filterPicker: some View {
-        Picker("Show", selection: $filter) {
-            ForEach(LayerRows.Filter.allCases) { choice in
-                Text(tr(choice.rawValue)).tag(choice)
+    // MARK: search
+
+    /// What the search found, matched LayerSearch.debounceMilliseconds
+    /// after the last change — off the main thread for a design of more
+    /// than LayerSearch.offMainOver elements — and its count said aloud
+    /// when the query is new: "12 layers found on 4 pages".
+    private func match() async {
+        guard searching else { return }
+        try? await Task.sleep(for: .milliseconds(LayerSearch.debounceMilliseconds))
+        guard !Task.isCancelled else { return }
+        let pages = store.design.pages, current = store.pageIndex, query = search
+        let only: Set<String>? = filter == .overlapping
+            ? Set(LayerRows.overlapping(store.page.elements, selection: store.selection).map(\.id)) : nil
+        let count = pages.reduce(0) { $0 + $1.elements.count }
+        let hits: [LayerSearch.PageHits]
+        if count > LayerSearch.offMainOver {
+            hits = await Task.detached(priority: .userInitiated) {
+                LayerSearch.hits(pages, current: current, query: query, only: only)
+            }.value
+        } else {
+            hits = LayerSearch.hits(pages, current: current, query: query, only: only)
+        }
+        guard !Task.isCancelled else { return }
+        found = hits
+        if spokenQuery != query {
+            spokenQuery = query
+            UIAccessibility.post(notification: .announcement,
+                                 argument: LayerSearch.spokenCount(hits, allPages: query.allPages))
+        }
+    }
+
+    /// A section a page with hits, "Page 3 · Intro", its rows top-most
+    /// first; nothing found, the search's own empty state.
+    @ViewBuilder
+    private var foundSections: some View {
+        let sections = found.filter { $0.page < store.design.pages.count }
+        if sections.allSatisfy({ $0.ids.isEmpty }) {
+            ContentUnavailableView.search(text: search.text)
+                .listRowBackground(Color.clear)
+        }
+        ForEach(sections) { hits in
+            let page = store.design.pages[hits.page]
+            let byId = Dictionary(page.elements.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let elements = hits.ids.reversed().compactMap { byId[$0] }
+            if !elements.isEmpty {
+                Section(PageTitles.named(hits.page + 1, title: page.title)) {
+                    ForEach(elements) { el in foundRow(el, page: hits.page) }
+                }
             }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(.bar)
+    }
+
+    /// A hit's row: on this page as any row of Overlapping, tapped alone;
+    /// on another, its name and a tap that goes to that page and selects it
+    /// there. A selection stays on one page, so Select refuses it.
+    @ViewBuilder
+    private func foundRow(_ el: Element, page: Int) -> some View {
+        if page == store.pageIndex {
+            rowView(.element(el, member: false), in: [])
+        } else {
+            HStack(spacing: 12) {
+                layerThumb(el)
+                Text(layerName(el)).lineLimit(1)
+                Spacer(minLength: 4)
+            }
+            .opacity(el.isHidden ? 0.45 : 1)
+            .contentShape(Rectangle())
+            .onTapGesture { pickOnPage(el, page: page) }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { pickOnPage(el, page: page) }
+        }
+    }
+
+    /// `el` on page `page` selected there, the editor going to that page.
+    private func pickOnPage(_ el: Element, page: Int) {
+        guard !selecting else {
+            store.announce(LayerSearch.onePageNote, undoable: false)
+            return
+        }
+        store.setPage(page)
+        store.selectLayer(el.id)
     }
 
     /// Over a locked page's rows: why nothing here can be changed, and
@@ -2308,7 +2418,7 @@ struct LayersSheet: View {
     private func elementRow(_ el: Element, member: Bool, depth: Int, above: String?) -> some View {
         let name = layerName(el)
         let selected = store.selection.contains(el.id)
-        let alone = member || filter == .overlapping
+        let alone = member || filter == .overlapping || searching
         return HStack(spacing: 12) {
             HStack(spacing: 12) {
                 layerThumb(el)
