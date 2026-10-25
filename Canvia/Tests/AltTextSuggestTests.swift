@@ -47,4 +47,13 @@ final class AltTextSuggestTests: XCTestCase {
         photo.altTextSource = nil
         XCTAssertEqual(Crop.replaced(photo, src: "media:b").altText, "Beach sunset")
     }
+
+    /// A Replace drops the mockup scene the old picture was added from, so
+    /// the new one is not named after it; the Android twin's
+    /// AltTextSuggestTest has the same row.
+    func testAReplacedMockupPictureNoLongerNamesItsScene() {
+        var photo = Element.image("media:a")
+        photo.mockupId = "phone-front"
+        XCTAssertNil(Crop.replaced(photo, src: "media:b").mockupId)
+    }
 }

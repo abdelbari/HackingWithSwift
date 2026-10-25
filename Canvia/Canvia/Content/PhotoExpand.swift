@@ -414,7 +414,9 @@ enum PhotoExpand {
     /// so a second expand or a Change fill sizes the original as one expand
     /// would. Its Erase and Restore strokes and brushed layers were laid on
     /// the old picture and go, as a Replace drops them; its retouched faces
-    /// move to where they now lie.
+    /// move to where they now lie. Alt text drawn from the picture
+    /// (`altTextSource` its src) follows it to the new one, so a later
+    /// Replace still drops it.
     static func expanded(_ el: Element, src: String, original: String, plan: Plan, mode: String) -> Element {
         let base = undone(el) ?? el
         let frame = grown(base.frame, aspect: Double(plan.width) / Double(plan.height))
@@ -436,6 +438,7 @@ enum PhotoExpand {
         out.cropY = 0.5
         out.cropFit = nil
         out.expandedFrom = Origin(src: original, rect: rect, mode: mode)
+        if base.altTextSource != nil, base.altTextSource == base.src { out.altTextSource = src }
         return out
     }
 
@@ -475,7 +478,8 @@ enum PhotoExpand {
 
     /// `el` back to the picture it was expanded from: its frame the part of
     /// it the original covered, about the same centre, the picture centred
-    /// and covering it; nil when it was never expanded.
+    /// and covering it, its alt text source following it as in `expanded`;
+    /// nil when it was never expanded.
     static func undone(_ el: Element) -> Element? {
         guard let origin = el.expandedFrom else { return nil }
         let w = el.w * Double(origin.rect.width), h = el.h * Double(origin.rect.height)
@@ -485,6 +489,7 @@ enum PhotoExpand {
             out.retouchFace = faces
         }
         out.src = origin.src
+        if el.altTextSource != nil, el.altTextSource == el.src { out.altTextSource = origin.src }
         out.x = el.x + (el.w - w) / 2
         out.y = el.y + (el.h - h) / 2
         out.w = w
