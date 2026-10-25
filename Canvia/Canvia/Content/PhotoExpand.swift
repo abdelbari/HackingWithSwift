@@ -214,7 +214,9 @@ enum PhotoExpand {
             func ch(_ p: Int) -> Double { Double((p >> shift) & 0xff) }
             let top = ch(a) + (ch(b) - ch(a)) * fx
             let bottom = ch(c) + (ch(d) - ch(c)) * fx
-            out |= min(max(Int((top + (bottom - top) * fy + 0.5).rounded(.down)), 0), 255) << shift
+            let value: Double = top + (bottom - top) * fy + 0.5
+            let level: Int = min(max(Int(value.rounded(.down)), 0), 255)
+            out |= level << shift
         }
         return out
     }
@@ -239,7 +241,11 @@ enum PhotoExpand {
                     }
                 }
                 let n = (min(y1, h) - y0) * (min(x1, w) - x0)
-                out[sy * sw + sx] = a == 0 ? 0 : ((a / n) << 24) | ((r / a) << 16) | ((g / a) << 8) | (b / a)
+                guard a > 0 else { continue }
+                let alphaBits: Int = (a / n) << 24
+                let redBits: Int = (r / a) << 16
+                let greenBits: Int = (g / a) << 8
+                out[sy * sw + sx] = alphaBits | redBits | greenBits | (b / a)
             }
         }
         return out
@@ -437,18 +443,28 @@ enum PhotoExpand {
     /// picture that holds it in `rect`; `outOf` turns it back.
     private static func inRect(_ f: FaceRetouch.Face, _ rect: CGRect) -> FaceRetouch.Face {
         let rx = Double(rect.minX), ry = Double(rect.minY), rw = Double(rect.width), rh = Double(rect.height)
+        // Each point on its own line, typed: arithmetic in a closure inside
+        // the initialiser's arguments is more than the compiler checks in time.
+        func placed(_ p: CGPoint) -> CGPoint {
+            let x: Double = rx + Double(p.x) * rw
+            let y: Double = ry + Double(p.y) * rh
+            return CGPoint(x: x, y: y)
+        }
+        let keep: [[CGPoint]] = f.keep.map { (poly: [CGPoint]) -> [CGPoint] in poly.map(placed) }
         return FaceRetouch.Face(x: fourth(rx + f.x * rw), y: fourth(ry + f.y * rh), w: fourth(f.w * rw),
-                                h: fourth(f.h * rh), keep: f.keep.map { poly in
-                                    poly.map { CGPoint(x: rx + Double($0.x) * rw, y: ry + Double($0.y) * rh) }
-                                })
+                                h: fourth(f.h * rh), keep: keep)
     }
 
     private static func outOf(_ f: FaceRetouch.Face, _ rect: CGRect) -> FaceRetouch.Face {
         let rx = Double(rect.minX), ry = Double(rect.minY), rw = Double(rect.width), rh = Double(rect.height)
+        func unplaced(_ p: CGPoint) -> CGPoint {
+            let x: Double = (Double(p.x) - rx) / rw
+            let y: Double = (Double(p.y) - ry) / rh
+            return CGPoint(x: x, y: y)
+        }
+        let keep: [[CGPoint]] = f.keep.map { (poly: [CGPoint]) -> [CGPoint] in poly.map(unplaced) }
         return FaceRetouch.Face(x: fourth((f.x - rx) / rw), y: fourth((f.y - ry) / rh), w: fourth(f.w / rw),
-                                h: fourth(f.h / rh), keep: f.keep.map { poly in
-                                    poly.map { CGPoint(x: (Double($0.x) - rx) / rw, y: (Double($0.y) - ry) / rh) }
-                                })
+                                h: fourth(f.h / rh), keep: keep)
     }
 
     /// The new picture's shape for a Change fill: the original's, `w` ×

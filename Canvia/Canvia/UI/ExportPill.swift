@@ -18,6 +18,9 @@ struct ExportPill: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        // An export running, then a clip being made light, then the last
+        // export that failed (ExportFailure.pillShows, the Android twin's
+        // order), then what there is to say.
         Group {
             if let job = queue.current {
                 running(job)

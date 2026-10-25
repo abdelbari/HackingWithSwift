@@ -50,15 +50,16 @@ static_job() {
   static: Tools/verify.js"
         return 1
     }
-    # The content bundle's budget: Content.json under 3.5 MB of JSON — the
-    # template library itself under 3 MB (the Android twin's generator's
-    # BUNDLE_LIMIT), round 34's design types and the rest with it
+    # The content bundle's budget: Content.json under 4 MB of JSON — the
+    # template library itself within the Android twin's generator's
+    # BUNDLE_LIMIT, round 34's design types and round 35's occasion
+    # templates with it
     # (RoundThirtyThreeTemplatesTests.testTheContentBundleStaysUnderItsBudget).
     size=$(wc -c < Canvia/Content/Content.json)
-    if [ "$size" -ge 3500000 ]; then
-        error "Content.json is $size bytes, over the 3.5 MB budget."
+    if [ "$size" -ge 4000000 ]; then
+        error "Content.json is $size bytes, over the 4 MB budget."
         failed="$failed
-  static: Content.json over 3.5 MB"
+  static: Content.json over 4 MB"
         return 1
     fi
 }

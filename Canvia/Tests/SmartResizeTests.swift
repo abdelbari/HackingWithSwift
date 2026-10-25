@@ -92,7 +92,12 @@ final class SmartResizeTests: XCTestCase {
         // One above the other, each as wide as the margins allow.
         XCTAssertLessThanOrEqual(photo.y + photo.h, title.y + 0.01)
         XCTAssertEqual(photo.w, 1080 * (1 - 2 * DesignStore.stackMargin), accuracy: 0.01)
-        XCTAssertTrue(out.values.allSatisfy { $0.x >= 0 && $0.x + $0.w <= 1080.01 && $0.y >= 0 && $0.y + $0.h <= 1920.01 })
+        for el in out.values {
+            XCTAssertGreaterThanOrEqual(el.x, 0, el.id)
+            XCTAssertLessThanOrEqual(el.x + el.w, 1080.01, el.id)
+            XCTAssertGreaterThanOrEqual(el.y, 0, el.id)
+            XCTAssertLessThanOrEqual(el.y + el.h, 1920.01, el.id)
+        }
     }
 
     func testTypeNeverShrinksBelowTheReadableSize() throws {

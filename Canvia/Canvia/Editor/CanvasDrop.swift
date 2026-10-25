@@ -180,6 +180,9 @@ enum CanvasDrop {
                                  done: @escaping @MainActor ((src: String, natural: CGSize)?) -> Void) {
         let type = provider.registeredTypeIdentifiers.first { UTType($0)?.conforms(to: .movie) == true }
             ?? UTType.movie.identifier
+        // Its file's name, kept with the upload as a picture's is: what a
+        // suggested description is drawn from (AltText.suggest).
+        let name = provider.suggestedName
         provider.loadFileRepresentation(forTypeIdentifier: type) { url, _ in
             // The file is there only while this runs: its bytes kept at once,
             // off the main thread.
@@ -187,7 +190,7 @@ enum CanvasDrop {
             if let url, let data = try? Data(contentsOf: url),
                let id = VideoStore.store(data, ext: UTType(type)?.preferredFilenameExtension ?? url.pathExtension),
                let poster = VideoStore.poster(id) {
-                Uploads.record(id, kind: .video)
+                Uploads.record(id, kind: .video, name: name)
                 VideoImport.optimiseSoon(id)
                 stored = (VideoStore.src(id, at: nil), poster.size)
             }

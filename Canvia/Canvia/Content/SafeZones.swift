@@ -107,7 +107,9 @@ enum SafeZones {
             CGRect(x: 0, y: 0, width: i.left * w, height: h),
             CGRect(x: w - i.right * w, y: 0, width: i.right * w, height: h),
         ]
-        let rails = zone.rails.map { CGRect(x: $0.x * w, y: $0.y * h, width: $0.w * w, height: $0.h * h) }
+        let rails: [CGRect] = zone.rails.map { (r: Rail) -> CGRect in
+            CGRect(x: r.x * w, y: r.y * h, width: r.w * w, height: r.h * h)
+        }
         return (bands + rails).filter { $0.width > 0 && $0.height > 0 }
     }
 

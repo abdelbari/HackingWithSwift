@@ -131,4 +131,12 @@ final class ExportFailureTests: XCTestCase {
         queue.dismissFailed(other.id)
         XCTAssertTrue(queue.failedExports.isEmpty)
     }
+
+    /// Shared: the Android twin's ExportFailureTest has the same rows.
+    func testThePillShowsAnExportThenAClipBeingOptimisedThenAFailure() {
+        XCTAssertEqual(ExportFailure.pillShows(running: true, optimising: true, failed: true), .running)
+        XCTAssertEqual(ExportFailure.pillShows(running: false, optimising: true, failed: true), .optimising)
+        XCTAssertEqual(ExportFailure.pillShows(running: false, optimising: false, failed: true), .failed)
+        XCTAssertEqual(ExportFailure.pillShows(running: false, optimising: false, failed: false), ExportFailure.Pill.none)
+    }
 }

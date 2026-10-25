@@ -180,6 +180,21 @@ enum ExportFailure {
         }
     }
 
+    /// What the export pill's place holds (`pillShows`).
+    enum Pill: Equatable { case running, optimising, failed, none }
+
+    /// What the export pill shows, by one rule on both phones: an export
+    /// `running` first, then a clip being made light as it came in
+    /// (`optimising`, whose X keeps the original), then the last export
+    /// that `failed`, else nothing — so a failure kept to try again waits
+    /// under a clip's progress rather than covering it.
+    static func pillShows(running: Bool, optimising: Bool, failed: Bool) -> Pill {
+        if running { return .running }
+        if optimising { return .optimising }
+        if failed { return .failed }
+        return Pill.none
+    }
+
     /// How many failed exports are kept to try again, newest first.
     static let keptCount = 3
 

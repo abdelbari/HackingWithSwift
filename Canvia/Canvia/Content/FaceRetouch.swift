@@ -189,7 +189,12 @@ struct FaceRetouch: Codable, Equatable, Hashable {
 
     /// A colour's lightness as the surface blur weighs it, 0…255 whole.
     static func luma(_ c: Int) -> Int {
-        (299 * ((c >> 16) & 0xff) + 587 * ((c >> 8) & 0xff) + 114 * (c & 0xff) + 500) / 1000
+        // A term at a time: the shifts are generic, and one long line of
+        // them is more than the compiler will type-check in time.
+        let red: Int = 299 * ((c >> 16) & 0xff)
+        let green: Int = 587 * ((c >> 8) & 0xff)
+        let blue: Int = 114 * (c & 0xff)
+        return (red + green + blue + 500) / 1000
     }
 
     /// How much of the smoothing lands at the centre of pixel (`x`, `y`) of

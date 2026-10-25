@@ -221,7 +221,10 @@ enum TextEffect: String, CaseIterable, Identifiable {
 
     /// Each channel × (1 − `by`), rounded half up and kept to 0–255.
     private static func darker(_ rgb: [Int], by: Double) -> [Int] {
-        rgb.map { min(255, max(0, Int(floor(Double($0) * (1 - by) + 0.5)))) }
+        rgb.map { (v: Int) -> Int in
+            let scaled: Double = floor(Double(v) * (1 - by) + 0.5)
+            return min(255, max(0, Int(scaled)))
+        }
     }
 
     /// "#rgb", "#rrggbb" or "#rrggbbaa" as its red, green and blue, 0–255;

@@ -221,7 +221,7 @@ enum TemplateSearch {
     /// remember(query, …).
     static func remembered(_ query: String, filter: TemplateFilter = TemplateFilter(), recent: Set<String> = [],
                            correct: Bool = true) -> Result {
-        let key = SearchKey(query: query, filter: filter, recent: recent, correct: correct)
+        let key = RememberedSearch(query: query, filter: filter, recent: recent, correct: correct)
         memoLock.lock()
         let hit = memo.first { $0.key == key }?.result
         memoLock.unlock()
@@ -234,14 +234,14 @@ enum TemplateSearch {
     }
 
     /// What a remembered search was asked with.
-    private struct SearchKey: Equatable {
+    private struct RememberedSearch: Equatable {
         var query: String
         var filter: TemplateFilter
         var recent: Set<String>
         var correct: Bool
     }
 
-    private static var memo: [(key: SearchKey, result: Result)] = []
+    private static var memo: [(key: RememberedSearch, result: Result)] = []
     private static let memoLock = NSLock()
 
     static func search(_ query: String, filter: TemplateFilter, recent: Set<String>, correct: Bool,
