@@ -202,7 +202,7 @@ extension DesignLibrary {
     private static func homeFolder(_ item: Any) -> HomeFolder? {
         if let name = item as? String { return folderName(name).map { HomeFolder(name: $0) } }
         guard let object = item as? [String: Any], let name = folderName(object["name"] as? String) else { return nil }
-        let deleted = object[Uploads.deletedKey] is Bool ? nil : (object[Uploads.deletedKey] as? NSNumber)?.doubleValue
+        let deleted = Uploads.deletedTime(object)
         return HomeFolder(name: name, starred: (object["starred"] as? Bool) == true, deleted: deleted,
                           designs: object["designs"] as? [String] ?? [], uploads: object["uploads"] as? [String] ?? [])
     }

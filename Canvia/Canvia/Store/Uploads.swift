@@ -390,7 +390,9 @@ enum Uploads {
     /// When `item` went to Recently deleted: a number, in epoch
     /// milliseconds; nil for none, or anything else kept there.
     static func deletedTime(_ item: [String: Any]) -> Double? {
-        guard let number = item[deletedKey] as? NSNumber, !(item[deletedKey] is Bool) else { return nil }
+        // A JSON true or false is no time; `is Bool` would also pass over a
+        // 0 or 1 read back as an NSNumber.
+        guard let number = item[deletedKey] as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
         return number.doubleValue
     }
 

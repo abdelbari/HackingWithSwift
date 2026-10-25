@@ -415,8 +415,9 @@ final class FindReplaceTests: XCTestCase {
         XCTAssertEqual(s.design.pages[0].elements[0].text, "**huge** sale and huge")
     }
 
-    /// The match showing is marked over its own letters on the canvas; a
-    /// curve has none to mark, and the canvas marks the whole box.
+    /// The match showing is marked over its own letters on the canvas;
+    /// round a curve, a box round each of its letters (TextPaths), as on
+    /// the Android twin.
     func testTheMatchShowingIsMarkedOverItsLetters() throws {
         var el = Element.text("Hello world", fontSize: 40, w: 600)
         el.align = "left"
@@ -428,7 +429,9 @@ final class FindReplaceTests: XCTestCase {
         XCTAssertGreaterThan(rect.width, 0)
         XCTAssertLessThan(rect.maxX, 600)
         el.curve = 120
-        XCTAssertTrue(FindReplace.letterRects(of: NSRange(location: 6, length: 5), in: el).isEmpty)
+        let curved = FindReplace.letterRects(of: NSRange(location: 6, length: 5), in: el)
+        XCTAssertEqual(curved.count, 5)
+        XCTAssertTrue(curved.allSatisfy { $0.width > 0 && $0.height > 0 })
     }
 
     func testRevealMarksTheMatchAndReplaceAllClearsIt() throws {
