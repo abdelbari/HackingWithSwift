@@ -62,14 +62,14 @@ final class ClipOptimiser {
                                       height: Int(abs(shown.height).rounded()),
                                       videoCodec: videoCodec, audioCodec: audioCodec, container: url.pathExtension)
         if let formats = try? await video.load(.formatDescriptions), let first = formats.first {
-            colour(of: first, into: &probe)
+            readColour(of: first, into: &probe)
         }
         return probe
     }
 
     /// A picture's transfer, bit depth and primaries, as VideoImport names
     /// them, from its format's extensions.
-    nonisolated private static func colour(of format: CMFormatDescription, into probe: inout VideoImport.Probe) {
+    nonisolated private static func readColour(of format: CMFormatDescription, into probe: inout VideoImport.Probe) {
         func string(_ key: CFString) -> String? {
             CMFormatDescriptionGetExtension(format, extensionKey: key) as? String
         }
