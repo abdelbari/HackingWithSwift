@@ -53,6 +53,8 @@ struct EditorYourTemplates: View {
     @State private var renaming: UserTemplate?
     @State private var renameText = ""
     @State private var deleting: UserTemplate?
+    /// A template whose Send… was tapped.
+    @State private var sending: UserTemplate?
     @State private var kit = BrandKit()
 
     private var shown: [UserTemplate] { UserTemplates.matching(entries, query: search) }
@@ -85,6 +87,7 @@ struct EditorYourTemplates: View {
             entries = UserTemplates.all()
             kit = BrandKit.load()
         })
+        .modifier(SendTemplate(sending: $sending))
     }
 
     private func tile(_ entry: UserTemplate) -> some View {
@@ -109,6 +112,7 @@ struct EditorYourTemplates: View {
                 Label("Add as new page", systemImage: "plus.rectangle.on.rectangle")
             }
             Button { renameText = entry.name; renaming = entry } label: { Label("Rename", systemImage: "pencil") }
+            Button { sending = entry } label: { Label("Send…", systemImage: "square.and.arrow.up") }
             Button {
                 update(entry)
             } label: { Label("Update from this design", systemImage: "arrow.triangle.2.circlepath") }
@@ -303,5 +307,96 @@ private struct SaveTemplateAlert: ViewModifier {
         if let kept = UserTemplates.load(id: saved.id) { UserTemplates.writeThumbnail(for: kept) }
         store.buzz(.confirm)
         onSaved(tr("Saved \u{201C}%@\u{201D} to your templates", saved.name))
+    }
+}
+
+/// A template of your own's Send…: its file made — the design package,
+/// photos and all, under its name and category (DesignPackage.templateFile)
+/// — then the share sheet, as the Android twin sends one.
+struct SendTemplate: ViewModifier {
+    @Binding var sending: UserTemplate?
+    @State private var shared: ShareURL?
+    @State private var failed = false
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: sending?.id) { _, id in
+                guard id != nil, let template = sending else { return }
+                sending = nil
+                Task { @MainActor in
+                    do {
+                        shared = ShareURL(url: try await DesignPackage.templateFile(template))
+                    } catch {
+                        failed = true
+                    }
+                }
+            }
+            .sheet(item: $shared) { ShareSheet(urls: [$0.url]) }
+            .alert("Couldn't make the template file", isPresented: $failed) {
+                Button("OK", role: .cancel) {}
+            }
+    }
+}
+
+/// A design file just opened: what to make of it. A template sent from
+/// either phone ("asTemplate") is added to Your templates unless opened as
+/// a design; a plain design file is opened as one unless added as a
+/// template — the choice first in each case is the one that leads, as on
+/// the Android twin.
+struct OpenedFileQuestion: ViewModifier {
+    @Binding var opened: DesignPackage.OpenedFile?
+    var onDesign: (Design) -> Void
+    /// Added to Your templates, or nil when it could not be written.
+    var onTemplate: (UserTemplate?) -> Void
+
+    func body(content: Content) -> some View {
+        content.alert(opened.map { $0.asTemplate?.name ?? $0.design.title } ?? "",
+                      isPresented: Binding(get: { opened != nil }, set: { if !$0 { opened = nil } }),
+                      presenting: opened) { file in
+            if file.asTemplate != nil {
+                Button("Add to Your templates") { addTemplate(file) }
+                Button("Open as a design") { openDesign(file) }
+            } else {
+                Button("Open as a design") { openDesign(file) }
+                Button("Add to Your templates") { addTemplate(file) }
+            }
+            Button("Cancel", role: .cancel) { opened = nil }
+        } message: { file in
+            if file.asTemplate != nil {
+                Text("This file is a template. Add it to Your templates to start designs from it, or open it as a design.")
+            } else {
+                Text("Open this file as a design, or add it to Your templates to start designs from it.")
+            }
+        }
+    }
+
+    private func openDesign(_ file: DesignPackage.OpenedFile) {
+        opened = nil
+        onDesign(file.design)
+    }
+
+    private func addTemplate(_ file: DesignPackage.OpenedFile) {
+        opened = nil
+        let entry = DesignPackage.addAsTemplate(file)
+        NotificationCenter.default.post(name: UserTemplates.didAdd, object: nil)
+        onTemplate(entry)
+    }
+}
+
+/// Home's template files: a design file opened asks what to make of it
+/// (OpenedFileQuestion), a template's Send… shares its file (SendTemplate),
+/// and one added from outside — opened in Files — is listed (`onAdded`).
+struct TemplateFiles: ViewModifier {
+    @Binding var opened: DesignPackage.OpenedFile?
+    @Binding var sending: UserTemplate?
+    var onDesign: (Design) -> Void
+    var onTemplate: (UserTemplate?) -> Void
+    var onAdded: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .modifier(OpenedFileQuestion(opened: $opened, onDesign: onDesign, onTemplate: onTemplate))
+            .modifier(SendTemplate(sending: $sending))
+            .onReceive(NotificationCenter.default.publisher(for: UserTemplates.didAdd)) { _ in onAdded() }
     }
 }

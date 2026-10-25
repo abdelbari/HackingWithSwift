@@ -118,7 +118,7 @@ struct FontSheet: View {
             if !Task.isCancelled { changeAll = nil }
         }
         .onAppear {
-            own = FontStore.installed()
+            own = FontStore.installed().filter { $0.deleted == nil }
             recent = RecentFonts.all()
             kit = BrandKit.load()
         }
@@ -534,7 +534,7 @@ struct FontSheet: View {
         Task { @MainActor in
             let imported = await Task.detached(priority: .userInitiated) { FontStore.addPicked(urls) }.value
             adding = false
-            own = FontStore.installed()
+            own = FontStore.installed().filter { $0.deleted == nil }
             problem = imported.summary
             skippedFiles = imported.skipped
             store.buzz(imported.keys.isEmpty ? .reject : .confirm)

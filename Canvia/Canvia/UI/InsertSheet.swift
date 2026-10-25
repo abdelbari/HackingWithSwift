@@ -21,6 +21,9 @@ struct InsertSheet: View {
     /// Opened from Details' Show in Uploads: the Photos tab, on these
     /// uploads.
     var uploads: Uploads.Kind? = nil
+    /// A tool the search names ("captions", "bulk create"), opened by the
+    /// editor once this sheet is gone (HelpTopics.tools).
+    var onTool: ((HelpTarget) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     /// A sticker's tile, and the text styles' previews, growing with
     /// Larger Text.
@@ -93,6 +96,14 @@ struct InsertSheet: View {
                 ScrollView {
                     Color.clear.frame(height: 0).id(favoritesVersion)
                     if searchesElements {
+                        // The editor's tools the words name, first, each
+                        // opening straight away.
+                        if let onTool {
+                            HelpToolsList(tools: HelpTopics.tools(search)) { target in
+                                dismiss()
+                                onTool(target)
+                            }
+                        }
                         ElementResults(query: search, brandColours: brandKit.colors) { insertHit($0) }
                     } else if nothingMatches {
                         ContentUnavailableView.search(text: search)
@@ -108,6 +119,11 @@ struct InsertSheet: View {
                         case "Brand": brandGrid
                         default: backgroundNote
                         }
+                    }
+                }
+                .overlay(alignment: .bottom) {
+                    if trashedUpload != nil {
+                        MovedToTrashToast(onUndo: undoDeleteUpload, onDismiss: { trashedUpload = nil })
                     }
                 }
                 // Here rather than on its row, which a search puts away.
@@ -864,15 +880,9 @@ struct InsertSheet: View {
 
     /// Which of your uploads shows: photos, videos or music.
     @State private var uploadKind = Uploads.Kind.image
-    /// The upload whose deletion is being asked about, with what deleting
-    /// it would mean.
-    @State private var deletingUpload: UploadDeletion?
-
-    private struct UploadDeletion {
-        var id: String
-        var kind: Uploads.Kind
-        var use: DesignLibrary.UploadUse
-    }
+    /// The upload just moved to Recently deleted, while its Undo is on
+    /// offer.
+    @State private var trashedUpload: String?
 
     /// Everything brought in — photos, videos and music — newest first,
     /// starred first, to use again or let go: the pile that used to be
@@ -1095,26 +1105,20 @@ struct InsertSheet: View {
         } label: { Label("Delete upload", systemImage: "trash") }
     }
 
-    /// Asked first, saying how many designs use it: found before the
-    /// question is put, off the main thread, as every design is read for it.
+    /// To Recently deleted, unasked, as on the Android twin: its file
+    /// stays, so a design that shows it goes on showing it, and Undo puts it
+    /// back here. After thirty days the launch sweep takes it off the list,
+    /// and its file once nothing uses it.
     private func askToDelete(_ id: String, kind: Uploads.Kind) {
-        let editing = store.statesInHistory
-        Task {
-            let use = await Task.detached(priority: .userInitiated) {
-                DesignLibrary.use(ofUpload: id, kind: kind, editing: editing)
-            }.value
-            deletingUpload = UploadDeletion(id: id, kind: kind, use: use)
-        }
+        Uploads.trash([id])
+        trashedUpload = id
+        favoritesVersion += 1
     }
 
-    /// Off the list, and unstarred. The file stays in the designs that show
-    /// it, and the launch sweep takes it once nothing does, as on the
-    /// Android twin: another window may hold it in a step Undo can go back
-    /// to, or in a change not yet saved, which nothing here can see.
-    private func deleteUpload(_ deletion: UploadDeletion) {
-        Uploads.remove(deletion.id)
-        // The sweep keeps whatever is starred, list or not.
-        if Favorites.isFavorite("upload", deletion.id) { Favorites.toggle("upload", deletion.id) }
+    /// The upload just deleted, back where it was.
+    private func undoDeleteUpload() {
+        if let id = trashedUpload { Uploads.restore([id]) }
+        trashedUpload = nil
         favoritesVersion += 1
     }
 
@@ -1653,16 +1657,6 @@ struct InsertSheet: View {
             }
         }
         .padding()
-        .confirmationDialog("Delete this upload?", isPresented: Binding(
-            get: { deletingUpload != nil }, set: { if !$0 { deletingUpload = nil } }),
-                            titleVisibility: .visible, presenting: deletingUpload) { deletion in
-            Button("Delete", role: .destructive) { deleteUpload(deletion) }
-            Button("Cancel", role: .cancel) {}
-        } message: { deletion in
-            if deletion.use.designs > 0 {
-                Text(Uploads.usedInNote(deletion.use.designs))
-            }
-        }
     }
 
     /// A brand logo, photo or picture graphic, drawn whole, named `label`.

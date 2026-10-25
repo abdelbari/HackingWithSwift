@@ -13,6 +13,10 @@
 	takes them from the share sheet; a Share Extension, its own target,
 	would do that here.
 
+	A template of your own sent as a file (.canvia-template.json) is the
+	same JSON, a design file under a type of its own exported here; it
+	opens as a design file does, and is asked about (OpenedFileQuestion).
+
 	A PowerPoint deck (.pptx) opens in Canvia too, and becomes a new design
 	(PptxReader). Its type is the system's; it is imported here as well, so
 	the picker and "Open in" know it whatever the system declares.
@@ -171,6 +175,30 @@
 				<key>public.mime-type</key>
 				<array>
 					<string>application/vnd.openxmlformats-officedocument.wordprocessingml.document</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.canvia.template</string>
+			<key>UTTypeDescription</key>
+			<string>Canvia template</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>canvia-template.json</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/json</string>
 				</array>
 			</dict>
 		</dict>

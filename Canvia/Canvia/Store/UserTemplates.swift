@@ -64,6 +64,10 @@ enum UserTemplates {
     /// What Home's chip and section, and the Templates panel, call them.
     static let sectionTitle = tr("Your templates")
 
+    /// Posted when a template file opened from outside was added to Your
+    /// templates, for Home to list it.
+    static let didAdd = Notification.Name("CanviaUserTemplateAdded")
+
     static var directory: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(folderName, isDirectory: true)

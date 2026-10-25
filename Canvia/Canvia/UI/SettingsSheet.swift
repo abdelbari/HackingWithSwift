@@ -98,6 +98,9 @@ struct SettingsSheet: View {
     var store: DesignStore?
     /// Asked for from Help: the welcome tour, once Settings has gone.
     var onTour: (() -> Void)?
+    /// What's new's Show me: a place on Home (WhatsNew.tools…), Home's to
+    /// open; from the editor, What's new has no Show me.
+    var onPlace: ((String) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
@@ -149,6 +152,8 @@ struct SettingsSheet: View {
     @State private var outcome: String?
     /// The brand kit sheet, over Settings.
     @State private var showingBrandKit = false
+    /// Every update's notes, over Settings.
+    @State private var showingWhatsNew = false
 
     var body: some View {
         withDialogs(form)
@@ -191,6 +196,10 @@ struct SettingsSheet: View {
         // The design open, from the editor; none from Home.
         .sheet(isPresented: $showingBrandKit) {
             if let store { BrandKitSheet(store: store) } else { StandaloneBrandKitSheet() }
+        }
+        .sheet(isPresented: $showingWhatsNew) {
+            // Home opens the place, which puts Settings away.
+            WhatsNewSheet(onOpen: onPlace)
         }
     }
 
@@ -348,6 +357,11 @@ struct SettingsSheet: View {
 
     private var helpSection: some View {
         Section("Help") {
+            // Every update's notes, read here counting as seen.
+            Button("What's new") {
+                WhatsNew.markSeen()
+                showingWhatsNew = true
+            }
             Button(tipsReset ? tr("Tips will show again") : tr("Show tips again")) {
                 TipEngine.shared.reset()
                 tipsReset = true
@@ -547,7 +561,8 @@ private struct SettingsQuestions: ViewModifier {
             .confirmationDialog(DesignLibrary.emptyTrashQuestion(count: trashCount), isPresented: $emptyingTrash,
                                 titleVisibility: .visible) {
                 Button("Empty Recently deleted", role: .destructive) {
-                    DesignLibrary.emptyTrash()
+                    // Its uploads and folders too.
+                    DesignLibrary.emptyEveryTrash()
                     onCleared()
                 }
             } message: {

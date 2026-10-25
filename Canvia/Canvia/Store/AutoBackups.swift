@@ -111,7 +111,9 @@ final class AutoBackups {
                 stamps.append(deleted.timeIntervalSince1970 * 1000)
             }
         }
-        stamps += Uploads.all().map(\.added)
+        stamps += Uploads.withTrashed().map(\.added)
+        // An upload sent to Recently deleted is a change too.
+        stamps += Uploads.withTrashed().compactMap(\.deleted)
         if let kits = try? BrandKits.fileURL.resourceValues(forKeys: [.contentModificationDateKey]),
            let changed = kits.contentModificationDate {
             stamps.append(changed.timeIntervalSince1970 * 1000)

@@ -16,6 +16,9 @@ struct CanviaApp: App {
     @State private var openError: String?
     /// A design file handed over, while it is being read in.
     @State private var openingFile = false
+    /// A design file read in, while what to make of it is asked: a
+    /// template's added to Your templates, or either opened as a design.
+    @State private var openedFile: DesignPackage.OpenedFile?
     /// A workbook opened in Canvia with several sheets with rows, and the
     /// title its design takes, while the sheet to chart is chosen.
     @State private var sheetsIn: SheetsIn?
@@ -48,6 +51,9 @@ struct CanviaApp: App {
         // first — everything already stored, the first time — as the sweep
         // never takes one.
         DesignLibrary.purgeTrash()
+        // Uploads and folders likewise, so the prune below takes an
+        // upload's file once nothing uses it.
+        DesignLibrary.purgeTrashedUploadsAndFolders()
         // Shares never brought in — the app stopped with the sheet up.
         SharedInbox.sweep()
         Uploads.seedIfNeeded()
@@ -69,10 +75,10 @@ struct CanviaApp: App {
         _editingStore = State(initialValue: Self.storeForLaunchArguments() ?? Self.storeForLaunchRequest())
     }
 
-    /// A design file handed to the app, opened as a new design in the
-    /// editor — the one open saves as it closes, as leaving it always does.
-    /// Read in away from the main thread, under an "Opening the design…"
-    /// card, since a file with clips in it takes a while.
+    /// A design file handed to the app, read in away from the main thread,
+    /// under an "Opening the design…" card, since a file with clips in it
+    /// takes a while — then asked about: added to Your templates, or opened
+    /// as a new design in the editor (openImported).
     private func openDesignFile(_ url: URL) {
         guard url.isFileURL else { return }
         let taken = DesignLibrary.recents().map(\.title)
@@ -83,14 +89,20 @@ struct CanviaApp: App {
                 DesignPackage.discardInboxCopy(url)
             }
             do {
-                var design = try await DesignPackage.importFileInBackground(at: url, taken: taken)
-                design.updatedAt = Date().timeIntervalSince1970 * 1000
-                DesignLibrary.save(design)
-                withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
+                openedFile = try await DesignPackage.importingFileInBackground(at: url, taken: taken)
             } catch {
                 openError = error.localizedDescription
             }
         }
+    }
+
+    /// A design file read in, opened as a new design in the editor — the
+    /// one open saves as it closes, as leaving it always does.
+    private func openImported(_ imported: Design) {
+        var design = imported
+        design.updatedAt = Date().timeIntervalSince1970 * 1000
+        DesignLibrary.save(design)
+        withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
     }
 
     /// A workbook's sheets to choose one from, and the design's title.
@@ -215,6 +227,9 @@ struct CanviaApp: App {
             .confirmationDialog("Choose a sheet", isPresented: choosingSheet, titleVisibility: .visible) {
                 sheetButtons
             }
+            .modifier(OpenedFileQuestion(opened: $openedFile, onDesign: { openImported($0) }, onTemplate: { added in
+                if added == nil { openError = tr("Couldn't save the template") }
+            }))
     }
 
     private var choosingSheet: Binding<Bool> {

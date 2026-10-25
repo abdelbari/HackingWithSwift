@@ -19,6 +19,9 @@ struct StartSheet: View {
     var onCustomSize: () -> Void
     /// Import's rows, above the sizes; nil offers none.
     var onImport: ((ImportChoice) -> Void)?
+    /// The Tools group's rows, under Import: a quick file tool, which makes
+    /// no design; nil offers none.
+    var onTool: ((QuickTools.Tool) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var presetId: String?
     @State private var category: String?
@@ -28,11 +31,12 @@ struct StartSheet: View {
     @State private var kit = BrandKit.load()
 
     init(initialPresetId: String?, onCreate: @escaping (Design) -> Void, onCustomSize: @escaping () -> Void,
-         onImport: ((ImportChoice) -> Void)? = nil) {
+         onImport: ((ImportChoice) -> Void)? = nil, onTool: ((QuickTools.Tool) -> Void)? = nil) {
         self.initialPresetId = initialPresetId
         self.onCreate = onCreate
         self.onCustomSize = onCustomSize
         self.onImport = onImport
+        self.onTool = onTool
         _presetId = State(initialValue: initialPresetId)
     }
 
@@ -105,6 +109,7 @@ struct StartSheet: View {
     private var sizePicker: some View {
         VStack(alignment: .leading, spacing: 16) {
             if let onImport { importGroup(onImport) }
+            if let onTool { toolsGroup(onTool) }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 12)], alignment: .leading, spacing: 16) {
                 ForEach(SizePreset.hero) { preset in
                     SizeTile(preset: preset) { presetId = preset.id }
@@ -113,6 +118,27 @@ struct StartSheet: View {
             }
         }
         .padding(20)
+    }
+
+    /// The quick file tools: PDFs and pictures worked on, no design made.
+    private func toolsGroup(_ action: @escaping (QuickTools.Tool) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Tools")
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                ForEach(QuickTools.Tool.allCases) { tool in
+                    Button { action(tool) } label: {
+                        Label(tool.title, systemImage: tool.systemImage)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+        }
     }
 
     /// A photo or clip, a PDF, a deck or a design file, each a design.

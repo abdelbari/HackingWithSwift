@@ -183,8 +183,11 @@ struct VersionHistorySheet: View {
     }
 }
 
-/// One kept version, full screen and a page at a time: restored in place of
-/// the design, or saved beside it as a copy.
+/// One kept version, full screen and a page at a time, each page with a
+/// badge saying whether it is the same as now, changed since or deleted
+/// since (VersionDiff.pages): restored in place of the design, saved beside
+/// it as a copy, or — the page shown — brought back into the design as one
+/// undo step, or put in place of the page it was (Replace page).
 struct VersionPreview: View {
     @Bindable var store: DesignStore
     let version: DesignLibrary.Version
@@ -215,9 +218,10 @@ struct VersionPreview: View {
                             }
                         }
                         .tabViewStyle(.page(indexDisplayMode: .never))
-                        Text("Page \(page + 1) of \(design.pages.count)")
+                        Text(pageLine(design))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                        pageActions(design)
                         actions
                     }
                 } else if loaded {
@@ -269,6 +273,54 @@ struct VersionPreview: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Page \(index + 1) of \(design.pages.count)")
+    }
+
+    /// "Page 2 of 4 · Changed since".
+    private func pageLine(_ design: Design) -> String {
+        let states = VersionDiff.pages(design, store.design)
+        let place = tr("Page %d of %d", page + 1, design.pages.count)
+        guard states.indices.contains(page) else { return place }
+        return place + " · " + Self.badge(states[page].state)
+    }
+
+    /// What a page's badge says.
+    static func badge(_ state: VersionDiff.PageChange) -> String {
+        switch state {
+        case .same: return tr("Same as now")
+        case .changed: return tr("Changed since")
+        case .onlyInVersion: return tr("Deleted since")
+        }
+    }
+
+    /// Bring back this page, and — for a page the design still has —
+    /// Replace page.
+    private func pageActions(_ design: Design) -> some View {
+        let shown = design.pages.indices.contains(page) ? design.pages[page] : nil
+        let stillThere = shown.map { s in store.design.pages.contains { $0.id == s.id } } ?? false
+        return HStack(spacing: 12) {
+            Button { bringBack(design, shown, replace: false) } label: {
+                Label("Bring back this page", systemImage: "arrow.uturn.backward.square")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(shown == nil)
+            if stillThere {
+                Button { bringBack(design, shown, replace: true) } label: {
+                    Label("Replace page", systemImage: "rectangle.2.swap")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    /// The page shown into the design as it is now, one undo step; the
+    /// version stays as it is, and the history goes, as after a restore.
+    private func bringBack(_ design: Design, _ shown: Page?, replace: Bool) {
+        guard let shown, store.bringBackPage(from: design, pageId: shown.id, replace: replace) else { return }
+        onRestored()
+        dismiss()
     }
 
     private var actions: some View {
