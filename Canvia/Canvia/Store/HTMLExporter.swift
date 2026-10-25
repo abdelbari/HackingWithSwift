@@ -400,17 +400,16 @@ enum HTMLExporter {
         while at < end, let u = UnicodeScalar(plain.character(at: at)), blank.contains(u) { at += 1 }
         while end > at, let u = UnicodeScalar(plain.character(at: end - 1)), blank.contains(u) { end -= 1 }
         guard at < end else { return "" }
-        func piece(_ from: Int, _ to: Int) -> String { esc(plain.substring(with: NSRange(location: from, length: to - from))) }
         var out = ""
         for span in el.liveSpans {
             let tag = span.script == Spans.raised ? "sup" : (span.script == Spans.lowered ? "sub" : "")
             let from = min(max(span.start, at), end), to = min(max(span.end, from), end)
             guard !tag.isEmpty, from < to else { continue }
-            out += piece(at, from)
-            out += "<\(tag)>" + piece(from, to) + "</\(tag)>"
+            out += esc(plain.substring(with: NSRange(location: at, length: from - at)))
+            out += "<\(tag)>" + esc(plain.substring(with: NSRange(location: from, length: to - from))) + "</\(tag)>"
             at = to
         }
-        return out + piece(at, end)
+        return out + esc(plain.substring(with: NSRange(location: at, length: end - at)))
     }
 
     /// A clip over its place in the page, a share of the page's size so it
