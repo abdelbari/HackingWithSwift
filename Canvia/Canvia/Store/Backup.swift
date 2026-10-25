@@ -765,15 +765,29 @@ enum Backup {
         }
     }
 
-    /// Your fonts, added as a font is; returns how many were new here.
+    /// Your fonts, added as a font is; returns how many were new here. One
+    /// here already stays as it is, in Recently deleted or not.
     private static func restoreFonts(_ reader: ZipStore.Reader) -> Int {
         let had = Set(FontStore.installed().map(\.id))
         var added = 0
         for name in reader.names(in: "fonts/") {
-            guard let data = reader.file(name), case .success = FontStore.add(data) else { continue }
-            if !had.contains(CustomFonts.sha12(data)) { added += 1 }
+            guard let data = reader.file(name), !had.contains(CustomFonts.sha12(data)),
+                  case .success = FontStore.add(data) else { continue }
+            added += 1
         }
+        trashFonts(reader.file(Uploads.fileName), had: had)
         return added
+    }
+
+    /// Each font in Recently deleted in the backup's uploads list, new
+    /// here, waits there here too, from when it was deleted.
+    private static func trashFonts(_ data: Data?, had: Set<String>) {
+        guard let data, let raw = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return }
+        for case let item as [String: Any] in raw {
+            guard item["kind"] as? String == Uploads.fontKind, let id = item["id"] as? String,
+                  !had.contains(id), let deleted = Uploads.deletedTime(item) else { continue }
+            Uploads.trash([id], at: deleted)
+        }
     }
 
     /// Your uploads' list merged: each photo, clip or song not listed here

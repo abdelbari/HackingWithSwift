@@ -40,6 +40,27 @@ final class UploadsTrashTests: XCTestCase {
         XCTAssertNil(Uploads.deletedTime(["id": "x", "deleted": "yesterday"]))
     }
 
+    /// The same rows as the Android twin's UploadsTrashTest.
+    func testAddingAFontInRecentlyDeletedAgainBringsItBack() {
+        let raw: [[String: Any]] = [
+            ["id": "abc123", "kind": "font", "added": 1, "name": "Inter", "file": "abc123.ttf", "deleted": 500],
+            ["id": "img-a", "kind": "image", "added": 2, "deleted": 600],
+        ]
+        let expected: [[String: Any]] = [
+            ["id": "abc123", "kind": "font", "added": 1, "name": "Inter", "file": "abc123.ttf"],
+            ["id": "img-a", "kind": "image", "added": 2, "deleted": 600],
+        ]
+        let back = Uploads.addingFont(raw, sha: "abc123", name: "Inter", file: "abc123.ttf", added: 900)
+        XCTAssertTrue(NSArray(array: back).isEqual(to: expected))
+        // A live one is left as it is.
+        let again = Uploads.addingFont(back, sha: "abc123", name: "Inter", file: "abc123.ttf", added: 1000)
+        XCTAssertTrue(NSArray(array: again).isEqual(to: expected))
+        // A new one goes on the end, added now.
+        let fresh: [[String: Any]] = [["id": "def456", "kind": "font", "added": 900, "name": "Lora", "file": "def456.otf"]]
+        let added = Uploads.addingFont([], sha: "def456", name: "Lora", file: "def456.otf", added: 900)
+        XCTAssertTrue(NSArray(array: added).isEqual(to: fresh))
+    }
+
     func testAFolderGoesToRecentlyDeletedWithWhatWentWithItAndComesBackWithItsStar() {
         typealias Folder = DesignLibrary.HomeFolder
         let folders = [Folder(name: "Trips", starred: true), Folder(name: "Work")]
