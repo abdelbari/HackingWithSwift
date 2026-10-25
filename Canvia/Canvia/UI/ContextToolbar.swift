@@ -411,9 +411,8 @@ struct ContextToolbar: View {
 
     /// "Photo missing · Replace" — or "Video missing" — which opens Replace
     /// for that frame (MissingMedia).
-    private func missingMediaChip(_ el: Element) -> some View {
-        let kind = MissingMedia.stored(el.src).map(MissingMedia.fileKind) ?? .photo
-        return Button {
+    private func missingMediaChip(_ el: Element, kind: MissingMedia.MediaKind) -> some View {
+        Button {
             store.replaceTargetId = el.id
             activeSheet = .insert
         } label: {
@@ -1389,7 +1388,7 @@ struct ContextToolbar: View {
         Group {
             // A picture or clip whose file is gone says so first, with
             // Replace, which keeps its crop, frame, filters and alt text.
-            if MissingMedia.isMissing(el) { missingMediaChip(el) }
+            if let kind = store.missingKind(el) { missingMediaChip(el, kind: kind) }
             // An empty frame or grid cell takes a colour in place of a photo
             // (PhotoFrames.colourOf); Replace, further along, puts a photo
             // back.

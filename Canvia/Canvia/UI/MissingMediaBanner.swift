@@ -9,8 +9,6 @@ import SwiftUI
 
 struct MissingMediaBanner: View {
     @Bindable var store: DesignStore
-    /// What is gone, read as the design opens and again as it changes.
-    @State private var items: [MissingMedia.Absent] = []
     @State private var dismissed: Int64?
     /// Which item Show is on; nil before Show.
     @State private var showing: Int?
@@ -19,8 +17,11 @@ struct MissingMediaBanner: View {
     /// The design's revision: when it last changed.
     private var revision: Int64 { Int64(store.design.updatedAt.rounded()) }
 
+    /// What is gone, read as the design opens and again as it changes.
+    private var items: [MissingMedia.Absent] { store.missingMedia }
+
     /// What Show steps through: those on a page.
-    private var onPages: [MissingMedia.Absent] { items.filter { $0.pageIndex >= 0 } }
+    private var onPages: [MissingMedia.Absent] { items.filter { $0.pageIndex != nil } }
 
     var body: some View {
         // A stack that is there even when empty, so its task runs.
@@ -79,7 +80,8 @@ struct MissingMediaBanner: View {
         guard list.indices.contains(index) else { return }
         showing = index
         let item = list[index]
-        store.reveal(elementId: item.kind == .background ? nil : item.elementId, onPage: item.pageIndex)
+        guard let page = item.pageIndex else { return }
+        store.reveal(elementId: item.kind == .background ? nil : item.elementId, onPage: page)
     }
 
     private func dismiss() {
@@ -88,14 +90,13 @@ struct MissingMediaBanner: View {
         DesignLibrary.dismissMissingNote(store.design.id, revision: rev)
     }
 
-    /// What is gone, looked for off the main thread, and whether the line
-    /// was put away at this revision.
+    /// What is gone, looked for off the main thread and kept on the store
+    /// (checkMissing), and whether the line was put away at this revision.
     @MainActor
     private func read() async {
-        let design = store.design
-        dismissed = DesignLibrary.versionMeta(for: design.id).missingNoteDismissed
-        let found = await Task.detached(priority: .utility) { MissingMedia.onThisPhone(design) }.value
-        if found.count != items.count { showing = nil }
-        items = found
+        dismissed = DesignLibrary.versionMeta(for: store.design.id).missingNoteDismissed
+        let before = items.count
+        await store.checkMissing()
+        if items.count != before { showing = nil }
     }
 }

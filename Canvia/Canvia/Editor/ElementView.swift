@@ -1236,6 +1236,7 @@ struct ImageElementView: View {
     var clipPlays = false
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.onScreen) private var onScreen
+    @Environment(\.missingFiles) private var missingFiles
     @Environment(\.clipsInOrder) private var clipsInOrder
 
     var body: some View {
@@ -1292,10 +1293,10 @@ struct ImageElementView: View {
                 // the photo would be.
                 colour.fillView()
                     .frame(width: element.w, height: element.h)
-            } else if onScreen, MissingMedia.isMissing(element) {
+            } else if onScreen, let file = MissingMedia.missingFile(of: element, among: missingFiles) {
                 // Its file is gone: said on the canvas, scaled to the
                 // frame — an export keeps its plain placeholder.
-                MissingPlaceholder(element: element)
+                MissingPlaceholder(element: element, kind: MissingMedia.fileKind(file))
             } else {
                 Color(hex: "#e3e6ea")
                     .overlay(Image(systemName: "photo").font(.largeTitle).foregroundStyle(.secondary))
@@ -1423,10 +1424,10 @@ struct ImageElementView: View {
 /// missing", sized to the frame.
 private struct MissingPlaceholder: View {
     let element: Element
+    let kind: MissingMedia.MediaKind
 
     var body: some View {
         let side = max(1, min(element.w, element.h))
-        let kind = MissingMedia.stored(element.src).map(MissingMedia.fileKind) ?? .photo
         Color(hex: "#e3e6ea")
             .overlay {
                 VStack(spacing: side * 0.04) {

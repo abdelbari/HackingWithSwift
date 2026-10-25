@@ -1804,8 +1804,16 @@ final class DesignStore {
     /// the track's in Audio; the sheet that opens them takes it.
     var captionsAsked: String?
     /// Check accessibility's Replace on a picture or clip whose file is
-    /// gone, asking the editor for Add in Replace mode (replaceTargetId).
+    /// gone, asking the editor for Add in Replace mode (replaceTargetId) —
+    /// or, with none, for Background.
     var replaceAsked = false
+    /// What this design shows whose file is gone from this phone, and
+    /// those stored files, looked for off the main thread as the design
+    /// opens and changes (checkMissing, MissingFiles.swift); empty until
+    /// then. The canvas, the toolbar and the sheets read these rather than
+    /// the disk.
+    var missingMedia: [MissingMedia.Absent] = []
+    var missingFiles: Set<String> = []
     /// The photo whose faces Face retouch is looking for, and the one it
     /// found none in, which the Filters sheet says so of
     /// (FaceRetouching.swift).

@@ -223,7 +223,9 @@ final class ExportPlanTests: XCTestCase {
         // A film's row counts its captions findings alone (nudgeFindings).
         XCTAssertTrue(ExportPlan.showsA11yNudge(format: "mp4", findings: 3, remind: true, revision: 10, dismissed: nil))
         XCTAssertFalse(ExportPlan.showsA11yNudge(format: "gif", findings: 0, remind: true, revision: 10, dismissed: nil))
-        XCTAssertFalse(ExportPlan.showsA11yNudge(format: "svg", findings: 3, remind: true, revision: 10, dismissed: nil))
+        // Any other type counts what is missing alone, so its row shows for that.
+        XCTAssertFalse(ExportPlan.showsA11yNudge(format: "svg", findings: 0, remind: true, revision: 10, dismissed: nil))
+        XCTAssertTrue(ExportPlan.showsA11yNudge(format: "svg", findings: 1, remind: true, revision: 10, dismissed: nil))
     }
 
     func testTheRowSaysHowManySuggestionsOnThePagesGoingOut() {

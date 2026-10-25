@@ -12,11 +12,11 @@ final class MissingMediaTests: XCTestCase {
     private func fixture() throws -> (design: Design, present: Set<String>, missing: [MissingMedia.Absent]) {
         let object = try SharedFixture.object("missing-media")
         let design = try JSONDecoder().decode(Design.self, from: SharedFixture.encoded(try XCTUnwrap(object["design"])))
-        let present = Set(try XCTUnwrap(object["present"] as? [String]))
+        let present = Set(try XCTUnwrap(object["exists"] as? [String]))
         let rows = try XCTUnwrap(object["missing"] as? [[String: Any]])
         let missing = try rows.map { row in
             MissingMedia.Absent(elementId: try XCTUnwrap(row["elementId"] as? String),
-                              pageIndex: try XCTUnwrap(row["pageIndex"] as? Int),
+                              pageIndex: row["pageIndex"] as? Int,
                               kind: try XCTUnwrap(MissingMedia.MediaKind(rawValue: try XCTUnwrap(row["kind"] as? String))))
         }
         return (design, present, missing)
@@ -87,16 +87,22 @@ final class MissingMediaTests: XCTestCase {
         XCTAssertEqual(MissingMedia.spoken("Photo", missing: false), "Photo")
     }
 
-    func testTheAuditSaysSoWithReplaceLastOnItsPage() throws {
+    func testTheAuditSaysSoFirstOnItsPageWithReplace() throws {
         let f = try fixture()
         let all = AccessibilityAudit.findings(f.design, missingMedia: f.missing)
         let missing = all.filter { $0.kind == .missingMedia }
-        XCTAssertEqual(missing.map(\.elementId), [nil, "e2", "e4", "e8", "e10"])
-        XCTAssertEqual(missing.map(\.fix), [nil, .replace, .replace, .replace, .replace])
-        XCTAssertEqual(missing.map(\.message), ["Photo missing", "Photo missing", "Video missing", "Photo missing", "Photo missing"])
+        XCTAssertEqual(missing.map(\.elementId), [nil, "e2", "e4", "e11", "e8", "e10"])
+        XCTAssertEqual(missing.map(\.pageIndex), [0, 0, 0, 0, 1, 1])
+        // A background's Replace opens Background.
+        XCTAssertTrue(missing.allSatisfy { $0.fix == .replace })
+        XCTAssertEqual(missing.map(\.message), ["Photo missing", "Photo missing", "Video missing", "Photo missing",
+                                                "Photo missing", "Photo missing"])
+        XCTAssertEqual(all.first?.kind, .missingMedia)
         XCTAssertEqual(AccessibilityAudit.Fix.replace.rawValue, "Replace")
-        // A film's export row counts them too.
-        XCTAssertEqual(ExportPlan.nudgeFindings(missing, format: "mp4").count, missing.count)
+        // The export row counts them for every file type.
+        for format in ["pdf", "mp4", "gif", "svg", "docx"] {
+            XCTAssertEqual(ExportPlan.nudgeFindings(missing, format: format).count, missing.count, format)
+        }
         // None passed, none found.
         XCTAssertTrue(AccessibilityAudit.findings(f.design).allSatisfy { $0.kind != .missingMedia })
     }

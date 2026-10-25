@@ -47,11 +47,13 @@
 //    the safe part of the page, one step.
 //  - missingLetters: words — a text's or a shape's — with letters their font
 //    does not have (FontLibrary.covers), which the phone draws in a
-//    stand-in font: Cyrillic in a Latin-only face.
+//    stand-in font: Cyrillic in a Latin-only face — last of the kinds on
+//    both phones.
 //  - missingMedia: a photo or clip whose file is gone from this phone
 //    (MissingMedia, which the caller passes in, as it reads the files):
 //    "Photo missing" or "Video missing", with Replace; a page's background
-//    picture gone, said of the page — last of the kinds on both phones.
+//    picture gone, said of the page, its Replace opening Background —
+//    first of the kinds on both phones.
 //
 // Findings come page by page; within a page in that order of kinds, and
 // within a kind in layer order, back to front. Hidden elements and hidden
@@ -63,9 +65,12 @@ import Foundation
 
 enum AccessibilityAudit {
 
+    /// In the order each page lists them, as on the Android twin: what is
+    /// missing first, since nothing else can be judged on a grey box.
     enum Kind: String, CaseIterable {
+        case missingMedia
         case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, headings, colourVision, captions
-        case safeZone, missingLetters, missingMedia
+        case safeZone, missingLetters
     }
 
     /// What a finding's button does.
@@ -107,6 +112,7 @@ enum AccessibilityAudit {
         var out: [Finding] = []
         for (p, page) in design.pages.enumerated() where page.hidden != true {
             let shown = page.elements.filter { !$0.isHidden }
+            out += missingFindings(missingMedia, page: p, shown: shown)
             for f in contrast[p] ?? [] {
                 out.append(Finding(kind: .contrast, pageIndex: p, elementId: f.elementId,
                                    message: tr("Hard to read: %@:1, needs %@:1", String(format: "%.1f", f.ratio),
@@ -175,18 +181,19 @@ enum AccessibilityAudit {
                 out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
                                    message: missingLettersNote))
             }
-            out += missingFindings(missingMedia, page: p, shown: shown)
         }
         return out
     }
 
-    /// The missingMedia findings of page `p`: its background, then its
-    /// shown elements, as MissingMedia lists them; a sound is no page's.
+    /// The missingMedia findings of page `p`, first on it: its background,
+    /// then its shown elements, as MissingMedia lists them, each with
+    /// Replace — a background's opens Background; a sound is no page's.
     static func missingFindings(_ items: [MissingMedia.Absent], page p: Int, shown: [Element]) -> [Finding] {
         let ids = Set(shown.map(\.id))
         return items.filter { $0.pageIndex == p }.compactMap { item in
             if item.kind == .background {
-                return Finding(kind: .missingMedia, pageIndex: p, elementId: nil, message: MissingMedia.saying(.background))
+                return Finding(kind: .missingMedia, pageIndex: p, elementId: nil, message: MissingMedia.saying(.background),
+                               fix: .replace)
             }
             guard ids.contains(item.elementId) else { return nil }
             return Finding(kind: .missingMedia, pageIndex: p, elementId: item.elementId,

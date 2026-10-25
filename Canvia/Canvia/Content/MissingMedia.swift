@@ -11,8 +11,10 @@
 // `missing` lists what is gone, in the order of the shared fixture
 // missing-media.json (MissingMediaTests, the Android twin's
 // MissingMediaTest): page by page, the page's background before its
-// elements in layer order, back to front; then the design's audio tracks,
-// in their order, each with page index -1 and its track's id. Only a file
+// elements in layer order, back to front — an element by its picture or
+// clip, else by the photo or clip its fill holds (a photo-filled shape is a
+// photo) — then the design's audio tracks, in their order, each with no page
+// index (null in the fixture) and its track's id. Only a file
 // of the design's own counts — "media:", "video:", "anim:" and an "audio:"
 // track or a clip's sound ("video:") — never a library picture ("asset:"),
 // a loop ("motion:"), a code ("qr:") or a sound or song the app comes with.
@@ -29,7 +31,8 @@ enum MissingMedia {
     /// One thing whose file is gone.
     struct Absent: Equatable {
         var elementId: String
-        var pageIndex: Int
+        /// The page it is on; nil for a sound track, which is no page's.
+        var pageIndex: Int?
         var kind: MediaKind
     }
 
@@ -42,6 +45,18 @@ enum MissingMedia {
         if let parts = VideoStore.split(src) { return parts.id.isEmpty ? nil : VideoStore.src(parts.id, at: nil) }
         if let parts = AnimStore.split(src) { return parts.id.isEmpty ? nil : AnimStore.src(parts.id, at: nil) }
         return nil
+    }
+
+    /// The stored files `el` shows, in the order they are checked: its
+    /// own picture or clip, then the photo or clip its fill holds.
+    static func sources(of el: Element) -> [String] {
+        let fill = el.fill?.kind == "image" ? el.fill?.src : nil
+        return [el.src, fill].compactMap { stored($0) }
+    }
+
+    /// The first of `el`'s stored files that is in `gone`, or nil.
+    static func missingFile(of el: Element, among gone: Set<String>) -> String? {
+        sources(of: el).first { gone.contains($0) }
     }
 
     /// The kind of file a stored source is.
@@ -67,14 +82,14 @@ enum MissingMedia {
             if case .image(let src) = page.background, let file = stored(src), gone(file) {
                 out.append(Absent(elementId: page.id, pageIndex: p, kind: .background))
             }
-            for el in page.elements where el.type == .image {
-                guard let file = stored(el.src), gone(file) else { continue }
+            for el in page.elements {
+                guard let file = sources(of: el).first(where: { gone($0) }) else { continue }
                 out.append(Absent(elementId: el.id, pageIndex: p, kind: fileKind(file)))
             }
         }
         for track in design.audioTracks {
             guard let file = trackFile(track), gone(file) else { continue }
-            out.append(Absent(elementId: track.id, pageIndex: -1, kind: .audio))
+            out.append(Absent(elementId: track.id, pageIndex: nil, kind: .audio))
         }
         return out
     }

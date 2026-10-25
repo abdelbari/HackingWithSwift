@@ -113,7 +113,19 @@ struct CaptionPage: Equatable {
     }
 }
 
+/// The stored files the editor found gone (DesignStore.missingFiles): a
+/// picture or clip among them is drawn saying so, on screen. Empty
+/// anywhere else, so an export keeps its plain grey placeholder.
+struct MissingFilesKey: EnvironmentKey {
+    static let defaultValue: Set<String> = []
+}
+
 extension EnvironmentValues {
+    var missingFiles: Set<String> {
+        get { self[MissingFilesKey.self] }
+        set { self[MissingFilesKey.self] = newValue }
+    }
+
     var captionPage: CaptionPage? {
         get { self[CaptionPageKey.self] }
         set { self[CaptionPageKey.self] = newValue }

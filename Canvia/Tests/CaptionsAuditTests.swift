@@ -43,6 +43,7 @@ final class CaptionsAuditTests: XCTestCase {
         XCTAssertEqual(kinds.firstIndex(of: .colourVision).map { $0 + 1 }, kinds.firstIndex(of: .captions))
         XCTAssertEqual(kinds.firstIndex(of: .captions).map { $0 + 1 }, kinds.firstIndex(of: .safeZone))
         XCTAssertEqual(kinds.last, .missingLetters, "last of the kinds on both phones")
+        XCTAssertEqual(kinds.first, .missingMedia, "first of the kinds on both phones")
         XCTAssertEqual(AccessibilityAudit.Fix.addCaptions.rawValue, "Add captions")
     }
 

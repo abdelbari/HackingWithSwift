@@ -2306,7 +2306,8 @@ private struct WordRequests: ViewModifier {
 /// place of the sheet that asked — each opens its captions
 /// (DesignStore.captionsAsked).
 /// Its Replace, on a picture whose file is gone, asks for Add in Replace
-/// mode (DesignStore.replaceAsked).
+/// mode (DesignStore.replaceAsked) — on a background, which no element
+/// holds, for Background.
 private struct PageAnimationRequest: ViewModifier {
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
@@ -2325,7 +2326,7 @@ private struct PageAnimationRequest: ViewModifier {
             .onChange(of: store.replaceAsked) { _, asked in
                 guard asked else { return }
                 store.replaceAsked = false
-                activeSheet = .insert
+                activeSheet = store.replaceTargetId == nil ? .background : .insert
             }
     }
 }

@@ -124,7 +124,7 @@ struct AccessibilitySheet: View {
 
     private func refresh() {
         let all = AccessibilityAudit.findings(store.design, silentClips: silentClips,
-                                              missingMedia: MissingMedia.onThisPhone(store.design))
+                                              missingMedia: store.missingMedia)
         findings = pages.map { AccessibilityAudit.onPages(all, $0) } ?? all
     }
 
@@ -230,7 +230,8 @@ struct AccessibilitySheet: View {
             store.captionsAsked = f.source
         case .replace:
             // On its page, the picture selected; the editor opens Add to
-            // replace it, its look kept (MissingMedia.replaced).
+            // replace it, its look kept (MissingMedia.replaced) — or, for
+            // a background, Background.
             store.reveal(elementId: f.elementId, onPage: f.pageIndex)
             store.replaceTargetId = f.elementId
             store.replaceAsked = true

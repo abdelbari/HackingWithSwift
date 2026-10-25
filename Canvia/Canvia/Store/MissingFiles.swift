@@ -26,15 +26,42 @@ extension MissingMedia {
         missing(design, exists: exists)
     }
 
-    /// Whether `el`'s picture or clip is gone from this phone.
+    /// Whether `el`'s picture or clip — or the photo its fill holds — is
+    /// gone from this phone, read from the disk: for a step, never a view's
+    /// body, which reads DesignStore.missingFiles.
     static func isMissing(_ el: Element) -> Bool {
-        guard el.type == .image, let file = stored(el.src) else { return false }
-        return !exists(file)
+        sources(of: el).contains { !exists($0) }
+    }
+}
+
+extension DesignStore {
+
+    /// What is missing looked for again, off the main thread, and kept in
+    /// `missingMedia` and `missingFiles` — the Android twin's checkMissing.
+    @MainActor
+    func checkMissing() async {
+        let design = self.design
+        let found = await Task.detached(priority: .utility) { () -> ([MissingMedia.Absent], Set<String>) in
+            var gone: Set<String> = []
+            let items = MissingMedia.missing(design) { file in
+                let here = MissingMedia.exists(file)
+                if !here { gone.insert(file) }
+                return here
+            }
+            return (items, gone)
+        }.value
+        if missingMedia != found.0 { missingMedia = found.0 }
+        if missingFiles != found.1 { missingFiles = found.1 }
     }
 
-    /// Whether `track`'s sound is gone from this phone.
-    static func isTrackMissing(_ track: AudioTrack) -> Bool {
-        guard let file = trackFile(track) else { return false }
-        return !exists(file)
+    /// The kind of file `el` is missing — its own picture or clip's, else
+    /// its fill's — or nil when it is missing none, as last looked for.
+    func missingKind(_ el: Element) -> MissingMedia.MediaKind? {
+        MissingMedia.missingFile(of: el, among: missingFiles).map(MissingMedia.fileKind)
+    }
+
+    /// Whether sound track `id`'s file is gone, as last looked for.
+    func soundMissing(_ id: String) -> Bool {
+        missingMedia.contains { $0.kind == .audio && $0.elementId == id }
     }
 }

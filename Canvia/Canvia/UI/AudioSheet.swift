@@ -117,7 +117,7 @@ struct AudioSheet: View {
                 // A track whose sound is gone says so, with Replace beside it.
                 HStack(spacing: 8) {
                     NavigationLink(value: track.id) { trackRow(track) }
-                    if MissingMedia.isTrackMissing(track) { replaceChip(track) }
+                    if store.soundMissing(track.id) { replaceChip(track) }
                 }
             }
             .onDelete { offsets in
