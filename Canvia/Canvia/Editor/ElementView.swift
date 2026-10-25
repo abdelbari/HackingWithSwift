@@ -46,6 +46,7 @@ struct ElementView: View {
     @Environment(\.playsPictures) private var playsPictures
     @Environment(\.captionTime) private var captionTime
     @Environment(\.captionsPlay) private var captionsPlay
+    @Environment(\.captionPage) private var captionPage
     @Environment(\.onScreen) private var onScreen
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -58,7 +59,8 @@ struct ElementView: View {
     private var resolved: Element {
         var el = element
         if el.captions != nil {
-            el = Captions.shown(el, at: animationTime?.time ?? captionTime, still: animationTime == nil && !captionsPlay)
+            el = Captions.shown(el, at: animationTime?.time ?? captionTime, still: animationTime == nil && !captionsPlay,
+                                palette: captionPage?.palette ?? [])
         }
         guard let pageNumber, el.text?.contains("{page") == true else { return el }
         el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
@@ -272,6 +274,21 @@ struct ElementView: View {
         }
     }
 
+    /// A "bar" caption's band (Captions.barRect): across the page from the
+    /// box's own top, its height, drawn in the box's space — the box's
+    /// width where no page is drawn round it.
+    @ViewBuilder
+    private func captionBar(_ el: Element) -> some View {
+        if el.text?.isEmpty == false,
+           let band = Captions.barRect(el, pageWidth: captionPage?.width ?? el.x * 2 + el.w) {
+            let across = captionPage != nil
+            Color.black.opacity(Captions.barAlpha)
+                .frame(width: across ? band.width : el.w, height: band.height)
+                .offset(x: across ? band.minX - el.x : 0)
+                .allowsHitTesting(false)
+        }
+    }
+
     @ViewBuilder
     private func typeContent(drawing: Double) -> some View {
         let el = shown
@@ -283,14 +300,11 @@ struct ElementView: View {
                 ShapeElementView(element: el)
             }
         case .text:
-            // A caption box in Bar style lies on a band its width, black at
-            // 0.6, while it has words to show (Captions.bar).
+            // A caption box in Bar style lies on a band across the page's
+            // whole width, black at 0.6, while it has words to show.
             TextElementView(element: el, units: motion.unitClock)
-                .background {
-                    if el.captions?.style == Captions.bar, el.text?.isEmpty == false {
-                        Color.black.opacity(Captions.barAlpha)
-                    }
-                }
+                .frame(width: el.w, height: el.h)
+                .background(alignment: .topLeading) { captionBar(el) }
         case .image:
             if playsPictures && animationTime == nil && (AnimStore.isAnim(el.src) || MotionLibrary.isMotion(el.src)) {
                 // Play in the editor: the picture on a clock of its own, going
@@ -1674,9 +1688,11 @@ struct PageRenderView: View {
         .designDirection()
     }
 
-    @ViewBuilder
     private var drawn: some View {
-        if sentinels { sentinelled } else { plain }
+        Group {
+            if sentinels { sentinelled } else { plain }
+        }
+        .environment(\.captionPage, CaptionPage.of(design, page))
     }
 
     /// What `plain` draws, sentinel k before the kth element drawn —

@@ -29,55 +29,50 @@ extension DesignStore {
             }
             selection = [existing.id]
         } else {
-            add(Captions.element(width: pageWidth, height: pageHeight, captions: Captions(source: source, cues: cues)),
+            add(Captions.element(width: pageWidth, height: pageHeight,
+                                 captions: Captions(source: source, cues: cues, highlight: brandHighlight)),
                 centered: false)
         }
         buzz(.confirm)
     }
 
     /// The caption box for `source` drawn in `style` (Captions.styles) as
-    /// one undo step, its cues kept: "gradient" fills its letters with the
-    /// page's colours (Captions.gradientFill), and another style takes
-    /// that fill away again.
+    /// one undo step, its cues kept; the brand's accent becomes its
+    /// highlight where it has none (Captions.brandAccent). "gradient" is
+    /// worked out from the page's palette as it is drawn, so nothing else
+    /// is written. Nothing changes on a locked page.
     func setCaptionStyle(_ source: String, _ style: String) {
         guard let existing = captionsFor(source), var next = existing.captions, next.style != style else { return }
-        let was = next.style
+        guard !refusesLockedPage() else { return }
         next.style = style
-        let fill: Paint? = style == Captions.gradient
-            ? Captions.gradientFill(DataGraphics.palette(for: design, page: page)) : nil
-        applyToPage { page in
-            guard let i = page.elements.firstIndex(where: { $0.id == existing.id }) else { return }
-            var box = Captions.on(page.elements[i], next)
-            if style == Captions.gradient || was == Captions.gradient { box.textFill = fill }
-            page.elements[i] = box
-        }
-    }
-
-    /// The caption box for `source` put at `place` (Captions.places) on
-    /// this page — "safe" inside the page's safe zone for its size — and
-    /// the place kept, as one undo step.
-    func setCaptionPlace(_ source: String, _ place: String) {
-        guard let existing = captionsFor(source), var next = existing.captions else { return }
-        next.place = place
-        let size = design.size(for: page)
-        let zone = SafeZones.matching(size).first
-        applyToPage { page in
-            guard let i = page.elements.firstIndex(where: { $0.id == existing.id }) else { return }
-            page.elements[i] = Captions.placed(Captions.on(page.elements[i], next), place, size: size, zone: zone)
-        }
-    }
-
-    /// The colour the caption box for `source` lights its said words in,
-    /// as one undo step; the default colour is no key.
-    func setCaptionHighlight(_ source: String, _ hex: String) {
-        guard let existing = captionsFor(source), var next = existing.captions else { return }
-        let ink = hex.lowercased() == Captions.highlightColour ? nil : hex.lowercased()
-        guard next.highlight != ink else { return }
-        next.highlight = ink
+        next.highlight = next.highlight ?? brandHighlight
         applyToPage { page in
             guard let i = page.elements.firstIndex(where: { $0.id == existing.id }) else { return }
             page.elements[i] = Captions.on(page.elements[i], next)
         }
+    }
+
+    /// The caption box for `source` put at `place` (Captions.places) on
+    /// this page — "safe" clear of the safe zone the page shows
+    /// (SafeZones.shown) — and the place kept, as one undo step. A box
+    /// locked in place stays put, and nothing moves on a locked page.
+    func setCaptionPlace(_ source: String, _ place: String) {
+        guard let existing = captionsFor(source), ElementLock.mode(of: existing) == .unlocked else { return }
+        guard !refusesLockedPage() else { return }
+        let size = design.size(for: page)
+        let safe = SafeZones.shown(design, page: page).map { SafeZones.safeRect($0, size: size) }
+        let placed = Captions.placed(existing, place, size: size, safe: safe)
+        guard placed != existing else { return }
+        applyToPage { page in
+            guard let i = page.elements.firstIndex(where: { $0.id == existing.id }) else { return }
+            page.elements[i] = placed
+        }
+    }
+
+    /// The highlight colour captions take from the brand kit
+    /// (Captions.brandAccent); nil with no brand colours.
+    var brandHighlight: String? {
+        Captions.brandAccent(BrandKit.load().palettes.map(\.colors))
     }
 
     /// Where this page starts in the film, in seconds — nought while it is

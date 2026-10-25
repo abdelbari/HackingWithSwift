@@ -2,8 +2,8 @@
 // recognition where it has it (CaptionSpeech), Import .srt, and Edit — a
 // list of the cues with their times and words — then, once there are
 // captions, a row of the nine styles, each tile playing its sample words in
-// its style, where the box sits (top, middle, bottom or inside the page's
-// safe zone) and the colour the said words are lit in. The cues go on this page's caption box for `source`
+// its style, and where the box sits (top, middle, bottom or inside the
+// page's safe zone). The cues go on this page's caption box for `source`
 // ("video:<id>" or "audio:<trackId>"), or a new one across the lower part of
 // the page (DesignStore.setCaptions), one undo step each time. The Android
 // twin's CaptionsRows, the same words.
@@ -74,8 +74,8 @@ struct CaptionsSheet: View {
         }
     }
 
-    /// The nine styles as tiles, each drawn live; then the place and the
-    /// highlight colour. Each a step of its own, the cues kept.
+    /// The nine styles as tiles, each drawn live; then the place. Each a
+    /// step of its own, the cues kept.
     private var styleSection: some View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -90,7 +90,6 @@ struct CaptionsSheet: View {
                 .padding(.vertical, 4)
             }
             placePicker
-            highlightRow
         } header: {
             Text("Style")
         }
@@ -106,38 +105,6 @@ struct CaptionsSheet: View {
             }
         }
         .pickerStyle(.segmented)
-    }
-
-    /// The colour the said words are lit in: the default yellow, then the
-    /// brand's colours.
-    private var highlightRow: some View {
-        let chosen = captions?.highlightInk ?? Captions.highlightColour
-        return HStack(spacing: 10) {
-            Text("Highlight")
-            Spacer()
-            ForEach(Self.highlightInks(BrandKit.load().colors), id: \.self) { ink in
-                Button { store.setCaptionHighlight(source, ink) } label: {
-                    Circle()
-                        .fill(Color(hex: ink))
-                        .frame(width: 28, height: 28)
-                        .overlay(Circle().stroke(Theme.accent, lineWidth: ink == chosen.lowercased() ? 3 : 0))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.borderless)
-                .accessibilityLabel(ElementNames.spokenColour(ink))
-                .accessibilityAddTraits(ink == chosen.lowercased() ? [.isSelected] : [])
-            }
-        }
-    }
-
-    /// The highlight colours offered: the default, then up to five of the
-    /// brand's, each once.
-    static func highlightInks(_ brand: [String]) -> [String] {
-        var out = [Captions.highlightColour]
-        for hex in brand.map({ $0.lowercased() }) where !out.contains(hex) && out.count < 6 {
-            out.append(hex)
-        }
-        return out
     }
 
     private func put(_ cues: [CaptionCue]) {
@@ -283,7 +250,7 @@ struct CaptionStyleTile: View {
     let choose: () -> Void
 
     /// The sample's cue and how long a turn of it lasts.
-    private static let sample = CaptionCue(start: 0, end: 1.2, text: "Say it loud")
+    private static var sample: CaptionCue { CaptionCue(start: 0, end: 1.2, text: tr("Say it out loud")) }
     private static let turn = 1.8
 
     var body: some View {
@@ -314,12 +281,10 @@ struct CaptionStyleTile: View {
         box.align = "center"
         box.vAlign = "middle"
         box.color = "#ffffff"
-        box = Captions.on(box, Captions(cues: [Self.sample], style: style, highlight: ink))
-        if style == Captions.gradient {
-            box.textFill = Captions.gradientFill([ink, "#5a31f4"])
-        }
+        let sample = Self.sample
+        box = Captions.on(box, Captions(cues: [sample], style: style, highlight: ink))
         let t = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: Self.turn)
-        return Captions.shown(box, at: min(t, Self.sample.end - 0.001))
+        return Captions.shown(box, at: min(t, sample.end - 0.001))
     }
 
     /// A style's name in the sheet.
@@ -331,7 +296,7 @@ struct CaptionStyleTile: View {
         case Captions.pop: return tr("Pop")
         case Captions.karaoke: return tr("Karaoke")
         case Captions.typewriter: return tr("Typewriter")
-        case Captions.bar: return tr("Bar")
+        case Captions.bar: return tr("Bar", context: "caption style")
         case Captions.gradient: return tr("Gradient")
         default: return tr("Plain")
         }

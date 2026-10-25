@@ -92,7 +92,33 @@ struct CaptionsPlayKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// What a caption box needs of its page (CaptionPage), nil where no page
+/// is drawn round it.
+struct CaptionPageKey: EnvironmentKey {
+    static let defaultValue: CaptionPage? = nil
+}
+
+/// The page a caption box is drawn on: its width, which a "bar" caption's
+/// band runs across (Captions.barRect), and its palette, which a
+/// "gradient" caption's letters take (Captions.gradientFill) — worked out
+/// only for a page with a gradient caption on it.
+struct CaptionPage: Equatable {
+    var width: Double
+    var palette: [String]
+
+    static func of(_ design: Design, _ page: Page) -> CaptionPage {
+        let graded = page.elements.contains { $0.captions?.style == Captions.gradient }
+        let palette = graded ? ContentLibrary.suggestedPalette(for: page)?.colors ?? [] : []
+        return CaptionPage(width: Double(design.size(for: page).width), palette: palette)
+    }
+}
+
 extension EnvironmentValues {
+    var captionPage: CaptionPage? {
+        get { self[CaptionPageKey.self] }
+        set { self[CaptionPageKey.self] = newValue }
+    }
+
     var captionTime: Double? {
         get { self[CaptionTimeKey.self] }
         set { self[CaptionTimeKey.self] = newValue }

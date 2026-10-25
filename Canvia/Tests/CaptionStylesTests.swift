@@ -48,87 +48,126 @@ final class CaptionStylesTests: XCTestCase {
         XCTAssertEqual(box.captions?.highlight, "#22c55e")
     }
 
-    func testEachWordsFrameMatchesTheSharedFixture() throws {
-        let fixture = try SharedFixture.object("captions-styles")
-        let tolerance = try XCTUnwrap(fixture["tolerance"] as? Double)
-        let raw = try XCTUnwrap(fixture["cue"] as? [String: Any])
-        let shared = CaptionCue(start: try XCTUnwrap(raw["start"] as? Double), end: try XCTUnwrap(raw["end"] as? Double),
-                                text: try XCTUnwrap(raw["text"] as? String))
-        let rows = try XCTUnwrap(fixture["rows"] as? [[String: Any]])
-        XCTAssertEqual(Set(rows.compactMap { $0["style"] as? String }), Set(Captions.styles))
-        for row in rows {
+    private func fixtureRows(_ key: String) throws -> [[String: Any]] {
+        try XCTUnwrap(try SharedFixture.object("captions-styles")[key] as? [[String: Any]])
+    }
+
+    private func fixtureCue(_ raw: Any?) throws -> CaptionCue {
+        let a = try XCTUnwrap(raw as? [Any])
+        return CaptionCue(start: try XCTUnwrap(a[0] as? Double), end: try XCTUnwrap(a[1] as? Double),
+                          text: try XCTUnwrap(a[2] as? String))
+    }
+
+    func testEachWordIsFramedAsTheSharedFixtureSays() throws {
+        XCTAssertEqual(Captions.styles.count, 9)
+        for row in try fixtureRows("frames") {
             let style = try XCTUnwrap(row["style"] as? String)
-            let t = row["t"] as? Double
-            let expected = try XCTUnwrap(row["frames"] as? [[Double]])
-            let frames = Captions.frameFor(style, cue: shared, t: t)
-            XCTAssertEqual(frames.count, expected.count, "\(style) at \(String(describing: t))")
-            for (frame, want) in zip(frames, expected) {
-                XCTAssertEqual(frame.scale, want[0], accuracy: tolerance, "\(style) at \(String(describing: t))")
-                XCTAssertEqual(frame.alpha, want[1], accuracy: tolerance, "\(style) at \(String(describing: t))")
-                XCTAssertEqual(frame.fill, want[2], accuracy: tolerance, "\(style) at \(String(describing: t))")
+            let t = try XCTUnwrap(row["t"] as? Double)
+            let frame = Captions.frameFor(style, t: t, span: try XCTUnwrap(row["span"] as? Double))
+            XCTAssertEqual(frame.scale, try XCTUnwrap(row["scale"] as? Double), accuracy: 1e-9, "\(style) at \(t)")
+            XCTAssertEqual(frame.alpha, try XCTUnwrap(row["alpha"] as? Double), accuracy: 1e-9, "\(style) at \(t)")
+            XCTAssertEqual(frame.fill, try XCTUnwrap(row["fill"] as? Double), accuracy: 1e-9, "\(style) at \(t)")
+        }
+    }
+
+    func testTheWordsShareTheCuesTimeEvenlyAndLettersRoundUp() throws {
+        for row in try fixtureRows("progress") {
+            let got = Captions.wordProgress(try fixtureCue(row["cue"]), try XCTUnwrap(row["t"] as? Double))
+            let since = try XCTUnwrap(row["since"] as? [Double])
+            XCTAssertEqual(got.count, since.count)
+            for (timing, want) in zip(got, since) {
+                XCTAssertEqual(timing.since, want, accuracy: 1e-9)
+                XCTAssertEqual(timing.span, try XCTUnwrap(row["span"] as? Double), accuracy: 1e-9)
             }
         }
-    }
-
-    func testWordProgressAndPop() {
-        let early = Captions.wordProgress(cue, 1.2)
-        XCTAssertEqual(early.count, 3)
-        XCTAssertEqual(early[0], 0.5, accuracy: 1e-9)
-        XCTAssertEqual(Array(early.dropFirst()), [0, 0])
-        XCTAssertEqual(Captions.wordProgress(cue, 3), [1, 1, 1])
-        XCTAssertEqual(Captions.popScale(0), 0.6, accuracy: 1e-9)
-        XCTAssertEqual(Captions.popScale(0.09), 1.08, accuracy: 1e-9)
-        XCTAssertEqual(Captions.popScale(0.18), 1, accuracy: 1e-9)
-        XCTAssertEqual(Captions.popScale(5), 1, accuracy: 1e-9)
-    }
-
-    func testTheSpansThatDrawEachStyle() {
-        let box = Element.text("")
-        func shown(_ style: String, _ t: Double?) -> [TextSpan] {
-            Captions.shown(Captions.on(box, Captions(cues: [cue], style: style)), at: t).liveSpans
+        for row in try fixtureRows("letters") {
+            XCTAssertEqual(Captions.letters(try XCTUnwrap(row["fill"] as? Double), count: try XCTUnwrap(row["count"] as? Int)),
+                           try XCTUnwrap(row["letters"] as? Int))
         }
-        // Karaoke: the first word whole, the second half filled ("i").
-        XCTAssertEqual(shown(Captions.karaoke, 1.6), [TextSpan(start: 0, end: 3, color: Captions.highlightColour),
-                                                       TextSpan(start: 4, end: 5, color: Captions.highlightColour)])
-        // Typewriter: the rest of "it" clear, "loud" not yet there.
-        XCTAssertEqual(shown(Captions.typewriter, 1.6), [TextSpan(start: 5, end: 6, color: Captions.clearInk),
-                                                          TextSpan(start: 7, end: 11, color: Captions.clearInk)])
-        // Pop: the first word settling, the rest clear and small.
-        let pop = shown(Captions.pop, 1.05)
-        XCTAssertEqual(pop.count, 3)
-        XCTAssertNil(pop[0].color)
-        XCTAssertEqual(pop[1].color, Captions.clearInk)
-        // Finished, nothing is left clear or small.
-        XCTAssertEqual(shown(Captions.typewriter, nil), [])
-        XCTAssertEqual(shown(Captions.pop, nil), [])
-        // Outline: white letters in a black stroke 6% of the type.
-        let outlined = Captions.shown(Captions.on(box, Captions(cues: [cue], style: Captions.outline)), at: 1.5)
+        XCTAssertEqual(Captions.popScale(5), 1, accuracy: 1e-9)
+        // Whole characters: half of "héllo" is three letters, three units.
+        XCTAssertEqual(Captions.filledUnits("héllo", share: 0.5), 3)
+    }
+
+    func testPopKaraokeAndTypewriterDrawTheirWordsAsTheSharedFixtureSays() throws {
+        for row in try fixtureRows("shown") {
+            let style = try XCTUnwrap(row["style"] as? String)
+            var white = Element.text("")
+            white.color = "#ffffff"
+            let box = Captions.on(white, Captions(cues: [try fixtureCue(row["cue"])], style: style))
+            let t = try XCTUnwrap(row["t"] as? Double)
+            let want = try XCTUnwrap(row["spans"] as? [[Any]]).map { a in
+                TextSpan(start: a[0] as? Int ?? -1, end: a[1] as? Int ?? -1, color: a[2] as? String, scale: a[3] as? Double)
+            }
+            XCTAssertEqual(Captions.shown(box, at: t).liveSpans, want, "\(style) at \(t)")
+        }
+    }
+
+    func testAStillShowsTheFinishedCue() {
+        let hello = [CaptionCue(start: 1, end: 2, text: "Hello world")]
+        var white = Element.text("")
+        white.color = "#ffffff"
+        for style in [Captions.pop, Captions.typewriter] {
+            let box = Captions.on(white, Captions(cues: hello, style: style))
+            XCTAssertEqual(Captions.shown(box, at: nil).liveSpans, [])
+            // The playhead at rest before the first cue: that cue, finished.
+            XCTAssertEqual(Captions.shown(box, at: 0.5, still: true).liveSpans, [])
+            XCTAssertEqual(Captions.shown(box, at: 0.5, still: true).text, "Hello world")
+        }
+        let sung = Captions.on(white, Captions(cues: hello, style: Captions.karaoke, highlight: "#00ff00"))
+        XCTAssertEqual(Captions.shown(sung, at: nil).liveSpans, [TextSpan(start: 0, end: 11, color: "#00ff00")])
+    }
+
+    func testOutlineGradientAndBar() {
+        let hello = [CaptionCue(start: 0, end: 2, text: "Hi")]
+        let outlined = Captions.shown(Captions.on(Element.text("x"), Captions(cues: hello, style: Captions.outline)), at: 1)
         XCTAssertEqual(outlined.color, "#ffffff")
         XCTAssertEqual(outlined.effect?.type, "outlined")
+        XCTAssertEqual(outlined.effect?.thickness ?? 0, 75, accuracy: 1e-9)
         XCTAssertEqual(outlined.effect?.color, "#000000")
         XCTAssertEqual(TextEffect.outlinedStroke(fontSize: 100, thickness: outlined.effect?.thickness ?? 0), 6, accuracy: 1e-9)
-        // A colour of its own lights the words.
-        let lit = Captions.shown(Captions.on(box, Captions(cues: [cue], style: Captions.highlightWord, highlight: "#22c55e")),
-                                 at: 1.1)
-        XCTAssertEqual(lit.liveSpans, [TextSpan(start: 0, end: 3, color: "#22c55e")])
-        XCTAssertEqual(Captions.filledUnits("héllo", share: 0.5), 2)
+        // Gradient: worked out from the page's palette as it is drawn, never stored.
+        let graded = Captions.shown(Captions.on(Element.text("x"), Captions(cues: hello, style: Captions.gradient)), at: 1,
+                                    palette: ["#1A1A2E", "#E63946", "#1D6FDC"])
+        XCTAssertEqual(graded.textFill?.stops?.map(\.color), ["#1a1a2e", "#e63946"])
+        XCTAssertEqual(graded.textFill?.angle, 90)
+        XCTAssertEqual(Captions.gradientFill(["#123456"]).stops?.map(\.color), Captions.gradientFallback)
+        XCTAssertEqual(Captions.gradientFallback, ["#ffd60a", "#ff375f"])
+        var band = Element.text("x")
+        band.y = 500
+        band.h = 90
+        let bar = Captions.on(band, Captions(cues: hello, style: Captions.bar))
+        XCTAssertEqual(Captions.barRect(bar, pageWidth: 1080), CGRect(x: 0, y: 500, width: 1080, height: 90))
+        XCTAssertNil(Captions.barRect(Captions.on(Element.text("x"), Captions(cues: hello)), pageWidth: 1080))
     }
 
-    func testPlacesMoveTheBoxOnly() {
-        let size = CGSize(width: 1000, height: 800)
-        let box = Captions.element(width: 1000, height: 800, captions: Captions(cues: [cue]))
-        XCTAssertEqual(Captions.placed(box, Captions.top, size: size, zone: nil).y, 48, accuracy: 1e-9)
-        XCTAssertEqual(Captions.placed(box, Captions.middle, size: size, zone: nil).y, (800 - box.h) / 2, accuracy: 1e-9)
-        XCTAssertEqual(Captions.placed(box, Captions.bottom, size: size, zone: nil).y, box.y, accuracy: 1e-9)
-        // Safe with no zone for the size is the bottom.
-        XCTAssertEqual(Captions.placed(box, Captions.safe, size: size, zone: nil).y, box.y, accuracy: 1e-9)
-        let zone = SafeZones.Zone(id: "z", label: "Z", sizes: [[1000, 800]],
-                                  insets: .init(top: 0.1, bottom: 0.25, left: 0.05, right: 0.15), rails: [])
-        let safe = Captions.placed(box, Captions.safe, size: size, zone: zone)
-        XCTAssertEqual(safe.y + safe.h, 800 * 0.75 - 16, accuracy: 1e-9)
-        XCTAssertGreaterThanOrEqual(safe.x, 50)
-        XCTAssertLessThanOrEqual(safe.x + safe.w, 850 + 1e-9)
-        XCTAssertEqual(safe.text, box.text)
+    func testABoxIsPlacedAsTheSharedFixtureSaysItsPlaceRemembered() throws {
+        for row in try fixtureRows("placed") {
+            let box = try XCTUnwrap(row["box"] as? [Double])
+            let safe = (row["safe"] as? [Double]).map { CGRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }
+            var el = Element.text("x")
+            el.w = box[0]
+            el.h = box[1]
+            el = Captions.on(el, Captions(cues: [CaptionCue(start: 0, end: 1, text: "Hi")]))
+            let place = try XCTUnwrap(row["place"] as? String)
+            let placed = Captions.placed(el, place, size: CGSize(width: 1080, height: 1920), safe: safe)
+            let frame = try XCTUnwrap(row["frame"] as? [Double])
+            XCTAssertEqual(placed.x, frame[0], accuracy: 1e-6, place)
+            XCTAssertEqual(placed.y, frame[1], accuracy: 1e-6, place)
+            XCTAssertEqual(placed.captions?.place, place)
+        }
+    }
+
+    func testABrandsAccentIsItsFirstPalettesSecondColourOrItsOnlyOne() {
+        XCTAssertEqual(Captions.brandAccent([["#1A1A2E", "#E63946", "#ffffff"]]), "#e63946")
+        XCTAssertEqual(Captions.brandAccent([[], ["#123456"]]), "#123456")
+        XCTAssertNil(Captions.brandAccent([]))
+        XCTAssertNil(Captions.brandAccent([["#000000", "gold"]]))
+    }
+
+    func testAHighlightThatIsNoColourIsLeftOut() throws {
+        let text = ##"{"source":null,"cues":[],"style":"bar","highlight":"#12"}"##
+        XCTAssertNil(try JSONDecoder().decode(Captions.self, from: Data(text.utf8)).highlight)
     }
 
     func testStyleAndPlaceAreOneStepEachAndKeepTheCues() {
@@ -137,30 +176,27 @@ final class CaptionStylesTests: XCTestCase {
         s.setCaptionStyle("video:clip1", Captions.gradient)
         XCTAssertEqual(s.page.elements[0].captions?.style, Captions.gradient)
         XCTAssertEqual(s.page.elements[0].captions?.cues, [cue])
-        XCTAssertEqual(s.page.elements[0].textFill?.kind, "gradient")
-        s.setCaptionStyle("video:clip1", Captions.karaoke)
+        // Gradient is drawn from the page's palette; nothing is stored.
         XCTAssertNil(s.page.elements[0].textFill)
         s.setCaptionPlace("video:clip1", Captions.top)
         XCTAssertEqual(s.page.elements[0].captions?.place, Captions.top)
         XCTAssertEqual(s.page.elements[0].y, 1920 * Captions.placeMargin, accuracy: 1e-9)
-        s.setCaptionHighlight("video:clip1", "#22C55E")
-        XCTAssertEqual(s.page.elements[0].captions?.highlight, "#22c55e")
-        s.setCaptionHighlight("video:clip1", Captions.highlightColour)
-        XCTAssertNil(s.page.elements[0].captions?.highlight)
-        s.undo()
-        XCTAssertEqual(s.page.elements[0].captions?.highlight, "#22c55e")
-        s.undo()
+        XCTAssertEqual(s.page.elements[0].x, (1080 - s.page.elements[0].w) / 2, accuracy: 1e-9)
         s.undo()
         XCTAssertNil(s.page.elements[0].captions?.place)
         s.undo()
-        XCTAssertEqual(s.page.elements[0].captions?.style, Captions.gradient)
+        XCTAssertEqual(s.page.elements[0].captions?.style, Captions.plain)
         XCTAssertEqual(s.page.elements[0].captions?.cues, [cue])
     }
 
-    func testGradientTakesThePagesFirstTwoColours() {
-        let two = Captions.gradientFill(["#112233", "#445566", "#778899"])
-        XCTAssertEqual(two.stops?.map(\.color), ["#112233", "#445566"])
-        XCTAssertEqual(two.angle, 90)
-        XCTAssertEqual(Captions.gradientFill(["#112233"]).stops?.map(\.color), ["#112233", "#ffffff"])
+    func testABoxLockedInPlaceStaysPut() {
+        let s = store([])
+        s.setCaptions("video:clip1", cues: [cue])
+        let id = s.page.elements[0].id
+        s.applyToPage { page in page.elements[0] = ElementLock.with(page.elements[0], .position) }
+        let y = s.page.elements[0].y
+        s.setCaptionPlace("video:clip1", Captions.top)
+        XCTAssertEqual(s.page.elements.first { $0.id == id }?.y, y)
+        XCTAssertNil(s.page.elements[0].captions?.place)
     }
 }
