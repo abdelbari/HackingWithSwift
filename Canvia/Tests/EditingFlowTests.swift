@@ -197,6 +197,45 @@ final class EditingFlowTests: XCTestCase {
         }
     }
 
+    /// An element of a quick_flow_drop row: a shape, or a line when the row
+    /// says so, at its box, locked or hidden as it says.
+    private func dropElement(_ o: [String: Any]) throws -> Element {
+        let r = try rect(o["box"])
+        var el = o["line"] as? Bool == true ? Element.line(w: Double(r.width)) : shape(r)
+        el.id = try XCTUnwrap(o["id"] as? String)
+        el.x = Double(r.minX)
+        el.y = Double(r.minY)
+        el.h = Double(r.height)
+        el.locked = o["locked"] as? Bool == true
+        if o["hidden"] as? Bool == true { el.hidden = true }
+        return el
+    }
+
+    func testTheSharedDropRows() throws {
+        let rows = try rows("quick_flow_drop")
+        XCTAssertGreaterThanOrEqual(rows.count, 8)
+        for row in rows {
+            let name = row["name"] as? String ?? ""
+            let list = try XCTUnwrap(row["elements"] as? [[String: Any]], name)
+            let elements = try list.map { try dropElement($0) }
+            let point = try XCTUnwrap(pair(row["point"]), name)
+            let source = try XCTUnwrap(row["source"] as? String, name)
+            let target = QuickFlow.dropTarget(elements, source: source, at: point)
+            XCTAssertEqual(target?.id, row["target"] as? String, name)
+        }
+    }
+
+    func testTheSharedTurnedSideRows() throws {
+        let rows = try rows("quick_flow_turned")
+        XCTAssertGreaterThanOrEqual(rows.count, 8)
+        for row in rows {
+            let name = row["name"] as? String ?? ""
+            let handle = try XCTUnwrap(pair(row["handle"]), name)
+            let side = QuickFlow.turnedSide(try rect(row["box"]), handle: handle)
+            XCTAssertEqual(side.rawValue, row["side"] as? String, name)
+        }
+    }
+
     func testTheCopyKeepsTheLookButNotTheWords() {
         var note = StickyNotes.note(StickyNotes.colours[1])
         note.text = "Idea"

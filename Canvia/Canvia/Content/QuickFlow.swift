@@ -169,8 +169,11 @@ enum QuickFlow {
     }
 
     /// What a + dragged and let go at `point` ties to: the topmost shown
-    /// element there that is not the source nor a line; nil over empty
-    /// space, where the copy goes instead.
+    /// element there that is not the source nor a line — a locked one too,
+    /// which a connector tied to it does not move; a line on top is passed
+    /// over for what lies under it. Nil over empty space, where the copy
+    /// goes instead. The Android twin's QuickFlow.dropTarget, with the same
+    /// rows (Fixtures/quick_flow_drop.json).
     static func dropTarget(_ elements: [Element], source: String, at point: CGPoint) -> Element? {
         elements.last { $0.id != source && $0.type != .line && !$0.isHidden && Geometry.hits($0, point: point) }
     }
@@ -181,14 +184,26 @@ enum QuickFlow {
         CGRect(x: Double(point.x) - source.w / 2, y: Double(point.y) - source.h / 2, width: source.w, height: source.h)
     }
 
-    /// Where a side's + sits for `el` (unturned box, its centre the
-    /// element's, turned with it): `distance` page units out from the
-    /// middle of that side.
-    static func discPoint(_ el: Element, side: Side, distance: Double) -> CGPoint {
+    /// Where a side's + sits round `box` — the shape's page-axis box
+    /// (Geometry.aabb), not turned with it, as on the Android twin — so the
+    /// + is always on the side its copy goes: `distance` page units out from
+    /// the middle of that side.
+    static func discPoint(_ box: CGRect, side: Side, distance: Double) -> CGPoint {
         let step = side.step
-        let reach = side == .left || side == .right ? el.w / 2 + distance : el.h / 2 + distance
-        let c = el.center
-        let p = CGPoint(x: Double(c.x) + step.dx * reach, y: Double(c.y) + step.dy * reach)
-        return el.rotation == 0 ? p : Geometry.rotate(p, around: c, degrees: el.rotation)
+        let reach = side == .left || side == .right ? Double(box.width) / 2 + distance : Double(box.height) / 2 + distance
+        return CGPoint(x: Double(box.midX) + step.dx * reach, y: Double(box.midY) + step.dy * reach)
+    }
+
+    /// Which side of `box` — the shape's page-axis box, round which the +s
+    /// stand — the turn handle at `handle` is on: the way the line from the
+    /// box's middle to it runs most, top or bottom on a tie. That side's +
+    /// stands past the turn handle, wherever the shape's turn has taken it.
+    /// The Android twin's QuickFlow.turnedSide, with the same rows
+    /// (Fixtures/quick_flow_turned.json).
+    static func turnedSide(_ box: CGRect, handle: CGPoint) -> Side {
+        let dx = Double(handle.x - box.midX)
+        let dy = Double(handle.y - box.midY)
+        if abs(dx) > abs(dy) { return dx > 0 ? .right : .left }
+        return dy < 0 ? .top : .bottom
     }
 }

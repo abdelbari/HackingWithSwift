@@ -1,0 +1,131 @@
+{
+  "about": "QuickFlow.turnedSide on both phones: which side of box (x, y, w, h), the shape's page-axis box round which the four + discs stand, the turn handle at handle is on. It is the way the line from the box's middle to the handle runs most (right or left when its x part is the longer), top or bottom on a tie. That side's + stands past the turn handle, wherever the shape's turn has taken it.",
+  "rows": [
+    {
+      "name": "unturned, handle below",
+      "box": [
+        0,
+        0,
+        200,
+        100
+      ],
+      "handle": [
+        100,
+        150
+      ],
+      "side": "bottom"
+    },
+    {
+      "name": "unturned, handle above",
+      "box": [
+        0,
+        0,
+        200,
+        100
+      ],
+      "handle": [
+        100,
+        -50
+      ],
+      "side": "top"
+    },
+    {
+      "name": "turned 90, handle to the left",
+      "box": [
+        50,
+        -50,
+        100,
+        200
+      ],
+      "handle": [
+        -30,
+        50
+      ],
+      "side": "left"
+    },
+    {
+      "name": "turned 270, handle to the right",
+      "box": [
+        50,
+        -50,
+        100,
+        200
+      ],
+      "handle": [
+        230,
+        50
+      ],
+      "side": "right"
+    },
+    {
+      "name": "turned 180, handle above",
+      "box": [
+        0,
+        0,
+        200,
+        100
+      ],
+      "handle": [
+        100,
+        -80
+      ],
+      "side": "top"
+    },
+    {
+      "name": "turned 30, handle still below",
+      "box": [
+        0,
+        0,
+        200,
+        100
+      ],
+      "handle": [
+        60,
+        140
+      ],
+      "side": "bottom"
+    },
+    {
+      "name": "turned 60 on a wide box, handle to the left",
+      "box": [
+        0,
+        0,
+        200,
+        100
+      ],
+      "handle": [
+        10,
+        80
+      ],
+      "side": "left"
+    },
+    {
+      "name": "a tie goes to below",
+      "box": [
+        0,
+        0,
+        200,
+        100
+      ],
+      "handle": [
+        150,
+        100
+      ],
+      "side": "bottom"
+    },
+    {
+      "name": "a tie above goes to above",
+      "box": [
+        0,
+        0,
+        200,
+        100
+      ],
+      "handle": [
+        50,
+        0
+      ],
+      "side": "top"
+    }
+  ]
+}
