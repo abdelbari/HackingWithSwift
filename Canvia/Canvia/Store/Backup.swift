@@ -763,7 +763,9 @@ enum Backup {
             guard let id = item["id"] as? String, !here.contains(id),
                   let kind = (item["kind"] as? String).flatMap(Uploads.Kind.init(rawValue:)) else { continue }
             let ms = (item["added"] as? NSNumber)?.doubleValue ?? Date().timeIntervalSince1970 * 1000
-            Uploads.record(id, kind: kind, now: Date(timeIntervalSince1970: ms / 1000))
+            // With the file name it came with: what a suggested description
+            // is drawn from, as on the Android twin.
+            Uploads.record(id, kind: kind, name: item["name"] as? String, now: Date(timeIntervalSince1970: ms / 1000))
             if Uploads.all(kind).contains(where: { $0.id == id }) { added += 1 }
         }
         return added
