@@ -65,6 +65,9 @@ enum TextKeys {
         Key(key: "8", shift: true, action: .bulletedList),
         Key(key: ",", shift: true, action: .smaller),
         Key(key: ".", shift: true, action: .larger),
+        // Listed where the Android twin lists them, after Larger.
+        Key(key: ".", shift: false, action: .raise),
+        Key(key: ",", shift: false, action: .lower),
         Key(key: "k", shift: false, action: .link),
         Key(key: down, shift: false, action: .lineTighter, alt: true),
         Key(key: up, shift: false, action: .lineLooser, alt: true),
@@ -72,8 +75,6 @@ enum TextKeys {
         Key(key: right, shift: false, action: .letterLooser, alt: true),
         Key(key: "c", shift: false, action: .copyStyle, alt: true),
         Key(key: "v", shift: false, action: .pasteStyle, alt: true),
-        Key(key: ".", shift: false, action: .raise),
-        Key(key: ",", shift: false, action: .lower),
     ]
 
     /// Outside typing, the one key with nothing held: T adds a text box in

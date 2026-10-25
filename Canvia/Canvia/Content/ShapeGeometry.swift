@@ -223,7 +223,8 @@ enum ShapeGeometry {
             var t = 0.0
             var r = 0.0
             if radius > 0, a > 0, b > 0 {
-                let cosine = min(max(((px - vx) * (nx - vx) + (py - vy) * (ny - vy)) / (a * b), -1), 1)
+                let dot: Double = (px - vx) * (nx - vx) + (py - vy) * (ny - vy)
+                let cosine = min(max(dot / (a * b), -1.0), 1.0)
                 let half = tan(acos(cosine) / 2)
                 if half > 1e-9, half < 1e9 {
                     let limit = min(a, b) / 2
@@ -243,7 +244,8 @@ enum ShapeGeometry {
             let end = CGPoint(x: vx + (nx - vx) / b * t, y: vy + (ny - vy) / b * t)
             // A turn clockwise on the page sweeps the arc clockwise.
             let turn = (vx - px) * (ny - vy) - (vy - py) * (nx - vx)
-            d += move + pt(start) + "A" + num(r) + "," + num(r) + " 0 0 " + (turn > 0 ? "1" : "0") + " " + pt(end)
+            let sweep = turn > 0 ? "1" : "0"
+            d += "\(move)\(pt(start))A\(num(r)),\(num(r)) 0 0 \(sweep) \(pt(end))"
         }
         return d + "Z"
     }

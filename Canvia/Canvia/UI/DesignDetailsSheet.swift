@@ -59,7 +59,7 @@ struct DesignDetailsSheet: View {
 
     private func factsSection(_ facts: DesignFacts) -> some View {
         Section {
-            LabeledContent("Type", value: facts.typeName)
+            LabeledContent(tr("Type", context: "design type"), value: facts.typeName)
             LabeledContent("Size", value: ([facts.size] + [facts.pixels].compactMap { $0 }).joined(separator: " · "))
             LabeledContent("Pages", value: DesignFacts.pagesLine(facts))
             if let seconds = facts.seconds {

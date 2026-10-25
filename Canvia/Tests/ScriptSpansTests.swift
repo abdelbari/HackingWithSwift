@@ -32,10 +32,21 @@ final class ScriptSpansTests: XCTestCase {
         XCTAssertEqual(Spans.linksOnly([TextSpan(start: 0, end: 1, script: "super")]), [])
     }
 
+    /// Shared: a script other than "super" or "sub" is none, and alike
+    /// neighbours join.
+    func testTheScriptsTidyAsOnAndroid() throws {
+        let rows = try XCTUnwrap(try fixture()["normalise"] as? [[String: Any]])
+        XCTAssertEqual(rows.count, 3)
+        for row in rows {
+            let name = row["name"] as? String ?? ""
+            XCTAssertEqual(Spans.normalised(try spans(row["spans"])), try spans(row["out"]), name)
+        }
+    }
+
     /// Shared: the spans move with the words as every other look does.
     func testTheScriptsMoveWithTheWords() throws {
         let rows = try XCTUnwrap(try fixture()["remap"] as? [[String: Any]])
-        XCTAssertGreaterThanOrEqual(rows.count, 6)
+        XCTAssertGreaterThanOrEqual(rows.count, 13)
         for row in rows {
             let old = try XCTUnwrap(row["old"] as? String), new = try XCTUnwrap(row["new"] as? String)
             XCTAssertEqual(Spans.remap(old, new, try spans(row["spans"])), try spans(row["out"]), "\(old) → \(new)")
@@ -46,12 +57,15 @@ final class ScriptSpansTests: XCTestCase {
     /// them already are, then puts them back on the line.
     func testTheButtonsToggleTheScript() throws {
         let rows = try XCTUnwrap(try fixture()["toggle"] as? [[String: Any]])
-        for (n, row) in rows.enumerated() {
-            let range = try XCTUnwrap(row["range"] as? [Int])
+        XCTAssertEqual(rows.count, 10)
+        for row in rows {
+            let start = try XCTUnwrap(row["start"] as? Int)
+            let end = try XCTUnwrap(row["end"] as? Int)
             let script = try XCTUnwrap(row["script"] as? String)
-            let out = Spans.toggledScript(try spans(row["spans"]), range: NSRange(location: range[0], length: range[1]),
-                                          script: script)
-            XCTAssertEqual(out, try spans(row["out"]), "row \(n)")
+            let name = row["name"] as? String ?? ""
+            let range = NSRange(location: start, length: end - start)
+            let out = Spans.toggledScript(try spans(row["spans"]), range: range, script: script)
+            XCTAssertEqual(out, try spans(row["out"]), name)
         }
         let mixed = [TextSpan(start: 0, end: 1, script: "super"), TextSpan(start: 1, end: 2, script: "sub")]
         XCTAssertFalse(Spans.script(of: mixed, in: NSRange(location: 0, length: 2)).shared)
@@ -62,13 +76,17 @@ final class ScriptSpansTests: XCTestCase {
     /// at; the line keeps its height.
     func testRaisedAndLoweredLettersAreSmallerAndMoved() throws {
         let layout = try XCTUnwrap(try fixture()["layout"] as? [String: Any])
-        for row in try XCTUnwrap(layout["rows"] as? [[Any]]) {
-            let size = try XCTUnwrap(row[0] as? Double)
-            let script = row[1] as? String
-            XCTAssertEqual(Spans.scriptedSize(size, script: script), try XCTUnwrap(row[2] as? Double),
-                           accuracy: 1e-9, "\(size) \(script ?? "none")")
-            XCTAssertEqual(Spans.scriptOffset(size, script: script), try XCTUnwrap(row[3] as? Double),
-                           accuracy: 1e-9, "\(size) \(script ?? "none")")
+        XCTAssertEqual(try XCTUnwrap(layout["size"] as? Double), Spans.scriptSize, accuracy: 1e-12)
+        XCTAssertEqual(try XCTUnwrap(layout["superRise"] as? Double), Spans.superShift, accuracy: 1e-12)
+        XCTAssertEqual(try XCTUnwrap(layout["subDrop"] as? Double), Spans.subShift, accuracy: 1e-12)
+        for row in try XCTUnwrap(layout["rows"] as? [[String: Any]]) {
+            let size = try XCTUnwrap(row["runSize"] as? Double)
+            let script = row["script"] as? String
+            let drawn = try XCTUnwrap(row["drawnSize"] as? Double)
+            let shift = try XCTUnwrap(row["shift"] as? Double)
+            let label = "\(size) \(script ?? "none")"
+            XCTAssertEqual(Spans.scriptedSize(size, script: script), drawn, accuracy: 1e-9, label)
+            XCTAssertEqual(Spans.scriptOffset(size, script: script), shift, accuracy: 1e-9, label)
         }
         // As drawn: the letters' font and baseline.
         let base: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 40)]

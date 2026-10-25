@@ -18,7 +18,7 @@ enum AdjustArea: String, CaseIterable, Identifiable {
         switch self {
         case .whole: return tr("Whole photo")
         case .painted: return tr("Painted area")
-        case .subject: return tr("Subject")
+        case .subject: return tr("Subject", context: "photo area")
         case .background: return tr("Background")
         }
     }

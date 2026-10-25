@@ -28697,6 +28697,15 @@
     "ja": "件名",
     "pt-BR": "Assunto"
   },
+  "Subject\u0004photo area": {
+    "ar": "العنصر الرئيسي",
+    "de": "Motiv",
+    "es": "Sujeto",
+    "fr": "Sujet",
+    "it": "Soggetto",
+    "ja": "被写体",
+    "pt-BR": "Objeto principal"
+  },
   "Subscript": {
     "ar": "نص منخفض",
     "de": "Tiefgestellt",
@@ -31271,6 +31280,15 @@
     "es": "Tipo",
     "fr": "Texte",
     "it": "Testo",
+    "ja": "種類",
+    "pt-BR": "Tipo"
+  },
+  "Type\u0004design type": {
+    "ar": "النوع",
+    "de": "Typ",
+    "es": "Tipo",
+    "fr": "Type",
+    "it": "Tipo",
     "ja": "種類",
     "pt-BR": "Tipo"
   },

@@ -537,6 +537,9 @@ struct AccessibilityFinding: Identifiable, Equatable {
     var source: String? = nil
 
     var id: String {
-        "\(kind.rawValue)|\(pageIndex)|\(elementId ?? "page")" + (part.map { "|" + $0 } ?? "") + (source.map { "|" + $0 } ?? "")
+        let head = "\(kind.rawValue)|\(pageIndex)|\(elementId ?? "page")"
+        let partTail: String = part.map { "|" + $0 } ?? ""
+        let sourceTail: String = source.map { "|" + $0 } ?? ""
+        return head + partTail + sourceTail
     }
 }

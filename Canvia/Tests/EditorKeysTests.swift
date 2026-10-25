@@ -72,13 +72,14 @@ final class EditorKeysTests: XCTestCase {
             "Ctrl+B Bold", "Ctrl+I Italic", "Ctrl+U Underline", "Ctrl+Shift+X Strikethrough", "Ctrl+Shift+K Uppercase",
             "Ctrl+Shift+L Align left", "Ctrl+Shift+C Align centre", "Ctrl+Shift+R Align right", "Ctrl+Shift+J Justify",
             "Ctrl+Shift+7 Numbered list", "Ctrl+Shift+8 Bulleted list", "Ctrl+Shift+, Smaller", "Ctrl+Shift+. Larger",
+            "Ctrl+. Superscript", "Ctrl+, Subscript",
             "Ctrl+K Add link", "Ctrl+Alt+↓ Decrease line spacing", "Ctrl+Alt+↑ Increase line spacing",
             "Ctrl+Alt+← Decrease letter spacing", "Ctrl+Alt+→ Increase letter spacing",
             "Ctrl+Alt+C Copy style", "Ctrl+Alt+V Paste style",
         ])
         XCTAssertEqual(TextKeys.shown(TextKeys.all[0]), "⌘B")
         XCTAssertEqual(TextKeys.shown(TextKeys.all[4]), "⇧⌘K")
-        XCTAssertEqual(TextKeys.shown(TextKeys.all[15]), "⌥⌘↑")
+        XCTAssertEqual(TextKeys.shown(TextKeys.all[17]), "⌥⌘↑")
         XCTAssertEqual(InlineTextView.input(of: TextKeys.up), UIKeyCommand.inputUpArrow)
         XCTAssertEqual(InlineTextView.key(of: UIKeyCommand.inputLeftArrow), TextKeys.left)
         XCTAssertEqual(InlineTextView.key(of: "k"), "k")

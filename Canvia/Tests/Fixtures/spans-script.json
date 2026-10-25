@@ -1,31 +1,48 @@
 {
-  "about": "Raised and lowered words (a span's script): how the spans move with the words, how a toggle reads, and what size and baseline the letters are drawn at. Shared with the Android twin row for row.",
+  "about": "Raised and lowered words (a span's script): how they tidy, how they move with the words, how x² and x₂ toggle them (start and end are the chosen words, end past the last), and what size and baseline the letters are drawn at — any other script is on the line. Shared row for row by both phones' tests (Android SpansScriptTest, iOS ScriptSpansTests).",
+  "layout": {
+    "size": 0.62,
+    "superRise": 0.33,
+    "subDrop": 0.12,
+    "rows": [
+      {"script": "super", "runSize": 40, "drawnSize": 24.8, "shift": 13.2},
+      {"script": "sub", "runSize": 40, "drawnSize": 24.8, "shift": -4.8},
+      {"script": "super", "runSize": 50, "drawnSize": 31, "shift": 16.5},
+      {"script": null, "runSize": 40, "drawnSize": 40, "shift": 0},
+      {"script": "sub", "runSize": 50, "drawnSize": 31, "shift": -6},
+      {"script": "middle", "runSize": 42, "drawnSize": 42, "shift": 0}
+    ]
+  },
+  "normalise": [
+    {"name": "unknown scripts are none", "spans": [{"start": 0, "end": 2, "script": "middle"}, {"start": 2, "end": 4, "script": "super"}], "out": [{"start": 2, "end": 4, "script": "super"}]},
+    {"name": "neighbours alike join, a different script splits", "spans": [{"start": 0, "end": 1, "script": "sub"}, {"start": 1, "end": 3, "script": "sub"}, {"start": 3, "end": 4, "script": "super"}], "out": [{"start": 0, "end": 3, "script": "sub"}, {"start": 3, "end": 4, "script": "super"}]},
+    {"name": "a script with a colour", "spans": [{"start": 1, "end": 2, "color": "#ff0000", "script": "super"}], "out": [{"start": 1, "end": 2, "color": "#ff0000", "script": "super"}]}
+  ],
   "remap": [
-    {"old": "m2", "new": "m2", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
-    {"old": "H2O", "new": "H2O!", "spans": [{"start": 1, "end": 2, "script": "sub"}], "out": [{"start": 1, "end": 2, "script": "sub"}]},
-    {"old": "x2", "new": "x2y", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
-    {"old": "a123b", "new": "a1923b", "spans": [{"start": 1, "end": 4, "script": "super"}], "out": [{"start": 1, "end": 5, "script": "super"}]},
-    {"old": "m2 x", "new": "m x", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": []},
-    {"old": "m2", "new": "km2", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 2, "end": 3, "script": "super"}]},
-    {"old": "CO2", "new": "CO2", "spans": [{"start": 2, "end": 3, "color": "#ff0000", "script": "sub"}], "out": [{"start": 2, "end": 3, "color": "#ff0000", "script": "sub"}]},
-    {"old": "1st", "new": "1st", "spans": [{"start": 1, "end": 3, "script": "middle"}], "out": []}
+    {"name": "typed after m² is on the line", "old": "m2", "new": "m2 area", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
+    {"name": "typed inside H₂₂O's script takes it", "old": "H22O", "new": "H232O", "spans": [{"start": 1, "end": 3, "script": "sub"}], "out": [{"start": 1, "end": 4, "script": "sub"}]},
+    {"name": "words before move it along", "old": "1st", "new": "The 1st", "spans": [{"start": 1, "end": 3, "script": "super"}], "out": [{"start": 5, "end": 7, "script": "super"}]},
+    {"name": "typed over the whole script keeps it", "old": "x2", "new": "x3", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
+    {"name": "the script deleted goes", "old": "H2O", "new": "HO", "spans": [{"start": 1, "end": 2, "script": "sub"}], "out": []},
+    {"name": "m2 → m2", "old": "m2", "new": "m2", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
+    {"name": "H2O → H2O!", "old": "H2O", "new": "H2O!", "spans": [{"start": 1, "end": 2, "script": "sub"}], "out": [{"start": 1, "end": 2, "script": "sub"}]},
+    {"name": "x2 → x2y", "old": "x2", "new": "x2y", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
+    {"name": "a123b → a1923b", "old": "a123b", "new": "a1923b", "spans": [{"start": 1, "end": 4, "script": "super"}], "out": [{"start": 1, "end": 5, "script": "super"}]},
+    {"name": "m2 x → m x", "old": "m2 x", "new": "m x", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": []},
+    {"name": "m2 → km2", "old": "m2", "new": "km2", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 2, "end": 3, "script": "super"}]},
+    {"name": "CO2 → CO2", "old": "CO2", "new": "CO2", "spans": [{"start": 2, "end": 3, "color": "#ff0000", "script": "sub"}], "out": [{"start": 2, "end": 3, "color": "#ff0000", "script": "sub"}]},
+    {"name": "1st → 1st", "old": "1st", "new": "1st", "spans": [{"start": 1, "end": 3, "script": "middle"}], "out": []}
   ],
   "toggle": [
-    {"spans": [], "range": [0, 2], "script": "super", "out": [{"start": 0, "end": 2, "script": "super"}]},
-    {"spans": [{"start": 0, "end": 2, "script": "super"}], "range": [0, 2], "script": "super", "out": []},
-    {"spans": [{"start": 0, "end": 2, "script": "super"}], "range": [0, 2], "script": "sub", "out": [{"start": 0, "end": 2, "script": "sub"}]},
-    {"spans": [{"start": 0, "end": 1, "script": "super"}], "range": [0, 2], "script": "super", "out": [{"start": 0, "end": 2, "script": "super"}]},
-    {"spans": [{"start": 0, "end": 3, "color": "#00ff00"}], "range": [1, 1], "script": "sub", "out": [{"start": 0, "end": 1, "color": "#00ff00"}, {"start": 1, "end": 2, "color": "#00ff00", "script": "sub"}, {"start": 2, "end": 3, "color": "#00ff00"}]}
-  ],
-  "layout": {
-    "columns": ["size", "script", "drawn size", "baseline offset"],
-    "rows": [
-      [40, "super", 24.8, 13.2],
-      [40, "sub", 24.8, -4.8],
-      [40, null, 40, 0],
-      [50, "super", 31, 16.5],
-      [50, "sub", 31, -6],
-      [42, "middle", 42, 0]
-    ]
-  }
+    {"name": "raised", "text": "m2", "start": 1, "end": 2, "script": "super", "spans": [], "out": [{"start": 1, "end": 2, "script": "super"}]},
+    {"name": "pressed again, back on the line", "text": "m2", "start": 1, "end": 2, "script": "super", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": []},
+    {"name": "lowered words raised", "text": "H2O", "start": 1, "end": 2, "script": "super", "spans": [{"start": 1, "end": 2, "script": "sub"}], "out": [{"start": 1, "end": 2, "script": "super"}]},
+    {"name": "partly raised, all raised", "text": "1st", "start": 1, "end": 3, "script": "super", "spans": [{"start": 1, "end": 2, "script": "super"}], "out": [{"start": 1, "end": 3, "script": "super"}]},
+    {"name": "a colour kept", "text": "x2", "start": 1, "end": 2, "script": "sub", "spans": [{"start": 0, "end": 2, "color": "#00ff00"}], "out": [{"start": 0, "end": 1, "color": "#00ff00"}, {"start": 1, "end": 2, "color": "#00ff00", "script": "sub"}]},
+    {"name": "none raised, all raised", "text": "x2", "start": 0, "end": 2, "script": "super", "spans": [], "out": [{"start": 0, "end": 2, "script": "super"}]},
+    {"name": "all raised, pressed again, none", "text": "x2", "start": 0, "end": 2, "script": "super", "spans": [{"start": 0, "end": 2, "script": "super"}], "out": []},
+    {"name": "raised, lowered", "text": "x2", "start": 0, "end": 2, "script": "sub", "spans": [{"start": 0, "end": 2, "script": "super"}], "out": [{"start": 0, "end": 2, "script": "sub"}]},
+    {"name": "one of two raised, both raised", "text": "x2", "start": 0, "end": 2, "script": "super", "spans": [{"start": 0, "end": 1, "script": "super"}], "out": [{"start": 0, "end": 2, "script": "super"}]},
+    {"name": "one letter lowered, the colour kept either side", "text": "abc", "start": 1, "end": 2, "script": "sub", "spans": [{"start": 0, "end": 3, "color": "#00ff00"}], "out": [{"start": 0, "end": 1, "color": "#00ff00"}, {"start": 1, "end": 2, "color": "#00ff00", "script": "sub"}, {"start": 2, "end": 3, "color": "#00ff00"}]}
+  ]
 }
