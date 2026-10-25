@@ -404,7 +404,7 @@ struct SelectionOverlay: View {
     /// Whether a touch at `point`, in page units, is on a selected line's
     /// label (labelSlide), so the view's own pan leaves it to the label.
     static func labelTakes(_ point: CGPoint, store: DesignStore) -> Bool {
-        guard let el = store.labelledLine, !el.isHidden, store.editingTextId != el.id,
+        guard let el = store.slidableLabelLine, !el.isHidden, store.editingTextId != el.id,
               let box = LineLabels.rect(of: el) else { return false }
         return box.contains(point)
     }
