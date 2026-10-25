@@ -36,6 +36,28 @@ final class StylusInput {
     }
 }
 
+/// The keys held on a hardware keyboard as the touch under way — a
+/// finger's, a trackpad's or a mouse's — lands and moves, read by
+/// TouchKindRecognizer from the recogniser's modifierFlags: what SwiftUI's
+/// drag does not say. The canvas's drags read them through
+/// CanvasGestures.modified; with no keyboard, none is ever held.
+final class ModifierKeys {
+
+    static let shared = ModifierKeys()
+
+    private(set) var flags: UIKeyModifierFlags = []
+
+    fileprivate func note(_ flags: UIKeyModifierFlags) {
+        self.flags = flags
+    }
+
+    /// What the keys held now do to a drag.
+    var modified: CanvasGestures.Modified {
+        CanvasGestures.modified(shift: flags.contains(.shift), alt: flags.contains(.alternate),
+                                command: flags.contains(.command))
+    }
+}
+
 /// Reads each touch on the canvas into StylusInput, and never recognises:
 /// it holds up and cancels nothing. A Pencil touch is followed by its own
 /// identity while it is down, so a palm or finger resting or moving beside
@@ -54,6 +76,7 @@ final class TouchKindRecognizer: UIGestureRecognizer {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        ModifierKeys.shared.note(modifierFlags)
         if let touch = touches.first(where: { $0.type == .pencil }) {
             pencil = touch
             note(touch)
@@ -63,6 +86,7 @@ final class TouchKindRecognizer: UIGestureRecognizer {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        ModifierKeys.shared.note(modifierFlags)
         if let pencil {
             // A finger's moves while the Pencil is down are not the stroke's.
             if touches.contains(pencil) { note(pencil) }

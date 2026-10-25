@@ -68,11 +68,13 @@ struct PageHeaderRow: View {
         moreMenu
     }
 
-    /// Hide or show, Lock or unlock, Unlock all and Show hidden when there
+    /// Move page up, down, to start and to end, Hide or show, Lock or
+    /// unlock, Unlock all and Show hidden when there
     /// is something to free, a carousel's Slides, Expand to whiteboard or Collapse, Copy
     /// page, Paste page (or pages), and the page's title and notes. Hiding the only page is not offered, as in the pages bar.
     private var moreMenu: some View {
         Menu {
+            Section { PageMoveItems(store: store, index: index) }
             if store.design.pages.count > 1 || page.hidden == true {
                 Button { onPage { store.setPageHidden(store.page.hidden != true) } } label: {
                     Label(page.hidden == true ? tr("Show page") : tr("Hide page"),
@@ -130,6 +132,36 @@ struct PageHeaderRow: View {
     private func onPage(_ action: () -> Void) {
         store.setPage(index)
         action()
+    }
+}
+
+/// Move page up, Move page down, Move to start and Move to end for page
+/// `index`, each greyed at the end it would not move past, and each one
+/// undo step that the view follows (DesignStore.moveCurrentPage) — as the
+/// Android twin's page header and strip menus offer them.
+struct PageMoveItems: View {
+    @Bindable var store: DesignStore
+    let index: Int
+
+    var body: some View {
+        ForEach(PageOrder.Step.allCases, id: \.self) { step in
+            Button {
+                store.setPage(index)
+                store.moveCurrentPage(step)
+            } label: {
+                Label(step.menuTitle, systemImage: symbol(step))
+            }
+            .disabled(PageOrder.gap(step, from: index, count: store.design.pages.count) == nil)
+        }
+    }
+
+    private func symbol(_ step: PageOrder.Step) -> String {
+        switch step {
+        case .earlier: return "arrow.up"
+        case .later: return "arrow.down"
+        case .start: return "arrow.up.to.line"
+        case .end: return "arrow.down.to.line"
+        }
     }
 }
 

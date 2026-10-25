@@ -228,6 +228,84 @@ enum CanvasGestures {
         return Geometry.union(members.map(Geometry.aabb))
     }
 
+    // MARK: keys held while dragging
+
+    /// What the keys held on a hardware keyboard do to a drag with a finger,
+    /// a trackpad or a mouse — Canva's desktop keys, the Android twin's
+    /// Gestures.modified, the same rows in both phones' tests
+    /// (modifier-gestures.json). None held, every drag is as it always was.
+    struct Modified: Equatable {
+        /// Shift: a move keeps to the axis it has mostly gone along, once
+        /// it has travelled axisLockTravel (lockedAxis).
+        var axisLock: Bool
+        /// The step a turn snaps to: 45° as ever, 15° with Shift — every
+        /// turn landing on a step (rotateThreshold, half of it) — and 0, no
+        /// snap at all, with ⌘ and no Shift. Shift's steps are a constraint,
+        /// not a snap, so ⌘ leaves them.
+        var rotateStep: Double
+        /// ⌘ (Ctrl on the Android twin): no snapping for as long as it is
+        /// held — no guides, no spacing marks — while the distances still
+        /// show.
+        var snapOff: Bool
+        /// ⌥ (Alt) as the drag starts: what is selected is copied in place
+        /// and the copy moves, one undo step named Duplicate.
+        var duplicate: Bool
+    }
+
+    static func modified(shift: Bool, alt: Bool, command: Bool) -> Modified {
+        Modified(axisLock: shift, rotateStep: shift ? 15 : (command ? 0 : 45), snapOff: command, duplicate: alt)
+    }
+
+    /// How far a turn may be from a step and still land on it: 4° from the
+    /// 45° steps, as ever; half of any other step, so a turn with Shift
+    /// always lands on one.
+    static func rotateThreshold(_ step: Double) -> Double {
+        step == 45 ? 4 : step / 2
+    }
+
+    /// `degrees` snapped to `step` (rotateThreshold); as it is for step 0.
+    static func steppedAngle(_ degrees: Double, step: Double) -> Double {
+        step > 0 ? Geometry.snapAngle(degrees, step: step, threshold: rotateThreshold(step)) : degrees
+    }
+
+    /// How far, in points on the screen, a Shift-move goes before its axis
+    /// is chosen.
+    static let axisLockTravel = 6.0
+
+    enum Axis: Equatable { case horizontal, vertical }
+
+    /// The axis a move keeps to: none without Shift — let go of mid-drag,
+    /// the move is free again — the one already `held` while Shift stays
+    /// down, else, once the move has gone axisLockTravel on the screen
+    /// (`dx`, `dy` in page units at `zoom`), the one it has gone further
+    /// along, across on a tie.
+    static func lockedAxis(dx: Double, dy: Double, zoom: Double, held: Axis?, shift: Bool) -> Axis? {
+        guard shift else { return nil }
+        if let held { return held }
+        guard hypot(dx, dy) * zoom >= axisLockTravel else { return nil }
+        return abs(dx) >= abs(dy) ? .horizontal : .vertical
+    }
+
+    /// A move of `dx`, `dy` kept to `axis`.
+    static func constrained(dx: Double, dy: Double, to axis: Axis?) -> (dx: Double, dy: Double) {
+        switch axis {
+        case .horizontal: return (dx, 0)
+        case .vertical: return (0, dy)
+        case nil: return (dx, dy)
+        }
+    }
+
+    /// Whether a corner of `el` keeps its proportions: a line's never, a
+    /// text box's or a shape's unless Shift is held — Shift flips it, as in
+    /// Canva — and anything else's always.
+    static func cornerKeepsProportions(_ el: Element, shift: Bool) -> Bool {
+        switch el.type {
+        case .line: return false
+        case .text, .shape: return !shift
+        default: return true
+        }
+    }
+
     // MARK: the band from anywhere
 
     /// How much of the page's area a shown thing covers, at least, to be a

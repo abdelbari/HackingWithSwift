@@ -559,6 +559,9 @@ struct EditorView: View {
             }
             shortcut("m", [.option, .shift], tr("Align middle")) { store.alignSelected(.centerY) }
             shortcut("b", [.option, .shift], tr("Align bottom")) { store.alignSelected(.bottom) }
+            // ⌥⇧↑ and ⌥⇧↓ move this page, as its menu's Move page up and down.
+            shortcut(.upArrow, [.option, .shift], tr("Move page up")) { store.moveCurrentPage(.earlier) }
+            shortcut(.downArrow, [.option, .shift], tr("Move page down")) { store.moveCurrentPage(.later) }
             // ⌘2 frames what is selected; ⌘0 fits the page again.
             shortcut("2", [.command], tr("Zoom to selection")) { store.zoomToSelection() }
         }

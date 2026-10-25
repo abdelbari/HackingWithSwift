@@ -917,6 +917,21 @@ final class DesignStore {
         selection = Set(copies.map(\.id))
     }
 
+    /// ⌥ held as a move starts (CanvasGestures.Modified.duplicate): what is
+    /// selected and free to move copied where it is, the copies on top —
+    /// the originals below them in the Layers order — and selected, so the
+    /// move carries them away and leaves the originals behind. Inside the
+    /// move's own step, which the caller has opened, and which is named
+    /// Duplicate. False when nothing could be copied.
+    func duplicateForDrag() -> Bool {
+        guard pending != nil, !PageLocks.isLocked(page) else { return false }
+        let copies = Copies.of(GraphicClip.copied(page.elements, selectedElements.filter { !$0.holdsPlace }))
+        guard !copies.isEmpty else { return false }
+        design.pages[pageIndex].elements.append(contentsOf: copies)
+        selection = Set(copies.map(\.id))
+        namedStep = tr("Duplicate")
+        return true
+    }
 
     // MARK: clipboard
 
@@ -2780,6 +2795,21 @@ final class DesignStore {
         guard target >= 0 && target < design.pages.count else { return }
         apply { $0.pages.swapAt(pageIndex, target) }
         pageIndex = target
+    }
+
+    /// This page moved up, down, to the start or to the end — the page
+    /// header's More, ⌥⇧↑ and ⌥⇧↓ — as one undo step ("Move page"), the
+    /// view following it to its new place and the move said ("Page 4 moved
+    /// to 3"). A locked page moves too, as Canva lets it, and a hidden one
+    /// stays hidden; nothing at the matching end.
+    func moveCurrentPage(_ step: PageOrder.Step) {
+        let from = pageIndex, id = page.id
+        guard let gap = PageOrder.gap(step, from: from, count: design.pages.count) else { return }
+        apply { $0.pages = PageOrder.moved($0.pages, ids: [id], toIndex: gap) }
+        guard let to = design.pages.firstIndex(where: { $0.id == id }) else { return }
+        pageIndex = to
+        buzz(.tick)
+        announce(PageOrder.movedNote(from: from + 1, to: to + 1))
     }
 
     /// List-style reorder, as the organizer's drag hands it over. The
