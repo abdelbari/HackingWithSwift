@@ -17,17 +17,38 @@ final class LineLabelsTests: XCTestCase {
         return points.map { CGPoint(x: $0[0], y: $0[1]) }
     }
 
+    /// The line element of the fixture's `lines` row drawn along `name`.
+    private func line(_ name: Any?, in fixture: [String: Any]) throws -> Element {
+        let lines = try XCTUnwrap(fixture["lines"] as? [[String: Any]])
+        let row = try XCTUnwrap(lines.first { $0["route"] as? String == name as? String })
+        return try JSONDecoder().decode(Element.self, from: SharedFixture.encoded(XCTUnwrap(row["line"])))
+    }
+
+    private func near(_ found: [CGPoint], _ want: [[Double]], _ label: String) {
+        XCTAssertEqual(found.count, want.count, label)
+        for (p, q) in zip(found, want) {
+            XCTAssertEqual(Double(p.x), q[0], accuracy: 1e-4, label)
+            XCTAssertEqual(Double(p.y), q[1], accuracy: 1e-4, label)
+        }
+    }
+
+    func testTheSharedLinesRunAlongTheirRoutes() throws {
+        let rows = try fixture()
+        for row in try XCTUnwrap(rows["lines"] as? [[String: Any]]) {
+            let want = try route(row["route"], in: rows).map { [Double($0.x), Double($0.y)] }
+            near(LineLabels.route(of: try line(row["route"], in: rows)), want, "\(row)")
+        }
+    }
+
     func testALabelSitsAtItsShareOfTheRoutesLength() throws {
         let rows = try fixture()
         for row in try XCTUnwrap(rows["points"] as? [[String: Any]]) {
             let points = try route(row["route"], in: rows)
             let at = try XCTUnwrap(row["at"] as? Double)
             let centre = try XCTUnwrap(row["centre"] as? [Double])
-            let found = LineLabels.pointAt(points, at: at)
-            XCTAssertEqual(Double(found.x), centre[0], accuracy: 1e-3, "\(row)")
-            XCTAssertEqual(Double(found.y), centre[1], accuracy: 1e-3, "\(row)")
+            near([LineLabels.pointAt(points, at: at)], [centre], "\(row)")
             XCTAssertEqual(LineLabels.tangentAt(points, at: at), try XCTUnwrap(row["tangent"] as? Double),
-                           accuracy: 1e-3, "\(row)")
+                           accuracy: 1e-4, "\(row)")
         }
     }
 
@@ -39,41 +60,27 @@ final class LineLabelsTests: XCTestCase {
             let runs = LineLabels.clipGap(points, CGRect(x: box[0], y: box[1], width: box[2], height: box[3]))
             let want = try XCTUnwrap(row["runs"] as? [[[Double]]])
             XCTAssertEqual(runs.count, want.count, "\(row)")
-            for (run, expected) in zip(runs, want) {
-                XCTAssertEqual(run.count, expected.count, "\(row)")
-                for (p, q) in zip(run, expected) {
-                    XCTAssertEqual(Double(p.x), q[0], accuracy: 1e-3, "\(row)")
-                    XCTAssertEqual(Double(p.y), q[1], accuracy: 1e-3, "\(row)")
-                }
-            }
+            for (run, expected) in zip(runs, want) { near(run, expected, "\(row)") }
         }
     }
 
     func testADraggedLabelSlidesToTheNearestPointHeldOnTheMiddle() throws {
         let rows = try fixture()
         for row in try XCTUnwrap(rows["slides"] as? [[String: Any]]) {
-            let points = try route(row["route"], in: rows)
             let point = try XCTUnwrap(row["point"] as? [Double])
-            // A straight line laid along the route's two ends, or for more
-            // points an elbow through its corners, as the route is drawn.
-            var line = Element.line(w: 100)
-            line.x = 0
-            line.y = 0
-            line.rotation = 0
-            if points.count == 2 {
-                line = LineRoutes.withEnds(line, points[0], points[1])
-            } else {
-                line = LineRoutes.withEnds(LineRoutes.withType(line, .elbow), points[0], points[points.count - 1])
-            }
-            XCTAssertEqual(LineLabels.slid(line, toward: CGPoint(x: point[0], y: point[1])),
-                           try XCTUnwrap(row["at"] as? Double), accuracy: 1e-3, "\(row)")
+            let found = LineLabels.slid(try line(row["line"], in: rows), toward: CGPoint(x: point[0], y: point[1]))
+            XCTAssertEqual(found, try XCTUnwrap(row["at"] as? Double), accuracy: 1e-4, "\(row)")
         }
     }
 
-    func testTheLabelKeyIsReadLenientlyAndWrittenWhole() throws {
+    func testTheLabelKeyIsReadLenientlyAndWrittenAsBothPhonesWriteIt() throws {
         for row in try XCTUnwrap(fixture()["labels"] as? [[String: Any]]) {
-            let label = try JSONDecoder().decode(LineLabel.self, from: SharedFixture.encoded(XCTUnwrap(row["json"])))
-            let read = try XCTUnwrap(row["read"] as? [String: Any])
+            let json = try SharedFixture.encoded(XCTUnwrap(row["json"]))
+            guard let read = row["read"] as? [String: Any] else {
+                XCTAssertThrowsError(try JSONDecoder().decode(LineLabel.self, from: json), "\(row)")
+                continue
+            }
+            let label = try JSONDecoder().decode(LineLabel.self, from: json)
             XCTAssertEqual(label.text, read["text"] as? String)
             XCTAssertEqual(label.at, try XCTUnwrap(read["at"] as? Double), accuracy: 1e-9)
             XCTAssertEqual(label.size, try XCTUnwrap(read["size"] as? Double), accuracy: 1e-9)
@@ -82,16 +89,30 @@ final class LineLabelsTests: XCTestCase {
             XCTAssertEqual(label.gap, read["gap"] as? Bool)
             XCTAssertEqual(label.font, read["font"] as? String)
             XCTAssertEqual(label.color, read["color"] as? String)
-            // Written back, it reads the same.
+            // Written back: the keys both phones write, and it reads the same.
+            let written = try XCTUnwrap(try JSONSerialization.jsonObject(with: JSONEncoder().encode(label)) as? [String: Any])
+            let want = try XCTUnwrap(row["write"] as? [String: Any])
+            XCTAssertEqual(Set(written.keys), Set(want.keys), "\(row)")
+            for (key, value) in want {
+                if let text = value as? String {
+                    XCTAssertEqual(written[key] as? String, text, "\(row) \(key)")
+                } else {
+                    let got = try XCTUnwrap(written[key] as? NSNumber, "\(row) \(key)")
+                    XCTAssertEqual(got.doubleValue, try XCTUnwrap(value as? NSNumber).doubleValue, accuracy: 1e-9, "\(row) \(key)")
+                }
+            }
             let again = try JSONDecoder().decode(LineLabel.self, from: JSONEncoder().encode(label))
             XCTAssertEqual(again, label)
         }
-        // On a line, under "label"; a line without one has no key.
+        // On a line, under "label"; a line without one has no key, and one
+        // without words is none.
         var line = Element.line(w: 200)
         XCTAssertFalse(String(decoding: try JSONEncoder().encode(line), as: UTF8.self).contains("\"label\""))
         line.label = LineLabel(text: "Yes")
         let back = try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(line))
         XCTAssertEqual(back.label?.text, "Yes")
+        let wordless = Data(#"{"type":"line","label":{"at":0.3}}"#.utf8)
+        XCTAssertNil(try JSONDecoder().decode(Element.self, from: wordless).label)
     }
 
     /// A connector's label stays where it is along it as its ends move, and
@@ -109,12 +130,18 @@ final class LineLabelsTests: XCTestCase {
         // Upright whatever the line's turn.
         XCTAssertEqual(Double(after.width), Double(before.width), accuracy: 0.5)
         XCTAssertEqual(LineLabels.spoken(moved), "Line, labelled Yes")
+        var spaced = moved
+        spaced.label?.text = "  Yes \n"
+        XCTAssertEqual(LineLabels.spoken(spaced), "Line, labelled Yes")
         XCTAssertNil(LineLabels.spoken(Element.line(w: 100)))
         // The gap is the words' box grown by gapPad; none with gap off.
         XCTAssertEqual(LineLabels.gapRect(of: moved), after.insetBy(dx: -LineLabels.gapPad, dy: -LineLabels.gapPad))
         var plain = moved
         plain.label?.gap = false
         XCTAssertNil(LineLabels.gapRect(of: plain))
+        // A line with no colour of its own: a new line's.
+        plain.color = nil
+        XCTAssertEqual(LineLabels.textElement(for: plain)?.color, "#1f2430")
         // A blank label shows nothing.
         plain.label?.text = "  "
         XCTAssertNil(LineLabels.rect(of: plain))
@@ -130,6 +157,8 @@ final class LineLabelsTests: XCTestCase {
         let found = DesignStore.matches(in: design, for: "yes", caseSensitive: false, wholeWord: false)
         XCTAssertEqual(found.count, 1)
         XCTAssertEqual(found.first?.elementId, line.id)
+        // The match is marked in the words' own upright box.
+        XCTAssertEqual(FindReplace.letterRects(of: NSRange(location: 0, length: 3), in: line).count, 1)
         let replaced = try XCTUnwrap(DesignStore.replacingOne(design, try XCTUnwrap(found.first), with: "No"))
         let after = try XCTUnwrap(replaced.pages[0].elements.first)
         XCTAssertEqual(after.label?.text, "No please")

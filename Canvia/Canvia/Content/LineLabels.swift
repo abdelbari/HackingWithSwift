@@ -8,7 +8,13 @@
 // allowed, as in a text box), "at" 0…1 along the route's length (0.5 unless
 // written), "font", "size", "color" (the line's when none), "weight",
 // "italic", "gap" (true: the stroke stops round the label's box, gapPad
-// further)}. The rules where the format left a choice:
+// further)}. It is read leniently — no label without a string "text", "at"
+// held to 0…1, a size that is no positive number 18, a weight held to
+// 100…900 (Spans.weightRange), a value of the wrong kind its default — and
+// written with "text", "at" and "gap" always, "font" and "color" when set,
+// and "size", "weight" and "italic" only when they differ from 18, 400 and
+// false, as the Android twin writes it. The rules where the format left a
+// choice:
 //
 //   • the route is LineRoutes.polyline on the page (a curve its curveSteps
 //     pieces), consecutive points that are the same taken once; a point
@@ -57,30 +63,35 @@ struct LineLabel: Codable, Equatable, Hashable {
 
     private enum CodingKeys: String, CodingKey { case text, at, font, size, color, weight, italic, gap }
 
-    // Each key on its own, read leniently as the Android twin reads them: a
-    // place past either end held to it, a size that is no size the default.
+    // Each key on its own, read leniently as the Android twin reads them: no
+    // label without its words, a place past either end held to it, a size
+    // that is no size the default, a weight held to Spans.weightRange.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        text = (try? c.decode(String.self, forKey: .text)) ?? ""
+        text = try c.decode(String.self, forKey: .text)
         at = (try? c.decode(Double.self, forKey: .at)).flatMap { $0.isFinite ? min(max($0, 0), 1) : nil } ?? 0.5
         font = (try? c.decode(String.self, forKey: .font)).flatMap { $0.isEmpty ? nil : $0 }
         size = (try? c.decode(Double.self, forKey: .size)).flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
             ?? LineLabels.defaultSize
         color = (try? c.decode(String.self, forKey: .color)).flatMap { $0.isEmpty ? nil : $0 }
-        weight = (try? c.decode(Int.self, forKey: .weight)) ?? 400
+        let range = Spans.weightRange
+        weight = (try? c.decode(Double.self, forKey: .weight))
+            .flatMap { $0.isFinite ? Int(min(max($0, Double(range.lowerBound)), Double(range.upperBound))) : nil } ?? 400
         italic = (try? c.decode(Bool.self, forKey: .italic)) ?? false
         gap = (try? c.decode(Bool.self, forKey: .gap)) ?? true
     }
 
+    // Its words, place and gap always; its look only where it differs from
+    // a new label's, as the Android twin writes it.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(text, forKey: .text)
-        try c.encode(at, forKey: .at)
+        try c.encode(min(max(at, 0), 1), forKey: .at)
         try c.encodeIfPresent(font, forKey: .font)
-        try c.encode(size, forKey: .size)
+        if size != LineLabels.defaultSize { try c.encode(size, forKey: .size) }
         try c.encodeIfPresent(color, forKey: .color)
-        try c.encode(weight, forKey: .weight)
-        try c.encode(italic, forKey: .italic)
+        if weight != 400 { try c.encode(weight, forKey: .weight) }
+        if italic { try c.encode(italic, forKey: .italic) }
         try c.encode(gap, forKey: .gap)
     }
 }
@@ -287,6 +298,6 @@ enum LineLabels {
     /// has words; nil for none.
     static func spoken(_ el: Element) -> String? {
         guard let label = label(of: el) else { return nil }
-        return tr("Line, labelled %@", RichText.strip(label.text))
+        return tr("Line, labelled %@", RichText.strip(label.text).trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

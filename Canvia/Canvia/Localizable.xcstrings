@@ -103039,7 +103039,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ligne, libellée %@"
+            "value" : "Ligne, étiquetée %@"
           }
         },
         "it" : {
@@ -103051,7 +103051,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "線、ラベル %@"
+            "value" : "線、ラベル: %@"
           }
         },
         "pt-BR" : {

@@ -1779,8 +1779,10 @@ struct CanvasView: View {
 
     /// The letters of the match Find and replace is showing, marked over
     /// its box and turning with it — or the whole box, where its words are
-    /// drawn round a curve, along a path or the like.
-    private func findMark(_ el: Element, _ match: DesignStore.TextMatch) -> some View {
+    /// drawn round a curve, along a path or the like. A line's are marked in
+    /// its words' own upright box (LineLabels.textElement).
+    private func findMark(_ found: Element, _ match: DesignStore.TextMatch) -> some View {
+        let el = found.type == .line ? LineLabels.textElement(for: found) ?? found : found
         let rects = FindReplace.letterRects(of: match.plain, in: el)
         let marks = rects.isEmpty ? [CGRect(x: 0, y: 0, width: el.w, height: el.h)] : rects
         return ZStack(alignment: .topLeading) {

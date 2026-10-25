@@ -18108,9 +18108,9 @@
     "ar": "خط، بعنوان %@",
     "de": "Linie, beschriftet mit %@",
     "es": "Línea, con la etiqueta %@",
-    "fr": "Ligne, libellée %@",
+    "fr": "Ligne, étiquetée %@",
     "it": "Linea, con etichetta %@",
-    "ja": "線、ラベル %@",
+    "ja": "線、ラベル: %@",
     "pt-BR": "Linha, com o rótulo %@"
   },
   "Linear": {

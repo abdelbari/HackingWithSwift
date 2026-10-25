@@ -180,10 +180,14 @@ enum FindReplace {
     /// the match it is showing. Words round a curve, along a path or down a
     /// column a box round each letter's turned quad (TextPaths); none for a
     /// warp or words beside a drop cap, which are drawn another way — the
-    /// canvas marks the whole box there.
+    /// canvas marks the whole box there. A line's words are in their own
+    /// upright box (LineLabels.textElement), in whose space these are, as
+    /// on the Android twin.
     static func letterRects(of range: NSRange, in el: Element) -> [CGRect] {
-        // A line's label: the canvas marks the whole line.
-        if el.type == .line { return [] }
+        if el.type == .line {
+            guard let words = LineLabels.textElement(for: el) else { return [] }
+            return letterRects(of: range, in: words)
+        }
         if el.type == .shape {
             guard ShapeText.takesText(el) else { return [] }
             let box = ShapeText.shownBox(for: el)
