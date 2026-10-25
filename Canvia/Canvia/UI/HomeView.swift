@@ -153,6 +153,10 @@ struct HomeView: View {
     /// What a quick file tool made, landed as files shared in once its
     /// sheet has gone.
     @State private var landFilesAfterSheet: [URL] = []
+    /// What's new's Show me for the quick file tools, from a sheet: they
+    /// come up once it has gone, as SwiftUI drops a second present while
+    /// the first is still leaving.
+    @State private var toolsAfterSheet = false
     /// The folders starred, from the home-folders preference.
     @State private var starredFolders: Set<String> = []
     /// The designs being filed, while Move to folder asks where.
@@ -432,7 +436,12 @@ struct HomeView: View {
         whatsNewSeen = WhatsNew.current
         switch place {
         case WhatsNew.tools:
-            homeSheet = .tools(nil)
+            if homeSheet == nil {
+                homeSheet = .tools(nil)
+            } else {
+                toolsAfterSheet = true
+                homeSheet = nil
+            }
         case WhatsNew.trash:
             homeSheet = nil
             showingTrash = true
@@ -523,6 +532,10 @@ struct HomeView: View {
             let files = landFilesAfterSheet
             landFilesAfterSheet = []
             landFiles(files)
+        }
+        if toolsAfterSheet {
+            toolsAfterSheet = false
+            homeSheet = .tools(nil)
         }
         guard let design = pendingOpen else { return }
         pendingOpen = nil

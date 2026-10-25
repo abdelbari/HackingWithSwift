@@ -170,10 +170,13 @@ enum QuickToolRunner {
     }
 
     /// What `tool` makes of `picked`, as files waiting in the caches — the
-    /// ZIP alone when the plan has one. Away from the main actor.
-    static func make(_ tool: QuickTools.Tool, _ picked: [Picked], _ choices: Choices,
+    /// ZIP alone when the plan has one, never when not `zipped`, as Open as
+    /// a design asks: a ZIP is no design, its files are. Away from the main
+    /// actor.
+    static func make(_ tool: QuickTools.Tool, _ picked: [Picked], _ choices: Choices, zipped: Bool = true,
                      report progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> [URL] {
-        let plan = QuickTools.plan(tool, picked.map(\.input), choices.options)
+        let planned = QuickTools.plan(tool, picked.map(\.input), choices.options)
+        let plan = zipped ? planned : QuickTools.Plan(outputs: planned.outputs)
         guard !plan.outputs.isEmpty else { throw DesignExporter.ExportError.renderFailed }
         let dir = folder.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

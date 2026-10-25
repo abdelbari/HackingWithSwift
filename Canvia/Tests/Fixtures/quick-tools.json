@@ -347,6 +347,52 @@
         }
       ],
       "zip": null
+    },
+    {
+      "tool": "compress",
+      "inputs": [
+        {
+          "name": "shot.png",
+          "pages": 1
+        }
+      ],
+      "options": {},
+      "outputs": [
+        {
+          "name": "shot compressed.jpg",
+          "pages": [
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
+    },
+    {
+      "tool": "compress",
+      "inputs": [
+        {
+          "name": "shot.png",
+          "pages": 1
+        }
+      ],
+      "options": {
+        "format": "png"
+      },
+      "outputs": [
+        {
+          "name": "shot compressed.png",
+          "pages": [
+            [
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "zip": null
     }
   ],
   "resize": [

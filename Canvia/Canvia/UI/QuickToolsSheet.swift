@@ -247,15 +247,13 @@ struct QuickToolsSheet: View {
         }
     }
 
-    /// The files made here, then landed as a new design; a ZIP is no
-    /// design — its pictures are.
+    /// The files made here, then landed as a new design — made without
+    /// the ZIP the plan may ask for: its files are the design.
     private func openAsDesign(_ tool: QuickTools.Tool) {
-        var asked = choices
-        asked.options.zip = false
+        let asked = choices
         let files = picked
         Task { @MainActor in
-            let made = (try? await QuickToolRunner.make(tool, files, asked)) ?? []
-            let usable = made.filter { $0.pathExtension.lowercased() != "zip" }
+            let usable = (try? await QuickToolRunner.make(tool, files, asked, zipped: false)) ?? []
             guard !usable.isEmpty else {
                 problem = tr("Couldn't make the file")
                 return

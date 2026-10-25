@@ -62,8 +62,10 @@ enum QuickTools {
     /// into pictures, counted from 0; nil for every page. `each`: Split
     /// makes a PDF of each page chosen rather than one of them all.
     /// `format`: the pictures' type, "png" or "jpg" — what Convert and
-    /// Compress make, and what PDF to pictures draws; nil keeps a picture's
-    /// own type. `zip`: PDF to pictures' several pictures as one ZIP.
+    /// Compress make, and what PDF to pictures draws; nil for Resize keeps a
+    /// picture's own type, Convert and PDF to pictures make a PNG and
+    /// Compress a JPEG, as its JPEG quality is what is first chosen. `zip`:
+    /// PDF to pictures' several pictures as one ZIP.
     struct Options: Equatable, Sendable {
         var pages: [Int]? = nil
         var each = false
@@ -104,7 +106,7 @@ enum QuickTools {
     ///  - Resize: "<file> resized.<type>" for each picture.
     ///  - Convert: "<file>.<format>" for each.
     ///  - Compress: "<file> compressed.pdf" for a PDF, "<file>
-    ///    compressed.<type>" for a picture.
+    ///    compressed.<jpg|png>" for a picture — a JPEG unless `format` says.
     ///
     /// "<file>" is a file's name without its last extension, trimmed —
     /// "file" when nothing is left. A name already made gets " 2", " 3"
@@ -153,7 +155,7 @@ enum QuickTools {
                 if isPdf(input.name) {
                     add("\(stem(input.name)) compressed.pdf", (0..<max(input.pages, 0)).map { Ref(input: i, page: $0) })
                 } else {
-                    add("\(stem(input.name)) compressed.\(pictureType(options.format ?? fileExtension(input.name)))",
+                    add("\(stem(input.name)) compressed.\(pictureType(options.format ?? "jpg"))",
                         [Ref(input: i, page: 0)])
                 }
             }
