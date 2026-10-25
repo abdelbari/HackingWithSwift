@@ -126,6 +126,14 @@ enum Narration {
         chunks(text, max: max)
     }
 
+    /// How many seconds a voice is given to read `piece` into a file before
+    /// it is taken to have failed, so Generate never waits for ever: twenty,
+    /// and a fifth of a second a character (UTF-16, as the Android twin
+    /// counts) — a voice writes far faster than it speaks.
+    static func writeTimeout(_ piece: String) -> Double {
+        20 + 0.2 * Double(piece.utf16.count)
+    }
+
     /// `text` cut into pieces no longer than `max` characters, at the last
     /// sentence end or space that fits, so no word is split — the Android
     /// twin's Proofing.chunks, step for step.

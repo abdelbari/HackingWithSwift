@@ -23,6 +23,8 @@ struct TextToSpeechSheet: View {
     @State private var pitch = 1.0
     @State private var voices: [Narration.Voice] = []
     @State private var making = false
+    /// Generate's work, cancelled by Cancel.
+    @State private var job: Task<Void, Never>?
     @State private var failure: String?
     @State private var started = false
 
@@ -44,22 +46,29 @@ struct TextToSpeechSheet: View {
                     Text(failure).font(.footnote).foregroundStyle(.red)
                 }
             }
+            // The form only: Cancel stays open while Generate works.
+            .disabled(making)
+            .overlay { if making { ProgressView() } }
             .navigationTitle(editing == nil ? Text("Text to speech") : Text("Edit speech"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
-            .disabled(making)
-            .overlay { if making { ProgressView() } }
         }
         .presentationDetents(sheetDetents)
         .interactiveDismissDisabled(making)
         .onAppear(perform: start)
-        .onDisappear { SpeechFile.shared.stopPreview() }
+        .onDisappear {
+            SpeechFile.shared.stopPreview()
+            job?.cancel()
+        }
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Cancel") { dismiss() }
+            Button("Cancel") {
+                job?.cancel()
+                dismiss()
+            }
         }
         ToolbarItem(placement: .confirmationAction) {
             Button("Generate") { generate() }
@@ -165,7 +174,7 @@ struct TextToSpeechSheet: View {
         SpeechFile.shared.stopPreview()
         failure = nil
         making = true
-        Task { @MainActor in
+        job = Task { @MainActor in
             defer { making = false }
             do {
                 let name = Narration.name(spec.text)
@@ -179,6 +188,8 @@ struct TextToSpeechSheet: View {
                 store.buzz(.confirm)
                 store.announce(tr("Added %@", name))
                 dismiss()
+            } catch is CancellationError {
+                // Cancelled: the sheet is going, nothing to say.
             } catch SpeechFile.Failure.noVoice {
                 failure = tr("No voice for this language is installed on this phone.")
             } catch SpeechFile.Failure.unread {

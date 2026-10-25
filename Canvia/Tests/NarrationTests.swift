@@ -92,6 +92,12 @@ final class NarrationTests: XCTestCase {
         XCTAssertEqual(Narration.chunks("abcdefghij", max: 4), ["abcd", "efgh", "ij"])
     }
 
+    func testAVoiceHasTwentySecondsAndAFifthOfASecondACharacterToWriteAPiece() {
+        XCTAssertEqual(Narration.writeTimeout(""), 20, accuracy: 1e-9)
+        XCTAssertEqual(Narration.writeTimeout(String(repeating: "a", count: 50)), 30, accuracy: 1e-9)
+        XCTAssertEqual(Narration.writeTimeout(String(repeating: "a", count: Narration.maxUtterance)), 820, accuracy: 1e-9)
+    }
+
     func testVoicesAreOfferedInTheAppsLanguageByName() {
         let voices = [
             Narration.Voice(id: "b", name: "b-voice", language: "en-GB"),

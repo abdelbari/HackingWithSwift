@@ -88,6 +88,8 @@ final class SpeechFile {
             try await write(Self.utterance(piece, spec: spec, voice: voice), into: &file, at: raw)
         }
         guard file != nil else { throw Failure.unread }
+        // Cancelled while the last piece was read: nothing is kept.
+        try Task.checkCancellation()
         // Closed before it is read: an AVAudioFile writes its header as it
         // goes away.
         file = nil
@@ -100,19 +102,37 @@ final class SpeechFile {
 
     /// One utterance's sound appended to `file` — opened at `url` on its
     /// first buffer, in the voice's own format — until the voice hands back
-    /// an empty buffer, its end.
+    /// an empty buffer, its end. A voice that never does — none is handed
+    /// back on an error — is stopped after its time (Narration.writeTimeout)
+    /// and the words taken as unread; cancelled, it stops at once.
     private func write(_ utterance: AVSpeechUtterance, into file: inout AVAudioFile?, at url: URL) async throws {
         let heard = Heard()
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            // Handed back on the voice's own thread, so tied to no actor.
-            writer.write(utterance) { @Sendable buffer in
-                guard let pcm = buffer as? AVAudioPCMBuffer else { return }
-                if pcm.frameLength == 0 {
-                    heard.finish { continuation.resume() }
-                } else {
-                    heard.append(pcm)
+        let limit = Narration.writeTimeout(utterance.speechString)
+        let clock = Task {
+            try? await Task.sleep(nanoseconds: UInt64(limit * 1_000_000_000))
+            heard.finish(whole: false)
+        }
+        defer { clock.cancel() }
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                heard.wait(continuation)
+                // Handed back on the voice's own thread, so tied to no actor.
+                writer.write(utterance) { @Sendable buffer in
+                    guard let pcm = buffer as? AVAudioPCMBuffer else { return }
+                    if pcm.frameLength == 0 {
+                        heard.finish(whole: true)
+                    } else {
+                        heard.append(pcm)
+                    }
                 }
             }
+        } onCancel: {
+            heard.finish(whole: false)
+        }
+        guard heard.whole else {
+            writer.stopSpeaking(at: .immediate)
+            try Task.checkCancellation()
+            throw Failure.unread
         }
         for pcm in heard.buffers {
             do {
@@ -140,10 +160,14 @@ final class SpeechFile {
     }
 
     /// The sound a voice hands back for one utterance, and its end — once
-    /// only: the voice may hand back more than one empty buffer.
+    /// only: the voice may hand back more than one empty buffer, and the
+    /// clock or a cancel may end it first. `whole` when the voice's own end
+    /// came first.
     private final class Heard: @unchecked Sendable {
         private let lock = NSLock()
         private var done = false
+        private var ended = false
+        private var waiting: CheckedContinuation<Void, Never>?
         private var kept: [AVAudioPCMBuffer] = []
 
         var buffers: [AVAudioPCMBuffer] {
@@ -152,18 +176,42 @@ final class SpeechFile {
             return kept
         }
 
+        var whole: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return ended
+        }
+
         func append(_ buffer: AVAudioPCMBuffer) {
             lock.lock()
             if !done { kept.append(buffer) }
             lock.unlock()
         }
 
-        func finish(_ work: () -> Void) {
+        /// `continuation` resumed at the end — at once when it has come.
+        func wait(_ continuation: CheckedContinuation<Void, Never>) {
             lock.lock()
-            let first = !done
-            done = true
+            if done {
+                lock.unlock()
+                continuation.resume()
+                return
+            }
+            waiting = continuation
             lock.unlock()
-            if first { work() }
+        }
+
+        func finish(whole: Bool) {
+            lock.lock()
+            guard !done else {
+                lock.unlock()
+                return
+            }
+            done = true
+            ended = whole
+            let resume = waiting
+            waiting = nil
+            lock.unlock()
+            resume?.resume()
         }
     }
 }
