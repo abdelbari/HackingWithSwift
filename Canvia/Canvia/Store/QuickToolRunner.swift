@@ -144,7 +144,7 @@ enum QuickToolRunner {
         case .resize, .convert:
             let r = tool == .resize ? QuickTools.resized(width: one.width, height: one.height, choices.resize)
                 : QuickTools.Resized(width: one.width, height: one.height, crop: .zero)
-            return ext == "jpg" ? QuickTools.jpegBytes(width: r.width, height: r.height, quality: choices.quality)
+            return ext == "jpg" ? QuickTools.jpegBytes(width: r.width, height: r.height, quality: QuickTools.pictureQuality)
                 : QuickTools.pngBytes(width: r.width, height: r.height)
         }
     }
@@ -344,7 +344,7 @@ enum QuickToolRunner {
             return
         }
         // Resize and Convert keep a JPEG's look; Compress takes the quality chosen.
-        let quality = tool == .compress ? choices.quality : 0.92
+        let quality = tool == .compress ? choices.quality : QuickTools.pictureQuality
         try DesignExporter.writePicture(cg, format: ext == "jpg" ? .jpeg : .png, quality: quality, dpi: nil, to: url)
     }
 }

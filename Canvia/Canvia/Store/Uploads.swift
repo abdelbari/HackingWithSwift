@@ -218,10 +218,35 @@ enum Uploads {
     static func recordFont(_ sha: String, name: String, file: String, now: Date = Date()) {
         lock.lock()
         defer { lock.unlock() }
-        var raw = list(now: now)
-        guard !raw.contains(where: { $0["id"] as? String == sha && $0["kind"] as? String == fontKind }) else { return }
-        raw.append(["id": sha, "kind": fontKind, "added": milliseconds(now), "name": name, "file": file])
-        write(raw)
+        let raw = list(now: now)
+        let out = addingFont(raw, sha: sha, name: name, file: file, added: milliseconds(now))
+        if out.count != raw.count || restoredFont(raw, sha: sha) { write(out) }
+    }
+
+    /// `raw` with the font `sha` — called `name`, kept as `file` — as
+    /// added at `added` (epoch ms); unchanged when it is there already, but
+    /// for one in Recently deleted, which adding again brings back.
+    static func addingFont(_ raw: [[String: Any]], sha: String, name: String, file: String,
+                           added: Int64) -> [[String: Any]] {
+        guard raw.contains(where: { isFont($0, sha) }) else {
+            let entry: [String: Any] = ["id": sha, "kind": fontKind, "added": added, "name": name, "file": file]
+            return raw + [entry]
+        }
+        return raw.map { item in
+            guard isFont(item, sha), item[deletedKey] != nil else { return item }
+            var out = item
+            out[deletedKey] = nil
+            return out
+        }
+    }
+
+    /// Whether adding the font `sha` again takes it out of Recently deleted.
+    private static func restoredFont(_ raw: [[String: Any]], sha: String) -> Bool {
+        raw.contains { isFont($0, sha) && $0[deletedKey] != nil }
+    }
+
+    private static func isFont(_ item: [String: Any], _ sha: String) -> Bool {
+        item["id"] as? String == sha && item["kind"] as? String == fontKind
     }
 
     /// A font's face written into its entry: as it is added, and as an
@@ -440,7 +465,13 @@ enum Uploads {
         let gone = Set(stale(raw, now: ms))
         if !gone.isEmpty { write(swept(raw, now: ms)) }
         lock.unlock()
-        let fonts = raw.filter { gone.contains($0["id"] as? String ?? "") && $0["kind"] as? String == fontKind }
+        let taken = raw.filter { gone.contains($0["id"] as? String ?? "") }
+        // Unstarred too, as deleting for good does, or the star keeps the file.
+        for item in taken where item["kind"] as? String != fontKind {
+            guard let id = item["id"] as? String else { continue }
+            if Favorites.isFavorite("upload", id) { Favorites.toggle("upload", id) }
+        }
+        let fonts = taken.filter { $0["kind"] as? String == fontKind }
         return fonts.compactMap { $0["id"] as? String }
     }
 

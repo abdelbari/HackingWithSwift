@@ -5573,6 +5573,15 @@
     "ja": "リンク、メール、電話番号、Wi-Fi の QR コードを好きな色で、またはバーコードを追加できます。読み取れないおそれがあるときは Canvia が知らせます。",
     "pt-BR": "Adicione um código QR para um link, um e-mail, um telefone ou uma rede Wi-Fi, com suas próprias cores, ou um código de barras. O Canvia avisa quando um código pode não ser lido."
   },
+  "Add a Venn diagram, a cycle, a timeline or an org chart from Add, and edit its items as a list.": {
+    "ar": "أضف مخطط فن أو دورة أو مخططًا زمنيًا أو مخططًا تنظيميًا من «إضافة»، وعدّل عناصره كقائمة.",
+    "de": "Füge über Hinzufügen ein Venn-Diagramm, einen Kreislauf, eine Zeitleiste oder ein Organigramm hinzu und bearbeite die Einträge als Liste.",
+    "es": "Añade un diagrama de Venn, un ciclo, una línea de tiempo o un organigrama desde Añadir y edita sus elementos como una lista.",
+    "fr": "Ajoutez un diagramme de Venn, un cycle, une chronologie ou un organigramme depuis Ajouter, et modifiez ses éléments sous forme de liste.",
+    "it": "Aggiungi un diagramma di Venn, un ciclo, una sequenza temporale o un organigramma da Aggiungi e modifica gli elementi come elenco.",
+    "ja": "「追加」からベン図、サイクル図、タイムライン、組織図を追加し、各項目をリストで編集できます。",
+    "pt-BR": "Adicione um diagrama de Venn, um ciclo, uma linha do tempo ou um organograma em Adicionar e edite os itens como uma lista."
+  },
   "Add a barcode": {
     "ar": "إضافة رمز شريطي",
     "de": "Strichcode hinzufügen",
@@ -5644,15 +5653,6 @@
     "it": "Aggiungi una voce",
     "ja": "キューを追加",
     "pt-BR": "Adicionar uma entrada"
-  },
-  "Add a flow chart, a cycle or a mind map from Add, and edit its steps as a list.": {
-    "ar": "أضف مخططًا انسيابيًا أو دورة أو خريطة ذهنية من «إضافة»، وعدّل خطواتها كقائمة.",
-    "de": "Füge über Hinzufügen ein Flussdiagramm, einen Kreislauf oder eine Mindmap hinzu und bearbeite die Schritte als Liste.",
-    "es": "Añade un diagrama de flujo, un ciclo o un mapa mental desde Añadir y edita sus pasos como una lista.",
-    "fr": "Ajoutez un organigramme, un cycle ou une carte mentale depuis Ajouter, et modifiez ses étapes sous forme de liste.",
-    "it": "Aggiungi un diagramma di flusso, un ciclo o una mappa mentale da Aggiungi e modifica i passaggi come elenco.",
-    "ja": "「追加」からフローチャート、サイクル図、マインドマップを追加し、各ステップをリストで編集できます。",
-    "pt-BR": "Adicione um fluxograma, um ciclo ou um mapa mental em Adicionar e edite as etapas como uma lista."
   },
   "Add a font…": {
     "ar": "إضافة خط…",
