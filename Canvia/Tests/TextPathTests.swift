@@ -144,3 +144,140 @@ final class VerticalTextTests: XCTestCase {
         XCTAssertEqual(Double(box.maxY), baseline, accuracy: 1)
     }
 }
+
+// MARK: bent words a glyph at a time
+
+/// Shared (Fixtures/bent-text.json): glyph quads, the bands behind bent
+/// words, and Highlight, Splice, word marks and links round a curve, along a
+/// path and down a column.
+final class BentTextTests: XCTestCase {
+
+    private func fixture() throws -> [String: Any] { try SharedFixture.object("bent-text") }
+
+    private func point(_ value: Any?) throws -> CGPoint {
+        let xy = try XCTUnwrap(value as? [Double])
+        return CGPoint(x: xy[0], y: xy[1])
+    }
+
+    private func number(_ row: [String: Any], _ key: String) throws -> Double {
+        try XCTUnwrap(row[key] as? Double, key)
+    }
+
+    private func assertBounds(_ path: CGPath, _ expected: Any?, accuracy: Double = 0.05,
+                              file: StaticString = #filePath, line: UInt = #line) throws {
+        let want = try XCTUnwrap(expected as? [Double])
+        let got = path.boundingBoxOfPath
+        for (a, b) in zip([got.minX, got.minY, got.width, got.height].map(Double.init), want) {
+            XCTAssertEqual(a, b, accuracy: accuracy, "\(got) against \(want)", file: file, line: line)
+        }
+    }
+
+    func testAGlyphsQuadRunsAlongItsTangentFromDescentToAscent() throws {
+        for row in try XCTUnwrap(fixture()["quads"] as? [[String: Any]]) {
+            let quad = TextPaths.quad(origin: try point(row["origin"]), angle: try number(row, "angle"),
+                                      advance: try number(row, "advance"), ascent: try number(row, "ascent"),
+                                      descent: try number(row, "descent"))
+            let want = try XCTUnwrap(row["quad"] as? [[Double]])
+            for (got, corner) in zip(quad, want) {
+                XCTAssertEqual(Double(got.x), corner[0], accuracy: 1e-3)
+                XCTAssertEqual(Double(got.y), corner[1], accuracy: 1e-3)
+            }
+        }
+    }
+
+    func testACurvesBandIsTheSectorOverItsArc() throws {
+        for row in try XCTUnwrap(fixture()["arcs"] as? [[String: Any]]) {
+            let band = TextPaths.arcBand(centre: try point(row["centre"]), radius: try number(row, "radius"),
+                                         from: try number(row, "from"), to: try number(row, "to"),
+                                         ascent: try number(row, "ascent"), descent: try number(row, "descent"),
+                                         pad: try number(row, "pad"))
+            try assertBounds(band, row["bounds"])
+        }
+    }
+
+    func testAPathsBandIsTheStripAlongIt() throws {
+        for row in try XCTUnwrap(fixture()["strips"] as? [[String: Any]]) {
+            let points = try XCTUnwrap(row["points"] as? [[Double]]).map { CGPoint(x: $0[0], y: $0[1]) }
+            let line = CGMutablePath()
+            line.addLines(between: points)
+            let band = TextPaths.stripBand(PathWalker(line), from: try number(row, "from"), to: try number(row, "to"),
+                                           ascent: try number(row, "ascent"), descent: try number(row, "descent"),
+                                           pad: try number(row, "pad"))
+            try assertBounds(band, row["bounds"], accuracy: 1e-3)
+        }
+    }
+
+    func testAColumnsBandIsItsCellsGrownByThePad() throws {
+        for row in try XCTUnwrap(fixture()["columns"] as? [[String: Any]]) {
+            let box = try XCTUnwrap(row["box"] as? [Double])
+            let band = TextPaths.columnBand(CGRect(x: box[0], y: box[1], width: box[2], height: box[3]),
+                                            pad: try number(row, "pad"))
+            try assertBounds(band, row["bounds"], accuracy: 1e-6)
+        }
+        for row in try XCTUnwrap(fixture()["pads"] as? [[String: Any]]) {
+            XCTAssertEqual(TextPaths.highlightPad(fontSize: try number(row, "fontSize"), spread: try number(row, "spread")),
+                           try number(row, "pad"), accuracy: 1e-9)
+        }
+    }
+
+    func testRoundingKeepsTheBandWithinItsSquareCornersAndRoundsThem() {
+        let square = TextPaths.columnBand(CGRect(x: 0, y: 0, width: 40, height: 100), pad: 0)
+        let core = TextPaths.columnBand(CGRect(x: 0, y: 0, width: 40, height: 100), pad: -10)
+        let round = TextPaths.rounded(core, radius: 10)
+        XCTAssertEqual(round.boundingBoxOfPath.width, 40, accuracy: 0.01)
+        XCTAssertEqual(round.boundingBoxOfPath.height, 100, accuracy: 0.01)
+        XCTAssertTrue(square.contains(CGPoint(x: 1, y: 1)))
+        XCTAssertFalse(round.contains(CGPoint(x: 1, y: 1)), "the corner is cut round")
+        XCTAssertTrue(round.contains(CGPoint(x: 20, y: 50)))
+    }
+
+    private func elements() throws -> [(name: String, element: Element)] {
+        try XCTUnwrap(fixture()["elements"] as? [[String: Any]]).map { row in
+            (name: try XCTUnwrap(row["name"] as? String),
+             element: try JSONDecoder().decode(Element.self, from: SharedFixture.encoded(XCTUnwrap(row["element"]))))
+        }
+    }
+
+    func testEveryLetterOfBentWordsIsPlacedAndItsBandsHoldThem() throws {
+        for (name, el) in try elements() {
+            let placed = TextPaths.glyphPlacements(el)
+            // "Happy Birthday": thirteen letters, the space placed or not.
+            XCTAssertGreaterThanOrEqual(placed.count, 13, name)
+            XCTAssertTrue(placed.allSatisfy { (0..<14).contains($0.index) }, name)
+            XCTAssertEqual(Set(placed.map(\.index)).count, placed.count, name)
+            let bands = TextPaths.band(el, spread: 50, roundness: 40, range: nil)
+            XCTAssertFalse(bands.isEmpty, name)
+            let reach = bands.reduce(CGRect.null) { $0.union($1.boundingBoxOfPath) }
+                .insetBy(dx: -10, dy: -10)
+            for glyph in placed where glyph.index != 5 {
+                XCTAssertTrue(reach.contains(glyph.centre), "\(name): letter \(glyph.index) outside its band")
+            }
+            // A word's own mark covers less than the whole band.
+            let mark = TextPaths.band(el, pad: 3, corner: 6, range: NSRange(location: 0, length: 5))
+            XCTAssertFalse(mark.isEmpty, name)
+            let marked = mark.reduce(CGRect.null) { $0.union($1.boundingBoxOfPath) }
+            XCTAssertLessThan(marked.width * marked.height, reach.width * reach.height, name)
+        }
+    }
+
+    func testBentWordsLinksAndFindAreTheirLettersQuads() throws {
+        for (name, el) in try elements() {
+            let links = WordLinks.rects(for: el)
+            XCTAssertEqual(links.count, 1, "\(name): Birthday is one word")
+            XCTAssertEqual(links.first?.url, "https://example.com/")
+            let birthday = TextPaths.glyphPlacements(el).filter { (6..<14).contains($0.index) }
+            let around = WordLinks.bounds(of: birthday.map(\.quad))
+            XCTAssertEqual(links.first.map { Double($0.rect.width) } ?? 0, Double(around.width), accuracy: 0.01, name)
+            XCTAssertEqual(FindReplace.letterRects(of: NSRange(location: 0, length: 5), in: el).count, 5, name)
+        }
+    }
+
+    func testTheSVGDrawsTheBandsAsPaths() throws {
+        let highlighted = try XCTUnwrap(elements().first { $0.name == "curve50-highlight" }?.element)
+        let markup = SVGExporter.bandMarkup(highlighted)
+        // Highlight's band, then the word's mark.
+        XCTAssertEqual(markup.components(separatedBy: "<path").count - 1, 2, markup)
+        let spliced = try XCTUnwrap(elements().first { $0.name == "curve50-splice" }?.element)
+        XCTAssertEqual(SVGExporter.bandMarkup(spliced).components(separatedBy: "<path").count - 1, 1)
+    }
+}

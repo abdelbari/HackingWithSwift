@@ -162,8 +162,9 @@ enum FindReplace {
     /// line, as WordLinks finds a link's, in the element's own space on the
     /// page's side of its flip (its top-left the origin, y down, before its
     /// turn) — a shape's words in the box they sit in — for Find to mark
-    /// the match it is showing. None for words round a curve, along a path,
-    /// down a column or beside a drop cap, which are drawn another way; the
+    /// the match it is showing. Words round a curve, along a path or down a
+    /// column a box round each letter's turned quad (TextPaths); none for a
+    /// warp or words beside a drop cap, which are drawn another way — the
     /// canvas marks the whole box there.
     static func letterRects(of range: NSRange, in el: Element) -> [CGRect] {
         if el.type == .shape {
@@ -182,7 +183,12 @@ enum FindReplace {
 
     /// The same in a text box's own space, before any flip.
     private static func letterRects(of range: NSRange, inWords el: Element) -> [CGRect] {
-        guard el.w > 0, range.length > 0, !TextOutliner.followsAPath(el) else { return [] }
+        guard el.w > 0, range.length > 0 else { return [] }
+        if TextOutliner.followsAPath(el) {
+            return TextPaths.glyphPlacements(el).filter { NSLocationInRange($0.index, range) }.map {
+                WordLinks.bounds(of: [$0.quad])
+            }
+        }
         var drawn = el
         if el.fitText == true { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
         if TextEffect.from(el.effect) == .none, FontLibrary.dropCapLayout(for: drawn) != nil { return [] }

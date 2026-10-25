@@ -7,9 +7,11 @@
 // link that wraps over two lines is a rectangle on each, as the Android
 // twin's WordLinks.rects cuts them.
 //
-// Only straight lines: words round a curve, along a path or down a column are
-// drawn from outlines that carry no link, and are reached through the
-// element's own link, if it has one. A drop cap's body is laid out as it is
+// Words round a curve, along a path or down a column are found letter by
+// letter where the outliner set them (TextPaths.glyphPlacements): each word
+// the box round its letters' turned quads, which is what a tap, the PDF and
+// the SVG take — a warp's words are reached through the element's own link,
+// if it has one. A drop cap's body is laid out as it is
 // drawn — without the letter, round the cap's corner — and the letter itself
 // is not a link's, as on the Android twin.
 
@@ -24,8 +26,10 @@ enum WordLinks {
     /// the size a fitted box draws, from where a vertically aligned box
     /// starts its words.
     static func rects(for el: Element) -> [(rect: CGRect, url: String)] {
-        guard el.type == .text, el.w > 0, !TextOutliner.followsAPath(el),
-              el.liveSpans.contains(where: { $0.link != nil }) else { return [] }
+        guard el.type == .text, el.w > 0, el.liveSpans.contains(where: { $0.link != nil }) else { return [] }
+        if TextOutliner.followsAPath(el) {
+            return quads(for: el).map { (rect: bounds(of: $0.quads), url: $0.url) }
+        }
         var drawn = el
         if el.fitText == true { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
         let top = SVGExporter.textTop(el)
@@ -101,6 +105,41 @@ enum WordLinks {
             }
         }
         return out
+    }
+
+    /// Each linked word of bent words with its link: its letters' quads
+    /// (TextPaths.GlyphPlacement.quad), a word being the letters of a link
+    /// with no space between them; none for straight or warped words.
+    static func quads(for el: Element) -> [(quads: [[CGPoint]], url: String)] {
+        let placed = TextPaths.glyphPlacements(el)
+        guard !placed.isEmpty else { return [] }
+        let plain = RichText.strip(el.text ?? "") as NSString
+        var out: [(quads: [[CGPoint]], url: String)] = []
+        for span in el.liveSpans {
+            guard let url = span.link else { continue }
+            var word: [[CGPoint]] = []
+            var last = -1
+            for glyph in placed where glyph.index >= span.start && glyph.index < span.end {
+                let spaced = glyph.index < plain.length && isSpace(plain.character(at: glyph.index))
+                // A space, or a gap in the letters (a line's break), ends a word.
+                if spaced || (last >= 0 && glyph.index > last + 1 && !word.isEmpty) {
+                    if !word.isEmpty { out.append((quads: word, url: url)) }
+                    word = []
+                }
+                last = glyph.index
+                if !spaced { word.append(glyph.quad) }
+            }
+            if !word.isEmpty { out.append((quads: word, url: url)) }
+        }
+        return out
+    }
+
+    /// The upright box round `quads`.
+    static func bounds(of quads: [[CGPoint]]) -> CGRect {
+        let points = quads.flatMap { $0 }
+        let xs = points.map(\.x), ys = points.map(\.y)
+        guard let x0 = xs.min(), let x1 = xs.max(), let y0 = ys.min(), let y1 = ys.max() else { return .null }
+        return CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
     }
 
     /// What splits linked words, as Kotlin's Char.isWhitespace has it on the

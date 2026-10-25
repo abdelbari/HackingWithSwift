@@ -806,13 +806,19 @@ struct TextElementView: View {
     /// whole drawing — spans, lists and effects as they are — and drawn at
     /// its frame's place, scale, turn, opacity, blur and share shown; what
     /// belongs to no unit (a list's markers, a drop cap's letter) drawn as
-    /// it stands. Words not set in lines (a curve, a path, a column, a
-    /// warp) fade as one, as far in as their units are on average — as the
-    /// Android twin draws them.
+    /// it stands. Words round a curve, along a path or down a column move
+    /// letter by letter where the outliner set them (drawBentUnits), a line
+    /// being all of them; a warp's fade as one, as far in as their units
+    /// are on average — as the Android twin draws them.
     private func drawUnits(_ clock: ElementAnimation.UnitClock, in cg: CGContext, size: CGSize) {
         var el = element
         if let pageNumber { el.fillPageTokens(number: pageNumber.number, count: pageNumber.count) }
-        let units = ElementAnimation.units(RichText.strip(el.text ?? ""), by: clock.animation.unit)
+        let plain = RichText.strip(el.text ?? "")
+        let bent = TextOutliner.followsAPath(el) && !TextWarp.isWarped(el)
+        // Bent words are one line: by line, they move as one.
+        let units = bent && clock.animation.unit == "line"
+            ? [NSRange(location: 0, length: (plain as NSString).length)]
+            : ElementAnimation.units(plain, by: clock.animation.unit)
         let frames = clock.animation.frames(units, at: clock.time, size: el.fontSize ?? 42)
         // Every unit in place: the words whole, as they stand.
         guard !frames.isEmpty, !frames.allSatisfy(clock.animation.atRest) else {
@@ -820,7 +826,9 @@ struct TextElementView: View {
             return
         }
         guard !TextOutliner.followsAPath(el) else {
-            drawFaded(frames, in: cg, size: size)
+            if !bent || !drawBentUnits(el, units: units, frames: frames, clock: clock, in: cg, size: size) {
+                drawFaded(frames, in: cg, size: size)
+            }
             return
         }
         if el.fitText == true { el.fontSize = FontLibrary.fittingFontSize(for: el) }
@@ -854,6 +862,86 @@ struct TextElementView: View {
         for (frame, rects) in zip(frames, boxes) where !rects.isEmpty && !clock.animation.atRest(frame) {
             drawUnit(frame, rects: rects, clock: clock, ink: ink, in: cg, size: size)
         }
+    }
+
+    /// Bent words a unit at a time: each unit its letters' quads
+    /// (TextPaths.glyphPlacements), cut out of the whole drawing and drawn
+    /// at its frame — moved, scaled and turned about its own centre in its
+    /// letters' tangent frame, so letters rise or type along the curve.
+    /// False when no letter could be placed.
+    private func drawBentUnits(_ given: Element, units: [NSRange], frames: [ElementAnimation.UnitFrame],
+                               clock: ElementAnimation.UnitClock, in cg: CGContext, size: CGSize) -> Bool {
+        var el = given
+        el.w = size.width
+        el.h = size.height
+        let placed = TextPaths.glyphPlacements(el)
+        guard !placed.isEmpty else { return false }
+        let groups = units.map { unit in placed.filter { NSLocationInRange($0.index, unit) } }
+        cg.saveGState()
+        let rest = CGMutablePath()
+        rest.addRect(CGRect(origin: .zero, size: size).insetBy(dx: -size.width, dy: -size.height))
+        for (frame, glyphs) in zip(frames, groups) where !clock.animation.atRest(frame) {
+            for glyph in glyphs { rest.addLines(between: glyph.quad) }
+        }
+        cg.addPath(rest)
+        cg.clip(using: .evenOdd)
+        drawText(in: cg, size: size)
+        cg.restoreGState()
+        let ink = UIColor(hex: el.color ?? "#1f2430")
+        for (frame, glyphs) in zip(frames, groups) where !glyphs.isEmpty && !clock.animation.atRest(frame) {
+            drawBentUnit(frame, glyphs: glyphs, clock: clock, ink: ink, in: cg, size: size)
+        }
+        return true
+    }
+
+    /// One bent unit at its frame: about its letters' centre, its move
+    /// along their mean tangent; a write-on or Block's bar a share of its
+    /// letters, in reading order.
+    private func drawBentUnit(_ frame: ElementAnimation.UnitFrame, glyphs: [TextPaths.GlyphPlacement],
+                              clock: ElementAnimation.UnitClock, ink: UIColor, in cg: CGContext, size: CGSize) {
+        let centres = glyphs.map(\.centre)
+        let mid = CGPoint(x: centres.map(\.x).reduce(0, +) / CGFloat(centres.count),
+                          y: centres.map(\.y).reduce(0, +) / CGFloat(centres.count))
+        let tangent = glyphs.map(\.angle).reduce(0, +) / Double(glyphs.count) * .pi / 180
+        func share(_ part: Double) -> ArraySlice<TextPaths.GlyphPlacement> {
+            glyphs.prefix(Int((Double(glyphs.count) * min(max(part, 0), 1)).rounded(.up)))
+        }
+        cg.saveGState()
+        defer { cg.restoreGState() }
+        cg.translateBy(x: mid.x, y: mid.y)
+        cg.rotate(by: tangent)
+        cg.translateBy(x: frame.dx, y: frame.dy)
+        cg.rotate(by: frame.rotation * .pi / 180)
+        cg.scaleBy(x: frame.scale, y: frame.scale)
+        cg.rotate(by: -tangent)
+        cg.translateBy(x: -mid.x, y: -mid.y)
+        let block = clock.animation.kind == "block"
+        if frame.alpha > 0 {
+            let shown = block ? glyphs[...] : share(frame.clip)
+            if !shown.isEmpty {
+                cg.saveGState()
+                let clip = CGMutablePath()
+                for glyph in shown { clip.addLines(between: glyph.quad) }
+                cg.addPath(clip)
+                cg.clip()
+                cg.setAlpha(frame.alpha)
+                cg.beginTransparencyLayer(auxiliaryInfo: nil)
+                drawText(in: cg, size: size)
+                cg.endTransparencyLayer()
+                cg.restoreGState()
+            }
+        }
+        // Block's bar over the letters to its clip, then off them from the
+        // first as the words show.
+        guard block, frame.clip > 0, frame.clip < 2 else { return }
+        let from = Int((Double(glyphs.count) * max(0, frame.clip - 1)).rounded(.down))
+        let covered = share(min(1, frame.clip)).dropFirst(from)
+        cg.setFillColor(ink.cgColor)
+        for glyph in covered {
+            cg.addLines(between: glyph.quad)
+            cg.closePath()
+        }
+        cg.fillPath()
     }
 
     /// The whole words at the average of their units' opacity, none drawn
@@ -1037,8 +1125,11 @@ struct TextElementView: View {
     /// because there is no attributed-string way to bend a baseline. The
     /// effects that survive that are the ones a filled path can carry — the
     /// shadows and the glow; outline and splice become a stroke on the same
-    /// path at the effect's thickness, Outline a stroke under the filled
-    /// path, glitch and echo become offset fills and 3D its layers. A
+    /// path at the effect's thickness, splice's offset fill copy under it,
+    /// Outline a stroke under the filled path, glitch and echo become offset
+    /// fills and 3D its layers. Highlight is its band (TextPaths.band) under
+    /// the letters — a warp's bars bent as its letters are — and a word's
+    /// own marker the band over its letters alone. A
     /// colour emoji, which has no outline, is drawn by the emoji font once,
     /// over them — never
     /// stroked, copied or tinted, at its full colour, whatever the effect.
@@ -1060,6 +1151,8 @@ struct TextElementView: View {
             }
         }
 
+        drawBands(el, effect: effect, fx: fx, in: cg)
+
         if fx.casts { Self.castShadow(fx, in: cg) }
 
         // 3D's block, back to front, under letters filled as ever.
@@ -1070,6 +1163,23 @@ struct TextElementView: View {
                 cg.addPath(path)
                 cg.setFillColor(UIColor(hex: layer.color).cgColor)
                 cg.fillPath()
+                cg.restoreGState()
+            }
+        }
+
+        // Splice's offset fill, under its stroke, as on a straight line: in
+        // each word's colour, faded, unless it has a colour of its own.
+        if effect == .splice {
+            for copy in fx.copies {
+                cg.saveGState()
+                cg.translateBy(x: copy.dx, y: copy.dy)
+                if el.effect?.color == nil {
+                    fillParts(alpha: copy.alpha)
+                } else {
+                    cg.addPath(path)
+                    cg.setFillColor(UIColor(hex: copy.color).withAlphaComponent(copy.alpha).cgColor)
+                    cg.fillPath()
+                }
                 cg.restoreGState()
             }
         }
@@ -1134,6 +1244,55 @@ struct TextElementView: View {
             }
         }
         for piece in outlines.emoji { TextOutliner.drawEmoji(piece, in: cg) }
+    }
+
+    /// What bent words draw under their letters: Highlight's band, and
+    /// each word's own marker over its letters (TextPaths.band) — for a
+    /// warp, the straight bars bent as the letters are.
+    private func drawBands(_ el: Element, effect: TextEffect, fx: ResolvedEffect, in cg: CGContext) {
+        if effect == .highlight {
+            let spread = TextEffect.value(el.effect, .spread, for: .highlight)
+            let roundness = TextEffect.value(el.effect, .roundness, for: .highlight)
+            var bands = TextPaths.band(el, spread: spread, roundness: roundness, range: nil)
+            if TextWarp.isWarped(el), let warp = el.warp {
+                bands = warpedBars(el, warp: warp, fx: fx)
+            }
+            cg.setFillColor(UIColor(hex: fx.color).withAlphaComponent(fx.alpha).cgColor)
+            for band in bands {
+                cg.addPath(band)
+                cg.fillPath()
+            }
+        }
+        let em = el.fontSize ?? 42
+        for span in el.liveSpans {
+            guard let colour = span.highlight, span.end > span.start else { continue }
+            let range = NSRange(location: span.start, length: span.end - span.start)
+            let marks = TextPaths.band(el, pad: em * Spans.highlightPadEm, corner: em * Spans.highlightRadiusEm,
+                                       range: range)
+            guard !marks.isEmpty else { continue }
+            let paint = TextHighlights.split(colour)
+            cg.setFillColor(UIColor(hex: paint.color).withAlphaComponent(paint.alpha).cgColor)
+            for mark in marks {
+                cg.addPath(mark)
+                cg.fillPath()
+            }
+        }
+    }
+
+    /// Highlight's bars for warped words: the straight bars, where the
+    /// lines sit in the box, bent by the warp.
+    private func warpedBars(_ el: Element, warp: TextWarpSpec, fx: ResolvedEffect) -> [CGPath] {
+        let fontSize = el.fontSize ?? 42
+        let slack = max(0, el.h - FontLibrary.measuredHeight(for: el))
+        let dy: Double = el.vAlign == "middle" ? slack / 2 : el.vAlign == "bottom" ? slack : 0
+        let box = CGRect(x: 0, y: 0, width: el.w, height: el.h)
+        return lineFragments(el, width: el.w, pitch: fontSize * (el.lineHeight ?? 1.25), top: dy).map { line in
+            let bar = CGRect(x: line.rect.minX - fx.pad, y: line.rect.minY,
+                             width: line.rect.width + fx.pad * 2, height: line.rect.height)
+            let radius = min(fx.radius(barHeight: bar.height), bar.width / 2, bar.height / 2)
+            return TextWarp.warped(CGPath(roundedRect: bar, cornerWidth: radius, cornerHeight: radius, transform: nil),
+                                   box: box, warp: warp)
+        }
     }
 
     private struct LineFragment {

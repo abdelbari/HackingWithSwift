@@ -582,9 +582,11 @@ enum SVGExporter {
     }
 
     /// The marks behind highlighted words (TextHighlights), as rounded
-    /// rects in the box's space, a see-through marker as a fill-opacity.
+    /// rects in the box's space, a see-through marker as a fill-opacity;
+    /// for bent words, Highlight's band and each word's own as paths
+    /// (bandMarkup).
     static func highlightMarkup(_ drawn: Element, top: Double) -> String {
-        guard !TextOutliner.followsAPath(drawn) else { return "" }
+        guard !TextOutliner.followsAPath(drawn) else { return bandMarkup(drawn) }
         return TextHighlights.rects(for: drawn, width: drawn.w, top: top).map { mark in
             let paint = TextHighlights.split(mark.color)
             let opacity = paint.alpha < 1 ? " fill-opacity=\"\(num(paint.alpha))\"" : ""
@@ -592,6 +594,31 @@ enum SVGExporter {
             return "<rect x=\"\(num(mark.x))\" y=\"\(num(mark.y))\" width=\"\(num(mark.w))\" " +
                 "height=\"\(num(mark.h))\" rx=\"\(num(corner))\" fill=\"\(escape(paint.color))\"\(opacity)/>"
         }.joined()
+    }
+
+    /// Bent words' bands (TextPaths.band), as the canvas draws them under
+    /// the letters: Highlight's in its colour, then each word's own marker.
+    static func bandMarkup(_ el: Element) -> String {
+        func paths(_ bands: [CGPath], _ colour: String) -> String {
+            let paint = TextHighlights.split(colour)
+            let opacity = paint.alpha < 1 ? " fill-opacity=\"\(num(paint.alpha))\"" : ""
+            return bands.map { "<path d=\"\(pathData($0, dx: 0, dy: 0))\" fill=\"\(escape(paint.color))\"\(opacity)/>" }.joined()
+        }
+        var out = ""
+        if TextEffect.from(el.effect) == .highlight {
+            let fx = TextEffect.resolve(el.effect, fontSize: el.fontSize ?? 42, ink: textInk(el))
+            let bands = TextPaths.band(el, spread: TextEffect.value(el.effect, .spread, for: .highlight),
+                                       roundness: TextEffect.value(el.effect, .roundness, for: .highlight), range: nil)
+            out += paths(bands, fx.alpha < 1 ? fx.color + String(format: "%02x", Int((fx.alpha * 255).rounded())) : fx.color)
+        }
+        let em = el.fontSize ?? 42
+        for span in el.liveSpans {
+            guard let colour = span.highlight, span.end > span.start else { continue }
+            let bands = TextPaths.band(el, pad: em * Spans.highlightPadEm, corner: em * Spans.highlightRadiusEm,
+                                       range: NSRange(location: span.start, length: span.end - span.start))
+            out += paths(bands, colour)
+        }
+        return out
     }
 
     /// The ink text is written in: its colour, or for letters full of a

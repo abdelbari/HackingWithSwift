@@ -1,0 +1,610 @@
+{
+  "rule": "TextPaths: a glyph's quad runs advance along its tangent (cos a, sin a) from its origin, from descent below to ascent above, up = (sin a, -cos a), a clockwise in degrees; corners top-left, top-right, bottom-right, bottom-left. A curve's band is the annular sector round centre from r-descent-pad to r+ascent+pad (r signed), over angles from..to (radians, clockwise from up; a point at angle a and radius R is centre + R(sin a, -cos a)), extended pad/|r| each way; a radius of the other sign to r is the centre. A path's band is the strip from descent+pad below to ascent+pad above the baseline, from-pad to to+pad along it, offset at both ends and every vertex between by the heading of the segment it ends. A column's band is its cells' box grown by pad. pad = 0.18 x fontSize x spread / 50; corners round by roundness/100 of half the thickness (ascent+descent+2pad). Bounds are [x, y, w, h].",
+  "quads": [
+    {
+      "origin": [
+        10,
+        20
+      ],
+      "angle": 0,
+      "advance": 12,
+      "ascent": 30,
+      "descent": 8,
+      "quad": [
+        [
+          10.0,
+          -10.0
+        ],
+        [
+          22.0,
+          -10.0
+        ],
+        [
+          22.0,
+          28.0
+        ],
+        [
+          10.0,
+          28.0
+        ]
+      ]
+    },
+    {
+      "origin": [
+        50,
+        50
+      ],
+      "angle": 90,
+      "advance": 10,
+      "ascent": 20,
+      "descent": 5,
+      "quad": [
+        [
+          70.0,
+          50.0
+        ],
+        [
+          70.0,
+          60.0
+        ],
+        [
+          45.0,
+          60.0
+        ],
+        [
+          45.0,
+          50.0
+        ]
+      ]
+    },
+    {
+      "origin": [
+        0,
+        0
+      ],
+      "angle": -45,
+      "advance": 20,
+      "ascent": 10,
+      "descent": 4,
+      "quad": [
+        [
+          -7.0711,
+          -7.0711
+        ],
+        [
+          7.0711,
+          -21.2132
+        ],
+        [
+          16.9706,
+          -11.3137
+        ],
+        [
+          2.8284,
+          2.8284
+        ]
+      ]
+    },
+    {
+      "origin": [
+        100,
+        40
+      ],
+      "angle": 180,
+      "advance": 8,
+      "ascent": 16,
+      "descent": 4,
+      "quad": [
+        [
+          100.0,
+          56.0
+        ],
+        [
+          92.0,
+          56.0
+        ],
+        [
+          92.0,
+          36.0
+        ],
+        [
+          100.0,
+          36.0
+        ]
+      ]
+    }
+  ],
+  "arcs": [
+    {
+      "centre": [
+        200,
+        300
+      ],
+      "radius": 250,
+      "from": -0.4,
+      "to": 0.4,
+      "ascent": 30,
+      "descent": 8,
+      "pad": 0,
+      "bounds": [
+        90.9629,
+        20.0,
+        218.0743,
+        57.1032
+      ]
+    },
+    {
+      "centre": [
+        200,
+        300
+      ],
+      "radius": 250,
+      "from": -0.4,
+      "to": 0.4,
+      "ascent": 30,
+      "descent": 8,
+      "pad": 7.2,
+      "bounds": [
+        80.5881,
+        12.8,
+        238.8239,
+        73.6575
+      ]
+    },
+    {
+      "centre": [
+        100,
+        -150
+      ],
+      "radius": -150,
+      "from": -0.5,
+      "to": 0.3,
+      "ascent": 24,
+      "descent": 6,
+      "pad": 4,
+      "bounds": [
+        48.658,
+        -44.5325,
+        131.7668,
+        54.5325
+      ]
+    },
+    {
+      "centre": [
+        60,
+        60
+      ],
+      "radius": 20,
+      "from": -3.0,
+      "to": 3.0,
+      "ascent": 30,
+      "descent": 8,
+      "pad": 2,
+      "bounds": [
+        8.0,
+        8.0,
+        104.0,
+        103.955
+      ]
+    }
+  ],
+  "strips": [
+    {
+      "points": [
+        [
+          0,
+          100
+        ],
+        [
+          100,
+          100
+        ],
+        [
+          200,
+          50
+        ]
+      ],
+      "from": 20,
+      "to": 180,
+      "ascent": 30,
+      "descent": 8,
+      "pad": 5,
+      "bounds": [
+        15.0,
+        30.6819,
+        166.8401,
+        82.3181
+      ]
+    },
+    {
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          100,
+          0
+        ]
+      ],
+      "from": 10,
+      "to": 60,
+      "ascent": 20,
+      "descent": 5,
+      "pad": 0,
+      "bounds": [
+        10.0,
+        -20.0,
+        50.0,
+        25.0
+      ]
+    },
+    {
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          50,
+          50
+        ],
+        [
+          100,
+          0
+        ],
+        [
+          150,
+          50
+        ]
+      ],
+      "from": 0,
+      "to": 212,
+      "ascent": 12,
+      "descent": 3,
+      "pad": 3,
+      "bounds": [
+        -4.2426,
+        -10.6066,
+        164.8492,
+        64.8492
+      ]
+    }
+  ],
+  "columns": [
+    {
+      "box": [
+        100,
+        0,
+        52,
+        150
+      ],
+      "pad": 0,
+      "bounds": [
+        100,
+        0,
+        52,
+        150
+      ]
+    },
+    {
+      "box": [
+        40,
+        10,
+        39,
+        90
+      ],
+      "pad": 6,
+      "bounds": [
+        34,
+        4,
+        51,
+        102
+      ]
+    }
+  ],
+  "pads": [
+    {
+      "fontSize": 40,
+      "spread": 50,
+      "pad": 7.2
+    },
+    {
+      "fontSize": 42,
+      "spread": 0,
+      "pad": 0.0
+    },
+    {
+      "fontSize": 30,
+      "spread": 100,
+      "pad": 10.8
+    },
+    {
+      "fontSize": 60,
+      "spread": 25,
+      "pad": 5.4
+    }
+  ],
+  "elements": [
+    {
+      "name": "curve50-highlight",
+      "element": {
+        "id": "b1",
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "w": 400,
+        "h": 300,
+        "rotation": 0,
+        "opacity": 1,
+        "text": "Happy Birthday",
+        "fontSize": 40,
+        "color": "#1f2430",
+        "align": "center",
+        "spans": [
+          {
+            "start": 0,
+            "end": 5,
+            "highlight": "#ffe066"
+          },
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://example.com/"
+          }
+        ],
+        "spansText": "Happy Birthday",
+        "curve": 50,
+        "effect": {
+          "type": "highlight",
+          "spread": 50,
+          "roundness": 40
+        }
+      }
+    },
+    {
+      "name": "curve50-splice",
+      "element": {
+        "id": "b2",
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "w": 400,
+        "h": 300,
+        "rotation": 0,
+        "opacity": 1,
+        "text": "Happy Birthday",
+        "fontSize": 40,
+        "color": "#1f2430",
+        "align": "center",
+        "spans": [
+          {
+            "start": 0,
+            "end": 5,
+            "highlight": "#ffe066"
+          },
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://example.com/"
+          }
+        ],
+        "spansText": "Happy Birthday",
+        "curve": 50,
+        "effect": {
+          "type": "splice"
+        }
+      }
+    },
+    {
+      "name": "curve180-highlight",
+      "element": {
+        "id": "b3",
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 360,
+        "rotation": 0,
+        "opacity": 1,
+        "text": "Happy Birthday",
+        "fontSize": 40,
+        "color": "#1f2430",
+        "align": "center",
+        "spans": [
+          {
+            "start": 0,
+            "end": 5,
+            "highlight": "#ffe066"
+          },
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://example.com/"
+          }
+        ],
+        "spansText": "Happy Birthday",
+        "curve": 180,
+        "effect": {
+          "type": "highlight",
+          "spread": 50,
+          "roundness": 40
+        }
+      }
+    },
+    {
+      "name": "curve180-splice",
+      "element": {
+        "id": "b4",
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 360,
+        "rotation": 0,
+        "opacity": 1,
+        "text": "Happy Birthday",
+        "fontSize": 40,
+        "color": "#1f2430",
+        "align": "center",
+        "spans": [
+          {
+            "start": 0,
+            "end": 5,
+            "highlight": "#ffe066"
+          },
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://example.com/"
+          }
+        ],
+        "spansText": "Happy Birthday",
+        "curve": 180,
+        "effect": {
+          "type": "splice"
+        }
+      }
+    },
+    {
+      "name": "path-highlight",
+      "element": {
+        "id": "b5",
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "w": 400,
+        "h": 300,
+        "rotation": 0,
+        "opacity": 1,
+        "text": "Happy Birthday",
+        "fontSize": 40,
+        "color": "#1f2430",
+        "align": "center",
+        "spans": [
+          {
+            "start": 0,
+            "end": 5,
+            "highlight": "#ffe066"
+          },
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://example.com/"
+          }
+        ],
+        "spansText": "Happy Birthday",
+        "textPath": "M0 60Q25 10 50 60T100 60",
+        "effect": {
+          "type": "highlight",
+          "spread": 50,
+          "roundness": 40
+        }
+      }
+    },
+    {
+      "name": "path-splice",
+      "element": {
+        "id": "b6",
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "w": 400,
+        "h": 300,
+        "rotation": 0,
+        "opacity": 1,
+        "text": "Happy Birthday",
+        "fontSize": 40,
+        "color": "#1f2430",
+        "align": "center",
+        "spans": [
+          {
+            "start": 0,
+            "end": 5,
+            "highlight": "#ffe066"
+          },
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://example.com/"
+          }
+        ],
+        "spansText": "Happy Birthday",
+        "textPath": "M0 60Q25 10 50 60T100 60",
+        "effect": {
+          "type": "splice"
+        }
+      }
+    },
+    {
+      "name": "column-highlight",
+      "element": {
+        "id": "b7",
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 600,
+        "rotation": 0,
+        "opacity": 1,
+        "text": "Happy Birthday",
+        "fontSize": 40,
+        "color": "#1f2430",
+        "align": "center",
+        "spans": [
+          {
+            "start": 0,
+            "end": 5,
+            "highlight": "#ffe066"
+          },
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://example.com/"
+          }
+        ],
+        "spansText": "Happy Birthday",
+        "vertical": true,
+        "effect": {
+          "type": "highlight",
+          "spread": 50,
+          "roundness": 40
+        }
+      }
+    },
+    {
+      "name": "column-splice",
+      "element": {
+        "id": "b8",
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "w": 200,
+        "h": 600,
+        "rotation": 0,
+        "opacity": 1,
+        "text": "Happy Birthday",
+        "fontSize": 40,
+        "color": "#1f2430",
+        "align": "center",
+        "spans": [
+          {
+            "start": 0,
+            "end": 5,
+            "highlight": "#ffe066"
+          },
+          {
+            "start": 6,
+            "end": 14,
+            "link": "https://example.com/"
+          }
+        ],
+        "spansText": "Happy Birthday",
+        "vertical": true,
+        "effect": {
+          "type": "splice"
+        }
+      }
+    }
+  ]
+}
