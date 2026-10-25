@@ -250,6 +250,7 @@ struct InsertSheet: View {
             return await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize, isVideo: Bool)? in
                 guard let id = VideoStore.store(data, ext: ext), let poster = VideoStore.poster(id) else { return nil }
                 Uploads.record(id, kind: .video)
+                VideoImport.optimiseSoon(id)
                 return (VideoStore.src(id, at: nil), poster.size, true)
             }.value
         }

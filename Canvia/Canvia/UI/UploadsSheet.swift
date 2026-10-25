@@ -24,6 +24,8 @@ struct UploadItem: Identifiable, Equatable {
     var label: String?
     /// The folder it is filed in (Uploads.Entry.folder); a font is in none.
     var folder: String?
+    /// A clip converted as it came in: how many bytes it was (VideoImport).
+    var optimisedFrom: Int64?
 
     var id: String { listed.id }
     var kind: String { listed.kind }
@@ -43,7 +45,9 @@ struct UploadItem: Identifiable, Equatable {
         } else {
             what = label
         }
-        return what.map { tr("%@ · %@", size, $0) } ?? size
+        let said = what.map { tr("%@ · %@", size, $0) } ?? size
+        // "Optimised from 412 MB" after it, for a clip made light.
+        return optimisedFrom.map { tr("%@ · %@", said, VideoImport.label($0)) } ?? said
     }
 
     /// "0:12", "1:05:09": a length as a clock says it.
@@ -71,6 +75,7 @@ enum UploadsHome {
             let listed = Uploads.Listed(id: entry.id, kind: entry.kind.rawValue, added: entry.added)
             var item = UploadItem(listed: listed, file: file, bytes: StorageReport.bytes(of: file))
             item.folder = entry.folder
+            item.optimisedFrom = entry.optimisedFrom
             switch entry.kind {
             case .image:
                 item.pixels = MediaStore.pixelSize(entry.id)

@@ -407,6 +407,7 @@ enum SharedInbox {
                   let id = VideoStore.store(data, ext: url.pathExtension),
                   let poster = VideoStore.poster(id) else { return [] }
             Uploads.record(id, kind: .video)
+            VideoImport.optimiseSoon(id)
             return [page(src: VideoStore.src(id, at: nil), natural: poster.size, size: pageSize)]
         case .pdf:
             guard let data = try? Data(contentsOf: url) else { return [] }

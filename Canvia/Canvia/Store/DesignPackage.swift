@@ -85,16 +85,19 @@ enum DesignPackage {
 
     /// Of the clips listed — each one's size in bytes and file type, by id —
     /// the ones a file carries whole: taken in id order, each no longer than
-    /// `maxPackedVideoBytes` and of a packable type, while the running total
-    /// stays within `maxPackedVideoTotalBytes`. The Android twin chooses by
-    /// the same rule, so a design packs the same on either phone; the rest
-    /// travel as stills.
-    static func packedVideoIDs(_ clips: [String: (bytes: Int, ext: String)]) -> Set<String> {
+    /// `maxPackedVideoBytes` — or, for a clip `seconds` says is long, its
+    /// allowance by its length (VideoImport.packedLimit) — and of a
+    /// packable type, while the running total stays within
+    /// `maxPackedVideoTotalBytes`. The Android twin chooses by the same
+    /// rule, so a design packs the same on either phone; the rest travel as
+    /// stills.
+    static func packedVideoIDs(_ clips: [String: (bytes: Int, ext: String)],
+                               seconds: [String: Double] = [:]) -> Set<String> {
         var packed = Set<String>()
         var total = 0
         for id in clips.keys.sorted() {
             guard let clip = clips[id] else { continue }
-            guard clip.bytes <= maxPackedVideoBytes,
+            guard Int64(clip.bytes) <= VideoImport.packedLimit(seconds[id]),
                   packableVideoTypes.contains(clip.ext.lowercased()) else { continue }
             guard total + clip.bytes <= maxPackedVideoTotalBytes else { continue }
             total += clip.bytes
@@ -107,7 +110,15 @@ enum DesignPackage {
     /// carry, past the total, of a type the other phone cannot play, or
     /// unreadable — replaced by its first frame packed as a photo.
     static func packingVideos(_ design: Design, media: inout [String: Media], videos: inout [String: Media]) -> Design {
-        packingClips(design, media: &media, whole: packedVideoIDs) { id, url in
+        // A clip over the plain limit is weighed by its length too.
+        let whole: ([String: (bytes: Int, ext: String)]) -> Set<String> = { clips in
+            var seconds: [String: Double] = [:]
+            for (id, clip) in clips where clip.bytes > DesignPackage.maxPackedVideoBytes {
+                seconds[id] = VideoStore.duration(of: id)
+            }
+            return DesignPackage.packedVideoIDs(clips, seconds: seconds)
+        }
+        return packingClips(design, media: &media, whole: whole) { id, url in
             // Mapped rather than read: the clips a file carries can come to
             // a hundred megabytes, and a mapped file's pages are the file's
             // own rather than more of the app's memory.

@@ -16916,6 +16916,15 @@
     "ja": "貼り付け時に書式を保持",
     "pt-BR": "Manter a formatação ao colar"
   },
+  "Keep original": {
+    "ar": "الاحتفاظ بالأصل",
+    "de": "Original behalten",
+    "es": "Conservar original",
+    "fr": "Garder l'original",
+    "it": "Mantieni originale",
+    "ja": "元のまま残す",
+    "pt-BR": "Manter original"
+  },
   "Keep proportions": {
     "ar": "الحفاظ على النسب",
     "de": "Proportionen beibehalten",
@@ -17068,6 +17077,15 @@
     "it": "Portatile",
     "ja": "ノートパソコン",
     "pt-BR": "Notebook"
+  },
+  "Large clips, and ones other phones can't play, are converted to a lighter MP4 as they come in.": {
+    "ar": "تُحوَّل المقاطع الكبيرة، والتي لا تشغّلها هواتف أخرى، إلى ملف MP4 أخف عند استيرادها.",
+    "de": "Große Clips und solche, die andere Telefone nicht abspielen, werden beim Import in ein leichteres MP4 umgewandelt.",
+    "es": "Los clips grandes, y los que otros teléfonos no pueden reproducir, se convierten en un MP4 más ligero al importarlos.",
+    "fr": "Les clips volumineux, et ceux que d'autres téléphones ne lisent pas, sont convertis en un MP4 plus léger à l'importation.",
+    "it": "Le clip grandi, e quelle che altri telefoni non riproducono, vengono convertite in un MP4 più leggero all'importazione.",
+    "ja": "大きなクリップや他の端末で再生できないクリップは、取り込み時に軽い MP4 に変換されます。",
+    "pt-BR": "Clipes grandes, e os que outros celulares não reproduzem, são convertidos em um MP4 mais leve ao serem importados."
   },
   "Larger": {
     "ar": "أكبر",
@@ -21493,6 +21511,42 @@
     "it": "Angoli opposti",
     "ja": "対角の角",
     "pt-BR": "Cantos opostos"
+  },
+  "Optimise imported videos": {
+    "ar": "تحسين الفيديوهات المستوردة",
+    "de": "Importierte Videos optimieren",
+    "es": "Optimizar videos importados",
+    "fr": "Optimiser les vidéos importées",
+    "it": "Ottimizza i video importati",
+    "ja": "取り込んだ動画を最適化",
+    "pt-BR": "Otimizar vídeos importados"
+  },
+  "Optimised from %d MB": {
+    "ar": "مُحسَّن من %d ميغابايت",
+    "de": "Optimiert aus %d MB",
+    "es": "Optimizado desde %d MB",
+    "fr": "Optimisé à partir de %d Mo",
+    "it": "Ottimizzato da %d MB",
+    "ja": "%d MB から最適化",
+    "pt-BR": "Otimizado de %d MB"
+  },
+  "Optimising the video so it plays smoothly": {
+    "ar": "جارٍ تحسين الفيديو ليُشغَّل بسلاسة",
+    "de": "Das Video wird optimiert, damit es flüssig läuft",
+    "es": "Optimizando el video para que se reproduzca con fluidez",
+    "fr": "Optimisation de la vidéo pour une lecture fluide",
+    "it": "Ottimizzazione del video per una riproduzione fluida",
+    "ja": "スムーズに再生できるよう動画を最適化しています",
+    "pt-BR": "Otimizando o vídeo para que seja reproduzido sem travar"
+  },
+  "Optimising video %d%%": {
+    "ar": "جارٍ تحسين الفيديو %d%%",
+    "de": "Video wird optimiert %d %%",
+    "es": "Optimizando video %d %%",
+    "fr": "Optimisation de la vidéo %d %%",
+    "it": "Ottimizzazione video %d%%",
+    "ja": "動画を最適化中 %d%%",
+    "pt-BR": "Otimizando vídeo %d%%"
   },
   "Options": {
     "ar": "الخيارات",
@@ -29977,6 +30031,15 @@
     "it": "Il controllo ortografico non ha risposto. Riprova tra un momento.",
     "ja": "スペルチェッカーが応答しませんでした。しばらくしてからもう一度お試しください。",
     "pt-BR": "O corretor ortográfico não respondeu. Tente de novo daqui a pouco."
+  },
+  "The video couldn't be optimised, so the original is kept.": {
+    "ar": "تعذّر تحسين الفيديو، لذا احتُفظ بالأصل.",
+    "de": "Das Video konnte nicht optimiert werden, daher bleibt das Original erhalten.",
+    "es": "No se pudo optimizar el video, así que se conserva el original.",
+    "fr": "La vidéo n'a pas pu être optimisée, l'original est donc conservé.",
+    "it": "Non è stato possibile ottimizzare il video, quindi viene mantenuto l'originale.",
+    "ja": "動画を最適化できなかったため、元の動画を残しました。",
+    "pt-BR": "Não foi possível otimizar o vídeo, então o original foi mantido."
   },
   "The video has music under it.": {
     "ar": "يوجد موسيقى مع الفيديو.",

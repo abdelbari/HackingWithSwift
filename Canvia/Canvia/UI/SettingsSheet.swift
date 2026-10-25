@@ -119,6 +119,7 @@ struct SettingsSheet: View {
     @AppStorage(AppDefaults.exportFormatKey) private var exportFormat = "png"
     /// The Export sheet's row of accessibility suggestions (ExportPlan).
     @AppStorage(ExportPlan.a11yNudgeKey) private var remindA11y = true
+    @AppStorage(ClipOptimiser.key) private var optimiseVideos = true
     @AppStorage(AppDefaults.unitKey) private var unit = "px"
     /// What Canvia is used for, as the first launch asked; "" for none.
     @AppStorage(UseProfile.key) private var use = ""
@@ -164,7 +165,10 @@ struct SettingsSheet: View {
                     proofingSection
                 }
                 accessibilitySection
-                exportSection
+                Group {
+                    exportSection
+                    videosSection
+                }
                 helpSection
                 storageSection
                 backupSection
@@ -309,6 +313,16 @@ struct SettingsSheet: View {
                 Text("What the export sheet starts on, unless it remembers your last export.")
                 Text("The export sheet says when Check accessibility finds something on the pages you're exporting.")
             }
+        }
+    }
+
+    /// Settings ▸ Optimise imported videos (ClipOptimiser): on until
+    /// turned off, a setting of this phone.
+    private var videosSection: some View {
+        Section {
+            Toggle("Optimise imported videos", isOn: $optimiseVideos)
+        } footer: {
+            Text("Large clips, and ones other phones can't play, are converted to a lighter MP4 as they come in.")
         }
     }
 
