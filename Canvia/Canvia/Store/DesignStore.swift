@@ -1843,6 +1843,10 @@ final class DesignStore {
     /// captions of "video:<id>" — the Clip sheet's — or "audio:<trackId>" —
     /// the track's in Audio; the sheet that opens them takes it.
     var captionsAsked: String?
+    /// The missing-media line's Show on a sound track whose file is gone,
+    /// asking the editor for Audio open at that track, by its id — as the
+    /// Android twin's showMissing opens its Audio panel.
+    var audioTrackAsked: String?
     /// Check accessibility's Replace on a picture or clip whose file is
     /// gone, asking the editor for Add in Replace mode (replaceTargetId) —
     /// or, with none, for Background.

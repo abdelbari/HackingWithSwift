@@ -29,7 +29,7 @@
         "elements": [
           {"id": "e8", "type": "image", "src": "anim:spin-gone", "x": 0, "y": 0, "w": 100, "h": 100},
           {"id": "e9", "type": "image", "src": "video:clip-here", "x": 0, "y": 0, "w": 100, "h": 100},
-          {"id": "e10", "type": "image", "src": "media:gone", "x": 0, "y": 0, "w": 100, "h": 100}
+          {"id": "e10", "type": "image", "src": "media:gone", "altText": "A dog on a beach", "altTextSource": "media:gone", "x": 0, "y": 0, "w": 100, "h": 100}
         ]
       }
     ],
@@ -50,5 +50,12 @@
     {"elementId": "e10", "pageIndex": 1, "kind": "photo"},
     {"elementId": "t1", "pageIndex": null, "kind": "audio"},
     {"elementId": "t5", "pageIndex": null, "kind": "audio"}
+  ],
+  "replacedAbout": "Replace on a missing element (MissingMedia.replaced), gone being the stored sources missing above: the picture its fill holds when that is gone and its own is not, the fill's other keys kept; else its own picture. Alt text is kept as typed words and its altTextSource dropped.",
+  "replaced": [
+    {"elementId": "e2", "src": "media:new", "elementSrc": "media:new", "fillSrc": null, "altText": null},
+    {"elementId": "e4", "src": "video:clip-new", "elementSrc": "video:clip-new", "fillSrc": null, "altText": null},
+    {"elementId": "e11", "src": "media:new", "elementSrc": null, "fillSrc": "media:new", "altText": null},
+    {"elementId": "e10", "src": "media:new", "elementSrc": "media:new", "fillSrc": null, "altText": "A dog on a beach"}
   ]
 }

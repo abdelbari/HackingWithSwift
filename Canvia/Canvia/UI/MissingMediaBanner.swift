@@ -20,9 +20,6 @@ struct MissingMediaBanner: View {
     /// What is gone, read as the design opens and again as it changes.
     private var items: [MissingMedia.Absent] { store.missingMedia }
 
-    /// What Show steps through: those on a page.
-    private var onPages: [MissingMedia.Absent] { items.filter { $0.pageIndex != nil } }
-
     var body: some View {
         // A stack that is there even when empty, so its task runs.
         VStack(spacing: 0) {
@@ -40,7 +37,7 @@ struct MissingMediaBanner: View {
                 .font(.footnote)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            if !onPages.isEmpty { stepper }
+            stepper
             Button("Dismiss") { dismiss() }
                 .font(.footnote.weight(.semibold))
         }
@@ -59,10 +56,10 @@ struct MissingMediaBanner: View {
             Button { step(-1) } label: { Image(systemName: "chevron.backward") }
                 .disabled(at == 0)
                 .accessibilityLabel("Previous")
-            Text(tr("%d of %d", at + 1, onPages.count))
+            Text(tr("%d of %d", at + 1, items.count))
                 .font(.footnote.monospacedDigit())
             Button { step(1) } label: { Image(systemName: "chevron.forward") }
-                .disabled(at >= onPages.count - 1)
+                .disabled(at >= items.count - 1)
                 .accessibilityLabel("Next")
         } else {
             Button("Show") { go(to: 0) }
@@ -74,13 +71,18 @@ struct MissingMediaBanner: View {
         go(to: (showing ?? 0) + delta)
     }
 
-    /// Item `index` selected on its page — a background by its page alone.
+    /// Item `index` selected on its page — a background by its page alone,
+    /// a sound track in Audio, open at it — stepping through every item,
+    /// as the Android twin's banner does.
     private func go(to index: Int) {
-        let list = onPages
+        let list = items
         guard list.indices.contains(index) else { return }
         showing = index
         let item = list[index]
-        guard let page = item.pageIndex else { return }
+        guard let page = item.pageIndex else {
+            store.audioTrackAsked = item.elementId
+            return
+        }
         store.reveal(elementId: item.kind == .background ? nil : item.elementId, onPage: page)
     }
 
