@@ -230,7 +230,7 @@ enum AudioMix {
     /// .voiceOverNames, the Android twin's list) — whichever phone and
     /// language named it.
     static func isVoiceOver(_ track: AudioTrack) -> Bool {
-        AudioTracks.voiceOverNames.contains { track.name.hasPrefix($0) }
+        AudioTracks.isVoiceOverName(track.name)
     }
 
     /// The mix the MP4 of `pages` of `design` carries, at `settings`: their

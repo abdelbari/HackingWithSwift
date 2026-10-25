@@ -359,5 +359,12 @@ final class DesignTypesAndUnitsTests: XCTestCase {
             XCTAssertNotNil(DesignSizeChoice(rawValue: preset.id), "Shortcuts offers \(preset.id)")
         }
         XCTAssertEqual(DesignSizeChoice.allCases.map(\.rawValue), SizePreset.all.map(\.id), "and nothing the catalogue lacks")
+        // Every type is named to Shortcuts — what the Android twin's
+        // pinned "New <type>" shortcuts reach by the same id — by the
+        // catalogue's name.
+        for choice in DesignSizeChoice.allCases {
+            XCTAssertNotNil(DesignSizeChoice.caseDisplayRepresentations[choice], choice.rawValue)
+            XCTAssertNotNil(choice.preset, choice.rawValue)
+        }
     }
 }

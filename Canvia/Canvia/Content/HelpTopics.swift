@@ -72,8 +72,10 @@ enum HelpTopics {
                   keywords: ["grid", "guide", "align", "nudge", "centre", "columns", "margin"], opens: .snapping),
         HelpTopic(id: "keyboard", title: tr("Keyboard shortcuts"),
                   body: tr("With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export. ⌘= and ⌘- zoom in and out, ⌘0 fits the page, ⌘1 is actual size and ⌘2 zooms to the selection. Page Up and Page Down (or ⌥↑ and ⌥↓) go to the previous and next page. Tab and ⇧Tab select the next and previous element, ⇧H and ⇧V flip, ⌥⇧L, C, R, T, M and B align left, centre, right, top, middle and bottom, and T adds a text box. While typing: ⌘B, ⌘I and ⌘U bold, italic and underline, ⇧⌘X strikethrough, ⇧⌘K capitals, ⇧⌘L, C, R and J align, ⇧⌘7 and ⇧⌘8 numbered and bulleted lists, ⇧⌘, and ⇧⌘. smaller and larger. Hold ⌘ to see them all.")
-                    + " " + tr("Also while typing: ⌘K links the selected words, ⌥⌘↑ and ⌥⌘↓ loosen and tighten the line spacing, ⌥⌘→ and ⌥⌘← the letter spacing, and ⌥⌘C and ⌥⌘V copy and paste the box's style."),
-                  keywords: ["shortcut", "ipad", "command", "tab", "zoom", "flip", "align", "bold", "list", "link", "spacing"], opens: nil),
+                    + " " + tr("Also while typing: ⌘K links the selected words, ⌥⌘↑ and ⌥⌘↓ loosen and tighten the line spacing, ⌥⌘→ and ⌥⌘← the letter spacing, and ⌥⌘C and ⌥⌘V copy and paste the box's style.")
+                    + " " + tr("F5 presents from the beginning, and ⇧F5 from this page."),
+                  keywords: ["shortcut", "ipad", "command", "tab", "zoom", "flip", "align", "bold", "list", "link", "spacing",
+                             "present"], opens: nil),
         HelpTopic(id: "voiceover", title: tr("VoiceOver and accessibility"),
                   body: tr("Every element on the canvas is named and can be moved, made larger or smaller, turned, duplicated, deleted or reordered from the VoiceOver actions rotor; a photo can be cropped and words edited there too. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it."),
                   keywords: ["accessibility", "voice", "motion", "contrast"], opens: nil),

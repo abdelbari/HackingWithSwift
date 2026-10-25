@@ -58,6 +58,17 @@ struct ClipSheet: View {
             }
         }
         .presentationDetents(sheetDetents)
+        // Check accessibility's Add captions: this clip's captions, at once.
+        .onAppear {
+            guard let asked = store.captionsAsked, asked.hasPrefix(VideoStore.prefix) else { return }
+            store.captionsAsked = nil
+            guard asked == clipId.map({ VideoStore.src($0, at: nil) }) else { return }
+            // Once this sheet is up, so the captions can come up over it.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                captioning = true
+            }
+        }
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .task(id: clipId) { await readClip() }
         .onDisappear {

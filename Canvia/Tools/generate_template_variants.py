@@ -89,13 +89,20 @@ LOOPS = [m["id"] for m in MOTION["loops"]]
 STILLS = [m["id"] for m in MOTION["stills"]]
 
 
+# How many text combinations textcombos.json held in round 33.
+ROUND33_COMBOS = 120
+
+
 def font_pairs():
     """Every text combination's heading and body faces — its largest text
     and its smallest — where both are families the app bundles, once each,
     by style, in the file's order."""
     out = {s: [] for s in STYLE_OF_CATEGORY.values()}
     seen = set()
-    for combo in load("textcombos.json"):
+    # Only the combinations the file had when these templates were made:
+    # round 34 appended its curved, warped and Animated ones after them, and
+    # they must not reshuffle the faces of templates already shipped.
+    for combo in load("textcombos.json")[:ROUND33_COMBOS]:
         texts = [e for e in combo["elements"] if e["type"] == "text"]
         if len(texts) < 2:
             continue

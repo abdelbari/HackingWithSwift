@@ -87,6 +87,9 @@ struct InlineTextField: UIViewRepresentable {
     /// ⇧⌘K: capitals on or off for the whole box, as a step of its own
     /// (TextKeys).
     var onToggle: (TextToggle) -> Void = { _ in }
+    /// F5 and ⇧F5: Present from "start" or "current" (PresentFrom), the
+    /// typing ended first (TextKeys.present).
+    var onPresent: (String) -> Void = { _ in }
     /// ⇧⌘L, C, R and J: the whole box aligned, as a step of its own.
     var onAlign: (String) -> Void = { _ in }
     /// ⌥⌘ and an arrow, ⌥⌘C and ⌥⌘V: the whole box's line or letter
@@ -147,6 +150,7 @@ struct InlineTextField: UIViewRepresentable {
         view.onEscape = { [weak coordinator] in coordinator?.parent.onDone() }
         view.onTab = { [weak coordinator] outdent in coordinator?.tab(outdent: outdent) ?? false }
         view.onKey = { [weak coordinator] action in coordinator?.key(action) }
+        view.onPresent = { [weak coordinator] choice in coordinator?.parent.onPresent(choice) }
         view.onCopy = { [weak coordinator] cut in coordinator?.copyWords(cut: cut) ?? false }
         view.onPaste = { [weak coordinator] in coordinator?.pasteWords() ?? false }
         view.onBackspace = { [weak coordinator] in coordinator?.backspace() ?? false }
@@ -1172,6 +1176,9 @@ final class InlineTextView: UITextView {
     var onTab: (Bool) -> Bool = { _ in false }
     /// A formatting key (TextKeys): ⌘B and the rest.
     var onKey: (TextKeys.Command) -> Void = { _ in }
+    /// F5 or ⇧F5 (TextKeys.present): Present from "start" or "current"
+    /// (PresentFrom), the typing ended first.
+    var onPresent: (String) -> Void = { _ in }
     /// Copy, or Cut (true), Paste and Backspace, each true when the field
     /// took it.
     var onCopy: (Bool) -> Bool = { _ in false }
@@ -1212,7 +1219,18 @@ final class InlineTextView: UITextView {
             command.wantsPriorityOverSystemBehavior = true
             return command
         }
-        return (super.keyCommands ?? []) + own
+        let present = TextKeys.present.map { key -> UIKeyCommand in
+            let name = tr(key.name)
+            let command = UIKeyCommand(title: name, action: #selector(presentKey(_:)), input: UIKeyCommand.f5,
+                                       modifierFlags: key.shift ? [.shift] : [])
+            command.discoverabilityTitle = name
+            return command
+        }
+        return (super.keyCommands ?? []) + own + present
+    }
+
+    @objc private func presentKey(_ sender: UIKeyCommand) {
+        onPresent(PresentFrom.choice(shift: sender.modifierFlags.contains(.shift)))
     }
 
     /// The key command input for a TextKeys key: an arrow as UIKit names

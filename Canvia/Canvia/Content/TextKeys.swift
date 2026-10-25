@@ -80,6 +80,12 @@ enum TextKeys {
     /// the middle of the page.
     static let addText = "t"
 
+    /// The keys typing shares with the editor, outside the ⌘ table: F5 and
+    /// ⇧F5 end the typing, as Done does, and present from the beginning or
+    /// from this page (PresentFrom.keys) — the Android twin's
+    /// TextKeys.present.
+    static var present: [PresentFrom.Shortcut] { PresentFrom.keys }
+
     /// What `key` (either case) does with Shift and Alt held or not; nil
     /// for a key that is none of these.
     static func action(for key: String, shift: Bool, alt: Bool = false) -> Command? {

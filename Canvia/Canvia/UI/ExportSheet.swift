@@ -1,5 +1,6 @@
 // Export sheet: the chooser. A Share row of one-tap buttons — share now,
-// save to Photos, copy as image, print — over a File type picker that opens
+// save to Photos, copy as image, print — then Share to, the social apps
+// installed (ShareTargets), over a File type picker that opens
 // on the type suggested from the design (ExportSuggestion), with only that
 // type's options under it: PNG / JPEG at 1-3x, multi-page PDF, print-ready
 // PDF, SVG, a PowerPoint deck, video and GIF, all rendered from the same
@@ -94,6 +95,8 @@ struct ExportSheet: View {
     @State private var pdfPixelSizes: [String: CGSize] = [:]
     /// Close asked with an export running: keep it going, or stop it.
     @State private var askingKeep = false
+    /// The Share to apps this phone has, by id, read as the sheet opens.
+    @State private var installedTargets: Set<String> = []
     /// Save as one ZIP, and the PNG's Compress file (ExportPlan).
     @State private var zip = false
     @State private var pngCompress = false
@@ -209,6 +212,7 @@ struct ExportSheet: View {
         }
         .onAppear {
             restoreSettings()
+            installedTargets = ShareToRow.installed()
             queue.sheetOpen = true
             takeFinished()
         }
@@ -233,6 +237,7 @@ struct ExportSheet: View {
         // type's options.
         Form {
             shareSection
+            shareToSection
             fileTypeSection
             if store.design.pages.count > 1 && !selectionOnly { pagesSection }
             a11ySection
@@ -570,7 +575,9 @@ struct ExportSheet: View {
     /// changes; for documents and pictures, while Settings asks for it.
     @ViewBuilder
     private var a11ySection: some View {
-        let found = AccessibilityAudit.onPages(a11yFindings ?? [], Set(sharedIndices))
+        // A film counts its captions findings alone (ExportPlan.nudgeFindings).
+        let found = ExportPlan.nudgeFindings(AccessibilityAudit.onPages(a11yFindings ?? [], Set(sharedIndices)),
+                                             format: fileType)
         if ExportPlan.showsA11yNudge(format: fileType, findings: found.count, remind: remindA11y,
                                      revision: revision, dismissed: a11yDismissed) {
             Section {
@@ -605,7 +612,11 @@ struct ExportSheet: View {
         // The drawn pictures are registered here, on the main thread,
         // before the audit reads any.
         _ = PhotoLibrary.photos
-        let found = await Task.detached(priority: .utility) { AccessibilityAudit.findings(design) }.value
+        // Clips filmed without sound are not asked captions for.
+        let silent = await AccessibilitySheet.silentClips(in: design)
+        let found = await Task.detached(priority: .utility) {
+            AccessibilityAudit.findings(design, silentClips: silent)
+        }.value
         Self.a11yKept = (id, rev, found)
         a11yFindings = found
     }
@@ -824,6 +835,62 @@ struct ExportSheet: View {
         default:
             let kind = type == "jpg" ? "JPG" : "PNG"
             return count > 1 ? trn("Share %d %@|Share %d %@s", count, kind) : tr("Share %@", kind)
+        }
+    }
+
+    // MARK: share to
+
+    /// The apps installed to share straight to, the design type's own
+    /// first, then the ones shared to lately (ShareTargets).
+    private var shareTargets: [ShareTargets.Target] {
+        ShareTargets.ordered(DesignLibrary.typeOf(store.design), installed: installedTargets,
+                             recent: ShareTargets.recent())
+    }
+
+    /// Share to, when any of the apps is here.
+    @ViewBuilder
+    private var shareToSection: some View {
+        let targets = shareTargets
+        if !targets.isEmpty {
+            Section {
+                ShareToRow(targets: targets) { shareTo($0) }
+            } header: {
+                Text("Share to")
+            }
+        }
+    }
+
+    /// The design made in the type `target` takes — a video for one that
+    /// moves or sounds, else its pictures at the app's width, every page
+    /// chosen, a carousel's as its slides (ShareTargets.scale makes each
+    /// the app's width) — and handed to it (ExportJobs.sharedTo).
+    /// An app gone since the sheet opened is said, and its icon goes.
+    @MainActor
+    private func shareTo(_ target: ShareTargets.Target) {
+        guard let url = target.url, UIApplication.shared.canOpenURL(url) else {
+            installedTargets.remove(target.id)
+            errorMessage = ShareTargets.notInstalled(target)
+            announce(ShareTargets.notInstalled(target))
+            return
+        }
+        let format = ShareTargets.format(store.design)
+        let pages = format == "mp4" ? moviePages : pdfIndices
+        if let why = leftOut(pages) {
+            errorMessage = why
+            return
+        }
+        ShareTargets.remember(target.id)
+        let scale = ShareTargets.scale(store.design, target: target)
+        let snapshot = designSnapshot
+        let settings = movieSettings
+        let quality = jpegQuality
+        let designId = store.design.id
+        run(tr("Sharing to %@", target.name), format: nil) {
+            let render: ExportQueue.Work = format == "mp4"
+                ? ExportJobs.movie(snapshot, settings: settings)
+                : ExportJobs.pictures(snapshot, format: format == "jpg" ? .jpeg : .png, scale: scale, longEdge: 0,
+                                      quality: quality, transparent: false, split: true)
+            return ExportJobs.sharedTo(target, designId: designId, render: render)
         }
     }
 

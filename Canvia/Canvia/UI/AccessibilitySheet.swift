@@ -1,7 +1,10 @@
 // Check accessibility: every finding of one pass, page by page — "5 things
 // on 3 pages" — each with Show, which goes to the element, and its fix:
 // Fix colour, Add alt text (with Suggest from the on-device classifier),
-// Mark decorative, Make it 12, Fix heading level, Make it a heading.
+// Mark decorative, Make it 12, Fix heading level, Make it a heading, Add
+// captions — which opens the clip's or the voice-over's captions over the
+// editor (DesignStore.captionsAsked). Clips filmed without sound are not
+// asked about, once their files are read.
 // Contrast is a section of its own, with Fix all contrast as one undo
 // step, as Check contrast had it. Show reading
 // order numbers the page's elements on the canvas in VoiceOver's order.
@@ -21,6 +24,10 @@ struct AccessibilitySheet: View {
     @State private var describing: AccessibilityAudit.Finding?
     @State private var askingAlt = false
     @State private var altDraft = ""
+    /// The clips whose files have no sound of their own, read off the main
+    /// thread as the sheet opens; until they are, every clip is taken to
+    /// have some.
+    @State private var silentClips: Set<String> = []
 
     var body: some View {
         NavigationStack {
@@ -73,6 +80,10 @@ struct AccessibilitySheet: View {
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .onAppear { refresh() }
+        .task {
+            silentClips = await Self.silentClips(in: store.design)
+            refresh()
+        }
         // Edits made under the sheet — an undo, a colour changed by hand —
         // are checked again.
         .onChange(of: store.design) { _, _ in refresh() }
@@ -101,7 +112,7 @@ struct AccessibilitySheet: View {
     }
 
     private func refresh() {
-        let all = AccessibilityAudit.findings(store.design)
+        let all = AccessibilityAudit.findings(store.design, silentClips: silentClips)
         findings = pages.map { AccessibilityAudit.onPages(all, $0) } ?? all
     }
 
@@ -168,6 +179,7 @@ struct AccessibilitySheet: View {
         case .readingOrder: return "list.number"
         case .headings: return "textformat.size"
         case .colourVision: return "eye"
+        case .captions: return "captions.bubble"
         case .missingLetters: return "character.textbox"
         }
     }
@@ -191,12 +203,27 @@ struct AccessibilitySheet: View {
             altDraft = element(f)?.altText ?? ""
             describing = f
             askingAlt = true
+        case .addCaptions:
+            // On its page, the clip selected; the editor opens its captions.
+            store.reveal(elementId: f.elementId, onPage: f.pageIndex)
+            store.captionsAsked = f.source
         case .fixColour, .makeIt12, .fixHeadingLevel, .makeHeading:
             let next = AccessibilityAudit.fixed(store.design, f)
             guard next != store.design else { return }
             store.apply { $0 = next }
             refresh()
         }
+    }
+
+    /// The clips of `design` whose files are on this phone and have no sound
+    /// of their own — which Check accessibility does not ask captions for.
+    /// A clip not here is taken to have sound, as on the Android twin.
+    static func silentClips(in design: Design) async -> Set<String> {
+        var silent: Set<String> = []
+        for id in DesignPackage.videoIDs(in: design) where VideoStore.url(for: id) != nil {
+            if await VideoStore.soundLength(of: id) == nil { silent.insert(id) }
+        }
+        return silent
     }
 
     /// Every contrast finding fixed, as one step.

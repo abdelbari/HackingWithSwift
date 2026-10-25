@@ -324,6 +324,8 @@ final class ExportQueue {
             do {
                 let result = try await task.value
                 succeeded = job.batch != nil || result.failed == nil
+                // What it made is the design's last export (Details).
+                Self.noteExport(job.designId, result)
                 if job.batch != nil {
                     collect(job, urls: result.urls, failed: result.failed == nil ? 0 : 1)
                 } else {
@@ -347,6 +349,27 @@ final class ExportQueue {
             endBackground()
         }
         runner = nil
+    }
+
+    /// What an export of design `designId` made, kept as its last export on
+    /// this phone (DesignFacts): "print" for the printer, else the first
+    /// file's type; what was only said, or only put in Photos, is none —
+    /// as the Android twin's HomeExports.noteExport keeps it. Share to's
+    /// files, handed to another app, are kept by the job itself
+    /// (ExportJobs.sharedTo).
+    private static func noteExport(_ designId: String, _ result: Result) {
+        if result.print != nil {
+            DesignFacts.rememberExport(designId, type: "print")
+        } else {
+            noteFiles(designId, result.urls)
+        }
+    }
+
+    /// `urls`, made from design `designId`, kept as its last export: the
+    /// first file's type; none made is nothing kept.
+    static func noteFiles(_ designId: String, _ urls: [URL]) {
+        guard let ext = urls.first?.pathExtension.lowercased(), !ext.isEmpty else { return }
+        DesignFacts.rememberExport(designId, type: ext)
     }
 
     private func finish(_ id: UUID, label: String, designId: String, result: Result) {

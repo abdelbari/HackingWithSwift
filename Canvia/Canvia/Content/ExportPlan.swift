@@ -3,7 +3,8 @@
 // for rule (ExportPlanTests): the ZIP several files go into and the names
 // inside it, when a compressed PNG is worth keeping and the sizes said
 // before and after, and which file types are worth a word about
-// accessibility first. And round 34's: a carousel cut into slides.
+// accessibility first — a film about its captions alone. And round 34's:
+// a carousel cut into slides.
 
 import CoreGraphics
 import Foundation
@@ -136,12 +137,28 @@ enum ExportPlan {
     /// documents and pictures people read.
     static let checkedFormats: Set<String> = ["pdf", "html", "pptx", "png", "jpg"]
 
+    /// The films the row is about captions for: an MP4 and a GIF mention
+    /// the captions findings alone — the Android twin's
+    /// AccessibilityAudit.CAPTION_NUDGE_FORMATS.
+    static let captionFormats: Set<String> = ["mp4", "gif"]
+
+    /// What the row counts for an export as `format`: every finding for a
+    /// type in checkedFormats, the captions ones for a film
+    /// (captionFormats), none for anything else.
+    static func nudgeFindings(_ findings: [AccessibilityAudit.Finding], format: String) -> [AccessibilityAudit.Finding] {
+        if checkedFormats.contains(format) { return findings }
+        if captionFormats.contains(format) { return findings.filter { $0.kind == .captions } }
+        return []
+    }
+
     /// Whether the sheet shows the accessibility row for `format`: the
-    /// setting on (`remind`), something found, a type people read, and not
-    /// put away since the design last changed (`dismissed`, the revision
-    /// it was put away at).
+    /// setting on (`remind`), something found that it counts
+    /// (`nudgeFindings`, already counted for a film), a type people read or
+    /// a film, and not put away since the design last changed
+    /// (`dismissed`, the revision it was put away at).
     static func showsA11yNudge(format: String, findings: Int, remind: Bool, revision: Int64,
                                dismissed: Int64?) -> Bool {
-        remind && findings > 0 && checkedFormats.contains(format) && dismissed != revision
+        let counted = checkedFormats.contains(format) || captionFormats.contains(format)
+        return remind && findings > 0 && counted && dismissed != revision
     }
 }

@@ -50,6 +50,14 @@ final class AudioDownloadTests: XCTestCase {
         XCTAssertTrue(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: AudioTracks.voiceOverName(after: []))))
         XCTAssertFalse(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: "Theme")))
         XCTAssertFalse(AudioMix.isVoiceOver(AudioTrack(src: "video:c", name: AudioTracks.clipSoundName)))
+        // One rule with the captions check (AudioTracks.isVoiceOverName): a
+        // name Record gives, a number at most after it — a track renamed
+        // "Voice-over take" is music to both.
+        XCTAssertFalse(AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: "Voice-over take")))
+        XCTAssertFalse(AudioTracks.isVoiceOverName("Voice-over take"))
+        for name in ["Voice-over", "Voice-over 12", "Voix off", "ナレーション 2", "Theme", "Voice-overs"] {
+            XCTAssertEqual(AudioTracks.isVoiceOverName(name), AudioMix.isVoiceOver(AudioTrack(src: "audio:a", name: name)), name)
+        }
     }
 
     @MainActor

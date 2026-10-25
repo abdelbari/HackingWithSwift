@@ -1,0 +1,375 @@
+{
+  "note": "Check accessibility's captions rule: a heard clip with no caption box for it (video:<id>, with a cue) on its page, and a voice-over track with none (audio:<trackId>) on the shown page its start falls on in the film. A voice-over is a heard track named \"Voice-over\" or one of its seven translations, with or without a number after it, whichever phone or language recorded it. The clips in silentClips have no sound of their own. Each phone lists exactly these findings, in this order. Both phones read this file.",
+  "design": {
+    "id": "d-captions",
+    "title": "Captions",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "pages": [
+      {
+        "id": "p0",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "holdSeconds": 4,
+        "elements": [
+          {
+            "id": "clip1",
+            "type": "image",
+            "src": "video:v1",
+            "x": 0,
+            "y": 0,
+            "w": 200,
+            "h": 200,
+            "altText": "A clip"
+          },
+          {
+            "id": "clip2",
+            "type": "image",
+            "src": "video:v2",
+            "x": 220,
+            "y": 0,
+            "w": 200,
+            "h": 200,
+            "altText": "A clip",
+            "clip": {
+              "muted": true
+            }
+          },
+          {
+            "id": "clip3",
+            "type": "image",
+            "src": "video:v3",
+            "x": 440,
+            "y": 0,
+            "w": 200,
+            "h": 200,
+            "altText": "A clip",
+            "clip": {
+              "volume": 0
+            }
+          },
+          {
+            "id": "clip4",
+            "type": "image",
+            "src": "video:v4",
+            "x": 660,
+            "y": 0,
+            "w": 200,
+            "h": 200,
+            "altText": "A clip"
+          },
+          {
+            "id": "clip5",
+            "type": "image",
+            "src": "video:v5",
+            "x": 880,
+            "y": 0,
+            "w": 200,
+            "h": 200,
+            "altText": "A clip"
+          },
+          {
+            "id": "cap4",
+            "type": "text",
+            "text": "Hi",
+            "x": 100,
+            "y": 800,
+            "w": 800,
+            "h": 100,
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "captions": {
+              "source": "video:v4",
+              "cues": [
+                {
+                  "start": 0.0,
+                  "end": 2.0,
+                  "text": "Hi"
+                }
+              ],
+              "style": "plain"
+            }
+          },
+          {
+            "id": "capvo2",
+            "type": "text",
+            "text": "Hi",
+            "x": 100,
+            "y": 950,
+            "w": 800,
+            "h": 80,
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "captions": {
+              "source": "audio:vo2",
+              "cues": [
+                {
+                  "start": 0.0,
+                  "end": 2.0,
+                  "text": "Hi"
+                }
+              ],
+              "style": "plain"
+            }
+          }
+        ]
+      },
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "holdSeconds": 4,
+        "hidden": true,
+        "elements": [
+          {
+            "id": "clip6",
+            "type": "image",
+            "src": "video:v6",
+            "x": 0,
+            "y": 0,
+            "w": 200,
+            "h": 200,
+            "altText": "A clip"
+          }
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "holdSeconds": 4,
+        "elements": [
+          {
+            "id": "clip8",
+            "type": "image",
+            "src": "video:v8",
+            "x": 0,
+            "y": 0,
+            "w": 200,
+            "h": 200,
+            "altText": "A clip"
+          },
+          {
+            "id": "cap8",
+            "type": "text",
+            "text": "Hi",
+            "x": 100,
+            "y": 800,
+            "w": 800,
+            "h": 100,
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "captions": {
+              "source": "video:v8",
+              "cues": [],
+              "style": "plain"
+            }
+          }
+        ]
+      },
+      {
+        "id": "p3",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "holdSeconds": 4,
+        "elements": [
+          {
+            "id": "photo",
+            "type": "image",
+            "src": "media:beach",
+            "x": 0,
+            "y": 300,
+            "w": 200,
+            "h": 200
+          },
+          {
+            "id": "clip7",
+            "type": "image",
+            "src": "video:v7",
+            "x": 0,
+            "y": 0,
+            "w": 200,
+            "h": 200,
+            "altText": "A clip"
+          },
+          {
+            "id": "capx",
+            "type": "text",
+            "text": "Hi",
+            "x": 100,
+            "y": 800,
+            "w": 800,
+            "h": 100,
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "captions": {
+              "source": "audio:elsewhere",
+              "cues": [
+                {
+                  "start": 0.0,
+                  "end": 2.0,
+                  "text": "Hi"
+                }
+              ],
+              "style": "plain"
+            }
+          }
+        ]
+      }
+    ],
+    "audio": [
+      {
+        "id": "vo1",
+        "src": "audio:rec1",
+        "start": 4.5,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": false,
+        "name": "Voice-over"
+      },
+      {
+        "id": "vo2",
+        "src": "audio:rec2",
+        "start": 0,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": false,
+        "name": "Voice-over 2"
+      },
+      {
+        "id": "vo3",
+        "src": "audio:rec3",
+        "start": 0,
+        "trimStart": 0,
+        "volume": 0,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": false,
+        "name": "Voice-over 3"
+      },
+      {
+        "id": "song",
+        "src": "music:sunny",
+        "start": 0,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": true,
+        "name": "Song"
+      },
+      {
+        "id": "vo4",
+        "src": "audio:rec4",
+        "start": 11,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": false,
+        "name": "Voice-over 4"
+      },
+      {
+        "id": "vo5",
+        "src": "audio:rec5",
+        "start": 9,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": false,
+        "name": "Voix off"
+      },
+      {
+        "id": "take",
+        "src": "audio:rec6",
+        "start": 9,
+        "trimStart": 0,
+        "volume": 1,
+        "fadeIn": 0,
+        "fadeOut": 0,
+        "loop": false,
+        "name": "Voice-over take"
+      }
+    ]
+  },
+  "silentClips": [
+    "v5"
+  ],
+  "findings": [
+    {
+      "kind": "captions",
+      "page": 0,
+      "id": "clip1",
+      "message": "Video has sound but no captions",
+      "fix": "Add captions",
+      "source": "video:v1"
+    },
+    {
+      "kind": "captions",
+      "page": 2,
+      "id": null,
+      "message": "Narration has no captions",
+      "fix": "Add captions",
+      "source": "audio:vo1"
+    },
+    {
+      "kind": "captions",
+      "page": 2,
+      "id": "clip8",
+      "message": "Video has sound but no captions",
+      "fix": "Add captions",
+      "source": "video:v8"
+    },
+    {
+      "kind": "altText",
+      "page": 3,
+      "id": "photo",
+      "message": "Photo has no alt text",
+      "fix": "Add alt text",
+      "source": null
+    },
+    {
+      "kind": "captions",
+      "page": 3,
+      "id": null,
+      "message": "Narration has no captions",
+      "fix": "Add captions",
+      "source": "audio:vo4"
+    },
+    {
+      "kind": "captions",
+      "page": 3,
+      "id": null,
+      "message": "Narration has no captions",
+      "fix": "Add captions",
+      "source": "audio:vo5"
+    },
+    {
+      "kind": "captions",
+      "page": 3,
+      "id": "clip7",
+      "message": "Video has sound but no captions",
+      "fix": "Add captions",
+      "source": "video:v7"
+    }
+  ]
+}

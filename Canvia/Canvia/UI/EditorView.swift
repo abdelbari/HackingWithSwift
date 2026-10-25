@@ -51,6 +51,9 @@ enum EditorSheet: String, Identifiable {
     case bulk
     /// More's "Turn into a Doc": whether the speaker notes come too.
     case turnIntoDoc
+    /// More's "Details": the design's size, pages, dates, storage and
+    /// fonts (DesignDetailsSheet).
+    case details
     var id: String { rawValue }
 }
 
@@ -80,6 +83,10 @@ struct EditorView: View {
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
+    /// The page Present opens on (PresentFrom).
+    @State private var presentStart = 0
+    /// Details' Show in Uploads: the uploads Add opens on.
+    @State private var insertUploads: Uploads.Kind?
     /// Present and record: the studio over the design, and its talks.
     @State private var talkRecording: Design?
     @State private var talkReviewing: Design?
@@ -158,7 +165,7 @@ struct EditorView: View {
             if saveFailed { saveFailedBanner }
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
-                CanvasView(store: store, onBackground: openBackground)
+                CanvasView(store: store, onBackground: openBackground, onPresent: { present(from: $0) })
                     .overlay { if rulers { RulersView(store: store).allowsHitTesting(!pageTaken) } }
                     .overlay { SelectionBubble(store: store) { activeSheet = .similar } }
                     .overlay { HoldMenuPill(store: store, openBackground: openBackground) }
@@ -234,7 +241,7 @@ struct EditorView: View {
             PagesBar(store: store).chromeTypeSize()
         }
         .background(keyboardCommands)
-        .background(UndoHost(store: store, live: undoHostLive, claim: undoClaim))
+        .background(UndoHost(store: store, live: undoHostLive, claim: undoClaim) { present(from: $0) })
         .onChange(of: undoHostLive, initial: true) { _, live in
             if live { undoClaim += 1 }
         }
@@ -312,6 +319,7 @@ struct EditorView: View {
             if sheet != .fontWords, store.wordFontTarget != nil { store.wordFontTarget = nil }
             if sheet != .highlightWords, store.wordHighlightTarget != nil { store.wordHighlightTarget = nil }
             if sheet != .photoInLetters, store.photoAdjustTarget != nil { store.photoAdjustTarget = nil }
+            if sheet != .insert, insertUploads != nil { insertUploads = nil }
         }
         // Crop, typing, the pen or the eraser taking the page ends Select
         // multiple as a panel does, the selection kept — as on the Android
@@ -329,7 +337,7 @@ struct EditorView: View {
         .fullScreenCover(isPresented: $presenting) {
             // Loop turned on or off in Present is the design's own, kept
             // for next time, as one step Undo takes back.
-            PresentationView(design: store.design, startPage: store.pageIndex) { on in
+            PresentationView(design: store.design, startPage: presentStart, announcesStart: true) { on in
                 store.apply { $0.presentLoops = on }
             }
         }
@@ -581,16 +589,60 @@ struct EditorView: View {
     /// Whether there is nothing for Present to show.
     private var everyPageHidden: Bool { store.design.visiblePageIndices.isEmpty }
 
-    /// Present from the keyboard — or, with every page hidden, say why not,
-    /// as the menu item does.
-    private func present() {
+    /// Present from the keyboard or the menu — or, with every page hidden,
+    /// say why not, as the menu item does. `choice` is where it starts —
+    /// PresentFrom's "start" or "current", kept for the design — or nil for
+    /// the choice kept last; with no choice to make it starts on this page,
+    /// as it always has.
+    private func present(from choice: String? = nil) {
         guard !everyPageHidden else {
             store.announce(PageVisibility.everyPageHidden, undoable: false)
             return
         }
         // The pen is put down, as the menu's Present puts it down.
         store.drawing = nil
+        let design = store.design
+        let here = store.pageIndex
+        if PresentFrom.offersChoice(design, pageIndex: here) {
+            if let choice { PresentFrom.remember(design.id, choice: choice) }
+            let kept = choice ?? PresentFrom.chosen(PresentFrom.choices(), designId: design.id)
+            presentStart = PresentFrom.startPage(design, choice: kept, pageIndex: here) ?? here
+        } else {
+            presentStart = here
+        }
         presenting = true
+    }
+
+    /// Present, in More: past the first of several pages, From the
+    /// beginning and From page N, the choice kept last ticked (PresentFrom);
+    /// else Present, from this page.
+    @ViewBuilder
+    private var presentItems: some View {
+        if PresentFrom.offersChoice(store.design, pageIndex: store.pageIndex) {
+            let kept = PresentFrom.chosen(PresentFrom.choices(), designId: store.design.id)
+            presentItem(tr("From the beginning"), choice: PresentFrom.start, ticked: kept == PresentFrom.start)
+            presentItem(PresentFrom.fromPage(store.pageIndex), choice: PresentFrom.current,
+                        ticked: kept == PresentFrom.current)
+        } else {
+            presentItem(tr("Present"), choice: nil, ticked: false)
+        }
+    }
+
+    private func presentItem(_ title: String, choice: String?, ticked: Bool) -> some View {
+        Button {
+            // A crop or typing under way is kept as its own step first, as
+            // on the Android twin.
+            store.finishCrop()
+            store.endTextEdit()
+            present(from: choice)
+        } label: {
+            Label(title, systemImage: ticked ? "checkmark" : "play.rectangle")
+            // Under the item, why it cannot be chosen.
+            if everyPageHidden { Text(PageVisibility.everyPageHidden) }
+        }
+        .disabled(everyPageHidden)
+        .accessibilityHint(everyPageHidden ? PageVisibility.everyPageHidden : "")
+        .accessibilityAddTraits(ticked ? .isSelected : [])
     }
 
     /// Whether plain Delete can safely mean "delete the selection": something
@@ -833,20 +885,7 @@ struct EditorView: View {
             // block takes ten children and this menu is past that, and menu
             // sections draw the same separators for free.
             Section {
-                Button {
-                    // A crop or typing under way is kept as its own step
-                    // first, as on the Android twin.
-                    store.finishCrop()
-                    store.endTextEdit()
-                    store.drawing = nil
-                    presenting = true
-                } label: {
-                    Label("Present", systemImage: "play.rectangle")
-                    // Under the item, why it cannot be chosen.
-                    if everyPageHidden { Text(PageVisibility.everyPageHidden) }
-                }
-                .disabled(everyPageHidden)
-                .accessibilityHint(everyPageHidden ? PageVisibility.everyPageHidden : "")
+                presentItems
 
                 Button {
                     store.finishCrop()
@@ -944,6 +983,10 @@ struct EditorView: View {
                     Button {
                         namingVersion = true
                     } label: { Label("Save a named version…", systemImage: "pin") }
+
+                    Button {
+                        activeSheet = .details
+                    } label: { Label("Details", systemImage: "info.circle") }
                 }
             }
 
@@ -1573,7 +1616,7 @@ struct EditorView: View {
     private func sheetView(_ sheet: EditorSheet) -> some View {
         switch sheet {
         case .insert:
-            InsertSheet(store: store)
+            InsertSheet(store: store, uploads: insertUploads)
         case .colorFill:
             // An SVG's line or outline part takes a colour as its ink.
             ColorPickerSheet(store: store, title: tr("Fill colour"),
@@ -1679,6 +1722,17 @@ struct EditorView: View {
             BulkCreateSheet(store: store) { made in showMade(made) }
         case .turnIntoDoc:
             TurnIntoDocSheet { notes in turnIntoDoc(notes: notes) }
+        case .details:
+            // Show in Uploads: the photos or clips in Add's Photos tab, the
+            // songs in Audio.
+            DesignDetailsSheet(store: store) { kind in
+                if kind == .audio {
+                    activeSheet = .audio
+                } else {
+                    insertUploads = kind
+                    activeSheet = .insert
+                }
+            }
         case .find:
             FindReplaceSheet(store: store)
         case .frame:
@@ -2171,7 +2225,10 @@ private struct WordRequests: ViewModifier {
     }
 }
 
-/// The hold menu's Animate asks for Page animations.
+/// The hold menu's Animate asks for Page animations; Check accessibility's
+/// Add captions for the clip's Clip sheet, or Audio for a voice-over, in
+/// place of the sheet that asked — each opens its captions
+/// (DesignStore.captionsAsked).
 private struct PageAnimationRequest: ViewModifier {
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
@@ -2182,6 +2239,10 @@ private struct PageAnimationRequest: ViewModifier {
                 guard asked else { return }
                 store.asksPageAnimation = false
                 activeSheet = .pageAnimation
+            }
+            .onChange(of: store.captionsAsked) { _, asked in
+                guard let asked else { return }
+                activeSheet = asked.hasPrefix(AudioTrack.prefix) ? .audio : .clip
             }
     }
 }

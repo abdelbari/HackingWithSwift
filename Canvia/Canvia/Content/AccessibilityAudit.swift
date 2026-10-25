@@ -31,6 +31,15 @@
 //  - colourVision: text that passes contrast but not as it is seen with a
 //    colour vision deficiency, and chart series that look alike so
 //    (ColourVision) — each saying which ways of seeing it fails in.
+//  - captions: a clip that is heard — not muted, its volume above 0 and its
+//    file with a sound of its own — with no caption box for it ("video:<id>",
+//    with a cue) on its page ("Video has sound but no captions"), and a
+//    voice-over — a track the Audio sheet's Record made, named as Record
+//    names one on either phone, in any language
+//    (AudioTracks.isVoiceOverName) — with none for it ("audio:<trackId>")
+//    on the shown page its start falls on in the film ("Narration has no
+//    captions"), said as the page's, before the page's clips. Add captions opens the captions rows
+//    for it. A Present and record talk is a film of its own, not checked.
 //  - missingLetters: words — a text's or a shape's — with letters their font
 //    does not have (FontLibrary.covers), which the phone draws in a
 //    stand-in font: Cyrillic in a Latin-only face.
@@ -46,7 +55,8 @@ import Foundation
 enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
-        case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, headings, colourVision, missingLetters
+        case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, headings, colourVision, captions
+        case missingLetters
     }
 
     /// What a finding's button does.
@@ -56,6 +66,7 @@ enum AccessibilityAudit {
         case makeIt12 = "Make it 12"
         case fixHeadingLevel = "Fix heading level"
         case makeHeading = "Make it a heading"
+        case addCaptions = "Add captions"
     }
 
     /// One thing found: {kind, pageIndex, elementId, message, fix}.
@@ -71,7 +82,11 @@ enum AccessibilityAudit {
     /// A loop or a page change faster than this, in seconds, flashes.
     static let minFlashPeriod = 0.33
 
-    static func findings(_ design: Design) -> [Finding] {
+    /// Every finding. `silentClips` are the clips whose files have no sound
+    /// of their own, as far as the phone knows; the rest are taken to have
+    /// one.
+    static func findings(_ design: Design, silentClips: Set<String> = []) -> [Finding] {
+        let narration = uncaptionedNarration(design)
         let contrast = Dictionary(grouping: ContrastAudit.audit(design), by: \.pageIndex)
         let holds = filmHolds(design)
         let seen = Dictionary(grouping: ColourVision.textFindings(design), by: \.contrast.pageIndex)
@@ -131,6 +146,15 @@ enum AccessibilityAudit {
                                    message: tr("Chart colours look alike in %@ view", ColourVision.names(f.kinds)),
                                    part: "\(f.first)-\(f.second)"))
             }
+            for source in narration[p] ?? [] {
+                out.append(Finding(kind: .captions, pageIndex: p, elementId: nil,
+                                   message: tr("Narration has no captions"), fix: .addCaptions, source: source))
+            }
+            for el in shown where needsCaptions(page, el, silentClips: silentClips) {
+                out.append(Finding(kind: .captions, pageIndex: p, elementId: el.id,
+                                   message: tr("Video has sound but no captions"), fix: .addCaptions,
+                                   source: clipSource(el)))
+            }
             for el in shown where lacksLetters(el) {
                 out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
                                    message: missingLettersNote))
@@ -160,6 +184,53 @@ enum AccessibilityAudit {
                                    with: String(repeating: " ", count: span.end - span.start))
         }
         return !FontLibrary.covers(el.fontFamily, rest as String)
+    }
+
+    // MARK: captions
+
+    /// Whether a shown caption box with a cue for `source` is on `page`.
+    static func captioned(_ page: Page, source: String) -> Bool {
+        page.elements.contains { el in
+            !el.isHidden && el.captions?.source == source && el.captions?.cues.isEmpty == false
+        }
+    }
+
+    /// A clip's captions source, "video:<id>", the moment of a still from it
+    /// left off; nil for anything but a clip.
+    static func clipSource(_ el: Element) -> String? {
+        guard let src = el.src, let parts = VideoStore.split(src) else { return nil }
+        return VideoStore.src(parts.id, at: nil)
+    }
+
+    /// Whether `el` is a clip that is heard — not muted, its volume above 0
+    /// and its file not among `silentClips` — with no captions on `page`.
+    static func needsCaptions(_ page: Page, _ el: Element, silentClips: Set<String> = []) -> Bool {
+        guard el.type == .image, let src = el.src, let parts = VideoStore.split(src) else { return false }
+        guard !silentClips.contains(parts.id), (el.clip ?? ClipPlayback()).sounds else { return false }
+        return !captioned(page, source: VideoStore.src(parts.id, at: nil))
+    }
+
+    /// Whether `track` is a heard voice-over: named as Record names one on
+    /// either phone, in any language (AudioTracks.isVoiceOverName), with
+    /// its volume above 0.
+    static func isNarration(_ track: AudioTrack) -> Bool {
+        AudioTracks.isVoiceOverName(track.name) && track.volume > 0
+    }
+
+    /// Each heard voice-over with no captions, as "audio:<trackId>", by the
+    /// index of the shown page its start falls on in the film — the page
+    /// its captions go on, as the track's captions rows time them.
+    static func uncaptionedNarration(_ design: Design) -> [Int: [String]] {
+        let pages = Timeline.pages(of: design)
+        guard !pages.isEmpty else { return [:] }
+        let holds = pages.map { $0.hold }
+        var out: [Int: [String]] = [:]
+        for track in design.audioTracks where isNarration(track) {
+            let p = pages[Timeline.locate(track.start, holds: holds).page].index
+            let source = AudioTrack.src(track.id)
+            if !captioned(design.pages[p], source: source) { out[p, default: []].append(source) }
+        }
+        return out
     }
 
     // MARK: the rules
@@ -425,7 +496,7 @@ enum AccessibilityAudit {
             // A locked page keeps its words as they are.
             guard !PageLocks.isLocked(design.pages[f.pageIndex]) else { return design }
             el = withHeading(el, role: headingFix(design, id: id))
-        case .some(.addAltText), .none:
+        case .some(.addAltText), .some(.addCaptions), .none:
             return design
         }
         out.pages[f.pageIndex].elements[i] = el
@@ -461,6 +532,11 @@ struct AccessibilityFinding: Identifiable, Equatable {
     /// Which of several findings of a kind on one element: a chart's two
     /// series, "1-2", for colourVision; nil for the one.
     var part: String? = nil
+    /// A captions finding's captions source — "video:<id>" or
+    /// "audio:<trackId>" — that Add captions opens; nil otherwise.
+    var source: String? = nil
 
-    var id: String { "\(kind.rawValue)|\(pageIndex)|\(elementId ?? "page")" + (part.map { "|" + $0 } ?? "") }
+    var id: String {
+        "\(kind.rawValue)|\(pageIndex)|\(elementId ?? "page")" + (part.map { "|" + $0 } ?? "") + (source.map { "|" + $0 } ?? "")
+    }
 }

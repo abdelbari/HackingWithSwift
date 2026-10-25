@@ -53,6 +53,20 @@ enum AudioTracks {
         "Voix off", "Voce fuori campo", "ナレーション", "Narração",
     ]
 
+    /// Whether `name` is one Record gives, whatever the language the app
+    /// runs in now: one of `voiceOverNames`, or one with " 2" and on after
+    /// it — the one rule for a voice-over on both phones (the audio panel,
+    /// the audio download's 'Include voice-over' and the captions check),
+    /// so "Voice-over take", renamed by hand, is music.
+    static func isVoiceOverName(_ name: String) -> Bool {
+        var base = Substring(name)
+        if let space = name.lastIndex(of: " "), space > name.startIndex {
+            let number = name[name.index(after: space)...]
+            if !number.isEmpty, number.allSatisfy({ ("0"..."9").contains($0) }) { base = name[..<space] }
+        }
+        return voiceOverNames.contains(String(base))
+    }
+
     /// The name a new voice-over takes, as the Android twin names it:
     /// "Voice-over", then "Voice-over 2" and on — the first that none of
     /// the design's tracks has.
