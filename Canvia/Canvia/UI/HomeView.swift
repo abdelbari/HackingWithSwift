@@ -1700,8 +1700,9 @@ struct HomeView: View {
                 presenting = design
             }
         } label: { Label("Present", systemImage: "play.rectangle") }
-        // Kept where it was left past its first page (LastPlace).
-        if recent.pages > 1, LastPlace.place(for: recent.id) != nil {
+        // Kept where it was left past its first page (LastPlace); not for
+        // a Doc, which presents from its start, as on the Android twin.
+        if recent.pages > 1, recent.type != Docs.presetId, LastPlace.place(for: recent.id) != nil {
             Button {
                 withDesign(recent.id) { presentWhereLeft($0) }
             } label: { Label(LastPlace.presentTitle, systemImage: "play.rectangle.on.rectangle") }

@@ -9,16 +9,28 @@ import SwiftUI
 
 struct KeepsPlace: ViewModifier {
     let store: DesignStore
+    /// The place as the editor opened, before any page left rewrites it.
+    @Binding var leftOff: LastPlace.Place?
+    @State private var opened = false
     @Environment(\.scenePhase) private var scenePhase
 
     func body(content: Content) -> some View {
         content
-            .onAppear { resume() }
+            .onAppear { firstAppear() }
             .onChange(of: store.pageIndex) { _, _ in store.rememberPlace() }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .background { store.rememberPlace() }
             }
             .onDisappear { store.rememberPlace() }
+    }
+
+    /// Once, as the editor opens: the place it was left at kept for
+    /// Present from where I left off, then the design opened there.
+    private func firstAppear() {
+        guard !opened else { return }
+        opened = true
+        leftOff = LastPlace.place(for: store.design.id)
+        resume()
     }
 
     /// The page made current at once; a zoom other than fit asked of the
