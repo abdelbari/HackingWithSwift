@@ -248,7 +248,7 @@ enum SVGExporter {
             if el.edgeOnly { return shape }
             return shape + shapeWordsMarkup(el, index: index, standIns: standIns, defs: &defs)
         case .text: return textMarkup(el, index: index, standIns: standIns, defs: &defs)
-        case .line: return lineMarkup(el)
+        case .line: return labelledLineMarkup(el, index: index, standIns: standIns, defs: &defs)
         case .image:
             if let code = CodeGenerator.vector(el) {
                 return codeMarkup(el, code) + logoMarkup(el, code, standIns: standIns)
@@ -669,6 +669,39 @@ enum SVGExporter {
         case "bottom": return slack
         default: return 0
         }
+    }
+
+    /// A line with its label (LineLabels) as LineElementView draws it: the
+    /// stroke under a mask that cuts the box round the words out of it, and
+    /// the words' outlines over it — both upright on the page, undoing the
+    /// line's own turn and flip about where the words sit. A line with no
+    /// label is lineMarkup's.
+    private static func labelledLineMarkup(_ el: Element, index: Int, standIns: StandIns? = nil,
+                                           defs: inout [String]) -> String {
+        let line = lineMarkup(el)
+        guard let words = LineLabels.textElement(for: el) else { return line }
+        let centre = LineRoutes.toLocal(el, CGPoint(x: words.x + words.w / 2, y: words.y + words.h / 2))
+        let px = el.x + Double(centre.x), py = el.y + Double(centre.y)
+        let upright = "translate(\(num(px)) \(num(py))) scale(\(el.flipH ? -1 : 1) \(el.flipV ? -1 : 1)) " +
+            "rotate(\(num(-el.rotation))) translate(\(num(-px)) \(num(-py)))"
+        var stroke = line
+        if LineLabels.gapRect(of: el) != nil {
+            let id = "linegap\(index)"
+            let pad = LineLabels.gapPad
+            let reach = max(el.w, el.h) + words.w + words.h + 100
+            let page = "x=\"\(num(el.x - reach))\" y=\"\(num(el.y - reach))\" " +
+                "width=\"\(num(el.w + 2 * reach))\" height=\"\(num(el.h + 2 * reach))\""
+            let hole = "x=\"\(num(px - words.w / 2 - pad))\" y=\"\(num(py - words.h / 2 - pad))\" " +
+                "width=\"\(num(words.w + 2 * pad))\" height=\"\(num(words.h + 2 * pad))\""
+            defs.append("<mask id=\"\(id)\" maskUnits=\"userSpaceOnUse\" \(page)><rect \(page) fill=\"white\"/>" +
+                        "<rect \(hole) fill=\"black\" transform=\"\(upright)\"/></mask>")
+            stroke = "<g mask=\"url(#\(id))\">" + line + "</g>"
+        }
+        var placed = words
+        placed.x = px - words.w / 2
+        placed.y = py - words.h / 2
+        let text = textMarkup(placed, index: index, standIns: standIns, defs: &defs)
+        return stroke + "<g transform=\"\(upright)\">" + text + "</g>"
     }
 
     /// A line as LineElementView draws it: round-capped, dashed 3:2 or dotted

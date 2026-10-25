@@ -99,6 +99,8 @@ struct SelectionOverlay: View {
                 if !LineRoutes.keepsLevel(el) { handleRing(for: el, handles: Touch.handleSet(for: el)) }
                 // A line's ends, discs to drag in place of its stretch handles.
                 if LineRoutes.hasEndHandles(el) { lineEnds(el) }
+                // Its label, to slide along it.
+                if el.type == .line, let box = LineLabels.rect(of: el) { labelSlide(box) }
             }
             if let el = store.singleSelection,
                Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) {
@@ -348,6 +350,14 @@ struct SelectionOverlay: View {
         return [ends.start, ends.end].contains { Double(hypot($0.x - point.x, $0.y - point.y)) <= reach }
     }
 
+    /// Whether a touch at `point`, in page units, is on a selected line's
+    /// label (labelSlide), so the view's own pan leaves it to the label.
+    static func labelTakes(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let el = store.labelledLine, !el.isHidden, store.editingTextId != el.id,
+              let box = LineLabels.rect(of: el) else { return false }
+        return box.contains(point)
+    }
+
     /// Whether a touch at `point`, in page units, is within reach of the
     /// move handle, when the selection has one (Touch.showsMoveHandle) — so
     /// the view's own pan leaves it to the handle, as handlesTake leaves the
@@ -588,6 +598,18 @@ struct SelectionOverlay: View {
                 heldEnd = nil
                 if let was { onEndDragEnd(was.atStart) }
             }
+    }
+
+    /// A selected line's label: a drag on its words slides it along the
+    /// line (DesignStore.slideLabel), held on the middle, one step a drag.
+    private func labelSlide(_ box: CGRect) -> some View {
+        Color.clear
+            .frame(width: box.width, height: box.height)
+            .contentShape(Rectangle())
+            .position(x: box.midX, y: box.midY)
+            .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
+                .onChanged { value in store.slideLabel(to: value.location) }
+                .onEnded { _ in store.commit() })
     }
 
     /// A line's end: a white disc ringed in the accent, larger than a

@@ -1630,9 +1630,41 @@ struct LineElementView: View {
 
     var body: some View {
         SwiftUI.Canvas { context, _ in
-            Self.drawRoute(element, in: context)
+            Self.drawRoute(element, in: Self.gapped(element, context))
+            Self.drawLabel(element, in: context)
         }
         .frame(width: element.w, height: element.h)
+    }
+
+    /// `context` with the box round a line's label (LineLabels.gapRect),
+    /// upright on the page, cut out of what it draws; as it is for none.
+    static func gapped(_ el: Element, _ context: GraphicsContext) -> GraphicsContext {
+        guard let gap = LineLabels.gapRect(of: el) else { return context }
+        var out = context
+        var hole = Path(CGRect(x: -100_000, y: -100_000, width: 200_000, height: 200_000))
+        let corners = [CGPoint(x: gap.minX, y: gap.minY), CGPoint(x: gap.maxX, y: gap.minY),
+                       CGPoint(x: gap.maxX, y: gap.maxY), CGPoint(x: gap.minX, y: gap.maxY)]
+        hole.addLines(corners.map { LineRoutes.toLocal(el, $0) })
+        hole.closeSubpath()
+        out.clip(to: hole, style: FillStyle(eoFill: true))
+        return out
+    }
+
+    /// A line's label (LineLabels): its words where they sit on the route,
+    /// upright on the page whichever way the line turns or flips.
+    static func drawLabel(_ el: Element, in context: GraphicsContext) {
+        guard let words = LineLabels.textElement(for: el) else { return }
+        let centre = LineRoutes.toLocal(el, CGPoint(x: words.x + words.w / 2, y: words.y + words.h / 2))
+        var upright = context
+        upright.translateBy(x: centre.x, y: centre.y)
+        upright.scaleBy(x: el.flipH ? -1 : 1, y: el.flipV ? -1 : 1)
+        upright.rotate(by: .degrees(-el.rotation))
+        let drawn = FontLibrary.attributedString(for: words)
+        upright.withCGContext { cg in
+            UIGraphicsPushContext(cg)
+            drawn.draw(in: CGRect(x: -words.w / 2, y: -words.h / 2, width: words.w, height: words.h))
+            UIGraphicsPopContext()
+        }
     }
 
     /// A line (LineRoutes) in its own box: one stroke along its route —

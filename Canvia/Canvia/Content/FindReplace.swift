@@ -93,16 +93,31 @@ enum FindReplace {
         Unicode.Scalar(0x10000 + ((UInt32(high) - 0xD800) << 10) + (UInt32(low) - 0xDC00))
     }
 
-    /// Whether a box's words are searched and replaced: a text box's, or the
-    /// words a shape carries, unless it is hidden or locked against typing
+    /// Whether a box's words are searched and replaced: a text box's, the
+    /// words a shape carries or a line's label (LineLabels), unless it is hidden or locked against typing
     /// (Lock; a position lock still takes new words), or a caption box, whose
     /// words are its cues, drawn one at a time, and changed in Edit
     /// captions. A chart's words are searched, all of them; a replacement
     /// in its labels and legend changes its data too
     /// (DataGraphics.keepingLabel). The same rule on the Android twin.
     static func searches(_ el: Element) -> Bool {
-        ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil
+        (ShapeText.carriesWords(el) || (el.type == .line && el.label != nil)) && !el.isHidden && el.captions == nil
             && ElementLock.allows(ElementLock.mode(of: el), ElementLock.Action.editText)
+    }
+
+    /// The words searched in `el`: a line's label's (LineLabels), any other
+    /// box's own.
+    static func words(of el: Element) -> String {
+        el.type == .line ? el.label?.text ?? "" : el.text ?? ""
+    }
+
+    /// `el` with its words — a line's label's — now `text`.
+    static func setWords(_ text: String, in el: inout Element) {
+        if el.type == .line {
+            el.label?.text = text
+        } else {
+            el.setText(text)
+        }
     }
 
     /// Whether a box's words found (searches) are replaced: not a chart's
@@ -167,6 +182,8 @@ enum FindReplace {
     /// warp or words beside a drop cap, which are drawn another way — the
     /// canvas marks the whole box there.
     static func letterRects(of range: NSRange, in el: Element) -> [CGRect] {
+        // A line's label: the canvas marks the whole line.
+        if el.type == .line { return [] }
         if el.type == .shape {
             guard ShapeText.takesText(el) else { return [] }
             let box = ShapeText.shownBox(for: el)

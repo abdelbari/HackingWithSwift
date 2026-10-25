@@ -1157,6 +1157,9 @@ struct Element: Codable, Equatable, Identifiable {
     var lineType: String?
     var ends: [Double]?
     var bend: Double?
+    /// Words on the line (LineLabels): typed on it, upright, at a share
+    /// of its length, breaking the stroke behind them; nil for none.
+    var label: LineLabel?
 
     // sticky note
     /// A whiteboard's sticky note (StickyNotes): a square shape whose words
@@ -1322,6 +1325,7 @@ struct Element: Codable, Equatable, Identifiable {
         lineType = try? c.decode(String.self, forKey: .lineType)
         ends = try? c.decode([Double].self, forKey: .ends)
         bend = (try? c.decode(Double.self, forKey: .bend)).flatMap { $0.isFinite ? $0 : nil }
+        label = try? c.decode(LineLabel.self, forKey: .label)
         sticky = (try? c.decode(Bool.self, forKey: .sticky)) == true ? true : nil
     }
 
@@ -1360,7 +1364,7 @@ struct Element: Codable, Equatable, Identifiable {
         case qrColor, qrBackground, qrMargin, qrDots, qrEyes, qrLogo, qrEc, barcodeText, qrForm
         case glyph
         case thickness, dash, startCap, endCap, capScale
-        case lineType, ends, bend
+        case lineType, ends, bend, label
         case sticky
     }
 
@@ -1433,8 +1437,8 @@ struct Element: Codable, Equatable, Identifiable {
     }
 
     /// Its sizes `scale` times as big, where it stays: its box, type size,
-    /// letter spacing, corners and border, and a line's thickness never
-    /// under 1. Effects, curves and the words' own sizes are shares of the
+    /// letter spacing, corners and border, a line's thickness never under 1
+    /// and its label's type. Effects, curves and the words' own sizes are shares of the
     /// type, and stay. As the Android twin's PageResize.scaledSizes.
     func scaledSizes(by scale: Double) -> Element {
         var e = self
@@ -1447,6 +1451,11 @@ struct Element: Codable, Equatable, Identifiable {
         if let corners { e.corners = corners.map { $0 * scale } }
         if let strokeWidth { e.strokeWidth = strokeWidth * scale }
         e.table = TableCell.scaledPad(table, by: scale)
+        // A line's words grow with it.
+        if var words = label {
+            words.size *= scale
+            e.label = words
+        }
         return e
     }
 }

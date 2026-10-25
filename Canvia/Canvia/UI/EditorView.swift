@@ -21,6 +21,8 @@ private struct AccentButtonStyle: ButtonStyle {
 
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, colorSelection, colorWords, background
+    /// A line's words' colour (LineLabels).
+    case colorLabel
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
     case history, proofread, theme, help, accessibility, brand, shapes, clip, shapeText, table
     /// Edit chart: the chart sheet again, filled in from the selected chart.
@@ -1720,6 +1722,11 @@ struct EditorView: View {
                              onPick: { c in store.updateSelected { $0.color = c } },
                              onPickTransient: { c in store.updateSelectedTransient { $0.color = c } },
                              swapsColours: true)
+        case .colorLabel:
+            ColorPickerSheet(store: store, title: tr("Text colour"),
+                             current: store.singleSelection?.label?.color ?? store.singleSelection?.color,
+                             onPick: { c in store.changeLineLabel { $0.color = c } },
+                             onPickTransient: { c in store.changeLineLabelTransient { $0.color = c } })
         case .colorStroke:
             ColorPickerSheet(store: store,
                              title: store.singleSelection.map(Freehand.isStroke) == true ? tr("Ink colour") : tr("Border colour"),

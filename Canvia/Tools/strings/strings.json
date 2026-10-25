@@ -8084,6 +8084,15 @@
     "ja": "ブランドの写真とグラフィックは、どのデザインでも「追加 ▸ ブランド」にあります。",
     "pt-BR": "Fotos e gráficos da marca ficam em Adicionar ▸ Marca, em todos os designs."
   },
+  "Break line behind text": {
+    "ar": "قطع الخط خلف النص",
+    "de": "Linie hinter dem Text unterbrechen",
+    "es": "Cortar la línea detrás del texto",
+    "fr": "Couper la ligne derrière le texte",
+    "it": "Interrompi la linea dietro il testo",
+    "ja": "テキストの背後で線を切る",
+    "pt-BR": "Interromper a linha atrás do texto"
+  },
   "Breathe": {
     "ar": "تنفّس",
     "de": "Atmen",
@@ -18094,6 +18103,15 @@
     "it": "Spessore della linea",
     "ja": "線の太さ",
     "pt-BR": "Espessura da linha"
+  },
+  "Line, labelled %@": {
+    "ar": "خط، بعنوان %@",
+    "de": "Linie, beschriftet mit %@",
+    "es": "Línea, con la etiqueta %@",
+    "fr": "Ligne, libellée %@",
+    "it": "Linea, con etichetta %@",
+    "ja": "線、ラベル %@",
+    "pt-BR": "Linha, com o rótulo %@"
   },
   "Linear": {
     "ar": "خطي",

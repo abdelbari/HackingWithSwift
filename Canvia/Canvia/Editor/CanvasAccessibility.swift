@@ -15,10 +15,11 @@ enum CanvasAccessibility {
     /// Alt text when there is some; the name given it in Layers; "Empty
     /// text" for a box with no words; otherwise the same name the Layers
     /// sheet and the snap guides use — "Heading: SALE", "Red oval", "Blue
-    /// line", "QR code", "Empty photo frame" — as the Android twin names its
-    /// TalkBack nodes. A part of a chart is its chart's summary, and a
-    /// table's cell, among the page's `elements`, says where it is and under
-    /// which header (DataGraphics.spokenCell).
+    /// line", "QR code", "Empty photo frame" — a line with words on it
+    /// "Line, labelled Yes" — as the Android twin names its TalkBack
+    /// nodes. A part of a chart is its chart's summary, and a table's cell,
+    /// among the page's `elements`, says where it is and under which header
+    /// (DataGraphics.spokenCell).
     static func label(for el: Element, on elements: [Element] = []) -> String {
         // A chart is one thing to a reader, named by its summary; its parts'
         // own alt text is what Next value and Previous value step through.
@@ -33,6 +34,8 @@ enum CanvasAccessibility {
         if el.type == .text, RichText.strip(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return tr("Empty text")
         }
+        // A line with words on it: "Line, labelled Yes" (LineLabels).
+        if let labelled = LineLabels.spoken(el) { return labelled }
         return ElementNames.name(of: el)
     }
 

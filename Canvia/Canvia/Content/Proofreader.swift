@@ -76,7 +76,7 @@ enum Proofreader {
     }
 
     /// Everything a check reads, in reading order: page by page, element by
-    /// element — text boxes and the words in shapes, not a hidden one or a
+    /// element — text boxes, the words in shapes and on lines, not a hidden one or a
     /// caption box's cues — then the page's speaker notes; a locked page
     /// not at all, as no fix may change its words. A Doc is its blocks
     /// instead, in order (docCheckables).
@@ -84,8 +84,11 @@ enum Proofreader {
         if Docs.isDoc(design) { return docCheckables(design) }
         var out: [Checkable] = []
         for (p, page) in design.pages.enumerated() where !PageLocks.isLocked(page) {
-            for el in page.elements where ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil {
-                guard let text = el.text, !text.isEmpty else { continue }
+            for el in page.elements
+            where (ShapeText.carriesWords(el) || (el.type == .line && el.label != nil)) && !el.isHidden && el.captions == nil {
+                // A line's words are its label's (LineLabels).
+                let text = FindReplace.words(of: el)
+                guard !text.isEmpty else { continue }
                 let (plain, rawAt) = RichText.mapped(text)
                 out.append(Checkable(pageIndex: p, elementId: el.id, text: text, plain: plain, rawAt: rawAt))
             }
@@ -321,9 +324,9 @@ enum Proofreader {
             out.pages[m.pageIndex].notes = notes.replacingCharacters(in: m.range, with: replacement)
             return out
         }
-        guard let i = design.pages[m.pageIndex].elements.firstIndex(where: { $0.id == m.elementId }),
-              let text = design.pages[m.pageIndex].elements[i].text,
-              let r = Range(m.range, in: text) else { return nil }
+        guard let i = design.pages[m.pageIndex].elements.firstIndex(where: { $0.id == m.elementId }) else { return nil }
+        let text = FindReplace.words(of: design.pages[m.pageIndex].elements[i])
+        guard let r = Range(m.range, in: text) else { return nil }
         let start = text.distance(from: text.startIndex, to: r.lowerBound)
         let end = text.distance(from: text.startIndex, to: r.upperBound)
         let (plain, rawAt) = RichText.mapped(text)
@@ -332,8 +335,8 @@ enum Proofreader {
         guard reads == m.word else { return nil }
         var out = design
         let before = out.pages[m.pageIndex].elements[i]
-        out.pages[m.pageIndex].elements[i].setText(replacing(m, in: text, with: replacement))
-        ShapeText.fitWords(&out.pages[m.pageIndex].elements[i])
+        FindReplace.setWords(replacing(m, in: text, with: replacement), in: &out.pages[m.pageIndex].elements[i])
+        if out.pages[m.pageIndex].elements[i].type != .line { ShapeText.fitWords(&out.pages[m.pageIndex].elements[i]) }
         // A chart's label keeps its new word through the chart's Update.
         DataGraphics.keepingLabel(&out.pages[m.pageIndex], was: before, now: out.pages[m.pageIndex].elements[i])
         return out

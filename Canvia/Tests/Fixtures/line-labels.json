@@ -1,0 +1,716 @@
+{
+ "rule": "LineLabels: a point `at` of a route is at x its length along it (consecutive equal points taken once), on the piece that ends there at a corner; its tangent is that piece's heading in radians (atan2, y down). The stroke drawn round a label is the route less what lies within the label's box grown by 4 (gapPad), each piece cut where it enters and leaves it. A label dragged to a point slides to the route's nearest point, held on 0.5 within 0.03. Rects are [x, y, w, h].",
+ "routes": {
+  "straight": [
+   [
+    100,
+    100
+   ],
+   [
+    300,
+    100
+   ]
+  ],
+  "diagonal": [
+   [
+    0,
+    0
+   ],
+   [
+    300,
+    400
+   ]
+  ],
+  "elbow": [
+   [
+    0,
+    0
+   ],
+   [
+    150,
+    0
+   ],
+   [
+    150,
+    100
+   ],
+   [
+    300,
+    100
+   ]
+  ],
+  "curve": [
+   [
+    0,
+    0
+   ],
+   [
+    10,
+    7.8036
+   ],
+   [
+    20,
+    15.3073
+   ],
+   [
+    30,
+    22.2228
+   ],
+   [
+    40,
+    28.2843
+   ],
+   [
+    50,
+    33.2588
+   ],
+   [
+    60,
+    36.9552
+   ],
+   [
+    70,
+    39.2314
+   ],
+   [
+    80,
+    40.0
+   ],
+   [
+    90,
+    39.2314
+   ],
+   [
+    100,
+    36.9552
+   ],
+   [
+    110,
+    33.2588
+   ],
+   [
+    120,
+    28.2843
+   ],
+   [
+    130,
+    22.2228
+   ],
+   [
+    140,
+    15.3073
+   ],
+   [
+    150,
+    7.8036
+   ],
+   [
+    160,
+    0.0
+   ]
+  ],
+  "repeated": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    100,
+    0
+   ],
+   [
+    100,
+    0
+   ],
+   [
+    100,
+    50
+   ]
+  ]
+ },
+ "points": [
+  {
+   "route": "straight",
+   "at": 0,
+   "centre": [
+    100.0,
+    100.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "straight",
+   "at": 0.25,
+   "centre": [
+    150.0,
+    100.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "straight",
+   "at": 0.5,
+   "centre": [
+    200.0,
+    100.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "straight",
+   "at": 0.75,
+   "centre": [
+    250.0,
+    100.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "straight",
+   "at": 1,
+   "centre": [
+    300.0,
+    100.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "diagonal",
+   "at": 0,
+   "centre": [
+    0.0,
+    0.0
+   ],
+   "tangent": 0.9273
+  },
+  {
+   "route": "diagonal",
+   "at": 0.25,
+   "centre": [
+    75.0,
+    100.0
+   ],
+   "tangent": 0.9273
+  },
+  {
+   "route": "diagonal",
+   "at": 0.5,
+   "centre": [
+    150.0,
+    200.0
+   ],
+   "tangent": 0.9273
+  },
+  {
+   "route": "diagonal",
+   "at": 0.75,
+   "centre": [
+    225.0,
+    300.0
+   ],
+   "tangent": 0.9273
+  },
+  {
+   "route": "diagonal",
+   "at": 1,
+   "centre": [
+    300.0,
+    400.0
+   ],
+   "tangent": 0.9273
+  },
+  {
+   "route": "elbow",
+   "at": 0,
+   "centre": [
+    0.0,
+    0.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "elbow",
+   "at": 0.25,
+   "centre": [
+    100.0,
+    0.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "elbow",
+   "at": 0.5,
+   "centre": [
+    150.0,
+    50.0
+   ],
+   "tangent": 1.5708
+  },
+  {
+   "route": "elbow",
+   "at": 0.75,
+   "centre": [
+    200.0,
+    100.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "elbow",
+   "at": 1,
+   "centre": [
+    300.0,
+    100.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "curve",
+   "at": 0,
+   "centre": [
+    0.0,
+    0.0
+   ],
+   "tangent": 0.6627
+  },
+  {
+   "route": "curve",
+   "at": 0.25,
+   "centre": [
+    37.0398,
+    26.49
+   ],
+   "tangent": 0.5449
+  },
+  {
+   "route": "curve",
+   "at": 0.5,
+   "centre": [
+    80.0,
+    40.0
+   ],
+   "tangent": -0.0767
+  },
+  {
+   "route": "curve",
+   "at": 0.75,
+   "centre": [
+    122.9602,
+    26.49
+   ],
+   "tangent": -0.5449
+  },
+  {
+   "route": "curve",
+   "at": 1,
+   "centre": [
+    160.0,
+    0.0
+   ],
+   "tangent": -0.6627
+  },
+  {
+   "route": "repeated",
+   "at": 0,
+   "centre": [
+    0.0,
+    0.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "repeated",
+   "at": 0.25,
+   "centre": [
+    37.5,
+    0.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "repeated",
+   "at": 0.5,
+   "centre": [
+    75.0,
+    0.0
+   ],
+   "tangent": 0.0
+  },
+  {
+   "route": "repeated",
+   "at": 0.75,
+   "centre": [
+    100.0,
+    12.5
+   ],
+   "tangent": 1.5708
+  },
+  {
+   "route": "repeated",
+   "at": 1,
+   "centre": [
+    100.0,
+    50.0
+   ],
+   "tangent": 1.5708
+  }
+ ],
+ "gaps": [
+  {
+   "route": "straight",
+   "rect": [
+    180,
+    90,
+    40,
+    20
+   ],
+   "runs": [
+    [
+     [
+      100,
+      100
+     ],
+     [
+      176.0,
+      100.0
+     ]
+    ],
+    [
+     [
+      224.0,
+      100.0
+     ],
+     [
+      300,
+      100
+     ]
+    ]
+   ]
+  },
+  {
+   "route": "straight",
+   "rect": [
+    0,
+    0,
+    20,
+    20
+   ],
+   "runs": [
+    [
+     [
+      100,
+      100
+     ],
+     [
+      300,
+      100
+     ]
+    ]
+   ]
+  },
+  {
+   "route": "diagonal",
+   "rect": [
+    130,
+    180,
+    40,
+    40
+   ],
+   "runs": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      132.0,
+      176.0
+     ]
+    ],
+    [
+     [
+      168.0,
+      224.0
+     ],
+     [
+      300,
+      400
+     ]
+    ]
+   ]
+  },
+  {
+   "route": "elbow",
+   "rect": [
+    140,
+    40,
+    20,
+    20
+   ],
+   "runs": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      150,
+      0
+     ],
+     [
+      150.0,
+      36.0
+     ]
+    ],
+    [
+     [
+      150.0,
+      64.0
+     ],
+     [
+      150,
+      100
+     ],
+     [
+      300,
+      100
+     ]
+    ]
+   ]
+  },
+  {
+   "route": "elbow",
+   "rect": [
+    60,
+    -10,
+    40,
+    20
+   ],
+   "runs": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      56.0,
+      0.0
+     ]
+    ],
+    [
+     [
+      104.0,
+      0.0
+     ],
+     [
+      150,
+      0
+     ],
+     [
+      150,
+      100
+     ],
+     [
+      300,
+      100
+     ]
+    ]
+   ]
+  },
+  {
+   "route": "curve",
+   "rect": [
+    70,
+    20,
+    20,
+    30
+   ],
+   "runs": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      10,
+      7.8036
+     ],
+     [
+      20,
+      15.3073
+     ],
+     [
+      30,
+      22.2228
+     ],
+     [
+      40,
+      28.2843
+     ],
+     [
+      50,
+      33.2588
+     ],
+     [
+      60,
+      36.9552
+     ],
+     [
+      66.0,
+      38.3209
+     ]
+    ],
+    [
+     [
+      94.0,
+      38.3209
+     ],
+     [
+      100,
+      36.9552
+     ],
+     [
+      110,
+      33.2588
+     ],
+     [
+      120,
+      28.2843
+     ],
+     [
+      130,
+      22.2228
+     ],
+     [
+      140,
+      15.3073
+     ],
+     [
+      150,
+      7.8036
+     ],
+     [
+      160,
+      0.0
+     ]
+    ]
+   ]
+  },
+  {
+   "route": "straight",
+   "rect": [
+    90,
+    80,
+    230,
+    40
+   ],
+   "runs": []
+  }
+ ],
+ "slides": [
+  {
+   "route": "straight",
+   "point": [
+    205,
+    140
+   ],
+   "at": 0.5
+  },
+  {
+   "route": "straight",
+   "point": [
+    150,
+    50
+   ],
+   "at": 0.25
+  },
+  {
+   "route": "elbow",
+   "point": [
+    160,
+    40
+   ],
+   "at": 0.5
+  },
+  {
+   "route": "elbow",
+   "point": [
+    290,
+    150
+   ],
+   "at": 0.975
+  },
+  {
+   "route": "diagonal",
+   "point": [
+    100,
+    100
+   ],
+   "at": 0.28
+  },
+  {
+   "route": "straight",
+   "point": [
+    -50,
+    100
+   ],
+   "at": 0.0
+  }
+ ],
+ "labels": [
+  {
+   "json": {
+    "text": "Yes"
+   },
+   "read": {
+    "text": "Yes",
+    "at": 0.5,
+    "size": 18,
+    "weight": 400,
+    "italic": false,
+    "gap": true
+   }
+  },
+  {
+   "json": {
+    "text": "No",
+    "at": 0.25,
+    "font": "lora",
+    "size": 24,
+    "color": "#ff0000",
+    "weight": 700,
+    "italic": true,
+    "gap": false
+   },
+   "read": {
+    "text": "No",
+    "at": 0.25,
+    "font": "lora",
+    "size": 24,
+    "color": "#ff0000",
+    "weight": 700,
+    "italic": true,
+    "gap": false
+   }
+  },
+  {
+   "json": {
+    "text": "**Maybe**",
+    "at": 3,
+    "size": -4
+   },
+   "read": {
+    "text": "**Maybe**",
+    "at": 1,
+    "size": 18,
+    "weight": 400,
+    "italic": false,
+    "gap": true
+   }
+  }
+ ]
+}

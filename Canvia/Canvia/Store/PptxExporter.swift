@@ -614,7 +614,19 @@ enum PptxExporter {
                                                         link: link, frame: frame))
                 }
             case .line:
-                shapes.append(lineXML(el, id: id, link: link, frame: frame))
+                // A line's words (LineLabels): a text box where they sit,
+                // grouped with the line so they move together.
+                if let words = LineLabels.textElement(for: el) {
+                    let textId = nextId
+                    let groupId = nextId + 1
+                    nextId += 2
+                    let label = textXML(words, id: textId, link: nil, design: design, slides: slides, frame: frame,
+                                        rels: &rels)
+                    shapes.append(groupXML(words.id, id: groupId, members: [el, words], frame: frame)
+                                  + lineXML(el, id: id, link: link, frame: frame) + label + "</p:grpSp>")
+                } else {
+                    shapes.append(lineXML(el, id: id, link: link, frame: frame))
+                }
             case .code:
                 if let bars = Barcodes.vector(el) {
                     shapes.append(contentsOf: barcodeXML(el, bars, id: id, nextId: &nextId, link: link, design: design,

@@ -721,7 +721,13 @@ struct CanvasView: View {
             }
 
             if let id = store.editingTextId, let el = store.element(id) {
-                if el.type == .shape { shapeTextEditor(el) } else { inlineTextEditor(el) }
+                if el.type == .shape {
+                    shapeTextEditor(el)
+                } else if el.type == .line {
+                    lineLabelEditor(el)
+                } else {
+                    inlineTextEditor(el)
+                }
             }
 
             // The modes that take the whole page's touches, over everything.
@@ -872,7 +878,12 @@ struct CanvasView: View {
         if let id = store.editingTextId, let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .shape }) {
             page.elements[i].text = nil
         }
-        page.elements.removeAll { hidden.contains($0.id) && $0.type != .shape }
+        // A line typed on is drawn whole, without its label, which the
+        // field shows.
+        if let id = store.editingTextId, let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .line }) {
+            page.elements[i].label = nil
+        }
+        page.elements.removeAll { hidden.contains($0.id) && $0.type != .shape && $0.type != .line }
         return page
     }
 
@@ -891,6 +902,10 @@ struct CanvasView: View {
     /// Android twin — or a table's cell, whose words are typed in.
     private func claimsDoubleTap(at point: CGPoint) -> Bool {
         if store.cropping != nil || store.graphicCropping != nil { return true }
+        // A selected line double-tapped is typed on (its label).
+        if let line = store.labelledLine, LineRoutes.near(line, point, reach: Touch.pageUnits(Touch.minTarget, zoom: store.zoom) / 2) {
+            return true
+        }
         guard let hit = store.page.elements.last(where: { Geometry.hits($0, point: point) }) else { return false }
         return hit.type == .image || hit.type == .text || store.typedIn(hit) != nil
     }
@@ -1613,6 +1628,7 @@ struct CanvasView: View {
         }
         return onElement || SelectionOverlay.handlesTake(point, store: store)
             || SelectionOverlay.lineEndsTake(point, store: store)
+            || SelectionOverlay.labelTakes(point, store: store)
             || SelectionOverlay.moveHandleTakes(point, store: store)
             || SelectionOverlay.bodyTakes(point, store: store)
     }
@@ -1908,6 +1924,12 @@ struct CanvasView: View {
             commitTextEditIfAny()
             store.select(el.id)
             store.photoAdjustOffer = el.id
+            return
+        }
+        // A line selected and double-tapped is typed on: its label,
+        // made at its middle when it has none (LineLabels).
+        if el.type == .line, store.labelledLine?.id == el.id {
+            store.typeLineLabel()
             return
         }
         // A shape double-tapped is typed in, as a text box is; a
@@ -2961,6 +2983,26 @@ struct CanvasView: View {
             .background(Color.clear.contentShape(Rectangle()).onTapGesture {})
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
+    }
+
+    /// Typing a line's label (LineLabels): the same field over where its
+    /// words sit, upright whatever the line's turn, while the line is drawn
+    /// without them. Bold and italic switch the label's own weight and
+    /// slant; its words carry no styles of their own.
+    private func lineLabelEditor(_ el: Element) -> some View {
+        let words = LineLabels.fieldElement(for: el) ?? Element.text("", fontSize: LineLabels.defaultSize, w: 30)
+        let id = el.id
+        return InlineTextField(element: words,
+                               onChange: { typeInline(id, $0) },
+                               onDone: { commitTextEditIfAny() },
+                               onStyled: { store.styleWhileTyping($0) },
+                               onToggle: { toggle in store.styleWhileTyping { store.toggleLabel(toggle) } },
+                               onPresent: presentTyped,
+                               wordStyles: false,
+                               typing: typingHooks)
+            .frame(width: words.w, height: words.h)
+            .overlay(Rectangle().stroke(Theme.accent, lineWidth: 1 * iz).allowsHitTesting(false))
+            .position(x: words.x + words.w / 2, y: words.y + words.h / 2)
     }
 
     /// F5 or ⇧F5 in the typing field (TextKeys.present): the typing kept as
