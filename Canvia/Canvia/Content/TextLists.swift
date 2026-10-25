@@ -209,6 +209,31 @@ enum TextLists {
 
     // MARK: markers
 
+    /// The look line `line`'s marker takes, the rule both phones share: the
+    /// colour, size, font, weight and slant of the span (Spans) in force at
+    /// the first character of the line's words that is not a space or a
+    /// tab — not its link, highlight, script or capitals, which are the
+    /// words' alone — as a span of nothing (start and end 0); nil for the
+    /// box's own, where no span is there or it sets none of them, or the
+    /// line has no words.
+    static func markerStyle(_ el: Element, _ line: Int) -> TextSpan? {
+        let spans = el.liveSpans
+        guard !spans.isEmpty else { return nil }
+        let plain = RichText.strip(el.text ?? "")
+        let words = plain.components(separatedBy: "\n")
+        let starts = lineStarts(plain)
+        guard words.indices.contains(line), starts.indices.contains(line) else { return nil }
+        let ns = words[line] as NSString
+        var i = 0
+        while i < ns.length, ns.character(at: i) == 0x20 || ns.character(at: i) == 0x09 { i += 1 }
+        guard i < ns.length else { return nil }
+        let at = starts[line] + i
+        guard let span = spans.first(where: { $0.start <= at && at < $0.end }) else { return nil }
+        let look = TextSpan(start: 0, end: 0, color: span.color, scale: span.scale, font: span.font,
+                            weight: span.weight, italic: span.italic)
+        return look.says ? look : nil
+    }
+
     /// The prefix an item gets, by style, its `level` and its one-based place
     /// among its level's items: bullets go • ◦ ▪ by level, numbers 1. a. i.
     /// by level and letters a. i. 1. — each round again past the third

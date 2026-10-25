@@ -1126,7 +1126,7 @@ enum PptxExporter {
         default: anchor = ""
         }
         var body = ""
-        let properties = paragraphProperties(el, em: size * frame.unit)
+        let properties = paragraphProperties(el, em: size * frame.unit, design: design)
         // What the effect, the shadow, the gradient letters and the drop cap
         // put in every run, the box's own warp and column in its body.
         let style = styledParts(el, size: size, frame: frame, photo: photo, average: ink)
@@ -1290,10 +1290,12 @@ enum PptxExporter {
     /// level, pushed in a level's ems (`em` a type size on the slide) and
     /// its item's bullet or number hanging in the marker's room before its
     /// words, as PowerPoint's own — a bullet by its character, a number,
-    /// letter or numeral counted on from the item's place. Empty for a
-    /// left-aligned plain line. The Android twin's PptxWriter, attribute
+    /// letter or numeral counted on from the item's place — in the look of
+    /// its item's first letter (TextLists.markerStyle): buClr its colour,
+    /// buSzPct its size, buFont its font, the hang at that size. Empty for
+    /// a left-aligned plain line. The Android twin's PptxWriter, attribute
     /// for attribute.
-    static func paragraphProperties(_ el: Element, em: Double) -> [String] {
+    static func paragraphProperties(_ el: Element, em: Double, design: Design? = nil) -> [String] {
         func algn(_ align: String) -> String {
             switch align {
             case "left": return ""
@@ -1305,22 +1307,40 @@ enum PptxExporter {
         let items = TextLists.items(el)
         return TextLists.lines(el).enumerated().map { line, paragraph -> String in
             let indent = Double(paragraph.level) * FontLibrary.indentEm * em
-            let hang = paragraph.isListed ? FontLibrary.markerEm * em : 0
+            let look = line < items.count && items[line] != nil ? TextLists.markerStyle(el, line) : nil
+            let hang = paragraph.isListed ? FontLibrary.markerEm * em * (look?.scale ?? 1) : 0
             var attributes = algn(TextLists.alignOf(el, line))
             if paragraph.level > 0 { attributes += " lvl=\"\(paragraph.level)\"" }
             if indent + hang > 0 { attributes += " marL=\"\(emu(indent + hang))\"" }
             if hang > 0 { attributes += " indent=\"\(emu(-hang))\"" }
-            let bullet = line < items.count ? items[line].map(bulletXML) ?? "" : ""
+            let face = look?.font.map { key -> String in
+                guard let design else { return FontLibrary.of(key).name }
+                return typeface(key, in: design)
+            }
+            var bullet = line < items.count ? items[line].map { bulletXML($0, face: face) } ?? "" : ""
+            if let look, !bullet.isEmpty { bullet = markerLook(look) + bullet }
             if !bullet.isEmpty { return "<a:pPr\(attributes)>\(bullet)</a:pPr>" }
             return attributes.isEmpty ? "" : "<a:pPr\(attributes)/>"
         }
     }
 
-    /// A list item's bullet or number as PowerPoint draws it.
-    private static func bulletXML(_ item: TextLists.Item) -> String {
+    /// A marker's own colour and size before its font and its bullet or
+    /// number: buClr and buSzPct.
+    private static func markerLook(_ look: TextSpan) -> String {
+        var out = ""
+        if let colour = look.color { out += "<a:buClr>\(color(colour))</a:buClr>" }
+        if let scale = look.scale { out += "<a:buSzPct val=\"\(Int((scale * 100_000).rounded()))\"/>" }
+        return out
+    }
+
+    /// A list item's bullet or number as PowerPoint draws it, in `face`
+    /// when its item's first letter has a font of its own (buFont) — a
+    /// bullet in Arial otherwise.
+    private static func bulletXML(_ item: TextLists.Item, face: String? = nil) -> String {
+        let font = face.map { "<a:buFont typeface=\"\(SVGExporter.escape($0))\"/>" }
         guard item.list != "bullet" else {
             let char = SVGExporter.escape(item.marker.trimmingCharacters(in: .whitespaces))
-            return "<a:buFont typeface=\"Arial\"/><a:buChar char=\"\(char)\"/>"
+            return (font ?? "<a:buFont typeface=\"Arial\"/>") + "<a:buChar char=\"\(char)\"/>"
         }
         let scheme: String
         switch TextLists.counting(item.list, level: item.depth) {
@@ -1328,7 +1348,7 @@ enum PptxExporter {
         case 1: scheme = "alphaLcPeriod"
         default: scheme = "romanLcPeriod"
         }
-        return "<a:buAutoNum type=\"\(scheme)\" startAt=\"\(item.index)\"/>"
+        return (font ?? "") + "<a:buAutoNum type=\"\(scheme)\" startAt=\"\(item.index)\"/>"
     }
 
     /// One run: bold, italic, underlined or struck as its style is, in

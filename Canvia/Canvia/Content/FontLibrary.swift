@@ -757,7 +757,40 @@ enum FontLibrary {
     /// are set so on top — in capitals, moved as the runs are.
     static func attributedString(for el: Element) -> NSAttributedString {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
-        return styledWords(marked, of: el, capitals: el.uppercase == true, spans: displaySpans(for: el, marked: marked))
+        let spans = displaySpans(for: el, marked: marked) + markerSpans(for: el, marked: marked)
+        return styledWords(marked, of: el, capitals: el.uppercase == true, spans: spans)
+    }
+
+    /// Each list marker in the look of its item's first letter
+    /// (TextLists.markerStyle), as a span over the marker in the display
+    /// text (`marked`'s plain words): its colour — left out while the
+    /// letters are a gradient or a photo — size, font, weight and slant.
+    /// None where the markers keep the box's own look.
+    static func markerSpans(for el: Element, marked: String) -> [TextSpan] {
+        guard isList(el), !el.liveSpans.isEmpty else { return [] }
+        let prefixes = listPrefixes(for: el)
+        let typed = RichText.strip(el.text ?? "").components(separatedBy: "\n")
+        guard zip(prefixes, typed).map({ $0 + $1 }).joined(separator: "\n") == RichText.strip(marked) else { return [] }
+        var out: [TextSpan] = []
+        var at = 0
+        for (i, pair) in zip(prefixes, typed).enumerated() {
+            let length = pair.0.utf16.count
+            if length > 0, var look = TextLists.markerStyle(el, i) {
+                if paintsLetters(el) { look.color = nil }
+                look.start = at
+                look.end = at + length
+                if look.says { out.append(look) }
+            }
+            at += length + pair.1.utf16.count + 1
+        }
+        return out
+    }
+
+    /// The size line `line`'s marker is drawn at, as a share of the box's:
+    /// its item's first letter's (TextLists.markerStyle), so the hang under
+    /// it fits it.
+    static func markerScale(_ el: Element, _ line: Int) -> Double {
+        TextLists.markerStyle(el, line)?.scale ?? 1
     }
 
     /// `el`'s display text (`plain`, before capitals) with `spans` on it
@@ -792,19 +825,22 @@ enum FontLibrary {
     /// per paragraph. A box with no paragraphs of its own keeps the one
     /// style it has (attributes(for:)), indented as a whole.
     static func setParagraphStyles(_ text: NSMutableAttributedString, for el: Element) {
-        guard let lines = TextLists.paragraphsOf(el),
+        // A box-wide list too, when a marker is set larger or smaller.
+        let scaled = isList(el) && el.liveSpans.contains { $0.scale != nil }
+        guard let lines = TextLists.paragraphsOf(el) ?? (scaled ? TextLists.lines(el) : nil),
               let base = attributes(for: el)[.paragraphStyle] as? NSParagraphStyle else { return }
         let ns = text.string as NSString
         let size = el.fontSize ?? 42
         var start = 0
-        for line in lines {
+        for (index, line) in lines.enumerated() {
             guard start <= ns.length else { break }
             let lineEnd = ns.range(of: "\n", range: NSRange(location: start, length: ns.length - start)).location
             // The line and the break after it, which carries its style.
             let end = lineEnd == NSNotFound ? ns.length : lineEnd + 1
             if end > start {
                 let indent = Double(line.level) * size * indentEm
-                let hang = indent + (line.isListed ? size * markerEm : 0)
+                // The marker's room at the marker's own size.
+                let hang = indent + (line.isListed ? size * markerEm * markerScale(el, index) : 0)
                 // Each run keeps the style it has — the room a larger word
                 // was given (RichText.makeRoom) — and takes only the indents.
                 let range = NSRange(location: start, length: end - start)
@@ -863,7 +899,7 @@ enum FontLibrary {
                                          linkColour: linkColour, face: face) { bold, slanted in
             uiFont(family: el.fontFamily, size: size, weight: resolveWeight(weight, bold: bold), italic: slanted || italic)
         }
-        guard TextLists.paragraphsOf(el) != nil else { return styled }
+        guard TextLists.paragraphsOf(el) != nil || isList(el) else { return styled }
         let lined = NSMutableAttributedString(attributedString: styled)
         setParagraphStyles(lined, for: el)
         return lined

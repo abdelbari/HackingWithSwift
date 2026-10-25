@@ -95,7 +95,7 @@ final class ParagraphAlignTests: XCTestCase {
         let pptx = try XCTUnwrap(fixture["pptx"] as? [String: Any])
         let el = try element(pptx["element"])
         let expected = try XCTUnwrap(pptx["algn"] as? [Any])
-        let written = PptxExporter.paragraphProperties(el, em: 32)
+        let written = PptxExporter.paragraphProperties(el, em: 32, design: nil)
         XCTAssertEqual(written.count, expected.count)
         for (properties, algn) in zip(written, expected) {
             if let algn = algn as? String {

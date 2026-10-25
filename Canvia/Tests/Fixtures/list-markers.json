@@ -1,0 +1,7 @@
+{
+  "about": "List markers in the look of their item's first letter on both phones (TextLists.markerStyle): the span in force at the first character of each line's words that is not a space or a tab gives the marker its colour, scale, font, weight and italic (never link, highlight, script or caps); null keeps the box's own look. `markers` is each line's marker style in order, null for the box's own.",
+  "element": {"id": "list", "type": "text", "text": "Milk\n  Eggs\nBread", "fontSize": 40, "listStyle": "bullet",
+    "spans": [{"start": 7, "end": 11, "color": "#ff0000", "scale": 1.5}, {"start": 12, "end": 17, "link": "https://example.com", "highlight": "#FFF176"}],
+    "spansText": "Milk\n  Eggs\nBread"},
+  "markers": [null, {"color": "#ff0000", "scale": 1.5}, null]
+}
