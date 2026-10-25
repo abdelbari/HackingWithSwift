@@ -104,6 +104,7 @@ struct CameraCapture: UIViewControllerRepresentable {
                       let id = VideoStore.store(data, ext: url.pathExtension),
                       let poster = VideoStore.poster(id) else { return nil }
                 Uploads.record(id, kind: .video)
+                VideoImport.optimiseSoon(id)
                 return (VideoStore.src(id, at: nil), poster.size, true)
             }.value
         case .cancelled, .failed:

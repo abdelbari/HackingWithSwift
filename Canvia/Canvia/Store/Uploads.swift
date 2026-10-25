@@ -44,6 +44,9 @@ enum Uploads {
         var fileName: String? = nil
         /// The folder it is filed in, as a design's is; nil at the top.
         var folder: String? = nil
+        /// For a clip converted as it came in (VideoImport), how many
+        /// bytes it was before; nil for one kept as it came.
+        var optimisedFrom: Int64? = nil
     }
 
     /// A font of your own, as uploads.json lists it.
@@ -255,6 +258,26 @@ enum Uploads {
         }
     }
 
+    /// `raw` with clip `id` marked converted as it came in, from
+    /// `originalBytes` (VideoImport): {"optimised": true, "originalBytes"};
+    /// anything else it holds as it was, and anything not a clip untouched.
+    static func optimised(_ raw: [[String: Any]], id: String, originalBytes: Int64) -> [[String: Any]] {
+        raw.map { item in
+            guard item["id"] as? String == id, item["kind"] as? String == Kind.video.rawValue else { return item }
+            var out = item
+            out[VideoImport.optimisedKey] = true
+            out[VideoImport.originalBytesKey] = originalBytes
+            return out
+        }
+    }
+
+    /// Clip `id` marked converted as it came in, from `originalBytes`.
+    static func markOptimised(_ id: String, originalBytes: Int64) {
+        lock.lock()
+        defer { lock.unlock() }
+        write(optimised(list(), id: id, originalBytes: originalBytes))
+    }
+
     /// The uploads filed in `path` — and, `recursive`, in the folders inside
     /// it.
     static func inFolder(_ entries: [Entry], path: String, recursive: Bool) -> [Entry] {
@@ -444,8 +467,10 @@ enum Uploads {
             guard let id = item["id"] as? String, !id.isEmpty,
                   let name = item["kind"] as? String, let kind = Kind(rawValue: name) else { return nil }
             let added = (item["added"] as? NSNumber)?.doubleValue ?? 0
+            let optimised = item[VideoImport.optimisedKey] as? Bool == true
             return Entry(id: id, kind: kind, added: added, fileName: item["name"] as? String,
-                         folder: DesignLibrary.folderName(item[folderKey] as? String))
+                         folder: DesignLibrary.folderName(item[folderKey] as? String),
+                         optimisedFrom: optimised ? (item[VideoImport.originalBytesKey] as? NSNumber)?.int64Value : nil)
         }
     }
 

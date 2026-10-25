@@ -18,6 +18,8 @@ struct ExportPill: View {
         Group {
             if let job = queue.current {
                 running(job)
+            } else if let clip = ClipOptimiser.shared.running {
+                optimising(clip)
             } else if let note = queue.note {
                 said(note)
             }
@@ -75,6 +77,28 @@ struct ExportPill: View {
         }
         .frame(width: 18, height: 18)
         .accessibilityHidden(true)
+    }
+
+    /// A clip brought in being made light (ClipOptimiser), with Keep
+    /// original, which stops it and keeps the clip as it came.
+    private func optimising(_ clip: ClipOptimiser.Running) -> some View {
+        let text = tr("Optimising video %d%%", Int((clip.progress * 100).rounded()))
+        return HStack(spacing: 10) {
+            ProgressView(value: min(max(clip.progress, 0), 1))
+                .progressViewStyle(.circular)
+                .frame(width: 18, height: 18)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .accessibilityLabel(tr("Optimising the video so it plays smoothly"))
+                .accessibilityValue(text)
+            Button("Keep original") { ClipOptimiser.shared.keepOriginal() }
+                .font(.subheadline)
+        }
+        .modifier(PillChrome())
+        .accessibilityElement(children: .contain)
     }
 
     /// What there is to say once an export is done, gone after a while or

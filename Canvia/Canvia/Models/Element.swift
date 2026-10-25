@@ -1099,6 +1099,11 @@ struct Element: Codable, Equatable, Identifiable {
     /// (GraphicClip.shown), whatever group it is in. Never in the file, and
     /// never set on what the design holds.
     var clipIsOwn = false
+    /// A copy that draws only its outline or glow, laid before its group's
+    /// first element so a graphic's edge is round the whole of it
+    /// (PhotoEffects.withGroupEdges). Never in the file, and never set on
+    /// what the design holds.
+    var edgeOnly = false
     /// A QR code's look (see CodeGenerator.Look): its modules' colour
     /// ("#rrggbb"), its background's ("#rrggbb", or "none" for clear) and
     /// the margin round it in whole modules, 0…3. Each nil at its default —

@@ -452,8 +452,9 @@ enum ElementSearch {
     /// same rows on both phones:
     /// - an icon: the other icons of its category, most tags in common
     ///   first, then in library order;
-    /// - a graphic from the pack: the other graphics of its category, in
-    ///   library order;
+    /// - a graphic from the pack: the other graphics of its category, most
+    ///   tags in common first, then in library order — a heart sticker's
+    ///   other hearts before its faces;
     /// - a sticker: the other stickers of its sticker group (or groups) in
     ///   group order, then every other emoji sharing a word with it (its
     ///   keywords and its curated words), most words in common first, then
@@ -471,8 +472,13 @@ enum ElementSearch {
             return Ranked<IconDef>.best(ranked).prefix(limit).map { Hit(kind: .icon, id: $0.id, name: $0.name) }
         }
         if let graphic = GraphicsLibrary.graphic(of: el) {
-            return GraphicsLibrary.graphics.filter { $0.category == graphic.category && $0.id != graphic.id }
-                .prefix(limit).map { Hit(kind: .graphic, id: $0.id, name: $0.name) }
+            let tags = Set(graphic.tags)
+            var ranked: [Ranked<GraphicDef>] = []
+            for (order, other) in GraphicsLibrary.graphics.enumerated()
+            where other.category == graphic.category && other.id != graphic.id {
+                ranked.append(Ranked(shared: other.tags.filter { tags.contains($0) }.count, order: order, item: other))
+            }
+            return Ranked<GraphicDef>.best(ranked).prefix(limit).map { Hit(kind: .graphic, id: $0.id, name: $0.name) }
         }
         if el.type == .sticker {
             guard let glyph = el.glyph else { return [] }

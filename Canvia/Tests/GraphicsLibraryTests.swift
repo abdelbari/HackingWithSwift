@@ -1,5 +1,5 @@
 // The illustrated graphics pack, as the Android twin's GraphicsLibraryTest
-// has it: the shared file byte for byte, its thirteen categories, each
+// has it: the shared file byte for byte, its fourteen categories, each
 // graphic's fills, each going on a page as an SVG graphic does — grouped,
 // naming it — and found by Add's search and kept in Recently used.
 
@@ -13,23 +13,26 @@ final class GraphicsLibraryTests: XCTestCase {
         // The Android twin's GraphicsLibraryTest hashes its copy to the same.
         let url = try XCTUnwrap(Bundle.main.url(forResource: "Graphics", withExtension: "json"))
         let hash = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(hash, "3b1daff7cc3175d62827f6bb35242c594c02d95344499980ccc369a3cb2d28b9")
+        XCTAssertEqual(hash, "306a5fdec7fccc5736a4aeda650c90f2ebd60d5e3abcf493031893306d5ed070")
     }
 
-    func testAboutTwoHundredAndSixtyGraphicsInThirteenCategoriesEachIdOnce() {
+    func testAboutThreeHundredAndEightyGraphicsInFourteenCategoriesEachIdOnce() {
         XCTAssertEqual(GraphicsLibrary.categories, [
             "Doodle arrows", "Underlines & circles", "Sparkles", "Starbursts & badges", "Ribbons", "Blobs",
             "Confetti", "Dividers", "Speech bubbles", "Hand-drawn frames", "Scribbles", "Patterns", "Animated",
+            "Stickers",
         ])
-        XCTAssertEqual(GraphicsLibrary.graphics.count, 262)
+        XCTAssertEqual(GraphicsLibrary.graphics.count, 385)
         XCTAssertEqual(Set(GraphicsLibrary.graphics.map(\.id)).count, GraphicsLibrary.graphics.count)
         XCTAssertEqual(Set(GraphicsLibrary.graphics.map(\.category)), Set(GraphicsLibrary.categories))
-        for c in GraphicsLibrary.categories where c != GraphicsLibrary.animated {
+        for c in GraphicsLibrary.categories where c != GraphicsLibrary.animated && c != GraphicsLibrary.stickers {
             XCTAssertTrue((16...17).contains(GraphicsLibrary.inCategory(c).count), c)
         }
-        // The moving ones are a category of their own, and only they move.
+        // The moving ones are a category of their own, and beside them only
+        // every third sticker moves.
         XCTAssertEqual(GraphicsLibrary.inCategory(GraphicsLibrary.animated).count, 60)
-        XCTAssertTrue(GraphicsLibrary.graphics.allSatisfy { ($0.motion != nil) == ($0.category == GraphicsLibrary.animated) })
+        XCTAssertTrue(GraphicsLibrary.graphics.filter { $0.category != GraphicsLibrary.stickers }
+            .allSatisfy { ($0.motion != nil) == ($0.category == GraphicsLibrary.animated) })
         XCTAssertEqual(GraphicsLibrary.graphic("arrow-01")?.name, "Curved arrow")
         XCTAssertNil(GraphicsLibrary.graphic("no-such-graphic"))
     }
@@ -48,7 +51,10 @@ final class GraphicsLibraryTests: XCTestCase {
             XCTAssertTrue((1...4).contains(g.colours.count), g.id)
             XCTAssertTrue(!g.tags.isEmpty && g.tags.allSatisfy { $0 == $0.lowercased() }, g.id)
             XCTAssertFalse(g.svg.contains("<text"), g.id)
-            XCTAssertEqual(g.motion == "draw", g.svg.contains("stroke"), g.id)
+            // A sticker's words and faces are drawn lines that stay put.
+            if g.category != GraphicsLibrary.stickers {
+                XCTAssertEqual(g.motion == "draw", g.svg.contains("stroke"), g.id)
+            }
         }
     }
 
@@ -83,9 +89,47 @@ final class GraphicsLibraryTests: XCTestCase {
     func testASearchReadsNamesIdsAndTagsWithinACategory() {
         XCTAssertEqual(GraphicsLibrary.search("confetti").count, 16)
         XCTAssertFalse(GraphicsLibrary.search("hand drawn").isEmpty)
-        XCTAssertEqual(GraphicsLibrary.search("thought").map(\.id), ["bubble-03", "bubble-08", "bubble-13"])
+        XCTAssertEqual(GraphicsLibrary.search("thought").map(\.id),
+                       ["bubble-03", "bubble-08", "bubble-13", "sticker-speech-03", "sticker-speech-08", "sticker-speech-13"])
         XCTAssertEqual(GraphicsLibrary.search("thought", in: "Sparkles"), [])
         XCTAssertEqual(GraphicsLibrary.search(" ", in: "Blobs").count, 17)
+    }
+
+    func testAboutAHundredAndTwentyDieCutStickersAThirdOfThemMoving() throws {
+        let stickers = GraphicsLibrary.inCategory(GraphicsLibrary.stickers)
+        XCTAssertEqual(stickers.count, 123)
+        XCTAssertTrue(stickers.allSatisfy { $0.id.hasPrefix("sticker-") && $0.tags.contains("sticker") })
+        for kind in ["badge", "face", "heart", "star", "food", "weather", "arrow", "speech"] {
+            XCTAssertTrue(stickers.contains { $0.id.hasPrefix("sticker-\(kind)-") }, kind)
+        }
+        // Every third, in turn: wiggle, pop, float.
+        let moving = stickers.enumerated().filter { $0.element.motion != nil }
+        XCTAssertEqual(moving.count, 41)
+        XCTAssertTrue(moving.allSatisfy { $0.offset % 3 == 0 })
+        XCTAssertEqual(moving.prefix(4).map { $0.element.motion }, ["wiggle", "pop", "float", "wiggle"])
+        for g in stickers {
+            // The white die-cut is the first path, under the art; the hues
+            // are the art's.
+            XCTAssertTrue(g.svg.contains(##"<path fill="#ffffff" d="M"##), g.id)
+            XCTAssertEqual(g.colours.first, "#ffffff", g.id)
+            XCTAssertFalse(g.hues.isEmpty, g.id)
+        }
+        XCTAssertEqual(GraphicsLibrary.graphic("sticker-badge-01")?.name, "WOW round badge")
+        XCTAssertEqual(GraphicsLibrary.graphic("sticker-badge-01")?.tags, ["sticker", "badge", "words", "label", "wow", "round"])
+        // Each move is the animation of the same name; float bobs.
+        let wiggling = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("sticker-badge-01")),
+                                                pageWidth: 1080, pageHeight: 1080)
+        XCTAssertTrue(wiggling.allSatisfy { $0.animation?.kind == "wiggle" })
+        let popping = GraphicsLibrary.elements(stickers[3], pageWidth: 1080, pageHeight: 1080)
+        XCTAssertTrue(popping.allSatisfy { $0.animation?.kind == "pop" })
+    }
+
+    func testMoreLikeThisOffersAStickerTheOnesSharingMostOfItsWordsFirst() throws {
+        let heart = try XCTUnwrap(GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("sticker-heart-01")),
+                                                           pageWidth: 1080, pageHeight: 1080).first)
+        let like = ElementSearch.similar(heart, limit: 14).map(\.id)
+        XCTAssertTrue(like.allSatisfy { $0.hasPrefix("sticker-heart-") })
+        XCTAssertEqual(like.first, "sticker-heart-06")
     }
 
     func testAddsSearchFindsGraphicsByTheirTagsAndRecentlyUsedKeepsThem() throws {

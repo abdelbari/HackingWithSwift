@@ -1,0 +1,15 @@
+{
+  "about": "An empty mask frame filled with a colour in place of a photo, as both phones write it: the frame's own fill on an image whose src is blank. Read and written back unchanged on both phones; spoken as 'Frame, filled' and the colour's name (spoken); skipped by picked photos (framesToFill) and dropped when a photo goes in. Android's FrameColourFillTest and the iPhone's FrameColourFillTests read it.",
+  "element": {
+    "id": "cell",
+    "type": "image",
+    "x": 100,
+    "y": 100,
+    "w": 400,
+    "h": 400,
+    "src": "",
+    "fill": {"kind": "solid", "color": "#1f2430"},
+    "maskShapeId": "mask:blob-1"
+  },
+  "spoken": "Frame, filled dark blue"
+}

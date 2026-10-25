@@ -45,6 +45,8 @@ enum EditorSheet: String, Identifiable {
     case similar
     /// A line's ends: Start, End and their size (LineEnds).
     case lineEnds
+    /// A sticker's or a graphic's outline or glow (OutlineSheet).
+    case outline
     /// The typing bar's highlighter: marker colours for the words chosen.
     case highlightWords
     /// More's "Bulk create…": a page, or a design, for each row of a table.
@@ -1727,10 +1729,12 @@ struct EditorView: View {
                              onPickTransient: { c in store.colourWordsTransient(c) })
         case .colorSelection:
             // Several things at once: each takes the colour its own way.
+            // One empty frame alone shows its own colour (PhotoFrames.colourOf).
             ColorPickerSheet(store: store, title: tr("Colour"),
-                             current: nil,
+                             current: store.singleSelection.flatMap(PhotoFrames.colourOf)?.primaryColor,
                              allowGradients: store.selectionTakesGradient,
                              allowPatterns: FillChoices.offersPatterns(for: store.selectedElements),
+                             currentPaint: store.singleSelection.flatMap(PhotoFrames.colourOf),
                              onPick: { c in store.recolourSelection(c) },
                              onPickGradient: { p in store.recolourSelection(gradient: p) },
                              onPickTransient: { c in store.recolourSelectionTransient(c) },
@@ -1788,6 +1792,8 @@ struct EditorView: View {
             SimilarSheet(store: store)
         case .shadow:
             ShadowSheet(store: store)
+        case .outline:
+            OutlineSheet(store: store)
         case .lineEnds:
             LineEndsSheet(store: store)
         case .clip:

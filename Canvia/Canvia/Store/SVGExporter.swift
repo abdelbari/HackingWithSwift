@@ -67,7 +67,9 @@ enum SVGExporter {
 
         body.append(backgroundMarkup(design: design, page: page, defs: &defs))
         let number = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
-        let drawn = design.drawnElements(on: page)
+        // A graphic's outline goes round the whole of it, laid before its
+        // first part (PhotoEffects.withGroupEdges).
+        let drawn = PhotoEffects.withGroupEdges(design.drawnElements(on: page))
         var parts: [(el: Element?, part: String)] = []
         for (index, el) in drawn.enumerated() {
             var resolved = el
@@ -243,6 +245,7 @@ enum SVGExporter {
             var bare = el
             bare.text = nil
             let shape = shapeMarkup(bare, index: index, defs: &defs)
+            if el.edgeOnly { return shape }
             return shape + shapeWordsMarkup(el, index: index, standIns: standIns, defs: &defs)
         case .text: return textMarkup(el, index: index, standIns: standIns, defs: &defs)
         case .line: return lineMarkup(el)
@@ -259,6 +262,11 @@ enum SVGExporter {
                     return textMarkup(placed, index: index, standIns: standIns, defs: &defs)
                 } ?? ""
                 return barcodeMarkup(el, code) + words
+            }
+            // A frame filled with a colour in place of a photo: a path in the
+            // frame's shape, filled and bordered as the canvas draws it.
+            if let fill = PhotoFrames.colourOf(el) {
+                return frameColourMarkup(el, fill: fill, index: index, defs: &defs)
             }
             return bitmapMarkup(el, standIns: standIns)
         case .sticker: return bitmapMarkup(el, standIns: standIns)
@@ -388,6 +396,11 @@ enum SVGExporter {
         // Even-odd only when asked for: nonzero is SVG's own default.
         let rule = el.fillRule == "evenodd" ? " fill-rule=\"evenodd\"" : ""
 
+        // A graphic's outline or glow, under it: its path stroked out past
+        // it (drawnEdgeMarkup); a copy laid for its group's edge is that
+        // alone.
+        let edge = drawnEdgeMarkup(el, d: d, index: index, defs: &defs)
+        if el.edgeOnly { return edge }
         // A table's cell strokes only the sides its borders show, as <line>s.
         if let sides = Tables.sideLines(el) {
             let lines = stroke.isEmpty ? "" : sides.map { l in
@@ -396,8 +409,59 @@ enum SVGExporter {
             return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
                    "<path d=\"\(d)\" fill=\"\(paint)\"\(rule)/>" + lines + "</g>"
         }
-        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
+        return edge + "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
                "<path d=\"\(d)\" fill=\"\(paint)\"\(rule)\(stroke)/></g>"
+    }
+
+    /// A graphic shape's outline or glow (PhotoEffects.hasDrawnEdge) as a
+    /// stroked outset path: its outline `d` filled and stroked twice the
+    /// edge's thickness across in its colour, round at the joins — a glow
+    /// blurred by its def (`edge<index>`), half its thickness. Nothing for
+    /// none. As the Android twin's SvgWriter.edgePath.
+    private static func drawnEdgeMarkup(_ el: Element, d: String, index: Int, defs: inout [String]) -> String {
+        guard PhotoEffects.hasDrawnEdge(el), let edge = el.edge else { return "" }
+        let t = PhotoEffects.thickness(edge)
+        let colour = escape(edge.color)
+        var glow = ""
+        if PhotoEffects.isGlow(edge) {
+            let id = "edge\(index)"
+            defs.append("<filter id=\"\(id)\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">" +
+                        "<feGaussianBlur stdDeviation=\"\(num(t / 2))\"/></filter>")
+            glow = " filter=\"url(#\(id))\""
+        }
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\"><path d=\"\(d)\" fill=\"\(colour)\" " +
+               "stroke=\"\(colour)\" stroke-width=\"\(num(2 * t))\" stroke-linejoin=\"round\" stroke-linecap=\"round\"\(glow)/></g>"
+    }
+
+    /// The outline a photo shows through, in its own space at its own size,
+    /// as the canvas clips it (FrameShape): its frame — a library shape, a
+    /// letter or a mask, or a grid cell's cut — else its rectangle, its
+    /// corners rounded. The Android twin's SvgWriter.framePath.
+    static func framePath(_ el: Element) -> String {
+        let shape = FrameShape(definition: ContentLibrary.frameShape(of: el), cornerRadius: el.radius ?? 0)
+        let path = shape.path(in: CGRect(x: 0, y: 0, width: el.w, height: el.h)).cgPath
+        return TextOutliner.svgPathData(path)
+    }
+
+    /// A frame filled with `fill` in place of a photo (PhotoFrames.colourOf):
+    /// its outline (framePath) filled — a gradient by its def — and its
+    /// border over it.
+    private static func frameColourMarkup(_ el: Element, fill: Paint, index: Int, defs: inout [String]) -> String {
+        let paint: String
+        if fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
+            let id = "grad\(index)"
+            defs.append(gradientDef(id: id, paint: fill, left: 0, top: 0, width: el.w, height: el.h))
+            paint = "url(#\(id))"
+        } else {
+            paint = escape(fill.color ?? "#8b5cf6")
+        }
+        var stroke = ""
+        if let color = el.stroke, let width = el.strokeWidth, width > 0 {
+            stroke = " stroke=\"\(escape(color))\" stroke-width=\"\(num(width))\"" +
+                     " stroke-linejoin=\"round\"" + borderDash(el.dash, width: width)
+        }
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
+               "<path d=\"\(framePath(el))\" fill=\"\(paint)\"\(stroke)/></g>"
     }
 
     /// A border's ends and, when it is dashed or dotted, its pattern and
@@ -683,11 +747,14 @@ enum SVGExporter {
     /// lean past their box by, and a photo's outline or glow — as the
     /// Android twin pads the same pictures.
     static func overflow(_ el: Element) -> Double {
-        guard el.type == .shape || el.type == .image else { return 0 }
+        // A sticker's or a graphic's outline or glow (PhotoEffects
+        // .takesDrawnEdge) reaches past it as a photo's does.
+        let drawn = PhotoEffects.takesDrawnEdge(el) ? PhotoEffects.reach(el.edge) : 0
+        guard el.type == .shape || el.type == .image else { return drawn }
         var border = 0.0
         if el.stroke != nil, let width = el.strokeWidth, width > 0 { border = width / 2 }
         let lean = (el.type == .shape || el.maskShapeId != nil) ? max(el.w, el.h) * 0.035 : 0
-        let edge = el.type == .image ? PhotoEffects.reach(el.edge) : 0
+        let edge = el.type == .image ? PhotoEffects.reach(el.edge) : drawn
         return border + lean + edge
     }
 

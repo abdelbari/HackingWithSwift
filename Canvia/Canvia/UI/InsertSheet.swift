@@ -250,6 +250,7 @@ struct InsertSheet: View {
             return await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize, isVideo: Bool)? in
                 guard let id = VideoStore.store(data, ext: ext), let poster = VideoStore.poster(id) else { return nil }
                 Uploads.record(id, kind: .video)
+                VideoImport.optimiseSoon(id)
                 return (VideoStore.src(id, at: nil), poster.size, true)
             }.value
         }
@@ -342,6 +343,7 @@ struct InsertSheet: View {
         // The Videos tab says it in Android's words, under its heading.
         case "Stickers":
             return EmojiCatalogue.search(search).isEmpty && Stickers.searchAnimated(search).isEmpty
+                && GraphicsLibrary.search(search, in: GraphicsLibrary.stickers).isEmpty
         default: return false
         }
     }
@@ -1559,6 +1561,9 @@ struct InsertSheet: View {
 
     private var photosGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // The phone's own photos and videos, inline (DeviceGallery):
+            // brought in as the button below brings them in.
+            DeviceGallerySection { bringIn($0) }
             // One when replacing — a replace has one slot to fill — and a
             // clip may fill it, so a frame or a grid's cell can hold one.
             Group {
@@ -1944,6 +1949,7 @@ struct InsertSheet: View {
     private var videosGrid: some View {
         let loops = MotionLibrary.search(search)
         return VStack(alignment: .leading, spacing: 10) {
+            DeviceGallerySection(videosTab: true) { bringIn($0) }
             Text("Motion backgrounds").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
             if loops.isEmpty {
                 Text(tr("No videos match “%@”", search.trimmingCharacters(in: .whitespaces)))
@@ -2133,6 +2139,7 @@ struct InsertSheet: View {
                 glyphRow(recentEmoji)
             }
             animatedStickersRow
+            illustratedStickersRow
             let starred = Favorites.ids(of: "sticker")
             if search.isEmpty && !starred.isEmpty {
                 sectionHeader(tr("Favourites"))
@@ -2202,6 +2209,34 @@ struct InsertSheet: View {
                 }
             }
         }
+    }
+
+    /// The die-cut illustrated stickers of the graphics pack
+    /// (GraphicsLibrary.stickers), found by the same search by their names
+    /// and words; a tap or a drag puts one on as any graphic goes on.
+    @ViewBuilder
+    private var illustratedStickersRow: some View {
+        let illustrated = GraphicsLibrary.search(search, in: GraphicsLibrary.stickers)
+        if !illustrated.isEmpty {
+            sectionHeader(tr("Illustrated"))
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 8) {
+                    ForEach(illustrated) { graphic in illustratedTile(graphic) }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private func illustratedTile(_ graphic: GraphicDef) -> some View {
+        Button { addPackGraphic(graphic) } label: {
+            GraphicThumb(graphic: graphic)
+                .padding(4)
+                .frame(width: 64, height: 64)
+        }
+        .buttonStyle(.plain)
+        .libraryDrag { packDrag(graphic) }
+        .accessibilityLabel(graphic.motion == nil ? tr("%@ graphic", graphic.name) : tr("%@ graphic, animated", graphic.name))
     }
 
     /// The Background sheet's choices, the same here as there.

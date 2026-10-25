@@ -5234,6 +5234,39 @@
     "ja": "%@を追加",
     "pt-BR": "Adicionar %@"
   },
+  "Add %d|Add %d": {
+    "ar": {
+      "few": "إضافة %d",
+      "many": "إضافة %d",
+      "one": "إضافة %d",
+      "other": "إضافة %d",
+      "two": "إضافة %d",
+      "zero": "إضافة %d"
+    },
+    "de": {
+      "one": "%d hinzufügen",
+      "other": "%d hinzufügen"
+    },
+    "es": {
+      "one": "Añadir %d",
+      "other": "Añadir %d"
+    },
+    "fr": {
+      "one": "Ajouter %d",
+      "other": "Ajouter %d"
+    },
+    "it": {
+      "one": "Aggiungi %d",
+      "other": "Aggiungi %d"
+    },
+    "ja": {
+      "other": "%d 件を追加"
+    },
+    "pt-BR": {
+      "one": "Adicionar %d",
+      "other": "Adicionar %d"
+    }
+  },
   "Add New %@ to Home screen": {
     "ar": "إضافة «%@ جديد» إلى الشاشة الرئيسية",
     "de": "„Neu: %@“ zum Startbildschirm hinzufügen",
@@ -6265,6 +6298,24 @@
     "it": "Tutte le tracce",
     "ja": "すべてのトラック",
     "pt-BR": "Todas as faixas"
+  },
+  "Allow access": {
+    "ar": "السماح بالوصول",
+    "de": "Zugriff erlauben",
+    "es": "Permitir acceso",
+    "fr": "Autoriser l'accès",
+    "it": "Consenti l'accesso",
+    "ja": "アクセスを許可",
+    "pt-BR": "Permitir acesso"
+  },
+  "Allow access to see your photos and videos here.": {
+    "ar": "اسمح بالوصول لترى صورك وفيديوهاتك هنا.",
+    "de": "Erlaube den Zugriff, um deine Fotos und Videos hier zu sehen.",
+    "es": "Permite el acceso para ver aquí tus fotos y videos.",
+    "fr": "Autorisez l'accès pour voir vos photos et vidéos ici.",
+    "it": "Consenti l'accesso per vedere qui foto e video.",
+    "ja": "アクセスを許可すると、ここに写真と動画が表示されます。",
+    "pt-BR": "Permita o acesso para ver suas fotos e vídeos aqui."
   },
   "Already at the back": {
     "ar": "في الخلف بالفعل",
@@ -8971,6 +9022,15 @@
     "it": "Scegli cartella",
     "ja": "フォルダを選択",
     "pt-BR": "Escolher pasta"
+  },
+  "Choose from device": {
+    "ar": "الاختيار من الجهاز",
+    "de": "Vom Gerät auswählen",
+    "es": "Elegir del dispositivo",
+    "fr": "Choisir sur l'appareil",
+    "it": "Scegli dal dispositivo",
+    "ja": "端末から選ぶ",
+    "pt-BR": "Escolher do dispositivo"
   },
   "Choose pages… (%@)": {
     "ar": "اختيار صفحات… (%@)",
@@ -12998,6 +13058,15 @@
     "ja": "形を編集",
     "pt-BR": "Editar forma"
   },
+  "Edit speech": {
+    "ar": "تعديل الكلام",
+    "de": "Sprache bearbeiten",
+    "es": "Editar voz",
+    "fr": "Modifier la voix",
+    "it": "Modifica voce",
+    "ja": "読み上げを編集",
+    "pt-BR": "Editar fala"
+  },
   "Edit text": {
     "ar": "تعديل النص",
     "de": "Text bearbeiten",
@@ -14846,6 +14915,15 @@
     "ja": "フレームの形",
     "pt-BR": "Forma da moldura"
   },
+  "Frame, filled %@": {
+    "ar": "إطار، مملوء بـ%@",
+    "de": "Rahmen, gefüllt mit %@",
+    "es": "Marco, relleno de %@",
+    "fr": "Cadre, rempli de %@",
+    "it": "Cornice, riempita di %@",
+    "ja": "フレーム、%@で塗りつぶし",
+    "pt-BR": "Moldura, preenchida de %@"
+  },
   "Frames": {
     "ar": "الإطارات",
     "de": "Rahmen",
@@ -15034,6 +15112,15 @@
     "it": "Imbuto",
     "ja": "ファネル",
     "pt-BR": "Funil"
+  },
+  "Gallery": {
+    "ar": "المعرض",
+    "de": "Galerie",
+    "es": "Galería",
+    "fr": "Galerie",
+    "it": "Galleria",
+    "ja": "ギャラリー",
+    "pt-BR": "Galeria"
   },
   "Gap %@": {
     "ar": "المسافة %@",
@@ -16256,6 +16343,15 @@
     "ja": "無視",
     "pt-BR": "Ignorar"
   },
+  "Illustrated": {
+    "ar": "مرسومة",
+    "de": "Illustriert",
+    "es": "Ilustrados",
+    "fr": "Illustrés",
+    "it": "Illustrati",
+    "ja": "イラスト",
+    "pt-BR": "Ilustrados"
+  },
   "Image": {
     "ar": "صورة",
     "de": "Bild",
@@ -16567,6 +16663,15 @@
     "it": "Post Instagram (1080)",
     "ja": "Instagram 投稿（1080）",
     "pt-BR": "Post do Instagram (1080)"
+  },
+  "Install voices": {
+    "ar": "تثبيت الأصوات",
+    "de": "Stimmen installieren",
+    "es": "Instalar voces",
+    "fr": "Installer des voix",
+    "it": "Installa voci",
+    "ja": "音声をインストール",
+    "pt-BR": "Instalar vozes"
   },
   "Instant square": {
     "ar": "صورة فورية مربعة",
@@ -16967,6 +17072,15 @@
     "ja": "貼り付け時に書式を保持",
     "pt-BR": "Manter a formatação ao colar"
   },
+  "Keep original": {
+    "ar": "الاحتفاظ بالأصل",
+    "de": "Original behalten",
+    "es": "Conservar original",
+    "fr": "Garder l'original",
+    "it": "Mantieni originale",
+    "ja": "元のまま残す",
+    "pt-BR": "Manter original"
+  },
   "Keep proportions": {
     "ar": "الحفاظ على النسب",
     "de": "Proportionen beibehalten",
@@ -17119,6 +17233,15 @@
     "it": "Portatile",
     "ja": "ノートパソコン",
     "pt-BR": "Notebook"
+  },
+  "Large clips, and ones other phones can't play, are converted to a lighter MP4 as they come in.": {
+    "ar": "تُحوَّل المقاطع الكبيرة، والتي لا تشغّلها هواتف أخرى، إلى ملف MP4 أخف عند استيرادها.",
+    "de": "Große Clips und solche, die andere Telefone nicht abspielen, werden beim Import in ein leichteres MP4 umgewandelt.",
+    "es": "Los clips grandes, y los que otros teléfonos no pueden reproducir, se convierten en un MP4 más ligero al importarlos.",
+    "fr": "Les clips volumineux, et ceux que d'autres téléphones ne lisent pas, sont convertis en un MP4 plus léger à l'importation.",
+    "it": "Le clip grandi, e quelle che altri telefoni non riproducono, vengono convertite in un MP4 più leggero all'importazione.",
+    "ja": "大きなクリップや他の端末で再生できないクリップは、取り込み時に軽い MP4 に変換されます。",
+    "pt-BR": "Clipes grandes, e os que outros celulares não reproduzem, são convertidos em um MP4 mais leve ao serem importados."
   },
   "Larger": {
     "ar": "أكبر",
@@ -20222,6 +20345,15 @@
     "ja": "パスワードなし",
     "pt-BR": "Sem senha"
   },
+  "No photos or videos here yet.": {
+    "ar": "لا توجد صور أو فيديوهات هنا بعد.",
+    "de": "Hier sind noch keine Fotos oder Videos.",
+    "es": "Todavía no hay fotos ni videos aquí.",
+    "fr": "Aucune photo ni vidéo ici pour l'instant.",
+    "it": "Qui non ci sono ancora foto né video.",
+    "ja": "ここにはまだ写真や動画がありません。",
+    "pt-BR": "Ainda não há fotos nem vídeos aqui."
+  },
   "No recordings yet.": {
     "ar": "لا توجد تسجيلات بعد.",
     "de": "Noch keine Aufnahmen.",
@@ -20401,6 +20533,15 @@
     "it": "Nessun video corrisponde a “%@”",
     "ja": "「%@」に一致する動画はありません",
     "pt-BR": "Nenhum vídeo corresponde a “%@”"
+  },
+  "No voice for this language is installed on this phone.": {
+    "ar": "لا يوجد صوت مثبّت لهذه اللغة على هذا الهاتف.",
+    "de": "Auf diesem Telefon ist keine Stimme für diese Sprache installiert.",
+    "es": "No hay ninguna voz instalada para este idioma en este teléfono.",
+    "fr": "Aucune voix pour cette langue n'est installée sur ce téléphone.",
+    "it": "Su questo telefono non è installata alcuna voce per questa lingua.",
+    "ja": "この端末にはこの言語の音声がインストールされていません。",
+    "pt-BR": "Nenhuma voz para este idioma está instalada neste celular."
   },
   "No voice to read with. Add one in Settings, under Text-to-speech.": {
     "ar": "لا يوجد صوت للقراءة. أضف واحدًا في الإعدادات، ضمن تحويل النص إلى كلام.",
@@ -21581,6 +21722,42 @@
     "ja": "対角の角",
     "pt-BR": "Cantos opostos"
   },
+  "Optimise imported videos": {
+    "ar": "تحسين الفيديوهات المستوردة",
+    "de": "Importierte Videos optimieren",
+    "es": "Optimizar videos importados",
+    "fr": "Optimiser les vidéos importées",
+    "it": "Ottimizza i video importati",
+    "ja": "取り込んだ動画を最適化",
+    "pt-BR": "Otimizar vídeos importados"
+  },
+  "Optimised from %d MB": {
+    "ar": "مُحسَّن من %d ميغابايت",
+    "de": "Optimiert aus %d MB",
+    "es": "Optimizado desde %d MB",
+    "fr": "Optimisé à partir de %d Mo",
+    "it": "Ottimizzato da %d MB",
+    "ja": "%d MB から最適化",
+    "pt-BR": "Otimizado de %d MB"
+  },
+  "Optimising the video so it plays smoothly": {
+    "ar": "جارٍ تحسين الفيديو ليُشغَّل بسلاسة",
+    "de": "Das Video wird optimiert, damit es flüssig läuft",
+    "es": "Optimizando el video para que se reproduzca con fluidez",
+    "fr": "Optimisation de la vidéo pour une lecture fluide",
+    "it": "Ottimizzazione del video per una riproduzione fluida",
+    "ja": "スムーズに再生できるよう動画を最適化しています",
+    "pt-BR": "Otimizando o vídeo para que seja reproduzido sem travar"
+  },
+  "Optimising video %d%%": {
+    "ar": "جارٍ تحسين الفيديو %d%%",
+    "de": "Video wird optimiert %d %%",
+    "es": "Optimizando video %d %%",
+    "fr": "Optimisation de la vidéo %d %%",
+    "it": "Ottimizzazione video %d%%",
+    "ja": "動画を最適化中 %d%%",
+    "pt-BR": "Otimizando vídeo %d%%"
+  },
   "Options": {
     "ar": "الخيارات",
     "de": "Optionen",
@@ -22604,6 +22781,15 @@
     "ja": "写真 %d / %d",
     "pt-BR": "Foto %d de %d"
   },
+  "Photo %d of the gallery": {
+    "ar": "الصورة %d في المعرض",
+    "de": "Foto %d der Galerie",
+    "es": "Foto %d de la galería",
+    "fr": "Photo %d de la galerie",
+    "it": "Foto %d della galleria",
+    "ja": "ギャラリーの写真 %d",
+    "pt-BR": "Foto %d da galeria"
+  },
   "Photo 4×6": {
     "ar": "صورة 4×6",
     "de": "Foto 10×15",
@@ -22883,6 +23069,15 @@
     "ja": "作るものを選びましょう — 投稿、ポスター、カードなど。ほとんどのサイズにテンプレートが用意されています。",
     "pt-BR": "Escolha o que você vai criar — um post, um pôster, um cartão. A maioria dos tamanhos vem com designs prontos."
   },
+  "Picked, %d": {
+    "ar": "مُختار، %d",
+    "de": "Ausgewählt, %d",
+    "es": "Elegida, %d",
+    "fr": "Choisie, %d",
+    "it": "Scelta, %d",
+    "ja": "選択済み、%d",
+    "pt-BR": "Escolhida, %d"
+  },
   "Pictogram": {
     "ar": "رسم بالأيقونات",
     "de": "Piktogramm",
@@ -22999,6 +23194,15 @@
     "it": "Fissato",
     "ja": "ピン留め",
     "pt-BR": "Fixado"
+  },
+  "Pitch": {
+    "ar": "طبقة الصوت",
+    "de": "Tonhöhe",
+    "es": "Tono",
+    "fr": "Hauteur",
+    "it": "Tono",
+    "ja": "ピッチ",
+    "pt-BR": "Tom"
   },
   "Pixel size": {
     "ar": "حجم البكسل",
@@ -26300,6 +26504,15 @@
     "ja": "ページ上の写真を選択すると置き換えられます。",
     "pt-BR": "Selecione uma foto na página para substituí-la."
   },
+  "Select a sticker or a graphic to give it an outline.": {
+    "ar": "حدّد ملصقًا أو رسمًا لتمنحه حدًّا خارجيًا.",
+    "de": "Wähle einen Sticker oder eine Grafik aus, um ihm eine Kontur zu geben.",
+    "es": "Selecciona un sticker o un gráfico para darle un contorno.",
+    "fr": "Sélectionnez un autocollant ou un graphique pour lui donner un contour.",
+    "it": "Seleziona uno sticker o un elemento grafico per dargli un contorno.",
+    "ja": "ステッカーかグラフィックを選択すると輪郭を付けられます。",
+    "pt-BR": "Selecione um adesivo ou um gráfico para dar a ele um contorno."
+  },
   "Select a table's cell to change its rows and columns.": {
     "ar": "حدّد خلية في جدول لتغيير صفوفه وأعمدته.",
     "de": "Wähle eine Tabellenzelle aus, um Zeilen und Spalten zu ändern.",
@@ -26344,6 +26557,15 @@
     "it": "Seleziona tutto",
     "ja": "すべてを選択",
     "pt-BR": "Selecionar tudo"
+  },
+  "Select more photos": {
+    "ar": "تحديد المزيد من الصور",
+    "de": "Weitere Fotos auswählen",
+    "es": "Seleccionar más fotos",
+    "fr": "Sélectionner plus de photos",
+    "it": "Seleziona altre foto",
+    "ja": "写真をさらに選択",
+    "pt-BR": "Selecionar mais fotos"
   },
   "Select multiple": {
     "ar": "تحديد متعدد",
@@ -29495,6 +29717,15 @@
     "ja": "文字サイズ",
     "pt-BR": "Tamanho do texto"
   },
+  "Text to speech": {
+    "ar": "تحويل النص إلى كلام",
+    "de": "Text zu Sprache",
+    "es": "Texto a voz",
+    "fr": "Synthèse vocale",
+    "it": "Sintesi vocale",
+    "ja": "テキスト読み上げ",
+    "pt-BR": "Texto para fala"
+  },
   "Text, photos, shapes, stickers, charts and QR codes. Draw freehand with the pen, or drop pictures in from other apps.": {
     "ar": "نصوص وصور وأشكال وملصقات ومخططات ورموز QR. ارسم بحرية بالقلم، أو أفلت الصور من تطبيقات أخرى.",
     "de": "Text, Fotos, Formen, Sticker, Diagramme und QR-Codes. Zeichne freihändig mit dem Stift oder ziehe Bilder aus anderen Apps hinein.",
@@ -29737,6 +29968,15 @@
     "it": "È troppo lungo per un codice a barre",
     "ja": "バーコードには長すぎます",
     "pt-BR": "Isso é longo demais para um código de barras"
+  },
+  "That photo or video couldn't be read.": {
+    "ar": "تعذّرت قراءة تلك الصورة أو ذلك الفيديو.",
+    "de": "Dieses Foto oder Video konnte nicht gelesen werden.",
+    "es": "No se pudo leer esa foto o ese video.",
+    "fr": "Cette photo ou vidéo n'a pas pu être lue.",
+    "it": "Non è stato possibile leggere questa foto o questo video.",
+    "ja": "その写真または動画を読み込めませんでした。",
+    "pt-BR": "Não foi possível ler essa foto ou vídeo."
   },
   "That spreadsheet is too big to open.": {
     "ar": "جدول البيانات هذا أكبر من أن يُفتح.",
@@ -30146,6 +30386,15 @@
     "ja": "選択範囲",
     "pt-BR": "A seleção"
   },
+  "The speech could not be kept.": {
+    "ar": "تعذّر حفظ الكلام.",
+    "de": "Die Sprachaufnahme konnte nicht gespeichert werden.",
+    "es": "No se pudo guardar la voz.",
+    "fr": "La voix n'a pas pu être enregistrée.",
+    "it": "Non è stato possibile salvare la voce.",
+    "ja": "読み上げを保存できませんでした。",
+    "pt-BR": "Não foi possível guardar a fala."
+  },
   "The spelling checker didn't answer. Try again in a moment.": {
     "ar": "لم يستجب المدقق الإملائي. حاول مرة أخرى بعد قليل.",
     "de": "Die Rechtschreibprüfung hat nicht geantwortet. Versuche es gleich noch einmal.",
@@ -30154,6 +30403,15 @@
     "it": "Il controllo ortografico non ha risposto. Riprova tra un momento.",
     "ja": "スペルチェッカーが応答しませんでした。しばらくしてからもう一度お試しください。",
     "pt-BR": "O corretor ortográfico não respondeu. Tente de novo daqui a pouco."
+  },
+  "The video couldn't be optimised, so the original is kept.": {
+    "ar": "تعذّر تحسين الفيديو، لذا احتُفظ بالأصل.",
+    "de": "Das Video konnte nicht optimiert werden, daher bleibt das Original erhalten.",
+    "es": "No se pudo optimizar el video, así que se conserva el original.",
+    "fr": "La vidéo n'a pas pu être optimisée, l'original est donc conservé.",
+    "it": "Non è stato possibile ottimizzare il video, quindi viene mantenuto l'originale.",
+    "ja": "動画を最適化できなかったため、元の動画を残しました。",
+    "pt-BR": "Não foi possível otimizar o vídeo, então o original foi mantido."
   },
   "The video has music under it.": {
     "ar": "يوجد موسيقى مع الفيديو.",
@@ -30172,6 +30430,15 @@
     "it": "Il video è %d × %d.",
     "ja": "動画のサイズは %d × %d です。",
     "pt-BR": "O vídeo tem %d × %d."
+  },
+  "The voice could not read that.": {
+    "ar": "تعذّر على الصوت قراءة ذلك.",
+    "de": "Die Stimme konnte das nicht vorlesen.",
+    "es": "La voz no pudo leer eso.",
+    "fr": "La voix n'a pas pu lire ce texte.",
+    "it": "La voce non è riuscita a leggerlo.",
+    "ja": "音声で読み上げられませんでした。",
+    "pt-BR": "A voz não conseguiu ler isso."
   },
   "The welcome tour shows next time you're on Home.": {
     "ar": "ستظهر الجولة الترحيبية في المرة القادمة التي تكون فيها في الرئيسية.",
@@ -30649,6 +30916,15 @@
     "it": "Questo telefono disegna %@ come Normale; viene mantenuto e si vede su iPhone o su Android 10 e successivi.",
     "ja": "このスマートフォンでは %@ を「標準」として描画します。設定は保持され、iPhone や Android 10 以降では表示されます。",
     "pt-BR": "Este celular desenha %@ como Normal; o modo é mantido e aparece em um iPhone ou no Android 10 e posteriores."
+  },
+  "This phone has no voices to install.": {
+    "ar": "لا توجد أصوات لتثبيتها على هذا الهاتف.",
+    "de": "Dieses Telefon hat keine Stimmen zum Installieren.",
+    "es": "Este teléfono no tiene voces para instalar.",
+    "fr": "Ce téléphone n'a pas de voix à installer.",
+    "it": "Questo telefono non ha voci da installare.",
+    "ja": "この端末にはインストールできる音声がありません。",
+    "pt-BR": "Este celular não tem vozes para instalar."
   },
   "This phone keeps the focus circle sharp; an iPhone keeps the subject itself sharp.": {
     "ar": "يُبقي هذا الهاتف دائرة التركيز واضحة؛ أما iPhone فيُبقي العنصر الرئيسي نفسه واضحًا.",
@@ -32606,6 +32882,15 @@
     "ja": "動画 %d / %d",
     "pt-BR": "Vídeo %d de %d"
   },
+  "Video %d of the gallery": {
+    "ar": "الفيديو %d في المعرض",
+    "de": "Video %d der Galerie",
+    "es": "Video %d de la galería",
+    "fr": "Vidéo %d de la galerie",
+    "it": "Video %d della galleria",
+    "ja": "ギャラリーの動画 %d",
+    "pt-BR": "Vídeo %d da galeria"
+  },
   "Video has no alt text": {
     "ar": "الفيديو بلا نص بديل",
     "de": "Video hat keinen Alternativtext",
@@ -32695,6 +32980,15 @@
     "it": "Vivace",
     "ja": "ビビッド",
     "pt-BR": "Vívido"
+  },
+  "Voice": {
+    "ar": "الصوت",
+    "de": "Stimme",
+    "es": "Voz",
+    "fr": "Voix",
+    "it": "Voce",
+    "ja": "音声",
+    "pt-BR": "Voz"
   },
   "Voice level": {
     "ar": "مستوى الصوت البشري",
@@ -33244,6 +33538,15 @@
     "it": "Le parole stanno dentro la forma. Aggiungi parole qui, o tocca due volte la forma, per scriverle sopra.",
     "ja": "文字は図形の中に配置されます。ここで文字を追加するか、図形をダブルタップして入力してください。",
     "pt-BR": "As palavras ficam dentro da forma. Adicione palavras aqui, ou toque duas vezes na forma, para digitá-las nela."
+  },
+  "Words to speak": {
+    "ar": "الكلمات المراد نطقها",
+    "de": "Zu sprechender Text",
+    "es": "Texto que se leerá",
+    "fr": "Texte à lire",
+    "it": "Testo da leggere",
+    "ja": "読み上げる文章",
+    "pt-BR": "Texto a ser falado"
   },
   "Words under the bars": {
     "ar": "النص أسفل الأشرطة",

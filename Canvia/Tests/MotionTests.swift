@@ -436,8 +436,10 @@ final class MotionTests: XCTestCase {
     /// The Animated category's graphics go on moving — the Android twin's
     /// GraphicsLibraryTest pins the same rows.
     func testAboutSixtyGraphicsMoveAndGoOnAnimated() throws {
-        let moving = GraphicsLibrary.moving
+        // The Animated category's, and every third die-cut sticker.
+        let moving = GraphicsLibrary.moving.filter { $0.category == GraphicsLibrary.animated }
         XCTAssertEqual(moving.count, 60)
+        XCTAssertEqual(GraphicsLibrary.moving.count, 101)
         XCTAssertEqual(Set(moving.compactMap(\.motion)), ["draw", "twinkle", "float"])
         XCTAssertEqual(GraphicsLibrary.search("animated").count, 60)
         let arrow = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("drawn-arrow-01")),

@@ -147,6 +147,41 @@ enum VideoStore {
         posters.removeObject(forKey: id as NSString)
     }
 
+    /// Clip `id`'s file swapped for the one at `url` — an optimised copy
+    /// (ClipOptimiser) — under the same id, as `<id>.<its extension>`: the
+    /// old file gone, and its length, poster and frames read again. False,
+    /// and the old file kept, when the new one cannot be moved in.
+    @discardableResult
+    static func replace(_ id: String, with url: URL) -> Bool {
+        let old = self.url(for: id)
+        let ext = url.pathExtension.isEmpty ? "mp4" : url.pathExtension.lowercased()
+        let target = directory.appendingPathComponent("\(id).\(ext)")
+        let staged = directory.appendingPathComponent("\(id)-new.\(ext)")
+        do {
+            try? FileManager.default.removeItem(at: staged)
+            try FileManager.default.moveItem(at: url, to: staged)
+            if let old { try FileManager.default.removeItem(at: old) }
+            try FileManager.default.moveItem(at: staged, to: target)
+        } catch {
+            try? FileManager.default.removeItem(at: staged)
+            return false
+        }
+        lock.lock()
+        durations.removeValue(forKey: id)
+        generators.removeValue(forKey: id)
+        decoded.remove(id)
+        lock.unlock()
+        liveLock.lock()
+        liveLengths.removeValue(forKey: id)
+        latest.removeValue(forKey: id)
+        wanted.removeValue(forKey: id)
+        liveLock.unlock()
+        posters.removeObject(forKey: id as NSString)
+        // Frames are kept by the clip's id and a moment: the old file's go.
+        frames.removeAllObjects()
+        return true
+    }
+
     static func all() -> [String] {
         ((try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? [])
             .map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent }

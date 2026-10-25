@@ -11,7 +11,7 @@ hand-drawn look, so the same script writes the same file on any machine.
 
 The file is one object:
 
-  "categories"  the thirteen categories, in the order Add shows them.
+  "categories"  the fourteen categories, in the order Add shows them.
   "graphics"    each {"id", "name", "category", "tags": [...], "svg",
                 "colours": [...]}, category by category, and a moving one's
                 "motion". "svg" is a whole SVG document of filled <path>s —
@@ -25,16 +25,22 @@ The file is one object:
                 stroke) that covers the most first — each path's area by
                 its outline, a drawn line's as its length times its width —
                 and a tie in the order first used.
-  "motion"      on the Animated category's graphics only: "draw" — its
+  "motion"      on the Animated category's graphics: "draw" — its
                 lines, stroked <path>s with no fill, draw themselves on in
                 turn; "twinkle" — its sparkles and stars grow and glow one
                 after another, looping; or "float" — it bobs gently, looping.
-                Putting one on a page gives each of its shapes that
-                animation (ElementAnimation.motioned).
+                On every third of the Stickers (the first, the fourth…),
+                in turn: "wiggle" — it rocks, looping; "pop" — it pops in;
+                or "float". Putting one on a page gives each of its shapes
+                that animation (ElementAnimation.motioned).
   "stickerHues" each curated sticker's dominant colours, glyph to up to
                 three "#rrggbb", most of the picture first, from the emoji
                 palette below ([EMOJI]) — what the search's colour filter
                 matches a sticker by.
+
+The Stickers are die-cut: their art over a white outline that is their
+silhouette grown DIECUT (8) units out, in the first, white <path> (see
+offset); their "hues" are their art's, the white left out.
 
 Paths are absolute M, L, C and Z, numbers to a tenth. A hand-drawn line is a
 filled ribbon round its centre line, tapering at its ends, so it scales with
@@ -54,7 +60,7 @@ RESOURCE = REPO / 'core/src/main/resources/com/canvia/core/content/Graphics.json
 CATEGORIES = [
     'Doodle arrows', 'Underlines & circles', 'Sparkles', 'Starbursts & badges',
     'Ribbons', 'Blobs', 'Confetti', 'Dividers', 'Speech bubbles',
-    'Hand-drawn frames', 'Scribbles', 'Patterns', 'Animated',
+    'Hand-drawn frames', 'Scribbles', 'Patterns', 'Animated', 'Stickers',
 ]
 
 # Four colours each; a graphic takes what it needs from one.
@@ -695,6 +701,385 @@ def float_shape(rng, v, pal):
     return 200, 200, [(pal[(v + 3) % 4], blob_disc(rng))]
 
 
+# ------------------------------------------------------------------ stickers
+# Die-cut stickers: each a silhouette of simple outlines (polygons, a circle
+# as a 48-gon), the white die-cut its every outline offset DIECUT units out —
+# round at the corners that stick out, mitred at the ones that go in — all
+# one white path under the art. Every outline goes the same way round, so the
+# nonzero rule fills their union. Each returns (silhouettes, parts) in a
+# 200-unit box, the art kept 16 units in so the die-cut fits.
+
+DIECUT = 8
+WHITE = '#ffffff'
+STICKER_INK = '#2b2d42'
+
+
+def circle_pts(cx, cy, r, steps=48, ry=None):
+    ry = r if ry is None else ry
+    return [(cx + r * math.cos(2 * math.pi * i / steps), cy + ry * math.sin(2 * math.pi * i / steps)) for i in range(steps)]
+
+
+def signed_area(points):
+    return sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(points, points[1:] + points[:1])) / 2
+
+
+def clockwise(points):
+    """[points] going clockwise on the page (y down): positive area."""
+    return points if signed_area(points) > 0 else points[::-1]
+
+
+def offset(points, d):
+    """The outline [points] grown [d] out: an arc round each corner that
+    sticks out, the two grown edges meeting at each one that goes in."""
+    pts = clockwise(points)
+    n = len(pts)
+    out = []
+    for i in range(n):
+        p, v, q = pts[i - 1], pts[i], pts[(i + 1) % n]
+        e1 = (v[0] - p[0], v[1] - p[1])
+        e2 = (q[0] - v[0], q[1] - v[1])
+        l1 = math.hypot(*e1) or 1.0
+        l2 = math.hypot(*e2) or 1.0
+        # Clockwise on a y-down page, the outside is to the left of travel.
+        n1 = (e1[1] / l1, -e1[0] / l1)
+        n2 = (e2[1] / l2, -e2[0] / l2)
+        turn = e1[0] * e2[1] - e1[1] * e2[0]
+        if turn >= 0:
+            a1 = math.atan2(n1[1], n1[0])
+            a2 = math.atan2(n2[1], n2[0])
+            while a2 < a1:
+                a2 += 2 * math.pi
+            steps = max(1, int(math.ceil((a2 - a1) / (math.pi / 8))))
+            for k in range(steps + 1):
+                a = a1 + (a2 - a1) * k / steps
+                out.append((v[0] + d * math.cos(a), v[1] + d * math.sin(a)))
+        else:
+            dot = n1[0] * n2[0] + n1[1] * n2[1]
+            k = d / max(0.2, 1 + dot)
+            out.append((v[0] + (n1[0] + n2[0]) * k, v[1] + (n1[1] + n2[1]) * k))
+    return out
+
+
+def diecut(silhouettes):
+    """The white die-cut under a sticker: each outline grown DIECUT out."""
+    return (WHITE, ''.join(polygon(offset(s, DIECUT)) for s in silhouettes))
+
+
+def polyline(points):
+    """An open line through [points] in straight steps."""
+    return 'M' + pt(points[0]) + ''.join('L' + pt(p) for p in points[1:])
+
+
+def heart_pts(cx, cy, size, steps=40):
+    """A heart [size] across, centred on (cx, cy)."""
+    k = size / 34
+    return [(cx + 16 * math.sin(t) ** 3 * k, cy + 2 * k - (13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)) * k)
+            for t in [2 * math.pi * i / steps for i in range(steps)]]
+
+
+def rounded_pts(x, y, w, h, r, steps=6):
+    out = []
+    for cx, cy, a0 in ((x + w - r, y + r, -math.pi / 2), (x + w - r, y + h - r, 0), (x + r, y + h - r, math.pi / 2), (x + r, y + r, math.pi)):
+        for k in range(steps + 1):
+            a = a0 + math.pi / 2 * k / steps
+            out.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return out
+
+
+# Hand-lettered capitals for the badges' words, strokes on a 10 by 14 grid.
+LETTERS = {
+    'A': [[(0, 14), (5, 0), (10, 14)], [(2.2, 8.5), (7.8, 8.5)]],
+    'E': [[(8, 0), (0, 0), (0, 14), (8, 14)], [(0, 7), (6, 7)]],
+    'G': [[(9, 2.5), (7, 0), (3, 0), (0, 3), (0, 11), (3, 14), (7, 14), (9.5, 11.5), (9.5, 7.5), (5.5, 7.5)]],
+    'H': [[(0, 0), (0, 14)], [(9, 0), (9, 14)], [(0, 7), (9, 7)]],
+    'K': [[(0, 0), (0, 14)], [(9, 0), (0, 8)], [(3, 5.5), (9, 14)]],
+    'L': [[(0, 0), (0, 14), (8, 14)]],
+    'M': [[(0, 14), (0, 0), (5.5, 8), (11, 0), (11, 14)]],
+    'N': [[(0, 14), (0, 0), (9, 14), (9, 0)]],
+    'O': [[(5, 0), (8.5, 1.5), (10, 7), (8.5, 12.5), (5, 14), (1.5, 12.5), (0, 7), (1.5, 1.5), (5, 0)]],
+    'S': [[(9, 2), (7, 0), (3, 0), (0.5, 2), (0.5, 5), (9, 9), (9, 12), (7, 14), (3, 14), (0.5, 12)]],
+    'T': [[(0, 0), (10, 0)], [(5, 0), (5, 14)]],
+    'U': [[(0, 0), (0, 10), (3, 14), (6, 14), (9, 10), (9, 0)]],
+    'V': [[(0, 0), (5, 14), (10, 0)]],
+    'W': [[(0, 0), (3, 14), (6, 4), (9, 14), (12, 0)]],
+    'Y': [[(0, 0), (5, 7), (10, 0)], [(5, 7), (5, 14)]],
+}
+
+
+def word_parts(word, cx, cy, height, colour):
+    """[word] in hand-lettered capitals [height] tall, centred on (cx, cy),
+    each stroke a line a seventh of the height thick."""
+    k = height / 14
+    gap = 3.5
+    widths = [max(x for line in LETTERS[c] for x, _ in line) if c != ' ' else 6 for c in word]
+    total = sum(widths) + gap * (len(word) - 1)
+    x = cx - total * k / 2
+    parts = []
+    for c, w in zip(word, widths):
+        for line in LETTERS.get(c, []):
+            parts.append((colour, polyline([(x + px * k, cy - height / 2 + py * k) for px, py in line]), height / 7))
+        x += (w + gap) * k
+    return parts
+
+
+def sticker_badge(rng, v, pal):
+    words = ['WOW', 'SALE', 'NEW', 'LOVE', 'OMG', 'THANK YOU']
+    word = words[v % 6]
+    base = v // 6
+    fill, ink = pal[v % 4], STICKER_INK
+    if base == 0:       # a round badge with a ring
+        outline = circle_pts(100, 100, 80)
+        parts = [(fill, polygon(outline)), (ink, annulus(100, 100, 70, 65))]
+    elif base == 1:     # a starburst seal
+        outline = star(100, 100, 16, 84, 70)
+        parts = [(fill, polygon(outline))]
+    else:               # a ticket, rounded
+        outline = rounded_pts(18, 52, 164, 96, 22)
+        parts = [(fill, polygon(outline)), (ink, polyline([(34, 66), (166, 66)]), 3), (ink, polyline([(34, 134), (166, 134)]), 3)]
+    if word == 'THANK YOU':
+        parts += word_parts('THANK', 100, 84, 22, ink) + word_parts('YOU', 100, 118, 22, ink)
+    else:
+        parts += word_parts(word, 100, 100, 34 if len(word) <= 3 else 28, ink)
+    return [outline], parts
+
+
+def sticker_face(rng, v, pal):
+    skin = ['#ffd93d', '#ffb3c7', '#9ee6a0'][v % 3]
+    ink = STICKER_INK
+    look = v % 5 if v < 5 else (v + v // 5) % 5
+    outline = circle_pts(100, 100, 78)
+    parts = [(skin, polygon(outline))]
+    if look == 0:       # a smile
+        parts += [(ink, ellipse(74, 82, 7, 10)), (ink, ellipse(126, 82, 7, 10)), (ink, polyline([(68, 118), (84, 134), (116, 134), (132, 118)]), 7)]
+    elif look == 1:     # a wink
+        parts += [(ink, polyline([(64, 84), (84, 84)]), 6), (ink, ellipse(126, 82, 7, 10)), (ink, polyline([(70, 120), (100, 138), (130, 120)]), 7)]
+    elif look == 2:     # surprised
+        parts += [(ink, ellipse(74, 80, 8, 11)), (ink, ellipse(126, 80, 8, 11)), (ink, ellipse(100, 128, 12, 15))]
+    elif look == 3:     # heart eyes
+        parts += [(pal[0], polygon(heart_pts(74, 84, 26))), (pal[0], polygon(heart_pts(126, 84, 26))),
+                  (ink, polyline([(70, 118), (100, 138), (130, 118)]), 7)]
+    else:               # cool, in sunglasses
+        parts += [(ink, polygon(rounded_pts(52, 70, 42, 26, 10))), (ink, polygon(rounded_pts(106, 70, 42, 26, 10))),
+                  (ink, polyline([(94, 80), (106, 80)]), 5), (ink, polyline([(76, 126), (100, 134), (124, 126)]), 7)]
+    return [outline], parts
+
+
+def sticker_heart(rng, v, pal):
+    look = v % 5
+    a, b = pal[v % 4], pal[(v + 1) % 4]
+    if look == 0:       # one heart, a shine on it
+        outline = heart_pts(100, 104, 160)
+        return [outline], [(a, polygon(outline)), (WHITE, ellipse(70, 70, 10, 16))]
+    if look == 1:       # two hearts
+        big, small = heart_pts(88, 110, 130), heart_pts(140, 64, 70)
+        return [big, small], [(a, polygon(big)), (b, polygon(small))]
+    if look == 2:       # a heart in a heart
+        outline = heart_pts(100, 104, 160)
+        return [outline], [(a, polygon(outline)), (b, polygon(heart_pts(100, 102, 90)))]
+    if look == 3:       # a broken heart
+        whole = heart_pts(100, 104, 150)
+        crack = [(100, 64), (90, 90), (108, 108), (94, 132), (100, 174)]
+        left = [p for p in whole if p[0] <= 100] + crack[::-1]
+        right = crack + [p for p in whole if p[0] > 100]
+        left = [(x - 6, y) for x, y in left]
+        right = [(x + 6, y) for x, y in right]
+        return [left, right], [(a, polygon(left)), (a, polygon(right))]
+    # a heart with a ribbon across it
+    outline = heart_pts(100, 104, 160)
+    band = [(30, 96), (170, 76), (170, 102), (30, 122)]
+    return [outline, band], [(a, polygon(outline)), (b, polygon(band))]
+
+
+def sticker_star(rng, v, pal):
+    look = v % 5
+    a, b = pal[v % 4], pal[(v + 2) % 4]
+    if look == 0:       # a five-pointed star
+        outline = star(100, 106, 5, 84, 38)
+        return [outline], [(a, polygon(outline))]
+    if look == 1:       # a star with a face
+        outline = star(100, 106, 5, 84, 40)
+        return [outline], [(a, polygon(outline)), (STICKER_INK, ellipse(86, 104, 5, 8)), (STICKER_INK, ellipse(114, 104, 5, 8)),
+                           (STICKER_INK, polyline([(88, 124), (100, 132), (112, 124)]), 5)]
+    if look == 2:       # a shooting star
+        outline = star(132, 70, 5, 50, 22)
+        trail = [(30, 150), (102, 76), (116, 96), (44, 168)]
+        return [outline, trail], [(b, polygon(trail)), (a, polygon(outline))]
+    if look == 3:       # an eight-pointed star
+        outline = star(100, 100, 8, 82, 48)
+        return [outline], [(a, polygon(outline)), (b, polygon(star(100, 100, 8, 44, 26)))]
+    # a cluster of three
+    s1, s2, s3 = star(84, 110, 5, 62, 28), star(150, 58, 5, 32, 14), star(156, 150, 5, 26, 12)
+    return [s1, s2, s3], [(a, polygon(s1)), (b, polygon(s2)), (b, polygon(s3))]
+
+
+def sticker_food(rng, v, pal):
+    look = v % 5
+    if look == 0:       # a slice of pizza
+        outline = [(100, 178), (30, 44), (40, 30), (160, 30), (170, 44)]
+        parts = [('#ffca3a', polygon(outline)), ('#c9772a', polygon(rounded_pts(26, 26, 148, 22, 11))),
+                 ('#e63946', ellipse(80, 72, 12, 12)), ('#e63946', ellipse(120, 70, 11, 11)), ('#e63946', ellipse(100, 116, 11, 11))]
+        return [outline], parts
+    if look == 1:       # a doughnut
+        outline = circle_pts(100, 100, 76)
+        icing = ['#f15bb5', '#4cc9f0', '#9b5de5'][v % 3]
+        return [outline], [('#d4a373', annulus(100, 100, 76, 24)), (icing, annulus(100, 100, 66, 30)),
+                           (WHITE, polyline([(70, 60), (78, 66)]), 4), (WHITE, polyline([(124, 132), (134, 128)]), 4)]
+    if look == 2:       # an ice cream cone
+        cone = [(70, 104), (130, 104), (100, 182)]
+        scoop = circle_pts(100, 80, 46)
+        flavour = ['#ffb3c7', '#9ee6a0', '#8d6e63'][v % 3]
+        return [cone, scoop], [('#e9c46a', polygon(cone)), (flavour, polygon(scoop)), ('#e63946', ellipse(100, 32, 9, 9))]
+    if look == 3:       # two cherries
+        c1, c2 = circle_pts(70, 136, 32), circle_pts(132, 140, 32)
+        return [c1, c2, [(64, 104), (100, 30), (108, 34), (74, 108)]], [
+            ('#43a047', polyline([(70, 106), (102, 34), (130, 108)]), 6), ('#e53935', polygon(c1)), ('#e53935', polygon(c2)),
+            (WHITE, ellipse(60, 126, 6, 9))]
+    # a slice of watermelon
+    outline = [(100 + 84 * math.cos(math.pi * i / 24), 70 + 84 * math.sin(math.pi * i / 24)) for i in range(25)]
+    flesh = [(100 + 72 * math.cos(math.pi * i / 24), 70 + 72 * math.sin(math.pi * i / 24)) for i in range(25)]
+    seeds = ''.join(ellipse(x, y, 4, 6) for x, y in [(70, 92), (100, 104), (130, 92), (86, 118), (114, 118)])
+    return [outline], [('#43a047', polygon(outline)), ('#ff595e', polygon(flesh)), (STICKER_INK, seeds)]
+
+
+def sticker_weather(rng, v, pal):
+    look = v % 5
+    if look == 0:       # the sun
+        rays = star(100, 100, 12, 86, 58)
+        return [rays], [('#ffbe0b', polygon(rays)), ('#ffd93d', ellipse(100, 100, 50, 50))]
+    if look == 1:       # a cloud
+        puffs = [circle_pts(70, 112, 36), circle_pts(112, 90, 46), circle_pts(146, 118, 30), rounded_pts(40, 110, 130, 40, 20)]
+        return puffs, [('#e9edf5', p) for p in [polygon(x) for x in puffs]] + [('#8d99ae', polyline([(58, 150), (152, 150)]), 3)]
+    if look == 2:       # a rain cloud
+        puffs = [circle_pts(70, 84, 32), circle_pts(110, 66, 40), circle_pts(144, 90, 28), rounded_pts(42, 80, 124, 38, 19)]
+        drops = [(70, 140), (100, 152), (130, 140)]
+        drop_pts = [[(x, y - 16), (x + 9, y + 2), (x, y + 12), (x - 9, y + 2)] for x, y in drops]
+        return puffs + drop_pts, [('#8d99ae', polygon(x)) for x in puffs] + [('#4d96ff', polygon(d)) for d in drop_pts]
+    if look == 3:       # a bolt of lightning
+        bolt = [(118, 18), (56, 110), (96, 110), (78, 182), (146, 84), (106, 84)]
+        return [bolt], [('#ffd93d', polygon(bolt)), ('#fb8c00', polyline([(112, 34), (70, 100)]), 4)]
+    # a rainbow
+    outline = [(100 + 86 * math.cos(math.pi + math.pi * i / 24), 140 + 86 * math.sin(math.pi + math.pi * i / 24)) for i in range(25)]
+    bands = []
+    for k, (r, c) in enumerate([(86, '#ff595e'), (70, '#ffca3a'), (54, '#8ac926')]):
+        inner = r - 16
+        arc = [(100 + r * math.cos(math.pi + math.pi * i / 24), 140 + r * math.sin(math.pi + math.pi * i / 24)) for i in range(25)]
+        arc += [(100 + inner * math.cos(2 * math.pi - math.pi * i / 24), 140 + inner * math.sin(2 * math.pi - math.pi * i / 24)) for i in range(25)]
+        bands.append((c, polygon(arc)))
+    return [outline + [(14, 150), (186, 150)][::-1]], bands
+
+
+def sticker_arrow(rng, v, pal):
+    look = v % 5
+    colour = pal[v % 4]
+    if look == 0:       # a chunky arrow right
+        outline = [(20, 78), (110, 78), (110, 40), (182, 100), (110, 160), (110, 122), (20, 122)]
+    elif look == 1:     # up
+        outline = rotate([(20, 78), (110, 78), (110, 40), (182, 100), (110, 160), (110, 122), (20, 122)], 100, 100, -math.pi / 2)
+    elif look == 2:     # both ways
+        outline = [(18, 100), (66, 50), (66, 80), (134, 80), (134, 50), (182, 100), (134, 150), (134, 120), (66, 120), (66, 150)]
+    elif look == 3:     # a bend
+        outline = [(24, 170), (24, 90), (40, 66), (120, 66), (120, 30), (182, 86), (120, 142), (120, 106), (64, 106), (64, 170)]
+    else:               # a slanted arrow
+        outline = rotate([(20, 82), (112, 82), (112, 46), (182, 100), (112, 154), (112, 118), (20, 118)], 100, 100, -math.pi / 4)
+    return [outline], [(colour, polygon(outline))]
+
+
+def sticker_speech(rng, v, pal):
+    look = v % 5
+    a, ink = pal[v % 4], STICKER_INK
+    if look == 0:       # a rounded bubble, three dots
+        body = rounded_pts(20, 30, 160, 110, 34)
+        tail = [(54, 130), (90, 130), (44, 176)]
+        return [body, tail], [(a, polygon(body)), (a, polygon(tail))] + [(ink, ellipse(x, 86, 9, 9)) for x in (66, 100, 134)]
+    if look == 1:       # an oval bubble, a heart
+        body = circle_pts(100, 88, 82, ry=60)
+        tail = [(126, 136), (160, 180), (98, 144)]
+        return [body, tail], [(a, polygon(body)), (a, polygon(tail)), ('#e63946', polygon(heart_pts(100, 90, 64)))]
+    if look == 2:       # a thought cloud
+        puffs = [circle_pts(cx, cy, r) for cx, cy, r in [(70, 76, 36), (112, 62, 42), (146, 88, 32), (100, 106, 40), (60, 108, 28)]]
+        dots = [circle_pts(54, 158, 12, 24), circle_pts(36, 182, 7, 24)]
+        return puffs + dots, [(a, polygon(p)) for p in puffs + dots]
+    if look == 3:       # a shout
+        body = star(100, 92, 12, 84, 60)
+        tail = [(60, 140), (84, 146), (34, 188)]
+        return [body, tail], [(a, polygon(body)), (a, polygon(tail)), (ink, polygon([(94, 50), (106, 50), (103, 110), (97, 110)])), (ink, ellipse(100, 126, 7, 7))]
+    # a bubble with lines of writing
+    body = rounded_pts(20, 26, 160, 116, 24)
+    tail = [(130, 132), (162, 180), (106, 136)]
+    return [body, tail], [(a, polygon(body)), (a, polygon(tail))] + [(ink, polyline([(48, y), (x, y)]), 7) for y, x in ((62, 152), (86, 140), (110, 120))]
+
+
+# What each kind of sticker is drawn by, its name's noun and its words.
+STICKER_KINDS = [
+    ('badge', sticker_badge, 18, 'badge', ['badge', 'words', 'label']),
+    ('face', sticker_face, 15, 'face', ['face', 'smiley', 'emoji', 'happy']),
+    ('heart', sticker_heart, 15, 'heart', ['heart', 'love', 'valentine']),
+    ('star', sticker_star, 15, 'star', ['star', 'shine', 'favourite']),
+    ('food', sticker_food, 15, 'food', ['food', 'snack', 'treat']),
+    ('weather', sticker_weather, 15, 'weather', ['weather', 'sky', 'nature']),
+    ('arrow', sticker_arrow, 15, 'arrow', ['arrow', 'pointer', 'direction']),
+    ('speech', sticker_speech, 15, 'speech bubble', ['speech', 'bubble', 'chat', 'talk']),
+]
+
+# A word for each sticker's look, so names and searches tell them apart.
+STICKER_LOOKS = {
+    'badge': ['wow', 'sale', 'new', 'love', 'omg', 'thank you'],
+    'face': ['smiling', 'winking', 'surprised', 'heart-eyed', 'cool'],
+    'heart': ['shiny', 'double', 'layered', 'broken', 'ribboned'],
+    'star': ['gold', 'smiling', 'shooting', 'eight-pointed', 'cluster'],
+    'food': ['pizza', 'doughnut', 'ice cream', 'cherry', 'watermelon'],
+    'weather': ['sun', 'cloud', 'rain', 'lightning', 'rainbow'],
+    'arrow': ['right', 'up', 'double', 'bent', 'slanted'],
+    'speech': ['typing', 'love', 'thought', 'shout', 'note'],
+}
+STICKER_BASES = ['round', 'seal', 'ticket']
+
+# The moves a third of the stickers make: every third, in turn.
+STICKER_MOTIONS = ['wiggle', 'pop', 'float']
+
+
+def face_look(v):
+    return v % 5 if v < 5 else (v + v // 5) % 5
+
+
+def sticker_name(key, v, noun):
+    if key == 'badge':
+        return '%s %s badge' % (STICKER_LOOKS[key][v % 6].upper(), STICKER_BASES[v // 6])
+    look = STICKER_LOOKS[key][face_look(v) if key == 'face' else v % 5]
+    turn = v // 5 + 1
+    # Food and weather are named for what they show alone: "Pizza".
+    name = look.capitalize() if key in ('food', 'weather') else '%s %s' % (look.capitalize(), noun)
+    return name if turn == 1 else '%s %d' % (name, turn)
+
+
+def build_stickers():
+    out = []
+    for seed, (key, draw, count, noun, words) in enumerate(STICKER_KINDS):
+        rng = random.Random(4100 + seed)
+        for v in range(count):
+            pal = PALETTES[(v * 3 + seed) % len(PALETTES)]
+            silhouettes, art = draw(rng, v, pal)
+            parts = [diecut(silhouettes)] + art
+            colours = colours_of(parts)
+            assert len(colours) <= 4, (key, v, colours)
+            look = sticker_name(key, v, noun).lower()
+            graphic = {
+                'id': 'sticker-%s-%02d' % (key, v + 1),
+                'name': sticker_name(key, v, noun),
+                'category': 'Stickers',
+                'tags': ['sticker'] + words + [w for w in look.split(' ') if w not in words and not w.isdigit() and w != 'sticker'],
+                'svg': svg_of(200, 200, parts),
+                'colours': colours,
+                # The art's colours, not the white die-cut round it.
+                'hues': hues_of(art),
+            }
+            index = len(out)
+            if index % 3 == 0:
+                graphic['motion'] = STICKER_MOTIONS[(index // 3) % 3]
+            out.append(graphic)
+    return out
+
+
 # What each category is drawn by, its names and words. One graphic a name,
 # in this order; its variant is its place in the list. A seventh entry is
 # the graphic's motion.
@@ -851,7 +1236,7 @@ def build():
             if motion:
                 graphic['motion'] = motion
             graphics.append(graphic)
-    return graphics
+    return graphics + build_stickers()
 
 
 def main():

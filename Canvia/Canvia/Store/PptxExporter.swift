@@ -210,6 +210,10 @@ enum PptxExporter {
         // preset or path has no crop of its own.
         if GraphicClip.ownRect(el) != nil { return .picture }
         if el.shadow != nil && !(styled && el.type == .text) { return .picture }
+        // A sticker's or a graphic's outline or glow (PhotoEffects
+        // .takesDrawnEdge) is a picture: a group's laid under its shapes
+        // alone, a shape on its own with it.
+        if el.edgeOnly || (el.type == .shape && PhotoEffects.hasDrawnEdge(el)) { return .picture }
         let flipped = el.flipH || el.flipV
         switch el.type {
         case .text:
@@ -247,6 +251,13 @@ enum PptxExporter {
             // a logo as the picture the canvas draws, the logo in it, as on
             // the Android twin; any other photo as its picture.
             if flipped { return .picture }
+            // A frame filled with a colour in place of a photo
+            // (PhotoFrames.colourOf): a shape in the frame's outline, filled
+            // as it is — a rectangle, rounded or not, with no frame shape.
+            if let fill = PhotoFrames.colourOf(el), presetFill(fill) {
+                guard ContentLibrary.frameShape(of: el) == nil else { return .geometry }
+                return (el.radius ?? 0) > 0 && min(el.w, el.h) > 0 ? .shape("roundRect") : .shape("rect")
+            }
             if Barcodes.vector(el) != nil { return .code }
             if let code = CodeGenerator.vector(el), code.logoPad == nil { return .code }
             return .picture
@@ -359,7 +370,9 @@ enum PptxExporter {
     /// arriving as the page's own animation has it, as Present plays it.
     static func drawnElements(design: Design, page: Page) -> [Element] {
         let pageNumber = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
-        return design.drawnElements(on: PageAnimation.playing(page)).map { el in
+        // A graphic's outline or glow as a picture under its shapes, which
+        // stay shapes (PhotoEffects.withGroupEdges).
+        return PhotoEffects.withGroupEdges(design.drawnElements(on: PageAnimation.playing(page))).map { el in
             var resolved = el
             if ShapeText.carriesWords(el) {
                 resolved.fillPageTokens(number: pageNumber, count: design.pages.count)
@@ -710,15 +723,24 @@ enum PptxExporter {
     /// as a free-form geometry on its box — the path the canvas draws, its
     /// arcs as cubics. A plain rectangle where it has none.
     static func builtGeometry(_ el: Element, frame: Frame) -> String {
+        // A coloured frame's outline: its frame's shape at its size.
+        if PhotoFrames.colourOf(el) != nil {
+            return customGeometry(el, path: SVGPath.parse(SVGExporter.framePath(el)), frame: frame)
+        }
         if let preset = presetGeometry(el) { return preset }
         guard let d = ShapeGeometry.outline(el) else { return geometry("rect") }
+        return customGeometry(el, path: SVGPath.parse(d), frame: frame)
+    }
+
+    /// `path`, in `el`'s own space, as a free-form geometry on its box.
+    private static func customGeometry(_ el: Element, path outline: CGPath, frame: Frame) -> String {
         let w = max(1, emu(el.w * frame.unit))
         let h = max(1, emu(el.h * frame.unit))
         func pt(_ p: CGPoint) -> String {
             "<a:pt x=\"\(emu(Double(p.x) * frame.unit))\" y=\"\(emu(Double(p.y) * frame.unit))\"/>"
         }
         var path = "<a:path w=\"\(w)\" h=\"\(h)\">"
-        for step in steps(of: SVGPath.parse(d)) {
+        for step in steps(of: outline) {
             switch step {
             case .move(let p): path += "<a:moveTo>\(pt(p))</a:moveTo>"
             case .line(let p): path += "<a:lnTo>\(pt(p))</a:lnTo>"

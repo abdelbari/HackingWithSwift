@@ -268,10 +268,10 @@ struct CanvasDropDelegate: DropDelegate {
     var fallback: (([NSItemProvider], CGPoint) -> Bool)?
 
     /// The tile under way, when this drag is one: a drag that also carries
-    /// a picture or a link is another app's, and a tile left from a drag
+    /// a clip, a picture or a link is another app's, and a tile left from a drag
     /// let go elsewhere is forgotten.
     private func carried(_ info: DropInfo) -> LibraryDrag.Carried? {
-        if info.hasItemsConforming(to: [.image, .url]) {
+        if info.hasItemsConforming(to: [.movie, .image, .url]) {
             LibraryDrag.shared.item = nil
             return nil
         }

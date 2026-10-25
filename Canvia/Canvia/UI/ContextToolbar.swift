@@ -157,10 +157,10 @@ struct ContextToolbar: View {
         .feel(.impact(weight: .medium), trigger: store.selection)
     }
 
-    /// A sticker selection emits nothing, which would leave a stray leading
-    /// divider with no group in front of it.
+    /// Whether the selection has controls of its own kind, ahead of the
+    /// divider: a sticker its Outline and Shadow.
     private func hasTypeControls(_ el: Element) -> Bool {
-        el.type != .sticker
+        el.type != .sticker || !el.locked
     }
 
     // MARK: per-type
@@ -181,8 +181,29 @@ struct ContextToolbar: View {
             // switch among the universal controls stays.
             if el.locked { lockedPhotoNote } else { imageControls(el) }
         case .line: lineControls(el)
-        case .sticker: EmptyView()
+        case .sticker: stickerControls
         }
+    }
+
+    /// A sticker's outline or glow round its glyph, and its shadow, which
+    /// falls from both (PhotoEffects.takesDrawnEdge).
+    @ViewBuilder
+    private var stickerControls: some View {
+        outlineButton
+        toolButton("shadow", "Shadow") { activeSheet = .shadow }
+    }
+
+    /// Outline: a sticker's or every selected graphic shape's outline or
+    /// glow (OutlineSheet), lit while one has one.
+    private var outlineButton: some View {
+        let on = store.selectedElements.contains { $0.edge != nil }
+        return Button {
+            activeSheet = .outline
+        } label: {
+            toolLabel("circle.dashed", "Outline", active: on)
+        }
+        .buttonStyle(ToolButtonStyle())
+        .accessibilityAddTraits(on ? [.isSelected] : [])
     }
 
     // Grouped into three stacks rather than listed flat: a ViewBuilder block
@@ -1301,7 +1322,13 @@ struct ContextToolbar: View {
 
     @ViewBuilder
     private func imageControls(_ el: Element) -> some View {
-        cutoutButton(el)
+        Group {
+            // An empty frame or grid cell takes a colour in place of a photo
+            // (PhotoFrames.colourOf); Replace, further along, puts a photo
+            // back.
+            if PhotoFrames.takesColour(el) { frameColourChip(el) }
+            cutoutButton(el)
+        }
         toolButton("square.on.circle", "Frame") { activeSheet = .frame }
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         // Crop mode, on the canvas: the picture dragged, pinched and trimmed
@@ -1523,6 +1550,9 @@ struct ContextToolbar: View {
             if store.selection.count > 1 && store.selectionTakesColour && store.textSelection == nil {
                 multiColourChip
             }
+            // A graphic from the pack, all of it: an outline or glow round
+            // it (OutlineSheet). A sticker has its own among its controls.
+            if store.selectionTakesDrawnEdge && store.singleSelection?.type != .sticker { outlineButton }
             // An icon, sticker, graphic from the pack or library shape:
             // things like it, to swap in or add (SimilarSheet).
             if store.offersSimilar {
@@ -1637,6 +1667,17 @@ struct ContextToolbar: View {
                       "Lock", active: current == .full || current == .position)
         }
         .accessibilityValue(current == .full ? tr("Locked") : current == .position ? tr("Position locked") : "")
+    }
+
+    /// An empty frame's colour in place of a photo: its colour, or none yet,
+    /// shown as a frame with no fill. The sheet colours every frame
+    /// selected (recolourSelection).
+    private func frameColourChip(_ el: Element) -> some View {
+        let fill = PhotoFrames.colourOf(el)
+        return colorChip(fill?.primaryColor ?? "#ffffff", "Colour",
+                         spoken: fill == nil ? tr("no fill") : FillChoices.spokenFill(fill)) {
+            activeSheet = .colorSelection
+        }
     }
 
     /// A colour chip with no one colour in it, since the selection has many.

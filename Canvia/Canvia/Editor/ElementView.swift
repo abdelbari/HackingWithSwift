@@ -165,6 +165,10 @@ struct ElementView: View {
             // A cropped graphic shows only its crop (GraphicClip), cut in
             // its own box before it is flipped and turned.
             .modifier(GraphicClipMask(rect: GraphicClip.ownRect(element)))
+            // A sticker's or a graphic's outline or glow, grown from its own
+            // drawing (PhotoEffects.drawnEdge), behind it and over its
+            // shadow, which falls from both.
+            .background { drawnEdge }
             // A styled shadow (ShadowShapes) is a silhouette of its own,
             // drawn behind the element in the element's space, where the
             // drop shadow below is cast too.
@@ -231,10 +235,32 @@ struct ElementView: View {
         }
     }
 
+    /// A sticker's or a graphic shape's outline or glow (PhotoEffects
+    /// .takesDrawnEdge), centred on its box and reaching past it.
+    @ViewBuilder
+    private var drawnEdge: some View {
+        if let edge = PhotoEffects.drawnEdge(element) {
+            Image(uiImage: edge.image)
+                .resizable()
+                .frame(width: element.w + 2 * edge.pad, height: element.h + 2 * edge.pad)
+                .allowsHitTesting(false)
+        }
+    }
+
     /// What the element draws; a shape drawing itself on shows `drawing` of
-    /// its outline.
+    /// its outline. A copy laid for its group's edge (Element.edgeOnly)
+    /// draws nothing but that edge.
     @ViewBuilder
     private func content(drawing: Double = 1) -> some View {
+        if element.edgeOnly {
+            Color.clear
+        } else {
+            typeContent(drawing: drawing)
+        }
+    }
+
+    @ViewBuilder
+    private func typeContent(drawing: Double) -> some View {
         let el = shown
         switch el.type {
         case .shape:
@@ -1224,6 +1250,12 @@ struct ImageElementView: View {
                     .position(x: frameW / 2 + offsetX, y: frameH / 2 + offsetY)
                     .scaleEffect((element.cropScale ?? 1) * cover,
                                  anchor: UnitPoint(x: cropX, y: cropY))
+            } else if let colour = PhotoFrames.colourOf(element) {
+                // A frame filled with a colour in place of a photo, clipped
+                // to the frame's shape and corners and bordered below, as
+                // the photo would be.
+                colour.fillView()
+                    .frame(width: element.w, height: element.h)
             } else {
                 Color(hex: "#e3e6ea")
                     .overlay(Image(systemName: "photo").font(.largeTitle).foregroundStyle(.secondary))
@@ -1597,13 +1629,30 @@ struct PageRenderView: View {
     }
 
     /// What `plain` draws, sentinel k before the kth element drawn —
-    /// design.drawnElements(on:), the order the PDF's tags are read in.
+    /// design.drawnElements(on:), the order the PDF's tags are read in. A
+    /// graphic's outline goes round the whole of it here too
+    /// (PhotoEffects.withGroupEdges), tagged with the part it is laid before.
     private var sentinelled: some View {
-        let elements = Array(design.drawnElements(on: page).enumerated())
-        return ForEach(elements, id: \.element.id) { n, el in
-            PdfSentinel(index: n + 1)
-            ElementView(element: el).equatable()
+        let laid = Self.numbered(PhotoEffects.withGroupEdges(design.drawnElements(on: page)))
+        return ForEach(laid, id: \.element.id) { item in
+            if item.marks { PdfSentinel(index: item.index) }
+            ElementView(element: item.element).equatable()
         }
+    }
+
+    /// `laid` numbered for the PDF's tags: each element its place among
+    /// those drawn, a group's edge copy (Element.edgeOnly) the place of the
+    /// element it is laid before, and a sentinel (`marks`) before the
+    /// first of each number.
+    static func numbered(_ laid: [Element]) -> [(index: Int, marks: Bool, element: Element)] {
+        var out: [(index: Int, marks: Bool, element: Element)] = []
+        var count = 0
+        for el in laid {
+            let index = count + 1
+            out.append((index: index, marks: out.last?.index != index, element: el))
+            if !el.edgeOnly { count += 1 }
+        }
+        return out
     }
 
     @ViewBuilder
@@ -1611,12 +1660,15 @@ struct PageRenderView: View {
         // The master page's elements, behind this page's own. Not on
         // the master itself, and not on a page that opted out.
         // A group's crop is put into each member's own box (GraphicClip).
-        ForEach(GraphicClip.shown(design.masterElements(behind: page), in: design.masterPage?.elements ?? [])) { el in
+        // A graphic's outline goes round the whole of it, laid before its
+        // first part (PhotoEffects.withGroupEdges).
+        ForEach(PhotoEffects.withGroupEdges(GraphicClip.shown(design.masterElements(behind: page),
+                                                              in: design.masterPage?.elements ?? []))) { el in
             ElementView(element: el).equatable()
         }
         // A hidden element is never drawn, here or in anything that
         // renders through this view: exports, thumbnails, Present, video.
-        ForEach(GraphicClip.shown(ownElements.filter { !$0.isHidden }, in: ownElements)) { el in
+        ForEach(PhotoEffects.withGroupEdges(GraphicClip.shown(ownElements.filter { !$0.isHidden }, in: ownElements))) { el in
             // .equatable() so a drag re-renders the element that moved
             // rather than every element on the page. The store is
             // @Observable and a gesture mutates the document each frame,
