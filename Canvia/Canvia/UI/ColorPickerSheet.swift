@@ -104,7 +104,7 @@ struct ColorPickerSheet: View {
                         let kit = BrandKit.load()
                         ForEach(Array(kit.palettes.enumerated()), id: \.offset) { _, palette in
                             if !palette.colors.isEmpty {
-                                section(kit.title(of: palette), colors: palette.colors)
+                                section(kit.title(of: palette), colors: palette.colors, named: { palette.name(of: $0) })
                             }
                         }
                     }
@@ -209,6 +209,11 @@ struct ColorPickerSheet: View {
         if colours.count >= 2 || (swapsColours && swapTarget != nil) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Colours in selection").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+                // The swap under way in the brand's words: "Ocean → Sand".
+                if let origin = swapOrigin, let now = swapTarget, origin.lowercased() != now.lowercased() {
+                    Text(verbatim: BrandKit.load().swapLabel(from: origin, to: now))
+                        .font(.footnote)
+                }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(colours, id: \.self) { hex in swapSwatch(hex) }
@@ -221,7 +226,8 @@ struct ColorPickerSheet: View {
                         swapFrom = swapTarget
                         changeAll = nil
                     } label: {
-                        Label("Change all (\(offer.count))", systemImage: "paintbrush")
+                        Label(tr("Change all (%d)", offer.count) + " · "
+                              + BrandKit.load().swapLabel(from: offer.from, to: offer.to), systemImage: "paintbrush")
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(Capsule().fill(Theme.accentSubtle))
@@ -249,8 +255,8 @@ struct ColorPickerSheet: View {
                 .overlay(Circle().stroke(Theme.hairline))
                 .overlay { if chosen { Circle().stroke(Theme.accent, lineWidth: 3).padding(-4) } }
         }
-        // Named in words, as every swatch is.
-        .accessibilityLabel(ElementNames.spokenColour(hex))
+        // Named in words, as every swatch is — a brand colour by its name.
+        .accessibilityLabel(BrandKit.load().spokenColour(hex))
         .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
@@ -431,7 +437,8 @@ struct ColorPickerSheet: View {
                                 edited.gradients.removeAll { $0 == paint }
                                 edited.save()
                                 seedCount += 1
-                            })
+                            },
+                            named: { kit.gradientName($0) })
         }
         let recents = GradientRecents.all()
         if !recents.isEmpty {
@@ -504,9 +511,19 @@ struct ColorPickerSheet: View {
             startPoint: pts.start, endPoint: pts.end)
     }
 
-    private func section(_ title: String, colors: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+    /// A row of swatches under `title`; `named` gives a brand colour its
+    /// name — said by VoiceOver, shown as its tooltip and beside the title
+    /// while it is the colour chosen.
+    private func section(_ title: String, colors: [String],
+                         named: @escaping (String) -> String? = { _ in nil }) -> some View {
+        let chosenName = shownCurrent.flatMap { now in
+            colors.contains { $0.lowercased() == now.lowercased() } ? named(now) : nil
+        }
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text(title).font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+                if let chosenName { Text(verbatim: chosenName).font(.footnote) }
+            }
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(colors, id: \.self) { hex in
                     Button {
@@ -529,8 +546,10 @@ struct ColorPickerSheet: View {
                                 }
                             }
                     }
-                    // Named in words, and the chosen one said to be chosen.
-                    .accessibilityLabel(ElementNames.spokenColour(hex))
+                    // Named in words — a brand colour by its name — and the
+                    // chosen one said to be chosen.
+                    .accessibilityLabel(named(hex).map { tr("%@, brand colour", $0) } ?? ElementNames.spokenColour(hex))
+                    .help(named(hex) ?? "")
                     .accessibilityAddTraits(shownCurrent?.lowercased() == hex.lowercased() ? .isSelected : [])
                 }
             }

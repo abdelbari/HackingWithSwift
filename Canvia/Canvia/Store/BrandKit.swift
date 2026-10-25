@@ -5,7 +5,8 @@
 //
 //   {"activeId": "kit-1",
 //    "kits": [{"id": "kit-1", "name": "My brand",
-//              "palettes": [{"name": "Colours", "colors": ["#1f2430", …]}],
+//              "palettes": [{"name": "Colours", "colors": ["#1f2430", …],
+//                            "names"?: {"#1F2430": "Ink"}}],
 //              "fonts": {"title": {"family", "weight", "size"?, "color"?,
 //                                  "letterSpacing"?, "lineHeight"?,
 //                                  "uppercase"?, "italic"?},
@@ -35,10 +36,57 @@
 
 import Foundation
 
-/// A named run of brand colours: "Colours", "Accents", "Autumn".
+/// A named run of brand colours: "Colours", "Accents", "Autumn" — each
+/// colour with a name of its own where it has been given one ("Ocean",
+/// "Primary CTA"): `names`, keyed by the colour as upper-case "#RRGGBB",
+/// each name at most `BrandPalette.nameLimit` characters, written only when
+/// there are some, and only for colours the palette has — the rule both
+/// phones keep. A reader that knows nothing of it passes it over.
 struct BrandPalette: Codable, Equatable {
     var name: String
     var colors: [String]
+    var names: [String: String] = [:]
+
+    /// The longest a colour's name may be.
+    static let nameLimit = 40
+
+    /// A colour as `names` keys it: "#RRGGBB" in capitals, its alpha left
+    /// out; nil for anything that is no colour.
+    static func key(_ hex: String) -> String? {
+        var digits = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if digits.hasPrefix("#") { digits.removeFirst() }
+        if digits.count == 3 { digits = digits.map { "\($0)\($0)" }.joined() }
+        guard digits.count == 6 || digits.count == 8, digits.allSatisfy(\.isHexDigit) else { return nil }
+        return "#" + digits.prefix(6).uppercased()
+    }
+
+    /// A name as kept: trimmed and cut to `nameLimit`; nil for none.
+    static func keptName(_ name: String?) -> String? {
+        let trimmed = (name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : String(trimmed.prefix(nameLimit))
+    }
+
+    /// The name `hex` has here, if it has one.
+    func name(of hex: String) -> String? {
+        BrandPalette.key(hex).flatMap { names[$0] }
+    }
+
+    /// `hex` given `name`, or its name taken away with nil or a blank.
+    mutating func setName(_ name: String?, of hex: String) {
+        guard let key = BrandPalette.key(hex) else { return }
+        names[key] = BrandPalette.keptName(name)
+    }
+
+    /// The names of the colours it has, each kept: what is written.
+    var keptNames: [String: String] {
+        let own = Set(colors.compactMap(BrandPalette.key))
+        var out: [String: String] = [:]
+        for (hex, name) in names {
+            guard let key = BrandPalette.key(hex), own.contains(key), let kept = BrandPalette.keptName(name) else { continue }
+            out[key] = kept
+        }
+        return out
+    }
 }
 
 /// A brand face for one text role, and the rest of its type: a colour, a
@@ -330,6 +378,40 @@ struct BrandKit: Codable, Equatable, Identifiable {
     /// The most colours a palette holds.
     static let limit = 12
 
+    /// The name `hex` has in this kit: the first palette's to name it.
+    func colourName(_ hex: String) -> String? {
+        palettes.lazy.compactMap { $0.name(of: hex) }.first
+    }
+
+    /// `hex` as a person reads it here: its brand name, else its hue name
+    /// (ElementNames.spokenColour).
+    func spokenColour(_ hex: String) -> String {
+        colourName(hex) ?? ElementNames.spokenColour(hex)
+    }
+
+    /// What a screen reader says of one of the kit's swatches: "Ocean,
+    /// brand colour", the hue's name for a colour with none.
+    func brandColourLabel(_ hex: String) -> String {
+        tr("%@, brand colour", spokenColour(hex))
+    }
+
+    /// A swap as Change all and Colours in selection say it: "Ocean →
+    /// Sand", each colour by its brand name, else its hex in capitals.
+    func swapLabel(from: String, to: String) -> String {
+        func said(_ hex: String) -> String { colourName(hex) ?? (BrandPalette.key(hex) ?? hex) }
+        return "\(said(from)) → \(said(to))"
+    }
+
+    /// A brand gradient by the names of its stops, "Ocean to Sand", when
+    /// every stop is a named brand colour; nil otherwise. The same names a
+    /// palette gives its colours.
+    func gradientName(_ paint: Paint) -> String? {
+        let stops = paint.stops ?? []
+        let names = stops.compactMap { colourName($0.color) }
+        guard stops.count >= 2, names.count == stops.count else { return nil }
+        return names.dropFirst().reduce(names[0]) { tr("%@ to %@", $0, $1) }
+    }
+
     /// Every colour of every palette, once each, in palette order.
     var colors: [String] {
         var seen = Set<String>()
@@ -602,6 +684,20 @@ extension BrandPalette {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         name = (try? c.decode(String.self, forKey: .name)) ?? BrandKit.firstPaletteName
         colors = (try? c.decode([String].self, forKey: .colors)) ?? []
+        // Names one at a time: one that is no text is passed over.
+        let raw = (try? c.decode([String: Lossy<String>].self, forKey: .names)) ?? [:]
+        names = raw.compactMapValues(\.value)
+        names = keptNames
+    }
+
+    /// The names only when there are some, so a palette without them is
+    /// written as earlier builds wrote it.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(name, forKey: .name)
+        try c.encode(colors, forKey: .colors)
+        let kept = keptNames
+        if !kept.isEmpty { try c.encode(kept, forKey: .names) }
     }
 }
 

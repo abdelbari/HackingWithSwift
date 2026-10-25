@@ -50,10 +50,12 @@ enum AddSheetNames {
         tr("Brand graphic %d of %d", index + 1, count)
     }
 
-    /// A brand colour by its name, and what a tap paints with it.
-    static func brandColour(_ hex: String, selection: Bool) -> String {
-        selection ? tr("%@, brand colour, for what is selected", ElementNames.spokenColour(hex))
-            : tr("%@, brand colour, for the page background", ElementNames.spokenColour(hex))
+    /// A brand colour by its name — the one the kit gives it, else its
+    /// hue's — and what a tap paints with it.
+    static func brandColour(_ hex: String, name: String?, selection: Bool) -> String {
+        let said = name ?? ElementNames.spokenColour(hex)
+        return selection ? tr("%@, brand colour, for what is selected", said)
+            : tr("%@, brand colour, for the page background", said)
     }
 
     static func artwork(_ photo: PhotoDef, _ index: Int, of count: Int) -> String {

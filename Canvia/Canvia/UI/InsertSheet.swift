@@ -1802,7 +1802,7 @@ struct InsertSheet: View {
                 .foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 40), spacing: 10)], spacing: 10) {
                 ForEach(palette.colors, id: \.self) { hex in
-                    brandSwatch(hex)
+                    brandSwatch(hex, name: palette.name(of: hex))
                 }
             }
         }
@@ -1811,7 +1811,7 @@ struct InsertSheet: View {
     /// A tap paints what is selected in the colour, as a colour picker
     /// does; with nothing selected, the page's background
     /// (DesignStore.paintBrandColour).
-    private func brandSwatch(_ hex: String) -> some View {
+    private func brandSwatch(_ hex: String, name: String?) -> some View {
         Button {
             store.paintBrandColour(hex)
             dismiss()
@@ -1822,7 +1822,8 @@ struct InsertSheet: View {
                 .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(AddSheetNames.brandColour(hex, selection: !store.selection.isEmpty))
+        .accessibilityLabel(AddSheetNames.brandColour(hex, name: name, selection: !store.selection.isEmpty))
+        .help(name ?? "")
     }
 
     // MARK: favourites

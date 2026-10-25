@@ -1,0 +1,16 @@
+{
+  "activeId": "kit-1",
+  "kits": [
+    {
+      "id": "kit-1",
+      "name": "Sea",
+      "palettes": [
+        {"name": "Colours", "colors": ["#1a6bff", "#f2d6a2", "#0b1f33"],
+         "names": {"#1A6BFF": "Ocean", "#F2D6A2": "Sand"}},
+        {"name": "Accents", "colors": ["#ff5a5f"]}
+      ],
+      "fonts": {},
+      "logos": []
+    }
+  ]
+}

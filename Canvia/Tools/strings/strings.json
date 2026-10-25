@@ -1025,6 +1025,15 @@
     "ja": "%@の三つ葉のブロブ",
     "pt-BR": "Mancha de três lóbulos (%@)"
   },
+  "%@ to %@": {
+    "ar": "%@ إلى %@",
+    "de": "%@ zu %@",
+    "es": "%@ a %@",
+    "fr": "%@ à %@",
+    "it": "%@ a %@",
+    "ja": "%@から%@",
+    "pt-BR": "%@ para %@"
+  },
   "%@ to Photos": {
     "ar": "%@ إلى الصور",
     "de": "%@ in Fotos",
@@ -4642,6 +4651,15 @@
     "it": "3. Genera",
     "ja": "3. 生成",
     "pt-BR": "3. Gerar"
+  },
+  "3D": {
+    "ar": "ثلاثي الأبعاد",
+    "de": "3D",
+    "es": "3D",
+    "fr": "3D",
+    "it": "3D",
+    "ja": "3D",
+    "pt-BR": "3D"
   },
   "4 across": {
     "ar": "4 أفقيًا",
@@ -8555,6 +8573,15 @@
       "other": "Alterar todos, mais %d elementos em %@"
     }
   },
+  "Change case": {
+    "ar": "تغيير حالة الأحرف",
+    "de": "Groß-/Kleinschreibung ändern",
+    "es": "Cambiar mayúsculas y minúsculas",
+    "fr": "Modifier la casse",
+    "it": "Cambia maiuscole/minuscole",
+    "ja": "大文字と小文字を変更",
+    "pt-BR": "Alterar maiúsculas e minúsculas"
+  },
   "Change colour": {
     "ar": "تغيير اللون",
     "de": "Farbe ändern",
@@ -11527,6 +11554,15 @@
     "it": "Traccia eliminata",
     "ja": "トラックを削除しました",
     "pt-BR": "A faixa foi excluída"
+  },
+  "Depth": {
+    "ar": "العمق",
+    "de": "Tiefe",
+    "es": "Profundidad",
+    "fr": "Profondeur",
+    "it": "Profondità",
+    "ja": "奥行き",
+    "pt-BR": "Profundidade"
   },
   "Describe this picture": {
     "ar": "صِف هذه الصورة",
@@ -24305,6 +24341,24 @@
     "ja": "ブランドキットの名前を変更",
     "pt-BR": "Renomear kit de marca"
   },
+  "Rename colour": {
+    "ar": "إعادة تسمية اللون",
+    "de": "Farbe umbenennen",
+    "es": "Cambiar nombre del color",
+    "fr": "Renommer la couleur",
+    "it": "Rinomina colore",
+    "ja": "色の名前を変更",
+    "pt-BR": "Renomear cor"
+  },
+  "Rename colour…": {
+    "ar": "إعادة تسمية اللون…",
+    "de": "Farbe umbenennen…",
+    "es": "Cambiar nombre del color…",
+    "fr": "Renommer la couleur…",
+    "it": "Rinomina colore…",
+    "ja": "色の名前を変更…",
+    "pt-BR": "Renomear cor…"
+  },
   "Rename design": {
     "ar": "إعادة تسمية التصميم",
     "de": "Design umbenennen",
@@ -26420,6 +26474,15 @@
     "ja": "最背面へ移動",
     "pt-BR": "Enviar para o fundo"
   },
+  "Sentence case": {
+    "ar": "أول حرف كبير في الجملة",
+    "de": "Satzanfang groß",
+    "es": "Tipo oración",
+    "fr": "Majuscule en début de phrase",
+    "it": "Maiuscola a inizio frase",
+    "ja": "文頭を大文字",
+    "pt-BR": "Primeira letra da frase maiúscula"
+  },
   "Serif": {
     "ar": "Serif",
     "de": "Serif",
@@ -26527,6 +26590,15 @@
     "it": "Più per foglio",
     "ja": "1 枚に複数",
     "pt-BR": "Vários por folha"
+  },
+  "Shading": {
+    "ar": "التظليل",
+    "de": "Schattierung",
+    "es": "Sombreado",
+    "fr": "Ombrage",
+    "it": "Ombreggiatura",
+    "ja": "陰影",
+    "pt-BR": "Sombreamento"
   },
   "Shadow": {
     "ar": "الظل",
@@ -30689,6 +30761,15 @@
     "ja": "タイトル",
     "pt-BR": "Título"
   },
+  "Title Case": {
+    "ar": "أول حرف كبير في كل كلمة",
+    "de": "Wortanfänge Groß",
+    "es": "Tipo Título",
+    "fr": "Majuscule À Chaque Mot",
+    "it": "Iniziali Maiuscole",
+    "ja": "単語の先頭を大文字",
+    "pt-BR": "Iniciais Maiúsculas"
+  },
   "To": {
     "ar": "إلى",
     "de": "An",
@@ -31426,6 +31507,15 @@
     "it": "UPC-A richiede 11 o 12 cifre",
     "ja": "UPC-A には 11 桁か 12 桁の数字が必要です",
     "pt-BR": "UPC-A precisa de 11 ou 12 dígitos"
+  },
+  "UPPERCASE": {
+    "ar": "أحرف كبيرة",
+    "de": "GROSSBUCHSTABEN",
+    "es": "MAYÚSCULAS",
+    "fr": "MAJUSCULES",
+    "it": "MAIUSCOLO",
+    "ja": "大文字",
+    "pt-BR": "MAIÚSCULAS"
   },
   "US Letter": {
     "ar": "US Letter",
@@ -34018,6 +34108,15 @@
     "it": "in ciclo",
     "ja": "ループ",
     "pt-BR": "em repetição"
+  },
+  "lowercase": {
+    "ar": "أحرف صغيرة",
+    "de": "kleinbuchstaben",
+    "es": "minúsculas",
+    "fr": "minuscules",
+    "it": "minuscolo",
+    "ja": "小文字",
+    "pt-BR": "minúsculas"
   },
   "minimal": {
     "ar": "بسيط",
