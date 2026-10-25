@@ -11,9 +11,10 @@
 //   squares, circles   preset shapes (prstGeom rect / roundRect / ellipse)
 //                      with their fill — solid, none or a linear gradient —
 //                      and border
-//   rounded or shaped  the outline the canvas draws (ShapeGeometry) as a
-//   library shapes     free-form shape (custGeom), filled and bordered as
-//                      the squares are
+//   straight-edged     the outline the canvas draws (ShapeGeometry):
+//   library shapes     PowerPoint's preset where one draws it the same
+//   and callouts       (prstGeom with its adj), else a free-form shape
+//                      (custGeom), filled and bordered as the squares are
 //   lines              a preset line with its dash and arrow or dot ends
 //   everything else    a PNG picture at 2×, drawn by the very view the
 //                      canvas draws it with, placed over its box — photos,
@@ -699,10 +700,12 @@ enum PptxExporter {
         return "<p:sp>\(properties)<p:spPr>\(look)</p:spPr></p:sp>"
     }
 
-    /// A rounded or shaped library shape's outline (ShapeGeometry), in its
-    /// own space, as a free-form geometry on its box: the path the canvas
-    /// draws, its arcs as cubics. A plain rectangle where it has none.
+    /// A built library shape's outline (ShapeGeometry): PowerPoint's preset
+    /// where one draws it the same (presetGeometry), else in its own space
+    /// as a free-form geometry on its box — the path the canvas draws, its
+    /// arcs as cubics. A plain rectangle where it has none.
     static func builtGeometry(_ el: Element, frame: Frame) -> String {
+        if let preset = presetGeometry(el) { return preset }
         guard let d = ShapeGeometry.outline(el) else { return geometry("rect") }
         let w = max(1, emu(el.w * frame.unit))
         let h = max(1, emu(el.h * frame.unit))
@@ -721,6 +724,28 @@ enum PptxExporter {
         path += "</a:path>"
         return "<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l=\"0\" t=\"0\" r=\"r\" b=\"b\"/>" +
             "<a:pathLst>\(path)</a:pathLst></a:custGeom>"
+    }
+
+    /// PowerPoint's preset for a built shape that draws exactly as it, with
+    /// no corners rounded, as the Android twin's presetOf: the triangle and
+    /// the diamond as they are; the parallelogram, the trapezoid and the
+    /// chevron with their adj, the slant or point as a share of the shorter
+    /// side, × 100000. Nil for every other shape.
+    static func presetGeometry(_ el: Element) -> String? {
+        guard !((el.radius ?? 0) > 0), let id = el.shapeId else { return nil }
+        let short = min(el.w, el.h)
+        func adjusted(_ prst: String, _ share: Double) -> String? {
+            guard short > 0 else { return nil }
+            let adj = Int((share * el.w / short * 100_000).rounded())
+            return "<a:prstGeom prst=\"\(prst)\"><a:avLst><a:gd name=\"adj\" fmla=\"val \(adj)\"/></a:avLst></a:prstGeom>"
+        }
+        switch id {
+        case "triangle", "diamond": return geometry(id)
+        case "parallelogram": return adjusted("parallelogram", 0.25)
+        case "trapezoid": return adjusted("trapezoid", 0.2)
+        case "chevron": return adjusted("chevron", ShapeGeometry.value(id, el.shapeParams, "notch"))
+        default: return nil
+        }
     }
 
     /// `rects`, in `el`'s own space, as one free-form shape on its box,

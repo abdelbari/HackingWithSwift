@@ -1,30 +1,73 @@
 // Round 34's shape geometry: corner rounding on every straight-edged shape,
 // and a star's points, a polygon's sides, an arrow's head and shaft, a
-// callout's tail and a notch as parameters. The path rows are the shared
-// fixture shape-geometry.json, read by the Android twin too.
+// callout's tail and a notch as parameters. The path, handle, drag and
+// write rows are the shared fixture shape-geometry.json, read by the
+// Android twin too.
 
 import XCTest
 @testable import Canvia
 
 final class ShapeGeometryTests: XCTestCase {
 
+    private func numbers(_ value: Any?) -> [String: Double]? {
+        (value as? [String: NSNumber])?.mapValues(\.doubleValue)
+    }
+
+    private func point(_ value: Any?) -> CGPoint? {
+        guard let xy = value as? [NSNumber], xy.count == 2 else { return nil }
+        return CGPoint(x: xy[0].doubleValue, y: xy[1].doubleValue)
+    }
+
     func testTheSharedPathRows() throws {
         let rows = try XCTUnwrap(SharedFixture.object("shape-geometry")["paths"] as? [[String: Any]])
         XCTAssertFalse(rows.isEmpty)
         for row in rows {
-            let id = try XCTUnwrap(row["shapeId"] as? String)
+            let id = try XCTUnwrap(row["shape"] as? String)
             let w = try XCTUnwrap((row["w"] as? NSNumber)?.doubleValue)
             let h = try XCTUnwrap((row["h"] as? NSNumber)?.doubleValue)
             let radius = try XCTUnwrap((row["radius"] as? NSNumber)?.doubleValue)
-            let params = (row["params"] as? [String: NSNumber])?.mapValues(\.doubleValue)
-            XCTAssertEqual(ShapeGeometry.path(id, w: w, h: h, radius: radius, params: params), row["d"] as? String, "\(row)")
+            XCTAssertEqual(ShapeGeometry.path(id, w: w, h: h, radius: radius, params: numbers(row["params"])),
+                           row["path"] as? String, "\(row)")
+        }
+    }
+
+    func testTheSharedHandleRows() throws {
+        let rows = try XCTUnwrap(SharedFixture.object("shape-geometry")["handles"] as? [[String: Any]])
+        for row in rows {
+            let id = try XCTUnwrap(row["shape"] as? String)
+            let got = ShapeGeometry.handles(id, numbers(row["params"]))
+            if let want = point(row["at"]) {
+                XCTAssertEqual(got.count, 1, "\(row)")
+                XCTAssertEqual(Double(got.first?.x ?? -9), Double(want.x), accuracy: 1e-4, "\(row)")
+                XCTAssertEqual(Double(got.first?.y ?? -9), Double(want.y), accuracy: 1e-4, "\(row)")
+            } else {
+                XCTAssertEqual(got, [], "\(row)")
+            }
+        }
+    }
+
+    func testTheSharedDragAndWriteRows() throws {
+        let fixture = try SharedFixture.object("shape-geometry")
+        let drags = try XCTUnwrap(fixture["dragged"] as? [[String: Any]])
+        for row in drags {
+            let id = try XCTUnwrap(row["shape"] as? String)
+            let to = try XCTUnwrap(point(row["to"]))
+            let got = ShapeGeometry.dragged(id, numbers(row["params"]), to: to)
+            let want = numbers(row["keeps"])
+            XCTAssertEqual(got.map { Set($0.keys) }, want.map { Set($0.keys) }, "\(row)")
+            for (key, v) in want ?? [:] { XCTAssertEqual(got?[key] ?? -9, v, accuracy: 1e-4, "\(row)") }
+        }
+        let writes = try XCTUnwrap(fixture["writes"] as? [[String: Any]])
+        for row in writes {
+            let id = try XCTUnwrap(row["shape"] as? String)
+            XCTAssertEqual(ShapeGeometry.kept(id, numbers(row["set"])), numbers(row["keeps"]), "\(row)")
         }
     }
 
     func testAtItsOwnLookEveryShapeIsItsStoredPolygon() {
-        // Not rounded and every parameter its own, each shape built here has
-        // the stored shape's corners, so nothing changes until asked.
-        for shape in ContentLibrary.shapes where ShapeGeometry.rounds(shape.id) && shape.id != "speech" {
+        // Not rounded and every parameter its own, each straight-edged shape
+        // has the stored shape's corners, so nothing changes until asked.
+        for shape in ContentLibrary.shapes where ShapeGeometry.rounds(shape.id) {
             let built = ShapeGeometry.unitPolygon(shape.id, nil) ?? []
             let stored = SVGPath.path(shape.path)
             var corners: [CGPoint] = []
@@ -34,12 +77,13 @@ final class ShapeGeometryTests: XCTestCase {
                 }
             }
             for p in built {
-                XCTAssertTrue(corners.contains { abs($0.x - p.x * 100) < 0.05 && abs($0.y - p.y * 100) < 0.05 },
+                XCTAssertTrue(corners.contains { abs($0.x - p.x) < 0.05 && abs($0.y - p.y) < 0.05 },
                               "\(shape.id) \(p)")
             }
         }
+        // Built whatever its rounding, as on the Android twin.
         var star = Element.shape("star-5")
-        XCTAssertNil(ShapeGeometry.outline(star), "drawn from the stored path")
+        XCTAssertNotNil(ShapeGeometry.outline(star))
         star.radius = 6
         XCTAssertNotNil(ShapeGeometry.outline(star))
         var square = Element.shape("rect")
@@ -48,17 +92,8 @@ final class ShapeGeometryTests: XCTestCase {
         var heart = Element.shape("heart")
         heart.radius = 6
         XCTAssertNil(ShapeGeometry.outline(heart), "a curve takes no rounding")
-    }
-
-    func testOnlyWhatDiffersIsKeptAndEachIsHeldToItsRange() {
-        XCTAssertNil(ShapeGeometry.kept("star-5", ["points": 5, "inner": 0.4]))
-        XCTAssertEqual(ShapeGeometry.kept("star-5", ["points": 30, "inner": 0.4]), ["points": 24])
-        XCTAssertEqual(ShapeGeometry.kept("star-5", ["points": 6.4]), ["points": 6])
-        XCTAssertEqual(ShapeGeometry.kept("hexagon", ["sides": 1, "head": 0.5]), ["sides": 3])
-        XCTAssertEqual(ShapeGeometry.kept("arrow-double", ["head": 0.9]), ["head": 0.5])
-        XCTAssertEqual(ShapeGeometry.kept("speech", ["tailY": 2]), ["tailY": 1.4])
-        XCTAssertEqual(ShapeGeometry.kept("tag", ["notch": -1]), ["notch": 0])
-        XCTAssertNil(ShapeGeometry.kept("heart", ["points": 7]))
+        XCTAssertFalse(ShapeGeometry.rounds("speech"), "a callout keeps its curves")
+        XCTAssertTrue(ShapeGeometry.builds("speech"))
     }
 
     func testTheKeyIsWrittenOnlyWhenSetAndAnOlderShapeIdStays() throws {
@@ -80,13 +115,9 @@ final class ShapeGeometryTests: XCTestCase {
 
     func testAHandleDraggedReshapesWithinItsRange() {
         XCTAssertEqual(ShapeGeometry.handles("star-4", nil).count, 1)
-        XCTAssertEqual(ShapeGeometry.dragged("star-4", nil, to: CGPoint(x: 0.5, y: 0.2)), ["inner": 0.6])
-        XCTAssertEqual(ShapeGeometry.dragged("star-4", nil, to: CGPoint(x: 0.5, y: 0.5)), ["inner": 0.2])
         let arrow = ShapeGeometry.dragged("arrow-right", nil, to: CGPoint(x: 0.75, y: 0.3)) ?? [:]
         XCTAssertEqual(arrow["head"] ?? 0, 0.25, accuracy: 1e-9)
         XCTAssertNil(arrow["shaft"], "0.4 is its own")
-        XCTAssertEqual(ShapeGeometry.dragged("speech", nil, to: CGPoint(x: 0.9, y: 1.2)), ["tailX": 0.9, "tailY": 1.2])
-        XCTAssertEqual(ShapeGeometry.dragged("chevron", nil, to: CGPoint(x: 0.9, y: 0.5)), ["notch": 0.5])
         XCTAssertEqual(ShapeGeometry.handles("hexagon", nil), [], "sides are counted, not dragged")
         XCTAssertEqual(ShapeGeometry.countKey("hexagon"), "sides")
         XCTAssertEqual(ShapeGeometry.countKey("seal"), "points")
@@ -127,6 +158,23 @@ final class ShapeGeometryTests: XCTestCase {
         XCTAssertTrue(xml.contains("<a:custGeom>"), xml)
         XCTAssertFalse(xml.contains("<p:pic>"), "a free-form shape, not a picture")
         XCTAssertEqual(PptxExporter.form(of: tri), .geometry)
-        XCTAssertEqual(PptxExporter.form(of: Element.shape("triangle")), .picture, "unrounded, as before")
+        // Unrounded, a preset draws it; a heart is still a picture.
+        XCTAssertEqual(PptxExporter.form(of: Element.shape("triangle")), .geometry)
+        XCTAssertEqual(PptxExporter.form(of: Element.shape("heart")), .picture)
+    }
+
+    func testBuiltShapesArePresetsWhereOneMatchesElseFreeForm() {
+        // The Android twin's PptxWriterTest has the same rows.
+        let triangle = Element.shape("triangle", w: 200, h: 100)
+        XCTAssertEqual(PptxExporter.presetGeometry(triangle), "<a:prstGeom prst=\"triangle\"><a:avLst/></a:prstGeom>")
+        var chevron = Element.shape("chevron", w: 200, h: 100)
+        ShapeGeometry.setting("notch", to: 0.25, on: &chevron)
+        // The point a quarter of the width, as a share of the shorter side.
+        XCTAssertEqual(PptxExporter.presetGeometry(chevron),
+                       "<a:prstGeom prst=\"chevron\"><a:avLst><a:gd name=\"adj\" fmla=\"val 50000\"/></a:avLst></a:prstGeom>")
+        var rounded = triangle
+        rounded.radius = 10
+        XCTAssertNil(PptxExporter.presetGeometry(rounded), "rounded, it is its outline")
+        XCTAssertNil(PptxExporter.presetGeometry(Element.shape("star-5")))
     }
 }

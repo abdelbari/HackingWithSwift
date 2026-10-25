@@ -1,23 +1,23 @@
 // The outlines of the library's straight-edged shapes built at the
-// element's own size, as the Android twin's ShapeGeometry builds them, so
-// Corner rounding stays circular however a shape is stretched and a star's
-// points, a polygon's sides, an arrow's head and shaft, a callout's tail and
-// a chevron's notch can be set (`shapeParams`). The same path draws on the
-// canvas, in the SVG and PDF, and in PowerPoint as a free-form shape; the
-// shared fixture shape-geometry.json holds rows of it.
+// element's own size, as the Android twin's ShapeGeometry builds them, rule
+// for rule, so Corner rounding stays circular however a shape is stretched
+// and a star's points, a polygon's sides, an arrow's head and shaft, a
+// callout's tail and a chevron's notch can be set (`shapeParams`). The same
+// path draws on the canvas, in the SVG and PDF, and in PowerPoint; the shared
+// fixture shape-geometry.json, read by both phones, holds rows of it and says
+// the rule in full.
 //
-// Each shape is a polygon in a 0…1 box, times the element's width and
-// height. Every vertex is filleted with a circular arc: its radius held to
+// Each shape is a polygon in a 0…100 box, each corner then times w/100 and
+// h/100. Every corner is filleted with a circular arc: its radius held to
 // half the shorter edge beside it, and how far the arc reaches along each
 // edge held to half that edge too, the radius taken down with it, so two
-// arcs never cross. A vertex where the outline runs straight on is left.
-// The curved shapes — circles, hearts, blobs and the thought bubble's body
-// — take no rounding; the thought bubble takes its tail.
+// arcs never cross. A corner where the outline runs straight on is left.
+// A polygon of an odd count has a corner straight up, of an even count a
+// flat top. The two callouts take no rounding: each is the library's path
+// with its tail's tip moved. Circles, hearts and blobs are not built here.
 //
-// At no rounding and every parameter its own, a shape is drawn from the
-// library's stored path, as a build without this draws it: the shape's id
-// is never changed, and only parameters that differ from the shape's own
-// are written.
+// The shape's id is never changed, and only parameters that differ from the
+// shape's own are written, so a build without this draws the stored path.
 
 import CoreGraphics
 import Foundation
@@ -30,6 +30,10 @@ enum ShapeGeometry {
         "tailX": 0...1, "tailY": 0...1.4, "notch": 0...0.5,
     ]
     static let wholeKeys: Set<String> = ["points", "sides"]
+
+    /// How near a parameter may be to its shape's own and still not be
+    /// written.
+    private static let same = 1e-9
 
     /// A star's points and how far in its inner corners sit, as a share of
     /// its outer radius: the stored stars' own.
@@ -45,21 +49,22 @@ enum ShapeGeometry {
         "arrow-double": (0.3, 0.24),
     ]
     /// How deep a chevron's or a ribbon's notch is, as a share of the width;
-    /// a tag's, half the height of its tip.
+    /// a tag's, half the height of its tip (0 a point, 0.5 square).
     private static let notches: [String: Double] = ["chevron": 0.3, "ribbon": 0.15, "tag": 0.15]
     /// Where a callout's tail ends, as shares of the box.
     private static let tails: [String: (x: Double, y: Double)] = ["speech": (0.2, 0.95), "thought": (0.08, 0.8)]
-    /// The rest of the straight-edged shapes, as stored.
+    /// The rest of the straight-edged shapes, their stored path's corners in
+    /// the 0…100 box.
     private static let fixed: [String: [CGPoint]] = [
-        "triangle": points([0.5, 0, 1, 1, 0, 1]),
-        "triangle-down": points([0, 0, 1, 0, 0.5, 1]),
-        "diamond": points([0.5, 0, 1, 0.5, 0.5, 1, 0, 0.5]),
-        "parallelogram": points([0.25, 0, 1, 0, 0.75, 1, 0, 1]),
-        "trapezoid": points([0.2, 0, 0.8, 0, 1, 1, 0, 1]),
-        "banner": points([0, 0, 1, 0, 1, 1, 0.5, 0.78, 0, 1]),
-        "cross": points([0.35, 0, 0.65, 0, 0.65, 0.35, 1, 0.35, 1, 0.65, 0.65, 0.65, 0.65, 1, 0.35, 1,
-                         0.35, 0.65, 0, 0.65, 0, 0.35, 0.35, 0.35]),
-        "lightning": points([0.6, 0, 0.15, 0.58, 0.42, 0.58, 0.32, 1, 0.85, 0.4, 0.55, 0.4]),
+        "triangle": points([50, 0, 100, 100, 0, 100]),
+        "triangle-down": points([0, 0, 100, 0, 50, 100]),
+        "diamond": points([50, 0, 100, 50, 50, 100, 0, 50]),
+        "parallelogram": points([25, 0, 100, 0, 75, 100, 0, 100]),
+        "trapezoid": points([20, 0, 80, 0, 100, 100, 0, 100]),
+        "banner": points([0, 0, 100, 0, 100, 100, 50, 78, 0, 100]),
+        "cross": points([35, 0, 65, 0, 65, 35, 100, 35, 100, 65, 65, 65, 65, 100, 35, 100,
+                         35, 65, 0, 65, 0, 35, 35, 35]),
+        "lightning": points([60, 0, 15, 58, 42, 58, 32, 100, 85, 40, 55, 40]),
     ]
 
     private static func points(_ xy: [Double]) -> [CGPoint] {
@@ -80,26 +85,26 @@ enum ShapeGeometry {
     }
 
     /// Whether Corner rounding rounds `id`: a straight-edged shape. The
-    /// rectangles round as they always have (CornerPatterns), and the curved
-    /// shapes not at all.
+    /// rectangles round as they always have (CornerPatterns), and the
+    /// callouts and curved shapes not at all.
     static func rounds(_ id: String) -> Bool {
-        id != "thought" && (fixed[id] != nil || !defaults(id).isEmpty)
+        tails[id] == nil && (fixed[id] != nil || !defaults(id).isEmpty)
     }
 
     /// Whether `id` is drawn here at all, rounded or shaped.
     static func builds(_ id: String) -> Bool {
-        rounds(id) || id == "thought"
+        rounds(id) || tails[id] != nil
     }
 
     /// Parameter `key` of shape `id`: as `params` sets it, held to its
-    /// range — whole for points and sides, a double arrow's head to half —
-    /// or the shape's own.
+    /// range — whole for points and sides (halves away from zero), a double
+    /// arrow's head to half — or the shape's own.
     static func value(_ id: String, _ params: [String: Double]?, _ key: String) -> Double {
         let own = defaults(id)[key] ?? 0
         var v = params?[key].flatMap { $0.isFinite ? $0 : nil } ?? own
-        if wholeKeys.contains(key) { v = v.rounded() }
         if let range = limits[key] { v = min(max(v, range.lowerBound), range.upperBound) }
         if id == "arrow-double" && key == "head" { v = min(v, 0.5) }
+        if wholeKeys.contains(key) { v = v.rounded() }
         return v
     }
 
@@ -110,132 +115,135 @@ enum ShapeGeometry {
         var out: [String: Double] = [:]
         for (key, own) in defaults(id) where params[key] != nil {
             let v = value(id, params, key)
-            if abs(v - own) > 1e-9 { out[key] = v }
+            if abs(v - own) > same { out[key] = v }
         }
         return out.isEmpty ? nil : out
     }
 
     // MARK: the outline
 
-    /// `id`'s polygon in a 0…1 box with `params`; nil for a shape that is
-    /// not one (a curve, the thought bubble, a rectangle, an icon).
+    /// `id`'s corners in the 0…100 box with `params`; nil for a shape that
+    /// is not a polygon (a callout, a curve, a rectangle, an icon). The
+    /// Android twin's polygon, number for number.
     static func unitPolygon(_ id: String, _ params: [String: Double]?) -> [CGPoint]? {
         if let shape = fixed[id] { return shape }
         if stars[id] != nil {
             let n = Int(value(id, params, "points"))
             let inner = value(id, params, "inner")
             return (0..<(2 * n)).map { k -> CGPoint in
-                let a = (-90 + Double(k) * 180 / Double(n)) * (Double.pi / 180)
-                let r = k % 2 == 0 ? 0.5 : 0.5 * inner
-                return CGPoint(x: 0.5 + r * cos(a), y: 0.5 + r * sin(a))
+                let a = -Double.pi / 2 + Double(k) * Double.pi / Double(n)
+                let r = k % 2 == 0 ? 50.0 : 50.0 * inner
+                return CGPoint(x: 50 + r * cos(a), y: 50 + r * sin(a))
             }
         }
         if polygons[id] != nil {
-            // A vertex at the top when the sides are odd, a flat top when even.
+            // A corner straight up when the sides are odd, a flat top when even.
             let n = Int(value(id, params, "sides"))
-            let start = n % 2 == 1 ? -90.0 : -90.0 + 180.0 / Double(n)
+            let start = n % 2 == 1 ? -Double.pi / 2 : -Double.pi / 2 + Double.pi / Double(n)
             return (0..<n).map { k -> CGPoint in
-                let a = (start + Double(k) * 360 / Double(n)) * (Double.pi / 180)
-                return CGPoint(x: 0.5 + 0.5 * cos(a), y: 0.5 + 0.5 * sin(a))
+                let a = start + 2 * Double.pi * Double(k) / Double(n)
+                return CGPoint(x: 50 + 50 * cos(a), y: 50 + 50 * sin(a))
             }
         }
-        if arrows[id] != nil { return arrow(id, head: value(id, params, "head"), shaft: value(id, params, "shaft")) }
+        if arrows[id] != nil { return arrow(id, head: value(id, params, "head") * 100, shaft: value(id, params, "shaft")) }
         if notches[id] != nil {
-            let n = value(id, params, "notch")
+            let n = value(id, params, "notch") * 100
             switch id {
-            case "chevron": return points([0, 0, 1 - n, 0, 1, 0.5, 1 - n, 1, 0, 1, n, 0.5])
-            case "ribbon": return points([0, 0.2, 1, 0.2, 1 - n, 0.5, 1, 0.8, 0, 0.8, n, 0.5])
-            default: return points([0, 0.5 - n, 0.6, 0, 1, 0, 1, 1, 0.6, 1, 0, 0.5 + n])
+            case "chevron": return points([0, 0, 100 - n, 0, 100, 50, 100 - n, 100, 0, 100, n, 50])
+            case "ribbon": return points([0, 20, 100, 20, 100 - n, 50, 100, 80, 0, 80, n, 50])
+            default: return points([0, 50 - n, 60, 0, 100, 0, 100, 100, 60, 100, 0, 50 + n])
             }
-        }
-        if id == "speech" {
-            // The body the top 70% of the box; the tail's base a fifth of the
-            // width, just right of its tip, kept on the body's foot.
-            let tx = value(id, params, "tailX"), ty = value(id, params, "tailY")
-            let b0 = min(max(tx + 0.05, 0.1), 0.7)
-            return points([0, 0, 1, 0, 1, 0.7, b0 + 0.2, 0.7, tx, ty, b0, 0.7, 0, 0.7])
         }
         return nil
     }
 
-    private static func arrow(_ id: String, head h: Double, shaft s: Double) -> [CGPoint] {
-        let a = 0.5 - s / 2, b = 0.5 + s / 2
+    /// An arrow pointing right, from its head's length (in the box's
+    /// units) and its shaft's share, turned for the others.
+    private static func arrow(_ id: String, head: Double, shaft: Double) -> [CGPoint] {
+        let lo = 50 - shaft * 50, hi = 50 + shaft * 50
+        let right = points([0, lo, 100 - head, lo, 100 - head, 10, 100, 50, 100 - head, 90, 100 - head, hi, 0, hi])
         switch id {
-        case "arrow-right": return points([0, a, 1 - h, a, 1 - h, 0.1, 1, 0.5, 1 - h, 0.9, 1 - h, b, 0, b])
-        case "arrow-left": return points([1, a, h, a, h, 0.1, 0, 0.5, h, 0.9, h, b, 1, b])
-        case "arrow-up": return points([a, 1, a, h, 0.1, h, 0.5, 0, 0.9, h, b, h, b, 1])
-        case "arrow-down": return points([a, 0, a, 1 - h, 0.1, 1 - h, 0.5, 1, 0.9, 1 - h, b, 1 - h, b, 0])
+        case "arrow-right": return right
+        case "arrow-left": return right.map { CGPoint(x: 100 - $0.x, y: $0.y) }
+        case "arrow-down": return right.map { CGPoint(x: $0.y, y: $0.x) }
+        case "arrow-up": return right.map { CGPoint(x: $0.y, y: 100 - $0.x) }
         default:
-            return points([0, 0.5, h, 0.15, h, a, 1 - h, a, 1 - h, 0.15, 1, 0.5, 1 - h, 0.85, 1 - h, b, h, b, h, 0.85])
+            return points([0, 50, head, 15, head, lo, 100 - head, lo, 100 - head, 15, 100, 50,
+                           100 - head, 85, 100 - head, hi, head, hi, head, 85])
         }
     }
 
     /// Shape `id`'s outline as SVG path data at `w` × `h`, every corner
     /// rounded by `radius` and its parameters `params` (see above); nil for
-    /// a shape not built here. A speech bubble with no radius rounds by a
-    /// tenth of its shorter side, as the stored one does.
+    /// a shape not built here. A callout ignores the radius.
     static func path(_ id: String, w: Double, h: Double, radius: Double, params: [String: Double]?) -> String? {
-        if id == "thought" { return thought(w: w, h: h, params: params) }
+        if tails[id] != nil { return callout(id, w: w, h: h, params: params) }
         guard let unit = unitPolygon(id, params) else { return nil }
-        let corners = unit.map { CGPoint(x: Double($0.x) * w, y: Double($0.y) * h) }
-        let r = id == "speech" && !(radius > 0) ? 0.1 * min(w, h) : radius
-        return filleted(corners, radius: r.isFinite ? r : 0)
+        let corners = unit.map { CGPoint(x: Double($0.x) * w / 100, y: Double($0.y) * h / 100) }
+        return filleted(corners, radius: radius.isFinite ? radius : 0)
     }
 
-    /// The thought bubble: an ellipse filling the top 70% of the box, and
-    /// its tail, from either side of the point of the ellipse facing the
-    /// tip (0.3 radians round each way) out to the tip.
-    private static func thought(w: Double, h: Double, params: [String: Double]?) -> String {
-        let tx = value("thought", params, "tailX") * w, ty = value("thought", params, "tailY") * h
-        let cx = 0.5 * w, cy = 0.35 * h, rx = 0.5 * w, ry = 0.35 * h
-        let theta = atan2(ry > 0 ? (ty - cy) / ry : 0, rx > 0 ? (tx - cx) / rx : 0)
-        func at(_ a: Double) -> String { "\(num(cx + rx * cos(a))) \(num(cy + ry * sin(a)))" }
-        return "M\(at(theta + 0.3))A\(num(rx)) \(num(ry)) 0 1 1 \(at(theta - 0.3))L\(num(tx)) \(num(ty))Z"
-    }
-
-    /// The closed polygon `corners`, each rounded (see above), as path data.
-    static func filleted(_ corners: [CGPoint], radius: Double) -> String {
-        func pt(_ p: CGPoint) -> String { "\(num(Double(p.x))) \(num(Double(p.y)))" }
-        let n = corners.count
-        guard n > 2 else { return "" }
-        guard radius > 0 else { return "M" + corners.map(pt).joined(separator: "L") + "Z" }
-        var rounded: [(enter: CGPoint, leave: CGPoint, r: Double, sweep: Int)] = []
-        for i in 0..<n {
-            let p = corners[i], prev = corners[(i + n - 1) % n], next = corners[(i + 1) % n]
-            let a = hypot(Double(p.x - prev.x), Double(p.y - prev.y))
-            let b = hypot(Double(next.x - p.x), Double(next.y - p.y))
-            guard a > 0, b > 0 else {
-                rounded.append((p, p, 0, 1))
-                continue
-            }
-            let ux = Double(prev.x - p.x) / a, uy = Double(prev.y - p.y) / a
-            let vx = Double(next.x - p.x) / b, vy = Double(next.y - p.y) / b
-            let theta = acos(min(max(ux * vx + uy * vy, -1), 1))
-            guard theta > 1e-6, Double.pi - theta > 1e-6 else {
-                rounded.append((p, p, 0, 1))
-                continue
-            }
-            let half = tan(theta / 2)
-            var r = min(radius, a / 2, b / 2)
-            var t = r / half
-            if t > min(a, b) / 2 {
-                t = min(a, b) / 2
-                r = t * half
-            }
-            let enter = CGPoint(x: Double(p.x) + ux * t, y: Double(p.y) + uy * t)
-            let leave = CGPoint(x: Double(p.x) + vx * t, y: Double(p.y) + vy * t)
-            // A turn clockwise on the page sweeps the arc clockwise.
-            let cross = Double(p.x - prev.x) * Double(next.y - p.y) - Double(p.y - prev.y) * Double(next.x - p.x)
-            rounded.append((enter, leave, r, cross > 0 ? 1 : 0))
+    /// A speech bubble's or round callout's outline at `w` × `h`: the
+    /// library's own path but for its tail's tip, where its parameters put
+    /// it.
+    private static func callout(_ id: String, w: Double, h: Double, params: [String: Double]?) -> String {
+        func at(_ x: Double, _ y: Double) -> String { pt(CGPoint(x: x * w / 100, y: y * h / 100)) }
+        let t = at(value(id, params, "tailX") * 100, value(id, params, "tailY") * 100)
+        if id == "speech" {
+            let top = "M\(at(10, 0))L\(at(90, 0))Q\(at(100, 0)) \(at(100, 10))L\(at(100, 60))Q\(at(100, 70)) \(at(90, 70))"
+            let tail = "L\(at(45, 70))L\(t)L\(at(25, 70))L\(at(10, 70))"
+            let back = "Q\(at(0, 70)) \(at(0, 60))L\(at(0, 10))Q\(at(0, 0)) \(at(10, 0))Z"
+            return top + tail + back
         }
-        var d = "M" + pt(rounded[0].leave)
-        for i in Array(1..<n) + [0] {
-            let c = rounded[i]
-            guard c.r > 0 else {
-                if i != 0 { d += "L" + pt(c.enter) }
+        let top = "M\(at(50, 0))C\(at(77, 0)) \(at(100, 15)) \(at(100, 35))C\(at(100, 55)) \(at(77, 70)) \(at(50, 70))"
+        let tail = "C\(at(43, 70)) \(at(36, 69)) \(at(30, 67))L\(t)L\(at(18, 60))"
+        let back = "C\(at(7, 53)) \(at(0, 45)) \(at(0, 35))C\(at(0, 15)) \(at(23, 0)) \(at(50, 0))Z"
+        return top + tail + back
+    }
+
+    private static func pt(_ p: CGPoint) -> String { "\(num(Double(p.x))),\(num(Double(p.y)))" }
+
+    /// The closed polygon `corners`, each rounded (see above), as path data:
+    /// a corner repeated is dropped; each corner written M (the first) or L
+    /// to where its arc starts, then A r,r 0 0 sweep to where it ends, or
+    /// just M or L to the corner when it is not rounded; then Z.
+    static func filleted(_ corners: [CGPoint], radius: Double) -> String {
+        var list: [CGPoint] = []
+        for p in corners where list.last != p { list.append(p) }
+        if list.count > 1, list.first == list.last { list.removeLast() }
+        let n = list.count
+        var d = ""
+        for i in 0..<n {
+            let v = list[i], prev = list[(i + n - 1) % n], next = list[(i + 1) % n]
+            let vx = Double(v.x), vy = Double(v.y)
+            let px = Double(prev.x), py = Double(prev.y), nx = Double(next.x), ny = Double(next.y)
+            let a = hypot(px - vx, py - vy)
+            let b = hypot(nx - vx, ny - vy)
+            let move = i == 0 ? "M" : "L"
+            var t = 0.0
+            var r = 0.0
+            if radius > 0, a > 0, b > 0 {
+                let cosine = min(max(((px - vx) * (nx - vx) + (py - vy) * (ny - vy)) / (a * b), -1), 1)
+                let half = tan(acos(cosine) / 2)
+                if half > 1e-9, half < 1e9 {
+                    let limit = min(a, b) / 2
+                    r = min(radius, limit)
+                    t = r / half
+                    if t > limit {
+                        t = limit
+                        r = t * half
+                    }
+                }
+            }
+            guard t > 0 else {
+                d += move + pt(v)
                 continue
             }
-            d += "L" + pt(c.enter) + "A" + num(c.r) + " " + num(c.r) + " 0 0 \(c.sweep) " + pt(c.leave)
+            let start = CGPoint(x: vx + (px - vx) / a * t, y: vy + (py - vy) / a * t)
+            let end = CGPoint(x: vx + (nx - vx) / b * t, y: vy + (ny - vy) / b * t)
+            // A turn clockwise on the page sweeps the arc clockwise.
+            let turn = (vx - px) * (ny - vy) - (vy - py) * (nx - vx)
+            d += move + pt(start) + "A" + num(r) + "," + num(r) + " 0 0 " + (turn > 0 ? "1" : "0") + " " + pt(end)
         }
         return d + "Z"
     }
@@ -250,20 +258,20 @@ enum ShapeGeometry {
     // MARK: on an element
 
     /// The library shape `el` is drawn from when its outline is built here:
-    /// a shape from the library (no drawn path), not a rectangle, rounded or
-    /// with a parameter of its own set. Nil draws the stored path.
+    /// a straight-edged shape or a callout from the library (no drawn path),
+    /// whatever its rounding and parameters, as the Android twin's pathOf.
+    /// Nil draws the stored path.
     static func builtId(_ el: Element) -> String? {
         guard el.type == .shape, el.pathData?.isEmpty ?? true, let id = el.shapeId,
               ContentLibrary.shapeMap[id] != nil, builds(id) else { return nil }
         return built(id, radius: el.radius ?? 0, params: el.shapeParams)
     }
 
-    /// `id` when a shape of it rounded by `radius` with `params` is built
-    /// here rather than drawn from the stored path.
+    /// `id` when a shape of it is built here rather than drawn from the
+    /// stored path: always, for one that builds — at its own rounding and
+    /// parameters it is the stored polygon.
     static func built(_ id: String, radius: Double, params: [String: Double]?) -> String? {
-        guard builds(id) else { return nil }
-        let rounded = rounds(id) && radius > 0
-        return rounded || kept(id, params) != nil ? id : nil
+        builds(id) ? id : nil
     }
 
     /// `el`'s outline at its own size, when it is built here.
@@ -284,13 +292,14 @@ enum ShapeGeometry {
     // MARK: handles
 
     /// The yellow handles a selected shape of `id` shows, in its box's units
-    /// (0…1 across and down): a star's inner corner, an arrow's head where
-    /// it meets the shaft, a callout's tail tip, a notch's point. None for a
+    /// (0…1 across and down): a star's first inner corner, an arrow's head
+    /// where it meets the shaft, a callout's tail tip, a notch's point (a
+    /// tag's tip's top corner). None for a
     /// polygon, whose sides are counted rather than dragged.
     static func handles(_ id: String, _ params: [String: Double]?) -> [CGPoint] {
         if stars[id] != nil {
             let n = value(id, params, "points"), inner = value(id, params, "inner")
-            let a = (-90 + 180 / n) * (Double.pi / 180)
+            let a = -Double.pi / 2 + Double.pi / n
             return [CGPoint(x: 0.5 + 0.5 * inner * cos(a), y: 0.5 + 0.5 * inner * sin(a))]
         }
         if arrows[id] != nil {
@@ -313,7 +322,10 @@ enum ShapeGeometry {
     }
 
     /// `params` with the handle of shape `id` dragged to `unit`, in its
-    /// box's units, each value held to its range.
+    /// box's units, each value held to its range: a star's inner radius its
+    /// distance from the middle over 0.5, an arrow's head and shaft from the
+    /// corner, a callout's tail tip there, a notch from its place (a tag's
+    /// 0.5 less how far down).
     static func dragged(_ id: String, _ params: [String: Double]?, to unit: CGPoint) -> [String: Double]? {
         let x = Double(unit.x), y = Double(unit.y)
         var out = params ?? [:]
@@ -332,7 +344,7 @@ enum ShapeGeometry {
             out["tailX"] = x
             out["tailY"] = y
         } else {
-            return params
+            return kept(id, params)
         }
         // Held to their ranges, and what is the shape's own dropped.
         var held = out
