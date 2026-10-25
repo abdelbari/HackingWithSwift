@@ -105,10 +105,41 @@ final class PresentClipsTests: XCTestCase {
     }
 
     func testAClipPlayedByHandHoldsAutoplay() {
-        XCTAssertFalse(Videos.playingByHand([:]))
-        XCTAssertFalse(Videos.playingByHand(["a": .init(state: .paused, anchor: 0, at: 0)]))
+        let a = clip(id: "a"), b = clip(id: "b")
+        let lengths = ["a": 10.0, "b": 10.0]
+        XCTAssertFalse(Videos.playingByHand([:], clips: [a, b], pageMoment: 1, durations: lengths))
+        XCTAssertFalse(Videos.playingByHand(["a": .init(state: .paused, anchor: 0, at: 0)], clips: [a, b],
+                                            pageMoment: 1, durations: lengths))
         XCTAssertTrue(Videos.playingByHand(["a": .init(state: .paused, anchor: 0, at: 0),
-                                            "b": .init(state: .playing, anchor: 0, at: 0)]))
+                                            "b": .init(state: .playing, anchor: 0, at: 0)], clips: [a, b],
+                                           pageMoment: 1, durations: lengths))
+    }
+
+    func testAClipPlayedByHandHoldsUntilPausedOrPlayedToItsEnd() {
+        let once = clip(ClipPlayback(start: 2, end: 6, loop: false))
+        let looping = clip(ClipPlayback(start: 2, end: 6, loop: true))
+        let untrimmed = clip(ClipPlayback(loop: false))
+        let played = Videos.Override(state: .playing, anchor: 3, at: 4)
+        let fromZero = Videos.Override(state: .playing, anchor: 0, at: 0)
+        // The rows the Android twin's VideosTest holds.
+        XCTAssertFalse(Videos.holding(once, override: nil, pageMoment: 5, duration: 10))
+        XCTAssertFalse(Videos.holding(once, override: .init(state: .paused, anchor: 3, at: 4), pageMoment: 5,
+                                      duration: 10))
+        XCTAssertTrue(Videos.holding(once, override: played, pageMoment: 5, duration: 10))
+        XCTAssertFalse(Videos.holding(once, override: played, pageMoment: 7, duration: 10))
+        XCTAssertTrue(Videos.holding(looping, override: played, pageMoment: 7, duration: 10))
+        XCTAssertTrue(Videos.holding(untrimmed, override: fromZero, pageMoment: 30, duration: nil))
+        XCTAssertTrue(Videos.holding(untrimmed, override: fromZero, pageMoment: 9.9, duration: 10))
+        XCTAssertFalse(Videos.holding(untrimmed, override: fromZero, pageMoment: 9.96, duration: 10))
+        // Moving: untouched as its Autoplay says; played to its end, still.
+        XCTAssertTrue(Videos.moving(once, override: nil, pageMoment: 5, duration: 10))
+        XCTAssertFalse(Videos.moving(clip(ClipPlayback(start: 2, end: 6, loop: false, autoplay: false)), override: nil,
+                                     pageMoment: 5, duration: 10))
+        XCTAssertFalse(Videos.moving(once, override: played, pageMoment: 7, duration: 10))
+        XCTAssertTrue(Videos.moving(once, override: played, pageMoment: 5, duration: 10))
+        // Played to its end, a tap plays it from its start.
+        XCTAssertEqual(Videos.toggled(once, override: played, pageMoment: 7, duration: 10),
+                       .init(state: .playing, anchor: 2, at: 7))
     }
 
     func testATapFindsTheFrontClip() {

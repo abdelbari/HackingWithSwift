@@ -65,13 +65,39 @@ enum Videos {
         return start...end
     }
 
+    /// Whether clip `el`, played by hand (`override`), is still playing
+    /// `pageMoment` seconds into its page — which holds the deck's autoplay
+    /// on the page. A clip that loops, or whose end is not known, plays on;
+    /// one that does not loop has stopped once it is within 0.05 s of its
+    /// end (its trim's, else its file's, the nearer), where presentTime
+    /// holds it on its last frame. Paused, or untouched: not held. The rule
+    /// both phones keep (the Android twin's Videos.holding).
+    static func holding(_ el: Element, override: Override?, pageMoment: Double, duration: Double?) -> Bool {
+        guard let override, override.state == .playing else { return false }
+        let clip = el.clip ?? ClipPlayback()
+        if clip.loop { return true }
+        guard let end = [clip.end, duration].compactMap({ $0 }).min() else { return true }
+        let now = presentTime(el, pageMoment: pageMoment, override: override, duration: duration)
+        return now < end - 0.05
+    }
+
+    /// Whether clip `el` is moving in Present: untouched, as its Autoplay
+    /// says; touched, while it is `holding` — so a clip played to its end
+    /// shows Play again, and plays from its start.
+    static func moving(_ el: Element, override: Override?, pageMoment: Double, duration: Double?) -> Bool {
+        guard override != nil else { return el.clip?.autoplay ?? true }
+        return holding(el, override: override, pageMoment: pageMoment, duration: duration)
+    }
+
     /// Play or Pause tapped on clip `el` at `pageMoment`: a moving clip
     /// pauses where it is; a still one plays on from there — from its start
     /// again when it does not loop and has come to its end, so a clip can
     /// be played again without leaving the page.
     static func toggled(_ el: Element, override: Override?, pageMoment: Double, duration: Double?) -> Override {
         let now = presentTime(el, pageMoment: pageMoment, override: override, duration: duration)
-        if moves(el, override: override) { return Override(state: .paused, anchor: now, at: pageMoment) }
+        if moving(el, override: override, pageMoment: pageMoment, duration: duration) {
+            return Override(state: .paused, anchor: now, at: pageMoment)
+        }
         let clip = el.clip ?? ClipPlayback()
         var from = now
         if !clip.loop, let range = trimRange(el, duration: duration), now >= range.upperBound - 0.05 {
@@ -85,13 +111,19 @@ enum Videos {
     static func scrubbed(_ el: Element, to seconds: Double, override: Override?, pageMoment: Double,
                          duration: Double?) -> Override {
         let kept = trimRange(el, duration: duration).map { min(max(seconds, $0.lowerBound), $0.upperBound) } ?? max(0, seconds)
-        return Override(state: moves(el, override: override) ? .playing : .paused, anchor: kept, at: pageMoment)
+        let on = moving(el, override: override, pageMoment: pageMoment, duration: duration)
+        return Override(state: on ? .playing : .paused, anchor: kept, at: pageMoment)
     }
 
-    /// Whether anything on the page is being played by hand, which holds
-    /// the deck's autoplay on it.
-    static func playingByHand(_ overrides: [String: Override]) -> Bool {
-        overrides.values.contains { $0.state == .playing }
+    /// Whether any of the page's `clips` is played by hand and still
+    /// playing `pageMoment` seconds in (`holding`), each a file as long as
+    /// `durations` says by element id when known — which holds the deck's
+    /// autoplay on it.
+    static func playingByHand(_ overrides: [String: Override], clips: [Element], pageMoment: Double,
+                              durations: [String: Double]) -> Bool {
+        clips.contains { el in
+            holding(el, override: overrides[el.id], pageMoment: pageMoment, duration: durations[el.id])
+        }
     }
 
     /// The clip at `point` among `elements` as drawn, the front one first;
