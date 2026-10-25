@@ -1265,9 +1265,6 @@ struct ImageElementView: View {
         return false
     }
 
-    /// Whether clarity or pixelate is made off the main thread: on screen
-    /// it is, the photo showing its last look meanwhile, and reading the
-    /// count of looks made draws it again when its own is ready.
     /// Whether the edge waits, on screen, for a mask with taps of Clear a
     /// colour to be made off the main thread; reading the count of masks
     /// made draws it again when the mask lands.
@@ -1277,6 +1274,9 @@ struct ImageElementView: View {
         return true
     }
 
+    /// Whether clarity or pixelate is made off the main thread: on screen
+    /// it is, the photo showing its last look meanwhile, and reading the
+    /// count of looks made draws it again when its own is ready.
     private func makesLookLater() -> Bool {
         guard onScreen, ImageFilterEngine.makesLater(element) else { return false }
         _ = ImageFilterEngine.looksBaked.version

@@ -597,6 +597,10 @@ enum TextOutliner {
                     let attributes = CTRunGetAttributes(run) as? [String: Any]
                     let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
                     let font = uiFont as CTFont
+                    // A raised or lowered word sits off its step by its
+                    // baselineOffset, which CoreText leaves to us — as the
+                    // Android twin lifts its run.
+                    let lift = Double(shift(of: run))
                     var glyphs = [CGGlyph](repeating: 0, count: count)
                     var positions = [CGPoint](repeating: .zero, count: count)
                     var advances = [CGSize](repeating: .zero, count: count)
@@ -604,7 +608,7 @@ enum TextOutliner {
                     CTRunGetPositions(run, CFRange(location: 0, length: count), &positions)
                     CTRunGetAdvances(run, CFRange(location: 0, length: count), &advances)
                     for i in 0..<count {
-                        let transform = CGAffineTransform(translationX: centreX - advance / 2 + positions[i].x, y: baselineY)
+                        let transform = CGAffineTransform(translationX: centreX - advance / 2 + positions[i].x, y: baselineY - lift)
                             .scaledBy(x: 1, y: -1)
                         let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil)
                         if let cluster = emoji(at: i, of: run, glyph: glyph, font: font, in: string, taken: &taken) {
