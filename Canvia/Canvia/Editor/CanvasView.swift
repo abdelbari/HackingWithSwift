@@ -21,6 +21,10 @@ struct CanvasView: View {
     /// "current" (PresentFrom), as the editor's own keys do.
     var onPresent: (String) -> Void = { _ in }
     @State private var gesture = GestureState()
+    /// Counts each photo-swap hold begun or left (holdSwap), so a hold's
+    /// timer that is no longer the latest does nothing — kept outside the
+    /// gesture, which each drag starts afresh, as LibraryDrag's `holding`.
+    @State private var swapHold = 0
     /// The edge scroll for drags on the canvas (ZoomableCanvas).
     @State private var edges = EdgeScroller()
     /// Where the last finger landed on the page, for a hold, which says
@@ -1374,13 +1378,30 @@ struct CanvasView: View {
             // shadow: at half of it the halo doubled the moment the finger
             // lifted. (Half is the SVG's sigma, not a SwiftUI radius.)
             let spread: Double = glow.map { $0.blur } ?? 0
-            Path(Freehand.cgPath(strokePoints))
-                .stroke(Color(hex: Freehand.drawnColor(tool)),
-                        style: StrokeStyle(lineWidth: Freehand.drawnWidth(tool), lineCap: .round, lineJoin: .round))
-                .blendMode(tool.pen == .highlighter ? .multiply : .normal)
-                .shadow(color: halo, radius: spread)
-                .opacity(Freehand.strokeOpacity(tool))
+            Group {
+                if let pressed = livePressed(tool) {
+                    pressed.fill(Color(hex: Freehand.drawnColor(tool)))
+                } else {
+                    Path(Freehand.cgPath(strokePoints))
+                        .stroke(Color(hex: Freehand.drawnColor(tool)),
+                                style: StrokeStyle(lineWidth: Freehand.drawnWidth(tool), lineCap: .round, lineJoin: .round))
+                }
+            }
+            .blendMode(tool.pen == .highlighter ? .multiply : .normal)
+            .shadow(color: halo, radius: spread)
+            .opacity(Freehand.strokeOpacity(tool))
         }
+    }
+
+    /// With Pressure on for the pen, the stroke so far as its finished
+    /// outline (Freehand.outline), so it does not change shape as the
+    /// finger lifts — as the Android twin's live stroke is drawn; nil
+    /// draws the centreline at the pen's width.
+    private func livePressed(_ tool: Freehand.Tool) -> Path? {
+        guard tool.pressure, strokeWidths.count == strokePoints.count,
+              let el = Freehand.element(points: strokePoints, widths: strokeWidths, tool: tool),
+              let outline = Freehand.outline(el) else { return nil }
+        return Path(SVGPath.parse(outline)).offsetBy(dx: el.x, dy: el.y)
     }
 
     /// What a blank page said before this was: nothing. A white square and a
@@ -2363,9 +2384,12 @@ struct CanvasView: View {
         guard gesture.swapCandidate != id else { return }
         gesture.swapCandidate = id
         if gesture.swapTarget != nil { gesture.swapTarget = nil }
+        // Moving off, or onto another photo, cancels the hold under way.
+        swapHold &+= 1
+        let mine = swapHold
         guard let id else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + DropFromLibrary.replaceHoldSeconds) {
-            if gesture.swapCandidate == id && gesture.dragActive { gesture.swapTarget = id }
+            if swapHold == mine && gesture.swapCandidate == id && gesture.dragActive { gesture.swapTarget = id }
         }
     }
 

@@ -114,6 +114,25 @@ final class ChartPercentTests: XCTestCase {
         XCTAssertTrue(series(column).allSatisfy { $0.x >= left })
     }
 
+    func testAHundredStacksXTitleSitsBelowItsScaleAcrossTheWholePlot() {
+        // The scale takes its strip off the plot without moving the axis
+        // titles: under a bar's ticks, centred under a column's whole
+        // width. The Android twin's ChartPercentTest, row for row.
+        for kind in [DataGraphics.ChartKind.stackedBar100, .stackedColumn100] {
+            var s = spec(kind, "Q, N, S\nA, 10, 30")
+            s.xTitle = "Share"
+            let els = made(s)
+            let titles = els.filter { $0.chartPart == "axisTitle" }
+            XCTAssertEqual(titles.count, 1)
+            guard let title = titles.first else { continue }
+            let ticks = els.filter { $0.chartPart == "axis" }
+            XCTAssertEqual(ticks.count, 5)
+            XCTAssertTrue(ticks.allSatisfy { title.y >= $0.y + $0.h - 1e-9 }, "\(kind)")
+            XCTAssertEqual(title.x, 100, accuracy: 1e-9)
+            XCTAssertEqual(title.w, 400, accuracy: 1e-9)
+        }
+    }
+
     func testTheSharedJsonRows() throws {
         let rows = try XCTUnwrap(SharedFixture.object("chart-percent")["json"] as? [[String: Any]])
         XCTAssertFalse(rows.isEmpty)
