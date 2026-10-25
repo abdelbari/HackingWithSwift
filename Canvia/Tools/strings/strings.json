@@ -7145,6 +7145,15 @@
     "ja": "背景、%@",
     "pt-BR": "Fundo, %@"
   },
+  "Backgrounds fill the new shape, side-by-side content stacks when it turns, and text stays readable.": {
+    "ar": "تملأ الخلفيات الشكل الجديد، ويتراص المحتوى المتجاور عند تغيّر الاتجاه، ويبقى النص مقروءًا.",
+    "de": "Hintergründe füllen das neue Format, Inhalte nebeneinander werden beim Drehen gestapelt, und Text bleibt lesbar.",
+    "es": "Los fondos llenan la nueva forma, el contenido lado a lado se apila al girar y el texto sigue legible.",
+    "fr": "Les arrière-plans remplissent la nouvelle forme, le contenu côte à côte s'empile quand elle pivote, et le texte reste lisible.",
+    "it": "Gli sfondi riempiono la nuova forma, i contenuti affiancati si impilano quando ruota e il testo resta leggibile.",
+    "ja": "背景が新しい形いっぱいに広がり、横並びの内容は向きが変わると縦に積まれ、文字は読みやすいまま保たれます。",
+    "pt-BR": "Os fundos preenchem o novo formato, o conteúdo lado a lado se empilha ao girar e o texto continua legível."
+  },
   "Backing up": {
     "ar": "جارٍ النسخ الاحتياطي",
     "de": "Wird gesichert",
@@ -17056,6 +17065,15 @@
     "it": "Mantieni la formattazione quando incolli",
     "ja": "貼り付け時に書式を保持",
     "pt-BR": "Manter a formatação ao colar"
+  },
+  "Keep layout": {
+    "ar": "الحفاظ على التخطيط",
+    "de": "Layout behalten",
+    "es": "Mantener diseño",
+    "fr": "Garder la mise en page",
+    "it": "Mantieni layout",
+    "ja": "レイアウトを保持",
+    "pt-BR": "Manter layout"
   },
   "Keep proportions": {
     "ar": "الحفاظ على النسب",
@@ -27832,6 +27850,15 @@
     "it": "Più piccolo, per le foto",
     "ja": "小さめ、写真向け",
     "pt-BR": "Menor, para fotos"
+  },
+  "Smart": {
+    "ar": "ذكي",
+    "de": "Smart",
+    "es": "Inteligente",
+    "fr": "Intelligent",
+    "it": "Smart",
+    "ja": "スマート",
+    "pt-BR": "Inteligente"
   },
   "Smileys": {
     "ar": "وجوه ضاحكة",

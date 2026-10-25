@@ -434,10 +434,11 @@ struct InsertSheet: View {
     }
 
     /// "Add as new page": page `index` of the template, fitted to this
-    /// page's size, on a new page after it — one Undo. A locked page does
-    /// not stop it: nothing is overwritten.
+    /// page's size as Resize's Smart mode fits it (Template.makeSmartPage),
+    /// on a new page after it — one Undo. A locked page does not stop it:
+    /// nothing is overwritten.
     private func addAsPage(_ template: Template, page index: Int) {
-        let page = template.makePage(at: index, width: store.pageWidth, height: store.pageHeight)
+        let page = template.makeSmartPage(at: index, width: store.pageWidth, height: store.pageHeight)
         store.addTemplatePage(page, name: template.name)
         RecentSearches.used(template.id)
         dismiss()

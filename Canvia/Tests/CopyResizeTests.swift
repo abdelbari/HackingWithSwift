@@ -1,5 +1,5 @@
-// Copy & resize: a new design per size, every id fresh, reflowed exactly as
-// Resize reflows in place, titled "<title> – <size>" under a name the shelf
+// Copy & resize: a new design per size, every id fresh, fitted exactly as
+// Resize's Smart mode fits it in place, titled "<title> – <size>" under a name the shelf
 // does not have — and the original never touched. Make a copy, from the
 // editor, is "<title> copy". The Android twin's rows.
 
@@ -57,12 +57,13 @@ final class CopyResizeTests: XCTestCase {
         XCTAssertEqual(original, before)
     }
 
-    /// Element for element what Resize's Reflow makes in place, ids aside.
-    func testTheCopysElementsEqualTheInPlaceReflow() throws {
+    /// Element for element what Resize's Smart mode makes in place, ids
+    /// aside.
+    func testTheCopysElementsEqualTheInPlaceSmartResize() throws {
         let original = source()
         let target = ResizeTarget.custom(width: 1600, height: 900, unit: "px")
         let copy = CopyResize.copy(of: original, to: target, title: "Spring sale – 1600 × 900")
-        let inPlace = DesignStore.reflowed(original, width: 1600, height: 900)
+        let inPlace = DesignStore.resized(original, width: 1600, height: 900, mode: .smart)
         XCTAssertEqual(copy.width, 1600)
         XCTAssertEqual(copy.height, 900)
         for (p, page) in copy.pages.enumerated() {

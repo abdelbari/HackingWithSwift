@@ -3518,24 +3518,7 @@ final class DesignStore {
     /// brought to the new size too, and each is cut into slides as the new
     /// size is (PageSplit.forSize). Pure; `magicResize` commits it.
     static func reflowed(_ design: Design, width: Double, height: Double) -> Design {
-        guard width > 0, height > 0 else { return design }
-        let new = CGSize(width: width, height: height)
-        var out = design
-        out.width = width
-        out.height = height
-        for p in out.pages.indices {
-            out.pages[p] = reflowedPage(design.pages[p], from: design.size(for: design.pages[p]), to: new)
-            out.pages[p].width = nil
-            out.pages[p].height = nil
-            out.pages[p].split = PageSplit.forSize(width: width, height: height)
-        }
-        let rx = width / max(design.width, 1), ry = height / max(design.height, 1)
-        out.guides = out.guides.map { g in
-            var g2 = g
-            g2.position = g.vertical ? g.position * rx : g.position * ry
-            return g2
-        }
-        return out
+        resized(design, width: width, height: height, mode: .reflow)
     }
 
     func magicResize(width: Double, height: Double) {

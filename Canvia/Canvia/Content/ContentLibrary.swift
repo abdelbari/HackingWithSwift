@@ -2,6 +2,7 @@
 // palettes, gradients, font pairings, sticker groups and procedural photo
 // specs. The JSON was generated and validated by the Canvia web build.
 
+import CoreGraphics
 import Foundation
 
 struct ShapeDef: Codable, Identifiable {
@@ -194,6 +195,22 @@ struct Template: Codable, Identifiable {
         let dx = (pageWidth - width * scale) / 2
         let dy = (pageHeight - height * scale) / 2
         return makePage(spec, scale: scale, dx: dx, dy: dy)
+    }
+
+    /// Page `index` of the template (the first when there is no such page)
+    /// laid onto a page of this size as Resize's Smart mode lays a page on
+    /// a new size (DesignStore.smartReflow): a backdrop covers the page,
+    /// bands keep their span, side-by-side content restacks and type stays
+    /// readable — "Add as new page" from the editor's Templates tab, as the
+    /// Android twin's instantiateSmart.
+    func makeSmartPage(at index: Int, width pageWidth: Double, height pageHeight: Double) -> Page {
+        let specs = pageSpecs
+        let spec = specs.indices.contains(index) ? specs[index] : specs[0]
+        let own = makePage(spec, scale: 1, dx: 0, dy: 0)
+        guard width > 0, height > 0 else { return own }
+        return DesignStore.smartReflow(own, from: CGSize(width: width, height: height),
+                                       to: CGSize(width: pageWidth, height: pageHeight),
+                                       heightFor: { FontLibrary.layoutHeight(for: $0) })
     }
 
     private func makePage(_ spec: TemplatePage, scale: Double, dx: Double, dy: Double) -> Page {

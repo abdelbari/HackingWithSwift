@@ -39368,6 +39368,59 @@
         }
       }
     },
+    "Backgrounds fill the new shape, side-by-side content stacks when it turns, and text stays readable." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تملأ الخلفيات الشكل الجديد، ويتراص المحتوى المتجاور عند تغيّر الاتجاه، ويبقى النص مقروءًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hintergründe füllen das neue Format, Inhalte nebeneinander werden beim Drehen gestapelt, und Text bleibt lesbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backgrounds fill the new shape, side-by-side content stacks when it turns, and text stays readable."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los fondos llenan la nueva forma, el contenido lado a lado se apila al girar y el texto sigue legible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les arrière-plans remplissent la nouvelle forme, le contenu côte à côte s'empile quand elle pivote, et le texte reste lisible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli sfondi riempiono la nuova forma, i contenuti affiancati si impilano quando ruota e il testo resta leggibile."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景が新しい形いっぱいに広がり、横並びの内容は向きが変わると縦に積まれ、文字は読みやすいまま保たれます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os fundos preenchem o novo formato, o conteúdo lado a lado se empilha ao girar e o texto continua legível."
+          }
+        }
+      }
+    },
     "Backing up" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -96894,6 +96947,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Manter a formatação ao colar"
+          }
+        }
+      }
+    },
+    "Keep layout" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الحفاظ على التخطيط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout behalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep layout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener diseño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garder la mise en page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni layout"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイアウトを保持"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manter layout"
           }
         }
       }
@@ -159806,6 +159912,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Menor, para fotos"
+          }
+        }
+      }
+    },
+    "Smart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ذكي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inteligente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intelligent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スマート"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inteligente"
           }
         }
       }
