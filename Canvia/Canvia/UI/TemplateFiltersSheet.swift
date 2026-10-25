@@ -1,6 +1,6 @@
 // Canva's Filters button for templates, on Home and in the Start sheet: a
-// sheet of colour dots, Animated, With photos, Single page or Set and a
-// Style, one at a time; what
+// sheet of colour dots, Animated, With photos, Single page or Set, a Style
+// and an Occasion, one at a time each; what
 // is set shows as chips with an X under the search; nothing found says so,
 // with Clear filters. The filter is kept for the session only
 // (TemplateFilter.session). The Android twin's TemplateFiltersSheet.
@@ -105,6 +105,10 @@ struct TemplateFiltersSheet: View {
                         .font(.headline)
                         .accessibilityAddTraits(.isHeader)
                     stylesRow
+                    Text("Occasion")
+                        .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
+                    occasionsRow
                     Button("Clear filters") { filter = TemplateFilter() }
                         .disabled(filter.isEmpty)
                 }
@@ -170,6 +174,20 @@ struct TemplateFiltersSheet: View {
                 ForEach(TemplateFilter.styles, id: \.self) { style in
                     toggleChip(TemplateFilter.styleName(style), on: filter.style == style) {
                         filter.style = filter.style == style ? nil : style
+                    }
+                }
+            }
+        }
+    }
+
+    /// The occasions of the seasonal templates, in the calendar's order,
+    /// one at a time.
+    private var occasionsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Occasions.all) { occasion in
+                    toggleChip(Occasions.name(occasion), on: filter.occasion == occasion.id) {
+                        filter.occasion = filter.occasion == occasion.id ? nil : occasion.id
                     }
                 }
             }

@@ -132,7 +132,7 @@ extension DesignLibrary {
         shelf.designs = entries.map { entry in
             RecentDesign(id: entry.id, title: entry.title, width: entry.width, height: entry.height,
                          pages: entry.pages, updatedAt: entry.updatedAt, folder: entry.folder,
-                         thumbnailStamp: stamps[entry.id], unit: entry.unit, dpi: entry.dpi,
+                         createdAt: entry.createdAt, thumbnailStamp: stamps[entry.id], unit: entry.unit, dpi: entry.dpi,
                          starred: entry.starred == true, text: entry.text ?? "", type: entry.type)
         }
         .sorted { $0.updatedAt > $1.updatedAt }

@@ -303,6 +303,7 @@ extension DesignLibrary {
         func inside(_ name: String) -> [RecentDesign] { designs.filter { isInside($0.folder, name) } }
         func newest(_ name: String) -> Double { inside(name).map(\.updatedAt).max() ?? 0 }
         func pages(_ name: String) -> Int { inside(name).reduce(0) { $0 + $1.pages } }
+        func made(_ name: String) -> Double { inside(name).map(\.createdAt).max() ?? 0 }
         switch sort {
         case .recent:
             return names.sorted { newest($0) > newest($1) }
@@ -310,6 +311,11 @@ extension DesignLibrary {
             return names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         case .largest:
             return names.sorted { pages($0) != pages($1) ? pages($0) > pages($1) : newest($0) > newest($1) }
+        case .created:
+            // By the newest made inside, a tie by name.
+            return names.sorted {
+                made($0) != made($1) ? made($0) > made($1) : $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+            }
         }
     }
 

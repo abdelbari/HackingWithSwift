@@ -88,12 +88,20 @@ struct HomeView: View {
     @State private var renaming: RecentDesign?
     @State private var renameText = ""
     @State private var query = ""
+    /// The query a corrected search was asked to search as typed instead
+    /// ("Search instead for …").
+    @State private var searchAsTyped: String?
+    /// Settings ▸ Home's "Show seasonal ideas": the Coming up row.
+    @AppStorage(Occasions.seasonalKey) private var homeSeasonal = true
     /// Whether the search field has the keyboard: empty, it offers the
     /// searches and templates of late (RecentSearchRows).
     @FocusState private var searchFocused: Bool
     @AppStorage(RecentSearches.searchesKey) private var recentSearchesText = ""
     @AppStorage(RecentSearches.templatesKey) private var recentTemplatesText = ""
     @State private var sort = DesignLibrary.Sort.recent
+    /// The designs as cards or as rows (HomeLayout), kept on this phone.
+    @AppStorage(HomeLayout.key) private var homeLayout = HomeLayout.grid
+    private var asList: Bool { HomeLayout.isList(homeLayout) }
     /// The Type and Edited chips under the search.
     @State private var typeFilter = DesignLibrary.TypeFilter.all
     @State private var editedFilter = DesignLibrary.Edited.any
@@ -245,6 +253,9 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 20) {
                 Group {
                     hero
+                    // What is coming up — Halloween, Black Friday — and its
+                    // templates, under the sizes.
+                    comingUpPart
                     // An automatic backup that could not run, until the
                     // folder is chosen again in Settings (AutoBackups).
                     AutoBackupBanner { homeSheet = .settings }
@@ -264,6 +275,7 @@ struct HomeView: View {
                             .font(.title3.weight(.bold))
                         Spacer()
                         sortMenu
+                        layoutToggle
                     }
                     .padding(.horizontal)
                     // All, Starred, Uploads, then the folders.
@@ -296,6 +308,9 @@ struct HomeView: View {
             }
             .padding(.bottom, 40)
         }
+        // Template search's words, gathered off the main thread before the
+        // first search needs them.
+        .task { await Task.detached(priority: .utility) { TemplateSearch.warm() }.value }
         // Was a hardcoded near-white, which in dark mode left primary-coloured
         // text — white by then — on an almost white page.
         .background(Theme.workspace)
@@ -310,11 +325,11 @@ struct HomeView: View {
         // An export still running — from the editor, or asked for here; a
         // tap opens its design.
         .overlay(alignment: .bottom) {
-            ExportPill {
+            ExportPill(onTap: {
                 if let id = ExportQueue.shared.current?.designId, let design = DesignLibrary.load(id: id) {
                     onOpen(design)
                 }
-            }
+            }, onStorage: { homeSheet = .settings })
             .padding(.bottom, 12)
         }
         .overlay { if openingFile { OpeningDesignCard() } }
@@ -636,8 +651,23 @@ struct HomeView: View {
         .padding(.horizontal)
     }
 
+    /// What a search finds of the templates, forgiving plurals, synonyms,
+    /// colours and typos (TemplateSearch) — as typed, once "Search instead"
+    /// is asked; nil with nothing searched. Remembered, so the reads of a
+    /// pass search once.
+    private var templateSearch: TemplateSearch.Result? {
+        guard !searchedFor.isEmpty else { return nil }
+        let recent = RecentSearches.decode(recentTemplatesText, limit: RecentSearches.templateLimit, searches: false)
+        return TemplateSearch.remembered(query, filter: templateFilter, recent: Set(recent), correct: searchAsTyped != query)
+    }
+
     private var shownTemplates: [Template] {
-        let found = ContentLibrary.filteredTemplates(in: templateCategory, matching: query, facets: templateFilter)
+        let found: [Template]
+        if let searched = templateSearch {
+            found = searched.templates.filter { templateCategory == nil || $0.category == templateCategory }
+        } else {
+            found = ContentLibrary.filteredTemplates(in: templateCategory, matching: "", facets: templateFilter)
+        }
         // What Canvia is used for leads, browsing everything.
         let browsing = templateCategory == nil && query.trimmingCharacters(in: .whitespaces).isEmpty
         let ordered = browsing ? UseProfile.templatesFirst(use, found) { $0.category } : found
@@ -867,7 +897,9 @@ struct HomeView: View {
         let here = uploadFolders.filter { $0 == path }.count
         return VStack(alignment: .leading, spacing: 10) {
             FolderBreadcrumb(path: path) { folder = $0 }
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+            // Rows with a chevron in the list view.
+            LazyVGrid(columns: asList ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 150), spacing: 10)],
+                      spacing: 10) {
                 ForEach(DesignLibrary.children(folders, of: path), id: \.self) { child in folderTile(child) }
             }
             if here > 0 {
@@ -885,8 +917,11 @@ struct HomeView: View {
         let count = DesignLibrary.designs(recents, in: path, recursive: true).count
             + uploadFolders.filter { DesignLibrary.isInside($0, path) }.count
         let starred = starredFolders.contains(path)
-        return FolderTile(path: path, count: count, starred: starred,
-                          onOpen: { folder = path },
+        return FolderTile(path: path, count: count, starred: starred, chevron: asList,
+                          onOpen: {
+                              starredOnly = false
+                              folder = path
+                          },
                           onStar: {
                               DesignLibrary.setFolderStarred(path, !starred)
                               starredFolders = DesignLibrary.starredFolders()
@@ -921,11 +956,19 @@ struct HomeView: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
         } else {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
-                ForEach(starred.folders, id: \.self) { name in folderCard(name) }
-                ForEach(starred.designs) { recent in designCard(recent) }
+            if asList {
+                LazyVStack(spacing: 8) {
+                    ForEach(starred.folders, id: \.self) { name in folderTile(name) }
+                    ForEach(starred.designs) { recent in designRow(recent) }
+                }
+                .padding(.horizontal)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+                    ForEach(starred.folders, id: \.self) { name in folderCard(name) }
+                    ForEach(starred.designs) { recent in designCard(recent) }
+                }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
         }
     }
 
@@ -1068,7 +1111,35 @@ struct HomeView: View {
     private var searchPart: some View {
         VStack(alignment: .leading, spacing: 16) {
             searchBar
+            // Ways to finish the word being typed, above the recent searches.
+            if searchFocused && !searchedFor.isEmpty {
+                let completions = TemplateSearch.completions(query)
+                if !completions.isEmpty { CompletionRows(completions: completions) { query = $0 } }
+            }
             if searchFocused && query.trimmingCharacters(in: .whitespaces).isEmpty { recentSearchPart }
+        }
+    }
+
+    /// The nearest occasion coming up and its templates, while nothing is
+    /// searched and Settings ▸ Home shows seasonal ideas; nil otherwise.
+    private var comingUp: (title: String, id: String, templates: [Template])? {
+        guard homeSeasonal, searchedFor.isEmpty, let next = Occasions.upcoming().first else { return nil }
+        let seasonal = Occasions.templates(next.occasion.id, use: use)
+        guard !seasonal.isEmpty else { return nil }
+        return (Occasions.comingUp(next), next.occasion.id, seasonal)
+    }
+
+    /// "Coming up: Halloween · 6 days" and its templates; See all shows
+    /// the templates filtered by the occasion.
+    @ViewBuilder
+    private var comingUpPart: some View {
+        if let next = comingUp {
+            ComingUpRow(title: next.title, templates: next.templates, onSeeAll: {
+                templateCategory = nil
+                yoursOnly = false
+                filterSession.filter = TemplateFilter(occasion: next.id)
+            }, onTemplate: { previewing = $0 })
+            .padding(.top, 4)
         }
     }
 
@@ -1101,6 +1172,19 @@ struct HomeView: View {
             Label(sort.label, systemImage: "arrow.up.arrow.down")
                 .font(.subheadline)
         }
+    }
+
+    /// Your designs as a grid of cards or as rows, remembered on this
+    /// phone.
+    private var layoutToggle: some View {
+        Button {
+            homeLayout = asList ? HomeLayout.grid : HomeLayout.list
+        } label: {
+            Image(systemName: asList ? "square.grid.2x2" : "list.bullet")
+                .font(.subheadline.weight(.semibold))
+                .frame(width: 44, height: 44)
+        }
+        .accessibilityLabel(HomeLayout.toggleLabel(showingList: asList))
     }
 
     // MARK: trash
@@ -1449,10 +1533,14 @@ struct HomeView: View {
     // MARK: recents
 
     private var recentsGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+        // A list view's rows span the width; a damaged design stays a card.
+        LazyVGrid(columns: asList ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 150), spacing: 14)],
+                  spacing: asList ? 8 : 14) {
             ForEach(shownRecents) { recent in
                 if recent.damaged {
                     if selecting { pickableDamagedCard(recent) } else { damagedCard(recent) }
+                } else if asList {
+                    designRow(recent)
                 } else {
                     designCard(recent)
                 }
@@ -1479,13 +1567,29 @@ struct HomeView: View {
         }
     }
 
+    /// A design tapped: picked in Select, else opened.
+    private func tapped(_ recent: RecentDesign) {
+        if selecting {
+            toggle(recent)
+        } else if let design = DesignLibrary.load(id: recent.id) {
+            onOpen(design)
+        }
+    }
+
+    /// A design as a row of the list view, with the card's own menu; swiped
+    /// left to Recently deleted, right to its star.
+    private func designRow(_ recent: RecentDesign) -> some View {
+        DesignRow(recent: recent, snippet: snippet(for: recent), selecting: selecting,
+                  picked: picked.contains(recent.id), highlighted: highlighted.contains(recent.id),
+                  onTap: { tapped(recent) },
+                  onDelete: { trash([recent]) },
+                  onStar: { star([recent], !recent.starred) })
+            .contextMenu { designMenu(recent) }
+    }
+
     private func designCard(_ recent: RecentDesign) -> some View {
         Button {
-            if selecting {
-                toggle(recent)
-            } else if let design = DesignLibrary.load(id: recent.id) {
-                onOpen(design)
-            }
+            tapped(recent)
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 ShelfThumbnail(id: recent.id, stamp: recent.thumbnailStamp)
@@ -1524,43 +1628,47 @@ struct HomeView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(cardLabel(recent))
         .accessibilityValue(pickedValue(recent))
-        .contextMenu {
-            if !selecting {
-                Button {
-                    renameText = recent.title
-                    renaming = recent
-                } label: { Label("Rename", systemImage: "pencil") }
-                Button {
-                    duplicate([recent])
-                } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
-                Button {
-                    star([recent], !recent.starred)
-                } label: {
-                    Label(recent.starred ? tr("Remove from starred") : tr("Add to starred"),
-                          systemImage: recent.starred ? "star.slash" : "star")
-                }
-                Button {
-                    copyResizing = DesignLibrary.load(id: recent.id)
-                } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
-                // A new Doc of its words; none for a Doc.
-                if recent.type != Docs.presetId {
-                    Button {
-                        turningIntoDoc = recent
-                    } label: { Label("Turn into a Doc", systemImage: "doc.text") }
-                }
-                Section { shareItems(recent) }
-                Button {
-                    filing = FilingRequest(designs: [recent])
-                } label: { Label("Move to folder…", systemImage: "folder") }
-                if supportsMultipleWindows {
-                    Button {
-                        openWindow(value: recent.id)
-                    } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
-                }
-                Button(role: .destructive) {
-                    trash([recent])
-                } label: { Label("Delete", systemImage: "trash") }
+        .contextMenu { designMenu(recent) }
+    }
+
+    /// A design's hold menu, on its card or its row; none in Select.
+    @ViewBuilder
+    private func designMenu(_ recent: RecentDesign) -> some View {
+        if !selecting {
+            Button {
+                renameText = recent.title
+                renaming = recent
+            } label: { Label("Rename", systemImage: "pencil") }
+            Button {
+                duplicate([recent])
+            } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+            Button {
+                star([recent], !recent.starred)
+            } label: {
+                Label(recent.starred ? tr("Remove from starred") : tr("Add to starred"),
+                      systemImage: recent.starred ? "star.slash" : "star")
             }
+            Button {
+                copyResizing = DesignLibrary.load(id: recent.id)
+            } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
+            // A new Doc of its words; none for a Doc.
+            if recent.type != Docs.presetId {
+                Button {
+                    turningIntoDoc = recent
+                } label: { Label("Turn into a Doc", systemImage: "doc.text") }
+            }
+            Section { shareItems(recent) }
+            Button {
+                filing = FilingRequest(designs: [recent])
+            } label: { Label("Move to folder…", systemImage: "folder") }
+            if supportsMultipleWindows {
+                Button {
+                    openWindow(value: recent.id)
+                } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
+            }
+            Button(role: .destructive) {
+                trash([recent])
+            } label: { Label("Delete", systemImage: "trash") }
         }
     }
 
@@ -1792,7 +1900,9 @@ struct HomeView: View {
     private func share(_ designs: [RecentDesign], as format: HomeExports.Format) {
         let ids = designs.map(\.id)
         guard !ids.isEmpty else { return }
-        HomeExports.enqueue(ids, as: format, settings: HomeExports.settings(exportLast), queue: ExportQueue.shared)
+        let titles = Dictionary(designs.map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first })
+        HomeExports.enqueue(ids, as: format, settings: HomeExports.settings(exportLast), queue: ExportQueue.shared,
+                            titles: titles)
         stopSelecting()
     }
 
@@ -1922,6 +2032,10 @@ struct HomeView: View {
             // The templates used lately lead the templates, under All.
             if showsRecentTemplates {
                 RecentTemplatesRow(templates: recentTemplates) { previewing = $0 }
+            }
+            // A search corrected for a typo, and the way to search as typed.
+            if let corrected = templateSearch?.correctedTo {
+                CorrectedSearch(corrected: corrected, typed: query) { searchAsTyped = query }
             }
             if templateCategory == nil {
                 BrandTemplatesRow(kit: brandKit, entries: shownUserTemplates, tileWidth: 160,

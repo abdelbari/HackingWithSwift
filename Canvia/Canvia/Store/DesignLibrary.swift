@@ -12,6 +12,9 @@ struct RecentDesign: Identifiable, Sendable {
     var pages: Int
     var updatedAt: Double
     var folder: String? = nil
+    /// When it was made (Design.createdAt), in epoch milliseconds, for
+    /// Sort's Date created; 0 when not known.
+    var createdAt: Double = 0
     /// When the card's picture was last written, in epoch milliseconds, or
     /// nil when there is none. The picture itself is read as its card
     /// shows, not with the list: building every one up front was most of
@@ -220,12 +223,16 @@ enum DesignLibrary {
 
     enum Sort: String, CaseIterable, Identifiable {
         case recent, name, largest
+        /// Newest made first; a tie goes by title, as Name sorts them — the
+        /// Android twin's Shelf.Sort.CREATED.
+        case created
         var id: String { rawValue }
         var label: String {
             switch self {
             case .recent: return tr("Last edited")
             case .name: return tr("Name")
             case .largest: return tr("Most pages")
+            case .created: return tr("Date created")
             }
         }
     }
@@ -272,6 +279,11 @@ enum DesignLibrary {
             }
         case .largest:
             return matched.sorted { $0.pages != $1.pages ? $0.pages > $1.pages : $0.updatedAt > $1.updatedAt }
+        case .created:
+            return matched.sorted {
+                $0.createdAt != $1.createdAt ? $0.createdAt > $1.createdAt
+                    : $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+            }
         }
     }
 

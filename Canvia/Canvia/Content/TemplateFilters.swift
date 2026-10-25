@@ -45,17 +45,28 @@ struct TemplateFacets: Codable, Equatable {
 /// empty filter lets every one through. `colors` lets through a template
 /// with ANY of them (the simplest rule: each dot picked adds its
 /// templates); `animated` and `photo` a template that is, or is not;
-/// `multiPage` a set of several pages (true) or a single page (false); and
-/// `style` a template of that style — one at a time, the simplest rule.
+/// `multiPage` a set of several pages (true) or a single page (false);
+/// `style` a template of that style — one at a time, the simplest rule; and
+/// `occasion` a template for that occasion (Occasions), one at a time too.
 struct TemplateFilter: Equatable {
     var colors: Set<String> = []
     var animated: Bool?
     var photo: Bool?
     var multiPage: Bool?
     var style: String?
+    var occasion: String?
 
-    var isEmpty: Bool { colors.isEmpty && animated == nil && photo == nil && multiPage == nil && style == nil }
+    var isEmpty: Bool {
+        colors.isEmpty && animated == nil && photo == nil && multiPage == nil && style == nil && occasion == nil
+    }
 
+    /// Whether `template` passes, its occasion among the rest.
+    func admits(template: Template) -> Bool {
+        admits(template.shownFacets) && (occasion == nil || template.occasion == occasion)
+    }
+
+    /// Whether `facets` pass — every choice but the occasion, which is the
+    /// template's own (see `admits(template:)`).
     func admits(_ facets: TemplateFacets) -> Bool {
         (colors.isEmpty || facets.colors.contains { colors.contains($0) })
             && (animated == nil || facets.animated == animated)
@@ -73,7 +84,8 @@ struct TemplateFilter: Equatable {
     }
 
     /// The chips for what is set, in the sheet's order: each colour, then
-    /// Animated, With photos, Single page or Set, then the style.
+    /// Animated, With photos, Single page or Set, then the style, then the
+    /// occasion.
     var chips: [Chip] {
         var out: [Chip] = []
         for c in Self.allColors where colors.contains(c) {
@@ -100,6 +112,11 @@ struct TemplateFilter: Equatable {
             var rest = self
             rest.style = nil
             out.append(Chip(label: Self.styleName(style), without: rest))
+        }
+        if let occasion {
+            var rest = self
+            rest.occasion = nil
+            out.append(Chip(label: Occasions.byId(occasion).map(Occasions.name) ?? occasion, without: rest))
         }
         return out
     }

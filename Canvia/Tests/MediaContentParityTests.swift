@@ -73,10 +73,8 @@ final class MediaContentParityTests: XCTestCase {
         guard let first = ContentLibrary.templates.first else { return XCTFail("no templates") }
         let found = ContentLibrary.editorTemplates(width: 1, height: 1, everySize: true, matching: first.category)
         XCTAssertTrue(found.contains { $0.id == first.id })
-        XCTAssertTrue(found.allSatisfy {
-            $0.name.localizedCaseInsensitiveContains(first.category)
-                || $0.category.localizedCaseInsensitiveContains(first.category)
-        })
+        // Found as Home finds them (TemplateSearch), in its order.
+        XCTAssertEqual(found.map(\.id), TemplateSearch.search(first.category).templates.map(\.id))
     }
 
     // MARK: shapes

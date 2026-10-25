@@ -1,0 +1,16 @@
+[
+ {"today": "2026-10-25", "locale": "en-US", "expected": ["halloween", "diwali", "black-friday", "christmas"], "days": [6, 14, 33, 61]},
+ {"today": "2026-12-20", "locale": "en-US", "expected": ["christmas", "new-year"], "days": [5, 12]},
+ {"today": "2027-01-20", "locale": "en-US", "expected": ["lunar-new-year", "valentines"], "days": [17, 25]},
+ {"today": "2026-03-14", "locale": "en-US", "expected": ["st-patricks", "eid"], "days": [3, 6]},
+ {"today": "2026-03-15", "locale": "en-US", "expected": ["st-patricks", "eid", "easter"], "days": [2, 5, 21]},
+ {"today": "2027-03-01", "locale": "en-US", "expected": ["eid", "st-patricks"], "days": [9, 16]},
+ {"today": "2027-03-01", "locale": "en-GB", "expected": ["mothers-day", "eid", "st-patricks"], "days": [6, 9, 16]},
+ {"today": "2027-04-20", "locale": "en-US", "expected": ["mothers-day"], "days": [19]},
+ {"today": "2027-04-20", "locale": "en-GB", "expected": [], "days": []},
+ {"today": "2026-06-01", "locale": "en-US", "expected": ["graduation", "fathers-day"], "days": [14, 20]},
+ {"today": "2026-09-20", "locale": "en-US", "expected": [], "days": []},
+ {"today": "2026-09-20", "locale": "en-CA", "expected": ["thanksgiving"], "days": [22]},
+ {"today": "2026-10-31", "locale": "en-US", "expected": ["halloween", "diwali", "thanksgiving", "black-friday", "christmas"], "days": [0, 8, 26, 27, 55]},
+ {"today": "2035-12-30", "locale": "en-US", "expected": ["new-year"], "days": [2]}
+]

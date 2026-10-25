@@ -2435,6 +2435,39 @@
       "other": "há %d dias"
     }
   },
+  "%d day|%d days": {
+    "ar": {
+      "few": "%d أيام",
+      "many": "%d يومًا",
+      "one": "%d يوم",
+      "other": "%d يوم",
+      "two": "%d يومان",
+      "zero": "%d يوم"
+    },
+    "de": {
+      "one": "%d Tag",
+      "other": "%d Tage"
+    },
+    "es": {
+      "one": "%d día",
+      "other": "%d días"
+    },
+    "fr": {
+      "one": "%d jour",
+      "other": "%d jours"
+    },
+    "it": {
+      "one": "%d giorno",
+      "other": "%d giorni"
+    },
+    "ja": {
+      "other": "%d日"
+    },
+    "pt-BR": {
+      "one": "%d dia",
+      "other": "%d dias"
+    }
+  },
   "%d deleted design|%d deleted designs": {
     "ar": {
       "few": "%d تصاميم محذوفة",
@@ -4793,6 +4826,15 @@
     "ja": "9 枚モザイク",
     "pt-BR": "Mosaico de 9"
   },
+  "A Coming up row of templates for the next occasion, like Halloween or Diwali.": {
+    "ar": "صف «قريبًا» بقوالب للمناسبة القادمة، مثل الهالوين أو ديوالي.",
+    "de": "Eine Demnächst-Zeile mit Vorlagen für den nächsten Anlass, etwa Halloween oder Diwali.",
+    "es": "Una fila Próximamente con plantillas para la próxima ocasión, como Halloween o Diwali.",
+    "fr": "Une rangée Bientôt avec des modèles pour la prochaine occasion, comme Halloween ou Diwali.",
+    "it": "Una riga In arrivo con modelli per la prossima occasione, come Halloween o Diwali.",
+    "ja": "ハロウィンやディワリなど、次のイベントのテンプレートを「もうすぐ」の列に表示します。",
+    "pt-BR": "Uma linha Em breve com modelos para a próxima ocasião, como Halloween ou Diwali."
+  },
   "A QR code is used whole, so it can't be cropped.": {
     "ar": "يُستخدم رمز QR كاملًا، لذا لا يمكن اقتصاصه.",
     "de": "Ein QR-Code wird vollständig verwendet und kann daher nicht zugeschnitten werden.",
@@ -4999,6 +5041,24 @@
     "it": "A o an (inglese)",
     "ja": "A と an（英語）",
     "pt-BR": "A ou an (inglês)"
+  },
+  "A photo or clip is missing.": {
+    "ar": "توجد صورة أو مقطع مفقود.",
+    "de": "Ein Foto oder Clip fehlt.",
+    "es": "Falta una foto o un clip.",
+    "fr": "Une photo ou un clip manque.",
+    "it": "Manca una foto o una clip.",
+    "ja": "写真またはクリップが見つかりません。",
+    "pt-BR": "Falta uma foto ou um clipe."
+  },
+  "A photo or clip on page %d is missing.": {
+    "ar": "توجد صورة أو مقطع مفقود في الصفحة %d.",
+    "de": "Auf Seite %d fehlt ein Foto oder Clip.",
+    "es": "Falta una foto o un clip en la página %d.",
+    "fr": "Une photo ou un clip manque à la page %d.",
+    "it": "Manca una foto o una clip a pagina %d.",
+    "ja": "%dページの写真またはクリップが見つかりません。",
+    "pt-BR": "Falta uma foto ou um clipe na página %d."
   },
   "A photo takes up to 4 adjusted areas. Delete one to add another.": {
     "ar": "تقبل الصورة حتى 4 مناطق معدّلة. احذف واحدة لإضافة أخرى.",
@@ -7223,6 +7283,15 @@
     "ja": "背景、%@",
     "pt-BR": "Fundo, %@"
   },
+  "Backgrounds fill the new shape, side-by-side content stacks when it turns, and text stays readable.": {
+    "ar": "تملأ الخلفيات الشكل الجديد، ويتراص المحتوى المتجاور عند تغيّر الاتجاه، ويبقى النص مقروءًا.",
+    "de": "Hintergründe füllen das neue Format, Inhalte nebeneinander werden beim Drehen gestapelt, und Text bleibt lesbar.",
+    "es": "Los fondos llenan la nueva forma, el contenido lado a lado se apila al girar y el texto sigue legible.",
+    "fr": "Les arrière-plans remplissent la nouvelle forme, le contenu côte à côte s'empile quand elle pivote, et le texte reste lisible.",
+    "it": "Gli sfondi riempiono la nuova forma, i contenuti affiancati si impilano quando ruota e il testo resta leggibile.",
+    "ja": "背景が新しい形いっぱいに広がり、横並びの内容は向きが変わると縦に積まれ、文字は読みやすいまま保たれます。",
+    "pt-BR": "Os fundos preenchem o novo formato, o conteúdo lado a lado se empilha ao girar e o texto continua legível."
+  },
   "Backing up": {
     "ar": "جارٍ النسخ الاحتياطي",
     "de": "Wird gesichert",
@@ -7447,6 +7516,15 @@
     "it": "Ultra grassetto",
     "ja": "ブラック",
     "pt-BR": "Ultranegrito"
+  },
+  "Black Friday": {
+    "ar": "الجمعة السوداء",
+    "de": "Black Friday",
+    "es": "Black Friday",
+    "fr": "Black Friday",
+    "it": "Black Friday",
+    "ja": "ブラックフライデー",
+    "pt-BR": "Black Friday"
   },
   "Black on white, with room round it, so it scans. Change what it says, its colours and its margin later from Edit.": {
     "ar": "أسود على أبيض، مع مساحة حوله، ليمكن مسحه. غيّر محتواه وألوانه وهامشه لاحقًا من «تعديل».",
@@ -9131,6 +9209,15 @@
     "ja": "選択…",
     "pt-BR": "Escolher…"
   },
+  "Christmas": {
+    "ar": "عيد الميلاد",
+    "de": "Weihnachten",
+    "es": "Navidad",
+    "fr": "Noël",
+    "it": "Natale",
+    "ja": "クリスマス",
+    "pt-BR": "Natal"
+  },
   "Circle": {
     "ar": "دائرة",
     "de": "Kreis",
@@ -9607,6 +9694,15 @@
     "it": "Le colonne si dividono la pagina entro il margine, con lo spazio tra di loro. Nessuna riga aggiunge solo colonne.",
     "ja": "列はマージンの内側でページを分け合い、間に段間を挟みます。行なしにすると列だけが追加されます。",
     "pt-BR": "As colunas dividem a página dentro da margem, com o espaçamento entre elas. Sem linhas, só adiciona colunas."
+  },
+  "Coming up: %@ · %@": {
+    "ar": "قريبًا: %@ · %@",
+    "de": "Demnächst: %@ · %@",
+    "es": "Próximamente: %@ · %@",
+    "fr": "Bientôt : %@ · %@",
+    "it": "In arrivo: %@ · %@",
+    "ja": "もうすぐ：%@ · %@",
+    "pt-BR": "Em breve: %@ · %@"
   },
   "Compact numbers": {
     "ar": "أرقام مختصرة",
@@ -11141,6 +11237,15 @@
     "ja": "日付",
     "pt-BR": "Data"
   },
+  "Date created": {
+    "ar": "تاريخ الإنشاء",
+    "de": "Erstellungsdatum",
+    "es": "Fecha de creación",
+    "fr": "Date de création",
+    "it": "Data di creazione",
+    "ja": "作成日",
+    "pt-BR": "Data de criação"
+  },
   "Decimals": {
     "ar": "المنازل العشرية",
     "de": "Dezimalstellen",
@@ -12113,6 +12218,15 @@
     "ja": "区切り線",
     "pt-BR": "Divisores"
   },
+  "Diwali": {
+    "ar": "ديوالي",
+    "de": "Diwali",
+    "es": "Diwali",
+    "fr": "Diwali",
+    "it": "Diwali",
+    "ja": "ディワリ",
+    "pt-BR": "Diwali"
+  },
   "Doc": {
     "ar": "مستند",
     "de": "Doc",
@@ -12986,6 +13100,15 @@
     "ja": "以前",
     "pt-BR": "Anteriores"
   },
+  "Easter": {
+    "ar": "عيد الفصح",
+    "de": "Ostern",
+    "es": "Pascua",
+    "fr": "Pâques",
+    "it": "Pasqua",
+    "ja": "イースター",
+    "pt-BR": "Páscoa"
+  },
   "Echo": {
     "ar": "صدى",
     "de": "Echo",
@@ -13184,6 +13307,15 @@
     "ja": "編集日",
     "pt-BR": "Editado"
   },
+  "Edited %@": {
+    "ar": "عُدّل %@",
+    "de": "Bearbeitet %@",
+    "es": "Editado %@",
+    "fr": "Modifié %@",
+    "it": "Modificato %@",
+    "ja": "編集：%@",
+    "pt-BR": "Editado %@"
+  },
   "Edited: %@": {
     "ar": "آخر تعديل: %@",
     "de": "Bearbeitet: %@",
@@ -13237,6 +13369,15 @@
     "it": "Effetti",
     "ja": "エフェクト",
     "pt-BR": "Efeitos"
+  },
+  "Eid al-Fitr": {
+    "ar": "عيد الفطر",
+    "de": "Eid al-Fitr",
+    "es": "Eid al-Fitr",
+    "fr": "Aïd al-Fitr",
+    "it": "Eid al-Fitr",
+    "ja": "イード・アル＝フィトル",
+    "pt-BR": "Eid al-Fitr"
   },
   "Elapsed %@": {
     "ar": "المنقضي %@",
@@ -14222,6 +14363,15 @@
     "ja": "フェードアウト",
     "pt-BR": "Desaparecer gradualmente"
   },
+  "Father's Day": {
+    "ar": "عيد الأب",
+    "de": "Vatertag",
+    "es": "Día del Padre",
+    "fr": "Fête des pères",
+    "it": "Festa del papà",
+    "ja": "父の日",
+    "pt-BR": "Dia dos Pais"
+  },
   "Favourite": {
     "ar": "مفضّل",
     "de": "Favorit",
@@ -15041,6 +15191,15 @@
     "ja": "自由",
     "pt-BR": "Livre"
   },
+  "Free up space, or clear caches in Settings": {
+    "ar": "حرّر مساحة أو امسح ذاكرة التخزين المؤقت في الإعدادات",
+    "de": "Gib Speicher frei oder leere die Caches in den Einstellungen",
+    "es": "Libera espacio o borra las cachés en Ajustes",
+    "fr": "Libérez de l'espace ou videz les caches dans Réglages",
+    "it": "Libera spazio o svuota le cache in Impostazioni",
+    "ja": "空き容量を増やすか、設定でキャッシュを消去してください",
+    "pt-BR": "Libere espaço ou limpe os caches em Configurações"
+  },
   "French": {
     "ar": "الفرنسية",
     "de": "Französisch",
@@ -15461,6 +15620,15 @@
     "ja": "グラデーション",
     "pt-BR": "Degradês"
   },
+  "Graduation": {
+    "ar": "التخرج",
+    "de": "Abschluss",
+    "es": "Graduación",
+    "fr": "Remise des diplômes",
+    "it": "Laurea",
+    "ja": "卒業",
+    "pt-BR": "Formatura"
+  },
   "Grain": {
     "ar": "حبيبات",
     "de": "Körnung",
@@ -15694,6 +15862,15 @@
     "it": "Mezzitoni",
     "ja": "ハーフトーン",
     "pt-BR": "Meio-tom"
+  },
+  "Halloween": {
+    "ar": "الهالوين",
+    "de": "Halloween",
+    "es": "Halloween",
+    "fr": "Halloween",
+    "it": "Halloween",
+    "ja": "ハロウィン",
+    "pt-BR": "Halloween"
   },
   "Hand-drawn frames": {
     "ar": "إطارات مرسومة باليد",
@@ -16952,6 +17129,15 @@
     "ja": "動画の終了後に始まるため、聞こえません。",
     "pt-BR": "Começa depois que o vídeo termina, então não é ouvido."
   },
+  "It's too large to make at this size.": {
+    "ar": "إنه كبير جدًا لإنشائه بهذا الحجم.",
+    "de": "Es ist zu groß, um es in dieser Größe zu erstellen.",
+    "es": "Es demasiado grande para crearlo a este tamaño.",
+    "fr": "C'est trop grand pour être créé à cette taille.",
+    "it": "È troppo grande per crearlo a queste dimensioni.",
+    "ja": "このサイズでは大きすぎて作成できません。",
+    "pt-BR": "É grande demais para criar neste tamanho."
+  },
   "Italian": {
     "ar": "الإيطالية",
     "de": "Italienisch",
@@ -17170,6 +17356,15 @@
     "it": "Mantieni la formattazione quando incolli",
     "ja": "貼り付け時に書式を保持",
     "pt-BR": "Manter a formatação ao colar"
+  },
+  "Keep layout": {
+    "ar": "الحفاظ على التخطيط",
+    "de": "Layout behalten",
+    "es": "Mantener diseño",
+    "fr": "Garder la mise en page",
+    "it": "Mantieni layout",
+    "ja": "レイアウトを保持",
+    "pt-BR": "Manter layout"
   },
   "Keep original": {
     "ar": "الاحتفاظ بالأصل",
@@ -18161,6 +18356,15 @@
     "ja": "輝度",
     "pt-BR": "Luminosidade"
   },
+  "Lunar New Year": {
+    "ar": "رأس السنة القمرية",
+    "de": "Mondneujahr",
+    "es": "Año Nuevo Lunar",
+    "fr": "Nouvel An lunaire",
+    "it": "Capodanno lunare",
+    "ja": "旧正月",
+    "pt-BR": "Ano-Novo Lunar"
+  },
   "Luxury": {
     "ar": "فخامة",
     "de": "Luxus",
@@ -19127,6 +19331,15 @@
     "ja": "主に%@の写真",
     "pt-BR": "Foto principalmente %@"
   },
+  "Mother's Day": {
+    "ar": "عيد الأم",
+    "de": "Muttertag",
+    "es": "Día de la Madre",
+    "fr": "Fête des mères",
+    "it": "Festa della mamma",
+    "ja": "母の日",
+    "pt-BR": "Dia das Mães"
+  },
   "Motion": {
     "ar": "الحركة",
     "de": "Bewegung",
@@ -19894,6 +20107,15 @@
     "it": "Nuova storia Instagram",
     "ja": "新しい Instagram ストーリー",
     "pt-BR": "Novo story do Instagram"
+  },
+  "New Year": {
+    "ar": "رأس السنة",
+    "de": "Neujahr",
+    "es": "Año Nuevo",
+    "fr": "Nouvel An",
+    "it": "Capodanno",
+    "ja": "お正月",
+    "pt-BR": "Ano-Novo"
   },
   "New brand kit": {
     "ar": "مجموعة علامة تجارية جديدة",
@@ -21388,6 +21610,15 @@
     "it": "Oggetti",
     "ja": "物",
     "pt-BR": "Objetos"
+  },
+  "Occasion": {
+    "ar": "المناسبة",
+    "de": "Anlass",
+    "es": "Ocasión",
+    "fr": "Occasion",
+    "it": "Occasione",
+    "ja": "イベント",
+    "pt-BR": "Ocasião"
   },
   "Octagon": {
     "ar": "ثماني",
@@ -25547,6 +25778,15 @@
     "ja": "レトロ",
     "pt-BR": "Retrô"
   },
+  "Retry these": {
+    "ar": "إعادة محاولة هذه",
+    "de": "Diese erneut versuchen",
+    "es": "Reintentar estos",
+    "fr": "Réessayer ceux-ci",
+    "it": "Riprova questi",
+    "ja": "これらを再試行",
+    "pt-BR": "Tentar estes de novo"
+  },
   "Review": {
     "ar": "مراجعة",
     "de": "Prüfen",
@@ -26539,6 +26779,15 @@
     "it": "Cerca nell’aiuto",
     "ja": "ヘルプを検索",
     "pt-BR": "Pesquisar na ajuda"
+  },
+  "Search instead for “%@”": {
+    "ar": "البحث عن «%@» بدلاً من ذلك",
+    "de": "Stattdessen nach „%@“ suchen",
+    "es": "Buscar «%@» en su lugar",
+    "fr": "Rechercher plutôt « %@ »",
+    "it": "Cerca invece «%@»",
+    "ja": "代わりに「%@」で検索",
+    "pt-BR": "Pesquisar “%@” em vez disso"
   },
   "Search layers": {
     "ar": "البحث في الطبقات",
@@ -27656,6 +27905,24 @@
     "ja": "%d 件すべてを表示",
     "pt-BR": "Mostrar todos os %d"
   },
+  "Show as grid": {
+    "ar": "عرض كشبكة",
+    "de": "Als Raster anzeigen",
+    "es": "Ver como cuadrícula",
+    "fr": "Afficher en grille",
+    "it": "Mostra come griglia",
+    "ja": "グリッドで表示",
+    "pt-BR": "Ver em grade"
+  },
+  "Show as list": {
+    "ar": "عرض كقائمة",
+    "de": "Als Liste anzeigen",
+    "es": "Ver como lista",
+    "fr": "Afficher en liste",
+    "it": "Mostra come elenco",
+    "ja": "リストで表示",
+    "pt-BR": "Ver em lista"
+  },
   "Show distances": {
     "ar": "إظهار المسافات",
     "de": "Abstände anzeigen",
@@ -27791,6 +28058,15 @@
     "ja": "読み上げ順序を表示",
     "pt-BR": "Mostrar ordem de leitura"
   },
+  "Show seasonal ideas": {
+    "ar": "إظهار أفكار المواسم",
+    "de": "Saisonale Ideen anzeigen",
+    "es": "Mostrar ideas de temporada",
+    "fr": "Afficher les idées de saison",
+    "it": "Mostra idee stagionali",
+    "ja": "季節のアイデアを表示",
+    "pt-BR": "Mostrar ideias sazonais"
+  },
   "Show the editor's tips again": {
     "ar": "إظهار نصائح المحرر مرة أخرى",
     "de": "Tipps des Editors erneut anzeigen",
@@ -27835,6 +28111,15 @@
     "it": "Originale visualizzato",
     "ja": "元の写真を表示中",
     "pt-BR": "Mostrando o original"
+  },
+  "Showing results for “%@”": {
+    "ar": "عرض نتائج «%@»",
+    "de": "Ergebnisse für „%@“",
+    "es": "Mostrando resultados de «%@»",
+    "fr": "Résultats pour « %@ »",
+    "it": "Risultati per «%@»",
+    "ja": "「%@」の検索結果を表示しています",
+    "pt-BR": "Mostrando resultados para “%@”"
   },
   "Showing the design as it is": {
     "ar": "يُعرض التصميم كما هو",
@@ -28235,6 +28520,15 @@
     "ja": "小さめ、写真向け",
     "pt-BR": "Menor, para fotos"
   },
+  "Smart": {
+    "ar": "ذكي",
+    "de": "Smart",
+    "es": "Inteligente",
+    "fr": "Intelligent",
+    "it": "Smart",
+    "ja": "スマート",
+    "pt-BR": "Inteligente"
+  },
   "Smileys": {
     "ar": "وجوه ضاحكة",
     "de": "Smileys",
@@ -28450,6 +28744,15 @@
     "it": "Impossibile importare alcune parti di questo SVG",
     "ja": "この SVG の一部を取り込めませんでした",
     "pt-BR": "Algumas partes deste SVG não puderam ser importadas"
+  },
+  "Something went wrong.": {
+    "ar": "حدث خطأ ما.",
+    "de": "Etwas ist schiefgelaufen.",
+    "es": "Algo salió mal.",
+    "fr": "Un problème est survenu.",
+    "it": "Qualcosa è andato storto.",
+    "ja": "問題が発生しました。",
+    "pt-BR": "Algo deu errado."
   },
   "Sort by": {
     "ar": "الترتيب حسب",
@@ -28747,6 +29050,15 @@
     "it": "Squircle",
     "ja": "スクワークル",
     "pt-BR": "Squircle"
+  },
+  "St Patrick's Day": {
+    "ar": "عيد القديس باتريك",
+    "de": "St. Patrick's Day",
+    "es": "Día de San Patricio",
+    "fr": "Saint-Patrick",
+    "it": "San Patrizio",
+    "ja": "聖パトリックの日",
+    "pt-BR": "Dia de São Patrício"
   },
   "Stacked bar": {
     "ar": "شريطي مكدّس",
@@ -29161,6 +29473,15 @@
     "it": "Non usare più questa pagina come master",
     "ja": "このページをマスターとして使うのをやめる",
     "pt-BR": "Deixar de usar esta página como mestre"
+  },
+  "Stopped": {
+    "ar": "تم الإيقاف",
+    "de": "Angehalten",
+    "es": "Detenido",
+    "fr": "Arrêté",
+    "it": "Interrotto",
+    "ja": "停止しました",
+    "pt-BR": "Interrompido"
   },
   "Storage": {
     "ar": "التخزين",
@@ -29996,6 +30317,15 @@
     "ja": "テクスチャ",
     "pt-BR": "Texturas"
   },
+  "Thanksgiving": {
+    "ar": "عيد الشكر",
+    "de": "Thanksgiving",
+    "es": "Acción de Gracias",
+    "fr": "Thanksgiving",
+    "it": "Ringraziamento",
+    "ja": "感謝祭",
+    "pt-BR": "Dia de Ação de Graças"
+  },
   "That PDF is locked with a password": {
     "ar": "ملف PDF هذا مقفل بكلمة مرور",
     "de": "Diese PDF ist mit einem Passwort geschützt",
@@ -30746,6 +31076,15 @@
     "ja": "1 つのバックアップに収めるには多すぎます。",
     "pt-BR": "Há coisa demais para caber em um só backup."
   },
+  "There isn't enough space on this phone.": {
+    "ar": "لا توجد مساحة كافية على هذا الهاتف.",
+    "de": "Auf diesem Telefon ist nicht genug Speicherplatz.",
+    "es": "No hay espacio suficiente en este teléfono.",
+    "fr": "Il n'y a pas assez d'espace sur ce téléphone.",
+    "it": "Non c'è abbastanza spazio su questo telefono.",
+    "ja": "このスマートフォンの空き容量が足りません。",
+    "pt-BR": "Não há espaço suficiente neste telefone."
+  },
   "There isn't room on this phone to restore that backup.": {
     "ar": "لا توجد مساحة كافية على هذا الهاتف لاستعادة تلك النسخة الاحتياطية.",
     "de": "Auf diesem Telefon ist nicht genug Platz, um diese Sicherung wiederherzustellen.",
@@ -31186,6 +31525,15 @@
     "it": "Il controllo ortografico di questo telefono è disattivato. Attivalo in Impostazioni, in Sistema, Lingue, Controllo ortografico (quello usato dalla tastiera) e verifica di nuovo.",
     "ja": "このスマートフォンのスペルチェッカーがオフです。設定の「システム」>「言語」>「スペルチェッカー」（キーボードで使用しているもの）でオンにしてから、もう一度チェックしてください。",
     "pt-BR": "O corretor ortográfico deste celular está desativado. Ative-o em Configurações, em Sistema, Idiomas, Corretor ortográfico — o que o seu teclado usa — e verifique de novo."
+  },
+  "This phone's video encoder couldn't make it.": {
+    "ar": "تعذّر على مشفّر الفيديو في هذا الهاتف إنشاؤه.",
+    "de": "Der Video-Encoder dieses Telefons konnte es nicht erstellen.",
+    "es": "El codificador de vídeo de este teléfono no pudo crearlo.",
+    "fr": "L'encodeur vidéo de ce téléphone n'a pas pu le créer.",
+    "it": "Il codificatore video di questo telefono non è riuscito a crearlo.",
+    "ja": "このスマートフォンのビデオエンコーダーでは作成できませんでした。",
+    "pt-BR": "O codificador de vídeo deste telefone não conseguiu criá-lo."
   },
   "This photo can't be opened, so it can't be adjusted.": {
     "ar": "تعذّر فتح هذه الصورة، لذا لا يمكن ضبطها.",
@@ -31888,6 +32236,24 @@
     "it": "Riprova",
     "ja": "もう一度試す",
     "pt-BR": "Tentar de novo"
+  },
+  "Try at %@": {
+    "ar": "جرّب بدقة %@",
+    "de": "In %@ versuchen",
+    "es": "Probar a %@",
+    "fr": "Essayer en %@",
+    "it": "Prova a %@",
+    "ja": "%@で試す",
+    "pt-BR": "Tentar em %@"
+  },
+  "Try at 1×": {
+    "ar": "جرّب بحجم 1×",
+    "de": "In 1× versuchen",
+    "es": "Probar a 1×",
+    "fr": "Essayer à 1×",
+    "it": "Prova a 1×",
+    "ja": "1×で試す",
+    "pt-BR": "Tentar em 1×"
   },
   "Try:": {
     "ar": "جرّب:",
@@ -32962,6 +33328,15 @@
     "it": "Usato nel tuo Brand Kit.",
     "ja": "ブランドキットで使用中です。",
     "pt-BR": "Usado no seu kit de marca."
+  },
+  "Valentine's Day": {
+    "ar": "عيد الحب",
+    "de": "Valentinstag",
+    "es": "San Valentín",
+    "fr": "Saint-Valentin",
+    "it": "San Valentino",
+    "ja": "バレンタインデー",
+    "pt-BR": "Dia dos Namorados"
   },
   "Valley": {
     "ar": "وادٍ",
@@ -34621,6 +34996,15 @@
     "it": "slide modificabili",
     "ja": "編集可能なスライド",
     "pt-BR": "slides editáveis"
+  },
+  "edited %@": {
+    "ar": "عُدّل %@",
+    "de": "bearbeitet %@",
+    "es": "editado %@",
+    "fr": "modifié %@",
+    "it": "modificato %@",
+    "ja": "編集：%@",
+    "pt-BR": "editado %@"
   },
   "elegant": {
     "ar": "أنيق",

@@ -37,6 +37,9 @@ struct InsertSheet: View {
     /// Every template, fitted to this page, rather than only those made for
     /// its size.
     @State private var everySizeTemplates = false
+    /// The templates used lately (RecentSearches), which a search ranks
+    /// higher, as on Home.
+    @AppStorage(RecentSearches.templatesKey) private var recentTemplatesText = ""
     /// A built-in template of several pages, while its pages are shown.
     @State private var templateSet: Template?
     /// A template, while its preview is up.
@@ -337,7 +340,8 @@ struct InsertSheet: View {
         // only a search nothing at all answers is said to be empty.
         case "Templates":
             return ContentLibrary.editorTemplates(width: store.pageWidth, height: store.pageHeight,
-                                                  everySize: true, matching: search).isEmpty
+                                                  everySize: true, matching: search,
+                                                  recent: recentTemplateIds).isEmpty
                 && UserTemplates.matching(UserTemplates.all(), query: search).isEmpty
         case "Photos": return filteredPhotos.isEmpty
         // The Videos tab says it in Android's words, under its heading.
@@ -363,6 +367,11 @@ struct InsertSheet: View {
                     .toggleStyle(.button)
                     .tint(Theme.accent)
                     .font(.subheadline)
+            }
+            // A search corrected for a typo says what it searched.
+            if let corrected = correctedTemplateSearch {
+                Text(TemplateSearch.showingFor(corrected))
+                    .font(.footnote)
             }
             Text(filteredTemplates.isEmpty
                  ? tr("No template is called that, or is of that kind.")
@@ -431,10 +440,11 @@ struct InsertSheet: View {
     }
 
     /// "Add as new page": page `index` of the template, fitted to this
-    /// page's size, on a new page after it — one Undo. A locked page does
-    /// not stop it: nothing is overwritten.
+    /// page's size as Resize's Smart mode fits it (Template.makeSmartPage),
+    /// on a new page after it — one Undo. A locked page does not stop it:
+    /// nothing is overwritten.
     private func addAsPage(_ template: Template, page index: Int) {
-        let page = template.makePage(at: index, width: store.pageWidth, height: store.pageHeight)
+        let page = template.makeSmartPage(at: index, width: store.pageWidth, height: store.pageHeight)
         store.addTemplatePage(page, name: template.name)
         RecentSearches.used(template.id)
         dismiss()
@@ -486,9 +496,22 @@ struct InsertSheet: View {
         ContentLibrary.sizedTemplates(width: store.pageWidth, height: store.pageHeight, category: nil)
     }
 
+    /// The templates used lately, which a search ranks 1 higher.
+    private var recentTemplateIds: Set<String> {
+        Set(RecentSearches.decode(recentTemplatesText, limit: RecentSearches.templateLimit, searches: false))
+    }
+
+    /// What a search was corrected to, when its own words found nothing:
+    /// the same remembered search the templates shown come from.
+    private var correctedTemplateSearch: String? {
+        let needle = search.trimmingCharacters(in: .whitespaces)
+        return needle.isEmpty ? nil : TemplateSearch.remembered(needle, recent: recentTemplateIds).correctedTo
+    }
+
     private var filteredTemplates: [Template] {
         ContentLibrary.editorTemplates(width: store.pageWidth, height: store.pageHeight,
-                                       everySize: everySizeTemplates, matching: search)
+                                       everySize: everySizeTemplates, matching: search,
+                                       recent: recentTemplateIds)
     }
 
     // MARK: shapes + lines

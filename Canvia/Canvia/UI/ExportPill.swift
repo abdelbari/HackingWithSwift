@@ -11,6 +11,9 @@ struct ExportPill: View {
     /// A tap on the pill: the editor opens the Export sheet on its progress,
     /// Home the design being exported.
     var onTap: () -> Void
+    /// A failure for want of space: Settings, whose Storage clears caches.
+    /// None, and the row says so without the way there.
+    var onStorage: (() -> Void)? = nil
     private var queue: ExportQueue { ExportQueue.shared }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -20,6 +23,10 @@ struct ExportPill: View {
                 running(job)
             } else if let clip = ClipOptimiser.shared.running {
                 optimising(clip)
+            } else if let failed = queue.failedExports.first {
+                // Nothing running: the last export that failed, kept to try
+                // again.
+                FailedExportRow(entry: failed, onStorage: onStorage)
             } else if let note = queue.note {
                 said(note)
             }
@@ -124,6 +131,70 @@ struct ExportPill: View {
             try? await Task.sleep(for: .seconds(ToastTiming.tip(voiceOver: UIAccessibility.isVoiceOverRunning)))
             if queue.note == note { queue.note = nil }
         }
+    }
+}
+
+/// An export that failed, in the pill's place: what failed and why — a
+/// batch's designs that failed listed under it — with Try again (Retry
+/// these, for a batch) and, when there is one, the smaller try it suggests
+/// ("Try at 1×"), or for a phone out of space a way to Settings' Storage.
+/// It stays until tried again or let go with its X, as the Android twin's
+/// FailedExportRow.
+private struct FailedExportRow: View {
+    let entry: ExportQueue.Failed
+    var onStorage: (() -> Void)?
+    private var queue: ExportQueue { ExportQueue.shared }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(entry.message)
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(Array(entry.titles.enumerated()), id: \.offset) { _, title in
+                    Text("• " + title).font(.caption).lineLimit(1)
+                }
+                if noSpace {
+                    Text(ExportFailure.freeUpSpace).font(.caption).foregroundStyle(.secondary)
+                }
+                buttons
+            }
+            Button {
+                queue.dismissFailed(entry.id)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityLabel("Dismiss")
+        }
+        // Several lines and buttons: a card rather than the capsule.
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .padding(.horizontal)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .accessibilityElement(children: .contain)
+        .onAppear { AccessibilityNotification.Announcement(entry.message).post() }
+    }
+
+    private var noSpace: Bool { entry.failure.kind == .noSpace }
+
+    private var buttons: some View {
+        HStack(spacing: 14) {
+            Button(entry.titles.isEmpty ? ExportFailure.tryAgain : ExportFailure.retryThese) {
+                queue.retry(entry.id)
+            }
+            if let suggestion = entry.suggestion {
+                Button(suggestion.label) { queue.retry(entry.id, smaller: true) }
+            }
+            if noSpace, let onStorage {
+                Button(ExportFailure.openSettings) { onStorage() }
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(Theme.accent)
     }
 }
 

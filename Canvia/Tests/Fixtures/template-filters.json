@@ -89,7 +89,7 @@
   "cases": [
     {
       "filter": {},
-      "count": 1009,
+      "count": 1177,
       "first": [
         "mega-sale-post",
         "neon-nights-story",
@@ -104,7 +104,7 @@
           "blue"
         ]
       },
-      "count": 153,
+      "count": 178,
       "first": [
         "cards-bold-split",
         "documents-gold-seal-certificate",
@@ -120,7 +120,7 @@
           "brown"
         ]
       },
-      "count": 123,
+      "count": 138,
       "first": [
         "mega-sale-post",
         "flyers-coffee-shop-opening",
@@ -133,7 +133,7 @@
       "filter": {
         "photo": true
       },
-      "count": 353,
+      "count": 381,
       "first": [
         "neon-nights-story",
         "bold-thumbnail-tech",
@@ -163,7 +163,7 @@
           "black"
         ]
       },
-      "count": 150,
+      "count": 174,
       "first": [
         "neon-nights-story",
         "live-jazz-poster",
@@ -192,7 +192,7 @@
           "teal"
         ]
       },
-      "count": 119,
+      "count": 122,
       "first": [
         "cards-elegant-serif",
         "flyers-cleaning-tear-off",
@@ -221,7 +221,7 @@
       "filter": {
         "style": "elegant"
       },
-      "count": 190,
+      "count": 250,
       "first": [
         "animated-reel-1",
         "animated-tiktok-6",
@@ -247,13 +247,37 @@
         "style": "bold",
         "photo": true
       },
-      "count": 28,
+      "count": 36,
       "first": [
         "fitness-insta-post-hero-1-v3",
         "fitness-insta-post-hero-1-v7",
         "fitness-insta-story-centered-2-v3",
         "fitness-insta-story-centered-2-v7",
         "fitness-flyer-letter-hero-3-v3"
+      ]
+    },
+    {
+      "filter": {
+        "occasion": "christmas"
+      },
+      "count": 12,
+      "first": [
+        "christmas-insta-post",
+        "christmas-insta-post-v2",
+        "christmas-insta-story",
+        "christmas-insta-story-v2",
+        "christmas-flyer"
+      ]
+    },
+    {
+      "filter": {
+        "occasion": "diwali",
+        "photo": true
+      },
+      "count": 2,
+      "first": [
+        "diwali-insta-story-v2",
+        "diwali-poster-v2"
       ]
     }
   ]

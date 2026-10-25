@@ -2,6 +2,7 @@
 // palettes, gradients, font pairings, sticker groups and procedural photo
 // specs. The JSON was generated and validated by the Canvia web build.
 
+import CoreGraphics
 import Foundation
 
 struct ShapeDef: Codable, Identifiable {
@@ -89,10 +90,13 @@ struct Template: Codable, Identifiable {
     /// The sound an animated template starts with, as a design's tracks
     /// ("audio"), which a design made from it keeps.
     var audio: [AudioTrack]? = nil
+    /// The occasion it is for — "halloween", an id of Occasions — as round
+    /// 35's seasonal templates carry it; nil for the rest.
+    var occasion: String? = nil
 
     private enum CodingKeys: String, CodingKey {
         case id, name, category, width, height, background, elements, pages, facets
-        case pageAnimation, transition, holdSeconds, topic, variantOf, audio
+        case pageAnimation, transition, holdSeconds, topic, variantOf, audio, occasion
     }
 
     /// Its base and every colourway of it share this: the base's id.
@@ -193,6 +197,22 @@ struct Template: Codable, Identifiable {
         return makePage(spec, scale: scale, dx: dx, dy: dy)
     }
 
+    /// Page `index` of the template (the first when there is no such page)
+    /// laid onto a page of this size as Resize's Smart mode lays a page on
+    /// a new size (DesignStore.smartReflow): a backdrop covers the page,
+    /// bands keep their span, side-by-side content restacks and type stays
+    /// readable — "Add as new page" from the editor's Templates tab, as the
+    /// Android twin's instantiateSmart.
+    func makeSmartPage(at index: Int, width pageWidth: Double, height pageHeight: Double) -> Page {
+        let specs = pageSpecs
+        let spec = specs.indices.contains(index) ? specs[index] : specs[0]
+        let own = makePage(spec, scale: 1, dx: 0, dy: 0)
+        guard width > 0, height > 0 else { return own }
+        return DesignStore.smartReflow(own, from: CGSize(width: width, height: height),
+                                       to: CGSize(width: pageWidth, height: pageHeight),
+                                       heightFor: { FontLibrary.layoutHeight(for: $0) })
+    }
+
     private func makePage(_ spec: TemplatePage, scale: Double, dx: Double, dy: Double) -> Page {
         var page = Page(background: spec.background, notes: spec.notes?.isEmpty == false ? spec.notes : nil)
         page.title = spec.title.flatMap(PageTitles.kept)
@@ -255,6 +275,7 @@ extension Template {
         topic = try? c.decodeIfPresent(String.self, forKey: .topic)
         variantOf = try? c.decodeIfPresent(String.self, forKey: .variantOf)
         audio = try? c.decodeIfPresent([AudioTrack].self, forKey: .audio)
+        occasion = try? c.decodeIfPresent(String.self, forKey: .occasion)
         if let first = listed.first {
             background = first.background
             elements = first.elements
@@ -339,7 +360,7 @@ struct PhotoSpecs: Codable {
     var stripes: [StripeSpec]
 }
 
-struct ContentBundle: Codable {
+struct ContentBundle: Decodable {
     var shapes: [ShapeDef]
     var templates: [Template]
     var palettes: [Palette]
@@ -355,6 +376,11 @@ struct ContentBundle: Codable {
     var uses: [UseCase]?
     /// The Doc templates (Docs), from templates/docs.json.
     var docs: [DocTemplate]?
+    /// The occasions calendar (Occasions), from templates/occasions.json.
+    var occasions: [OccasionSpec]?
+    /// Template search's synonyms (TemplateSearch), from
+    /// templates/search-synonyms.json: {"bday": ["birthday"], …}.
+    var searchSynonyms: [String: [String]]?
 }
 
 enum ContentLibrary {
@@ -465,7 +491,7 @@ enum ContentLibrary {
                                   among library: [Template] = templates) -> [Template] {
         let needle = query.trimmingCharacters(in: .whitespaces)
         return library.filter { t in
-            (category == nil || t.category == category) && facets.admits(t.shownFacets)
+            (category == nil || t.category == category) && facets.admits(template: t)
                 && (needle.isEmpty || t.name.localizedCaseInsensitiveContains(needle)
                     || t.category.localizedCaseInsensitiveContains(needle)
                     || topicWords(t).localizedCaseInsensitiveContains(needle))
@@ -491,17 +517,18 @@ enum ContentLibrary {
 
     /// The editor's Templates tab: those made for this page's size lead,
     /// and every size (fitted to the page) is shown once asked for — or
-    /// from the start when nothing is made for it. Found by name or kind.
-    /// As the Android twin's TemplatesPanel.
+    /// from the start when nothing is made for it. Found as Home finds them
+    /// (TemplateSearch): words, plurals, synonyms, colours and typos, the
+    /// best first, the `recent` ids (RecentSearches.usedTemplates) scoring
+    /// 1 more. As the Android twin's TemplatesPanel.
     static func editorTemplates(width: Double, height: Double, everySize: Bool,
-                                matching query: String) -> [Template] {
+                                matching query: String, recent: Set<String> = []) -> [Template] {
         let exact = sizedTemplates(width: width, height: height, category: nil)
         let pool = everySize || exact.isEmpty ? templates : exact
         let needle = query.trimmingCharacters(in: .whitespaces)
         guard !needle.isEmpty else { return pool }
-        return pool.filter {
-            $0.name.localizedCaseInsensitiveContains(needle) || $0.category.localizedCaseInsensitiveContains(needle)
-        }
+        let ids = Set(pool.map(\.id))
+        return TemplateSearch.remembered(needle, recent: recent).templates.filter { ids.contains($0.id) }
     }
 
     /// The line over the editor's templates: what a tap will do — on a page

@@ -2759,8 +2759,8 @@ private struct ResizeCustomSection: View {
     }
 }
 
-/// Two ways to a new size: resize this design in place — reflowed or
-/// scaled, the whole of it or this page — or Copy & resize, which ticks any
+/// Two ways to a new size: resize this design in place — Smart, Keep
+/// layout or Fit (ResizeMode), the whole of it or this page — or Copy & resize, which ticks any
 /// number of sizes and makes a new design at each, leaving this one alone.
 /// Copy & resize is where it opens when there is anything on the page.
 struct ResizeSheet: View {
@@ -2773,7 +2773,8 @@ struct ResizeSheet: View {
     @State private var customW = ""
     @State private var customH = ""
     @State private var unit = "px"
-    @State private var reflow = true
+    /// Smart, Keep layout or Fit: the last chosen, Smart to begin with.
+    @AppStorage(ResizeMode.key) private var modeKey = ResizeMode.smart.rawValue
     @State private var pageOnly = false
     /// The preset chosen to resize to, by id; nil while the size is the
     /// one typed under Custom. It opens on the page's own size's preset.
@@ -2811,14 +2812,10 @@ struct ResizeSheet: View {
         _landscape = State(initialValue: match.flatMap { $0.w != w ? CustomSizes.isLandscape(width: w, height: h) : nil })
     }
 
+    private var mode: ResizeMode { ResizeMode.of(modeKey) }
+
     private func resize(_ w: Double, _ h: Double, units: UnitChoice) {
-        if pageOnly {
-            store.resizePage(width: w, height: h, reflow: reflow)
-        } else if reflow {
-            store.magicResize(width: w, height: h, units: units)
-        } else {
-            store.resizeDesign(width: w, height: h, units: units)
-        }
+        store.resize(width: w, height: h, mode: mode, pageOnly: pageOnly, units: pageOnly ? nil : units)
     }
 
     var body: some View {
@@ -2858,15 +2855,12 @@ struct ResizeSheet: View {
     @ViewBuilder
     private var resizeRows: some View {
         Section {
-            Picker("How", selection: $reflow) {
-                Text("Reflow").tag(true)
-                Text("Scale").tag(false)
+            Picker("How", selection: $modeKey) {
+                ForEach(ResizeMode.allCases) { Text($0.label).tag($0.rawValue) }
             }
             .pickerStyle(.segmented)
         } footer: {
-            Text(reflow
-                 ? tr("Reflow keeps each element's place on the new page — a footer stays at the foot, a corner logo in its corner — and sizes follow the smaller ratio.")
-                 : tr("Scale shrinks or grows everything uniformly to fit, centred, leaving margins when the shape changes."))
+            Text(mode.explanation)
         }
         if store.design.pages.count > 1 {
             Section {

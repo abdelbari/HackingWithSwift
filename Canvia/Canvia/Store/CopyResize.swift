@@ -88,11 +88,12 @@ enum CopyResize {
         return copy
     }
 
-    /// One copy of `design` at `target`: fresh ids, reflowed, in the
+    /// One copy of `design` at `target`: fresh ids, fitted as Resize's
+    /// Smart mode fits it (DesignStore.smartReflow), in the
     /// target's unit, titled `title`, in the same folder, with a title a
     /// person chose (so it never renames itself), made `now`.
     static func copy(of design: Design, to target: ResizeTarget, title: String, now: Date = Date()) -> Design {
-        var copy = DesignStore.reflowed(freshCopy(of: design), width: target.width, height: target.height)
+        var copy = DesignStore.resized(freshCopy(of: design), width: target.width, height: target.height, mode: .smart)
         copy.unit = target.unit
         copy.dpi = target.dpi
         copy.title = title
