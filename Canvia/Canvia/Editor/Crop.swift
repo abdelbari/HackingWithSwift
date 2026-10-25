@@ -303,10 +303,12 @@ enum Crop {
         if el.type == .image { out.fill = nil }
         out.mask = nil
         out.retouch = nil
-        // The faces retouched on the old picture, and the picture it was
-        // expanded from, go with it, as on the Android twin.
+        // The faces retouched on the old picture, the picture it was
+        // expanded from and the mockup scene it was added from go with it,
+        // as on the Android twin.
         out.retouchFace = nil
         out.expandedFrom = nil
+        out.mockupId = nil
         if let from = el.altTextSource, from == el.src, src != el.src {
             out.altText = nil
             out.altTextSource = nil

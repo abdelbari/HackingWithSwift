@@ -107,6 +107,25 @@ final class PhotoExpandTests: XCTestCase {
         XCTAssertNil(Crop.replaced(expanded, src: "media:c").expandedFrom)
     }
 
+    /// The Android twin's PhotoExpandTest has the same row.
+    func testAltTextDrawnFromThePictureFollowsItSoAReplaceStillDropsIt() throws {
+        var photo = Element.image("media:a")
+        photo.altText = "A dog"
+        photo.altTextSource = "media:a"
+        let plan = try XCTUnwrap(PhotoExpand.plan(100, 100, aspect: 2))
+        let expanded = PhotoExpand.expanded(photo, src: "media:b", original: "media:a", plan: plan, mode: PhotoExpand.blur)
+        XCTAssertEqual(expanded.altTextSource, "media:b")
+        XCTAssertNil(Crop.replaced(expanded, src: "media:c").altText)
+        let back = try XCTUnwrap(PhotoExpand.undone(expanded))
+        XCTAssertEqual(back.altTextSource, "media:a")
+        XCTAssertNil(Crop.replaced(back, src: "media:c").altText)
+        // Typed alt text names no picture, and stays.
+        photo.altTextSource = nil
+        let typed = PhotoExpand.expanded(photo, src: "media:b", original: "media:a", plan: plan, mode: PhotoExpand.blur)
+        XCTAssertNil(typed.altTextSource)
+        XCTAssertEqual(Crop.replaced(typed, src: "media:c").altText, "A dog")
+    }
+
     func testRetouchedFacesMoveWithThePictureTheyAreOn() throws {
         var photo = Element.image("media:a")
         photo.retouchFace = FaceRetouch(amount: 0.5, faces: [FaceRetouch.Face(x: 0, y: 0, w: 0.5, h: 0.5)])

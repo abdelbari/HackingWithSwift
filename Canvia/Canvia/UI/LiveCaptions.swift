@@ -34,6 +34,10 @@ final class LiveCaptioner {
     @ObservationIgnored private var recognizer: SFSpeechRecognizer?
     @ObservationIgnored private var restart: Task<Void, Never>?
     @ObservationIgnored private var running = false
+    /// Stretches in a row that ended in an error other than silence with
+    /// nothing heard: a recogniser that keeps failing is refused, as the
+    /// Android twin refuses one, not asked again four times a second.
+    @ObservationIgnored private var failures = 0
 
     /// Listening in `language` (BCP-47) when the phone recognises it, else
     /// its own; asks for the speech and microphone permissions first.
@@ -41,6 +45,7 @@ final class LiveCaptioner {
         guard !running else { return }
         running = true
         refused = nil
+        failures = 0
         SFSpeechRecognizer.requestAuthorization { status in
             Task { @MainActor [weak self] in
                 guard let self, self.running else { return }
@@ -119,14 +124,20 @@ final class LiveCaptioner {
         task = recognizer.recognitionTask(with: request) { [weak self] result, error in
             let said = result?.bestTranscription.formattedString
             let ended = result?.isFinal == true || error != nil
+            let failed = error.map { !LiveCaptioner.isSilence($0 as NSError) } ?? false
             Task { @MainActor [weak self] in
                 // A task let go of — cancelled as the next began — says no more.
                 guard let self, self.running, self.request === request else { return }
                 if let said, !said.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     self.text = said
                     self.heardAt = Date()
+                    self.failures = 0
                 }
                 guard ended else { return }
+                if failed, self.failures + 1 >= LiveCaptioner.failureLimit {
+                    return self.refuse(tr("Speech recognition is not available right now."))
+                }
+                self.failures = failed ? self.failures + 1 : 0
                 // Silence, a busy recogniser: listen again in a moment.
                 try? await Task.sleep(for: .seconds(LiveCaptionLines.relistenSeconds))
                 if self.request === request { self.again() }
@@ -138,6 +149,17 @@ final class LiveCaptioner {
             guard !Task.isCancelled else { return }
             self?.again()
         }
+    }
+
+    /// Errors in a row, with nothing heard, after which listening stops.
+    nonisolated static let failureLimit = 3
+
+    /// Whether `error` is only silence, or a task let go of: listened for
+    /// again however often it comes, as Android's NO_MATCH and
+    /// SPEECH_TIMEOUT are.
+    nonisolated static func isSilence(_ error: NSError) -> Bool {
+        if error.domain == "kAFAssistantErrorDomain" { return [203, 216, 301, 1110].contains(error.code) }
+        return error.domain == NSCocoaErrorDomain && error.code == NSUserCancelledError
     }
 
     /// The task now going ended, and another begun.
