@@ -101,13 +101,20 @@ enum TextCombos {
         combo.elements.contains { $0.animation != nil || $0.exitAnimation != nil }
     }
 
-    /// How long a tile's loop of `combo` lasts, in seconds: its entrances
-    /// to the last one's end, a second to read it, then its longest exit,
-    /// and two seconds at least — the same on both phones.
+    /// How long a moving tile rests, fully in, before its exits.
+    static let tileRest = 1.0
+
+    /// How long a tile's loop of `combo` lasts, in seconds: the latest
+    /// entrance's end (delay and duration; a loop kind — pulse, wiggle… —
+    /// counts one ElementAnimation.loopPeriod), tileRest, then the longest
+    /// exit (delay and duration). The Android twin's playLength, number for
+    /// number, checked by the same rows in both tests.
     static func loopHold(_ combo: Combo) -> Double {
-        let entrances = combo.elements.compactMap { $0.animation.map { $0.delay + $0.duration } }.max() ?? 0
+        let entrances = combo.elements.compactMap { el in
+            el.animation.map { $0.delay + ($0.loops ? ElementAnimation.loopPeriod : $0.duration) }
+        }.max() ?? 0
         let exits = combo.elements.compactMap { $0.exitAnimation.map { $0.delay + $0.duration } }.max() ?? 0
-        return max(2, entrances + 1 + exits)
+        return entrances + tileRest + exits
     }
 
     static func combo(_ id: String?) -> Combo? {
