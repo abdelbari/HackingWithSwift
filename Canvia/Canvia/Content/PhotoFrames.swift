@@ -129,7 +129,7 @@ enum PhotoFrames {
 
     /// A photo dragged onto a frame and let go: the frame takes its picture,
     /// crop reset as Replace resets it. A photo that is itself a frame or a
-    /// cell swaps — it takes the frame's picture, or is left empty, and goes
+    /// cell swaps — it takes the frame's picture or colour, or is left empty, and goes
     /// back to `home`, where it was before the drag — so a grid's cells trade
     /// pictures; a free photo is used up. nil when there is no such drop to
     /// make, and the drag is an ordinary move.
@@ -144,6 +144,8 @@ enum PhotoFrames {
         out[to] = Crop.replaced(frame, src: photo.src)
         if isFrameLike(photo, among: elements) {
             var back = Crop.replaced(photo, src: isEmpty(frame) ? nil : frame.src)
+            // A colour-filled frame hands its colour back, as Android's twin does.
+            back.fill = colourOf(frame)
             back.x = home.x
             back.y = home.y
             out[from] = back
