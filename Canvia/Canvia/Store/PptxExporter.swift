@@ -62,7 +62,9 @@
 //     ppt/media/mediaN.mp4 on the same count, played and paused by a click
 //     on it (PptxAnimations: videoClick, videoNvPr, timing's clips) — its
 //     rels the poster, then the video, then the media; a clip whose file is
-//     not on the phone is its poster alone
+//     not on the phone, or is in a container PowerPoint cannot play
+//     (videoType), is its poster alone; the part takes its file's
+//     extension, .mp4, .m4v or .mov
 //   • the file holds the fixed parts first, then for each slide its
 //     pictures, the slide and its relationships, then its notes slide and
 //     theirs
@@ -449,8 +451,31 @@ enum PptxExporter {
         case .background: return "image\(number).jpeg"
         case .element: return "image\(number).png"
         case .photo(let src): return "image\(number).\(photos.type(src))"
-        case .clip: return "media\(number).mp4"
+        case .clip(let src): return "media\(number).\(clipExtension(src))"
         }
+    }
+
+    /// The clip containers PowerPoint plays, by extension, with their
+    /// content types — each listed in every deck's [Content_Types].xml.
+    static let videoTypes: [(ext: String, type: String)] = [
+        ("mp4", "video/mp4"), ("m4v", "video/x-m4v"), ("mov", "video/quicktime"),
+    ]
+
+    /// The content type a clip with file extension `ext` goes into a
+    /// PowerPoint as, or nil for one it cannot play (WebM, Matroska, 3GP),
+    /// which goes as its poster alone. The rule the Android twin's
+    /// PptxWriter.videoType keeps.
+    static func videoType(_ ext: String) -> String? {
+        let lower = ext.lowercased()
+        return videoTypes.first { $0.ext == lower }?.type
+    }
+
+    /// The extension of clip `src`'s stored file, lower case — "mp4",
+    /// "mov", "webm" — or "mp4" when it is not on the phone.
+    static func clipExtension(_ src: String) -> String {
+        guard let id = VideoStore.split(src)?.id, let url = VideoStore.url(for: id) else { return "mp4" }
+        let ext = url.pathExtension.lowercased()
+        return ext.isEmpty ? "mp4" : ext
     }
 
     /// The clip `el` shows, unstamped ("video:<id>"), or nil for any other
@@ -1661,7 +1686,6 @@ enum PptxExporter {
             "<Default Extension=\"xml\" ContentType=\"application/xml\"/>",
             "<Default Extension=\"png\" ContentType=\"image/png\"/>",
             "<Default Extension=\"jpeg\" ContentType=\"image/jpeg\"/>",
-            "<Default Extension=\"mp4\" ContentType=\"video/mp4\"/>",
             part("ppt/presentation.xml", "\(main).presentation.main+xml"),
             part("ppt/presProps.xml", "\(main).presProps+xml"),
             part("ppt/viewProps.xml", "\(main).viewProps+xml"),
@@ -1670,6 +1694,9 @@ enum PptxExporter {
             part("ppt/slideMasters/slideMaster1.xml", "\(main).slideMaster+xml"),
             part("ppt/slideLayouts/slideLayout1.xml", "\(main).slideLayout+xml"),
         ]
+        // Each clip container PowerPoint plays, after the pictures' types.
+        let videos = videoTypes.map { "<Default Extension=\"\($0.ext)\" ContentType=\"\($0.type)\"/>" }
+        entries.insert(contentsOf: videos, at: 4)
         if noted.contains(true) {
             entries.append(part("ppt/notesMasters/notesMaster1.xml", "\(main).notesMaster+xml"))
             entries.append(part("ppt/theme/theme2.xml", "application/vnd.openxmlformats-officedocument.theme+xml"))
@@ -1897,7 +1924,10 @@ enum PptxExporter {
             return PhotoFills.stored(src)?.data
         case .clip(let src):
             // The file as it is stored, mapped rather than read whole.
-            guard let id = VideoStore.split(src)?.id, let url = VideoStore.url(for: id) else { return nil }
+            // Only a container PowerPoint plays goes in whole; a WebM,
+            // Matroska or 3GP clip is its poster alone.
+            guard let id = VideoStore.split(src)?.id, let url = VideoStore.url(for: id),
+                  videoType(url.pathExtension) != nil else { return nil }
             return try? Data(contentsOf: url, options: .alwaysMapped)
         case .background:
             let size = design.size(for: page)

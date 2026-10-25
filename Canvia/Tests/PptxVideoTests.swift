@@ -73,4 +73,16 @@ final class PptxVideoTests: XCTestCase {
         XCTAssertTrue(parts.xml.contains("<p:cNvPr id=\"2\" name=\"c\"/><p:cNvPicPr/><p:nvPr/>"), parts.xml)
         XCTAssertFalse(parts.xml.contains("<p:timing>"))
     }
+
+    func testAClipGoesInByItsOwnContainerAndOnePowerPointCannotPlayIsItsPosterAlone() {
+        XCTAssertEqual(PptxExporter.videoType("mp4"), "video/mp4")
+        XCTAssertEqual(PptxExporter.videoType("m4v"), "video/x-m4v")
+        XCTAssertEqual(PptxExporter.videoType("MOV"), "video/quicktime")
+        for other in ["webm", "mkv", "3gp", ""] { XCTAssertNil(PptxExporter.videoType(other), other) }
+        let types = PptxExporter.contentTypes(noted: [false])
+        XCTAssertTrue(types.contains("<Default Extension=\"m4v\" ContentType=\"video/x-m4v\"/>"))
+        XCTAssertTrue(types.contains("<Default Extension=\"mov\" ContentType=\"video/quicktime\"/>"))
+        // A clip whose file is not on the phone is named as an MP4.
+        XCTAssertEqual(PptxExporter.clipExtension("video:not-here"), "mp4")
+    }
 }
