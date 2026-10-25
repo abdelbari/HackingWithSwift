@@ -38,8 +38,13 @@ final class PresentSession {
     var pageMoment: Double { max(0, Date().timeIntervalSince(shownAt)) }
 
     /// Whether a clip is being played by hand, which holds autoplay on the
-    /// page until it is paused.
-    var playingByHand: Bool { Videos.playingByHand(clipOverrides) }
+    /// page until it is paused or, not looping, has played to its end.
+    var playingByHand: Bool {
+        let shown = clips
+        var lengths: [String: Double] = [:]
+        for el in shown { lengths[el.id] = Self.length(of: el) }
+        return Videos.playingByHand(clipOverrides, clips: shown, pageMoment: pageMoment, durations: lengths)
+    }
 
     /// The page's clips as drawn, the front one last.
     var clips: [Element] {
@@ -69,7 +74,7 @@ final class PresentSession {
     /// Whether clip `id` of the page up is moving.
     func clipMoves(_ id: String) -> Bool {
         guard let el = clips.first(where: { $0.id == id }) else { return false }
-        return Videos.moves(el, override: clipOverrides[id])
+        return Videos.moving(el, override: clipOverrides[id], pageMoment: pageMoment, duration: Self.length(of: el))
     }
 
     /// The ids of the elements showing a clip on page `index` — the

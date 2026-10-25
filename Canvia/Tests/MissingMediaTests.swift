@@ -61,7 +61,7 @@ final class MissingMediaTests: XCTestCase {
         el.filter = "noir"
         el.altText = "A dog on a beach"
         el.altTextSource = "media:gone"
-        let out = MissingMedia.replaced(el, src: "media:new")
+        let out = MissingMedia.replaced(el, src: "media:new", gone: ["media:gone"])
         XCTAssertEqual(out.src, "media:new")
         XCTAssertEqual(out.cropScale, 1.6)
         XCTAssertEqual(out.cropX, 0.2)
@@ -70,6 +70,31 @@ final class MissingMediaTests: XCTestCase {
         XCTAssertEqual(out.filter, "noir")
         XCTAssertEqual(out.altText, "A dog on a beach")
         XCTAssertNil(out.altTextSource)
+    }
+
+    func testReplacePutsTheNewPictureWhereTheGoneOneWasAsTheFixtureSays() throws {
+        let f = try fixture()
+        var gone: Set<String> = []
+        _ = MissingMedia.missing(f.design) { file in
+            let here = f.present.contains(file)
+            if !here { gone.insert(file) }
+            return here
+        }
+        let elements = f.design.pages.flatMap(\.elements)
+        let rows = try XCTUnwrap(try SharedFixture.object("missing-media")["replaced"] as? [[String: Any]])
+        XCTAssertEqual(rows.count, 4)
+        for row in rows {
+            let id = try XCTUnwrap(row["elementId"] as? String)
+            let el = try XCTUnwrap(elements.first { $0.id == id })
+            let altText = row["altText"] as? String
+            if altText != nil { XCTAssertNotNil(el.altTextSource, id) }
+            let out = MissingMedia.replaced(el, src: try XCTUnwrap(row["src"] as? String), gone: gone)
+            XCTAssertEqual(out.src, row["elementSrc"] as? String, id)
+            XCTAssertEqual(out.fill?.src, row["fillSrc"] as? String, id)
+            XCTAssertEqual(out.altText, altText, id)
+            XCTAssertNil(out.altTextSource, id)
+            XCTAssertEqual(out.fill?.kind, el.fill?.kind, id)
+        }
     }
 
     func testTheWordsSaid() {

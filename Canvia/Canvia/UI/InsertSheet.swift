@@ -2023,7 +2023,9 @@ struct InsertSheet: View {
         // is, whichever way the new picture arrived.
         if let targetId = replacing ?? store.replaceTargetId {
             store.replaceTargetId = nil
-            if store.element(targetId)?.type == .image {
+            // A photo, or a shape whose fill picture is gone: never a new
+            // photo on the page in its place.
+            if let target = store.element(targetId), target.type == .image || MissingMedia.isMissing(target) {
                 guard store.replacePicture(targetId, with: src) else { return }
                 store.selection = [targetId]
                 store.buzz(.confirm)

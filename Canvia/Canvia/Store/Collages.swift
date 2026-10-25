@@ -16,18 +16,20 @@ extension DesignStore {
     /// photo is locked; false when it could not be done.
     @discardableResult
     func replacePicture(_ id: String, with src: String) -> Bool {
-        guard let photo = element(id), photo.type == .image else { return false }
+        // A photo, or a shape whose fill picture is gone (Replace from its chip).
+        guard let photo = element(id), photo.type == .image || MissingMedia.isMissing(photo) else { return false }
         guard !photo.locked else {
             buzz(.reject)
             announce(tr("This photo is locked. Tap Unlock to replace it."), undoable: false)
             return false
         }
-        let missing = MissingMedia.isMissing(photo)
+        let gone = Set(MissingMedia.sources(of: photo).filter { !MissingMedia.exists($0) })
         applyToPage { page in
             if let i = page.elements.firstIndex(where: { $0.id == id }) {
-                // A picture whose file is gone keeps its look (MissingMedia).
-                page.elements[i] = missing ? MissingMedia.replaced(page.elements[i], src: src)
-                    : Crop.replaced(page.elements[i], src: src)
+                // A picture whose file is gone keeps its look (MissingMedia)
+                // — a shape's fill picture too.
+                page.elements[i] = gone.isEmpty ? Crop.replaced(page.elements[i], src: src)
+                    : MissingMedia.replaced(page.elements[i], src: src, gone: gone)
             }
         }
         return true

@@ -2447,6 +2447,9 @@ private struct PageAnimationRequest: ViewModifier {
                 guard let asked else { return }
                 activeSheet = asked.hasPrefix(AudioTrack.prefix) ? .audio : .clip
             }
+            .onChange(of: store.audioTrackAsked) { _, asked in
+                if asked != nil { activeSheet = .audio }
+            }
             // Every page, asked for from the canvas — a pinch out past the
             // page, VoiceOver's All pages: the page organiser.
             .onChange(of: store.allPagesAsked) { _, _ in activeSheet = .pages }

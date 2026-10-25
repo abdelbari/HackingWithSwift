@@ -102,14 +102,25 @@ enum MissingMedia {
         return track.storedAudioId.map { AudioTrack.src($0) }
     }
 
-    /// `el` with `src` in place of the picture that is gone, everything
-    /// else kept — its crop, frame, filters and alt text — since the
-    /// picture it was fitted to is not there to say otherwise. The alt text
-    /// stays as typed words, no longer tied to the old picture.
-    static func replaced(_ el: Element, src: String) -> Element {
+    /// `el` with `src` in place of its picture that is gone — `gone` holds
+    /// the stored sources (`stored`) missing. The picture its fill holds
+    /// when that is gone and its own is not, the fill's other keys (its
+    /// crop) kept; else its own picture. Everything else is kept — its
+    /// crop, frame, filters and alt text — since the picture it was fitted
+    /// to is not there to say otherwise. The alt text stays as typed words,
+    /// no longer tied to the old picture. The Android twin's
+    /// MissingMedia.replaced, held to missing-media.json.
+    static func replaced(_ el: Element, src: String, gone: Set<String>) -> Element {
         var out = el
-        out.src = src
         if out.altTextSource != nil { out.altTextSource = nil }
+        let ownGone = stored(el.src).map { gone.contains($0) } ?? false
+        let fillFile = el.fill?.kind == "image" ? stored(el.fill?.src) : nil
+        let fillGone = fillFile.map { gone.contains($0) } ?? false
+        if !ownGone, fillGone {
+            out.fill?.src = src
+            return out
+        }
+        out.src = src
         return out
     }
 

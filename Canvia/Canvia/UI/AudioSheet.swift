@@ -40,6 +40,13 @@ struct AudioSheet: View {
 
     private var tracks: [AudioTrack] { store.design.audioTracks }
 
+    /// The track the missing-media line's Show asked for, opened.
+    private func openAskedTrack() {
+        guard let id = store.audioTrackAsked else { return }
+        store.audioTrackAsked = nil
+        if tracks.contains(where: { $0.id == id }) { path = [id] }
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             content
@@ -71,10 +78,13 @@ struct AudioSheet: View {
         // Check accessibility's Add captions on a voice-over: its track,
         // which opens its captions (AudioTrackView).
         .onAppear {
+            openAskedTrack()
             guard let asked = store.captionsAsked, asked.hasPrefix(AudioTrack.prefix) else { return }
             let id = String(asked.dropFirst(AudioTrack.prefix.count))
             if tracks.contains(where: { $0.id == id }) { path = [id] } else { store.captionsAsked = nil }
         }
+        // The missing-media line's Show on a sound: its track.
+        .onChange(of: store.audioTrackAsked) { _, _ in openAskedTrack() }
         .alert("That file isn't music this phone can play", isPresented: $refused) {
             Button("OK", role: .cancel) {}
         }
