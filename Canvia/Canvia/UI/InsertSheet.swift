@@ -783,10 +783,11 @@ struct InsertSheet: View {
     }
 
     /// In the middle of this page — a page may have a size of its own — in
-    /// the brand kit's first colour, or ink that reads on the page, and
-    /// selected: one Undo, as on the Android twin.
+    /// the first colour a chart there would take (the design's, else the
+    /// brand kit's, else the library's), and selected: one Undo, as on the
+    /// Android twin.
     private func addIcon(_ icon: IconDef) {
-        let fill = IconLibrary.fill(for: store.page, brandColours: BrandKit.load().colors)
+        let fill = IconLibrary.fill(for: store.design, page: store.page, brand: BrandKit.load())
         let el = IconLibrary.element(icon, pageWidth: store.pageWidth, pageHeight: store.pageHeight, fill: fill)
         if store.add(el) { ElementSearch.remember(.icon, icon.id) }
         dismiss()
@@ -2096,7 +2097,7 @@ struct InsertSheet: View {
 
     private func iconDrag(_ icon: IconDef) -> LibraryDrag.Carried {
         LibraryDrag.Carried(kind: .icon, src: nil) { point in
-            let fill = IconLibrary.fill(for: store.page, brandColours: BrandKit.load().colors)
+            let fill = IconLibrary.fill(for: store.design, page: store.page, brand: BrandKit.load())
             let el = IconLibrary.element(icon, pageWidth: store.pageWidth, pageHeight: store.pageHeight, fill: fill)
             guard store.add(el) else { return }
             ElementSearch.remember(.icon, icon.id)

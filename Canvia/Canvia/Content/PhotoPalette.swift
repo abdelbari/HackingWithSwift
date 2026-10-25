@@ -99,7 +99,16 @@ enum PhotoPalette {
     /// apart (in 0…255 RGB units, Euclidean) from every colour before it.
     static func extract(from image: UIImage, count: Int = 6,
                         minDistance: Double = 48) -> [String] {
-        guard count > 0, let pixels = samples(of: image) else { return [] }
+        guard let pixels = samples(of: image) else { return [] }
+        return extract(pixels, count: count, minDistance: minDistance)
+    }
+
+    /// The same over `pixels` as RGBA bytes: transparent pixels — alpha
+    /// under `minAlpha` — are no colour the picture has. The Android twin's
+    /// PhotoPalette.extract.
+    static func extract(_ pixels: [UInt8], count: Int = 6, minDistance: Double = 48,
+                        minAlpha: Int = 128) -> [String] {
+        guard count > 0 else { return [] }
 
         // Five bits per channel: 32,768 bins, fine enough to tell a navy from
         // a black and coarse enough that a gradient collapses into a few.
@@ -108,7 +117,7 @@ enum PhotoPalette {
         while i + 3 < pixels.count {
             let a = Int(pixels[i + 3])
             // Transparent pixels are not colours the picture has.
-            if a >= 128 {
+            if a >= minAlpha {
                 let r = Int(pixels[i]), g = Int(pixels[i + 1]), b = Int(pixels[i + 2])
                 let key = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3)
                 var bin = bins[key] ?? (0, 0, 0, 0)
@@ -138,6 +147,79 @@ enum PhotoPalette {
             if farEnough { chosen.append(candidate) }
         }
         return chosen.map { hex($0.0, $0.1, $0.2) }
+    }
+
+    // MARK: a logo's colours
+
+    /// A logo's pixels count from this alpha up: its soft edges are its
+    /// colours too, its clear background is not.
+    static let logoMinAlpha = 32
+
+    /// How much of a logo near-white or near-black must cover to be one of
+    /// its colours rather than its background or its outline: more than
+    /// this share of the pixels that count.
+    static let logoEdgeShare = 0.2
+
+    /// Near-white: every channel at least 235. Near-black: none above 20.
+    static func isNearWhite(_ r: UInt8, _ g: UInt8, _ b: UInt8) -> Bool { min(r, g, b) >= 235 }
+    static func isNearBlack(_ r: UInt8, _ g: UInt8, _ b: UInt8) -> Bool { max(r, g, b) <= 20 }
+
+    /// The brand colours a logo suggests, from its `pixels` as RGBA bytes
+    /// (not premultiplied) — up to `count`, as `extract` ranks them; the
+    /// rule both phones share (Tests/Fixtures/brand_logo_palette.json, the
+    /// Android twin's PhotoPalette.logo): pixels with alpha under
+    /// `logoMinAlpha` are left out; of the rest, near-white ones are left
+    /// out unless they are more than `logoEdgeShare` of them, and so are
+    /// near-black ones, so a white background or a thin black outline does
+    /// not crowd out the brand's own colours, but a black-and-white logo
+    /// keeps them.
+    static func logo(_ pixels: [UInt8], count: Int = 6) -> [String] {
+        var counted: [UInt8] = []
+        var whites = 0, blacks = 0
+        var i = 0
+        while i + 3 < pixels.count {
+            if Int(pixels[i + 3]) >= logoMinAlpha {
+                counted.append(contentsOf: pixels[i...(i + 3)])
+                if isNearWhite(pixels[i], pixels[i + 1], pixels[i + 2]) { whites += 1 }
+                if isNearBlack(pixels[i], pixels[i + 1], pixels[i + 2]) { blacks += 1 }
+            }
+            i += 4
+        }
+        let total = counted.count / 4
+        guard total > 0 else { return [] }
+        let keepWhite = Double(whites) / Double(total) > logoEdgeShare
+        let keepBlack = Double(blacks) / Double(total) > logoEdgeShare
+        var kept: [UInt8] = []
+        i = 0
+        while i + 3 < counted.count {
+            let r = counted[i], g = counted[i + 1], b = counted[i + 2]
+            let dropped = (isNearWhite(r, g, b) && !keepWhite) || (isNearBlack(r, g, b) && !keepBlack)
+            if !dropped { kept.append(contentsOf: counted[i...(i + 3)]) }
+            i += 4
+        }
+        return extract(kept, count: count, minAlpha: logoMinAlpha)
+    }
+
+    /// A logo's colours from its picture, read at 128 pixels on its longer
+    /// side, its colours as they are under their alpha.
+    static func logo(from image: UIImage) -> [String] {
+        guard let pixels = samples(of: image, maxEdge: 128) else { return [] }
+        return logo(unpremultiplied(pixels))
+    }
+
+    /// RGBA bytes whose colours were multiplied by their alpha, as a bitmap
+    /// context draws them, back to the colours themselves.
+    static func unpremultiplied(_ pixels: [UInt8]) -> [UInt8] {
+        var out = pixels
+        var i = 0
+        while i + 3 < out.count {
+            let a = Int(out[i + 3])
+            if a > 0 && a < 255 {
+                for c in i..<(i + 3) { out[c] = UInt8(min(255, (Int(out[c]) * 255 + a / 2) / a)) }
+            }
+            i += 4
+        }
+        return out
     }
 
     /// The picture sampled at 64 pixels on its longer side, as 8-bit RGBA.

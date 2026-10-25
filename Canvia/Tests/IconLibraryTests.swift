@@ -83,7 +83,7 @@ final class IconLibraryTests: XCTestCase {
         let store = DesignStore(design: Design(title: "t", width: 1080, height: 1920))
         let cake = try XCTUnwrap(IconLibrary.icon("cake"))
         store.add(IconLibrary.element(cake, pageWidth: store.pageWidth, pageHeight: store.pageHeight,
-                                      fill: IconLibrary.fill(for: store.page, brandColours: [])))
+                                      fill: IconLibrary.fill(for: store.design, page: store.page, brand: nil)))
         let added = try XCTUnwrap(store.page.elements.last)
         XCTAssertEqual(store.selection, [added.id])
         XCTAssertEqual([added.x, added.y], [460, 880])
@@ -93,12 +93,27 @@ final class IconLibraryTests: XCTestCase {
         XCTAssertFalse(store.canUndo)
     }
 
-    func testAnIconIsFilledInTheBrandKitsFirstColourElseInkThatReadsOnThePage() {
+    /// The first colour a chart would take there (DataGraphics.palette):
+    /// the design's own when it has two, else the kit's, else the
+    /// library's — as the Android twin's IconLibraryTest has it.
+    func testAnIconIsFilledInTheFirstColourAChartWouldTake() {
         let white = Page()
-        let dark = Page(background: .color("#14322a"))
-        XCTAssertEqual(IconLibrary.fill(for: white, brandColours: ["#e94560", "#000000"]), "#e94560")
-        XCTAssertEqual(IconLibrary.fill(for: white, brandColours: []), "#1f2430")
-        XCTAssertEqual(IconLibrary.fill(for: dark, brandColours: []), "#ffffff")
+        var design = Design(title: "t", width: 1080, height: 1080)
+        design.pages = [white]
+        let kit = BrandKit(palettes: [BrandPalette(name: "Primary", colors: ["#e94560", "#000000"])])
+        // The kit's, with no colours of the design's own.
+        XCTAssertEqual(IconLibrary.fill(for: design, page: white, brand: kit), "#e94560")
+        // Else the library's first palette's.
+        XCTAssertEqual(IconLibrary.fill(for: design, page: white, brand: nil), "#1a1a2e")
+        // The design's own when it has two.
+        var coloured = white
+        coloured.elements = ["#0f7b6c", "#f2a541"].map { hex in
+            var el = Element.shape("rect")
+            el.fill = .solid(hex)
+            return el
+        }
+        design.pages = [coloured]
+        XCTAssertEqual(IconLibrary.fill(for: design, page: coloured, brand: kit), "#0f7b6c")
     }
 
     func testTheIconsIdAndPathAreWrittenAsTopLevelKeysAndComeBack() throws {

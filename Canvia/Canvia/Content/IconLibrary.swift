@@ -115,10 +115,12 @@ enum IconLibrary {
         icon(el.iconId)
     }
 
-    /// What an icon is filled with: the brand kit's first colour when the
-    /// kit has one, else ink that reads on the page.
-    static func fill(for page: Page, brandColours: [String]) -> String {
-        brandColours.first ?? DataGraphics.ink(for: page)
+    /// What a new icon is filled with: the first colour of the palette a
+    /// chart on `page` would take (DataGraphics.palette) — the design's
+    /// own, else the `brand` kit's, else the library's — or ink that reads
+    /// on the page should that come out empty. The Android twin's fillFor.
+    static func fill(for design: Design, page: Page, brand: BrandKit?) -> String {
+        DataGraphics.palette(for: design, page: page, brand: brand).first ?? DataGraphics.ink(for: page)
     }
 
     /// `icon` as a shape `side` square in the middle of a page this size,

@@ -59,6 +59,13 @@ struct TableSelection: Equatable {
 
 extension DesignStore {
 
+    /// The colours a new chart or table on the page on screen takes: the
+    /// design's own that show there, else the brand kit's first palette with
+    /// two that show, else the library's (DataGraphics.palette).
+    var newChartPalette: [String] {
+        DataGraphics.palette(for: design, page: page, brand: BrandKit.load())
+    }
+
     /// The table any selected cell belongs to — the first, in page order —
     /// or none when nothing selected is a table's cell.
     var tableSelection: TableSelection? {
@@ -219,7 +226,7 @@ extension DesignStore {
     /// The header row on, in the page's first colour as a new table's is,
     /// or off.
     func setTableHeader(_ on: Bool) {
-        let accent = DataGraphics.palette(for: design, page: page).first ?? "#5a31f4"
+        let accent = newChartPalette.first ?? "#5a31f4"
         let measure = self.measure
         editTable { els, t in
             let styled = DataGraphics.withTableHeader(els, id: t.id, on: on, accent: accent, heightFor: measure)
@@ -427,7 +434,7 @@ extension DesignStore {
     func rebuildTable(rows typed: [[String]], header: Bool? = nil) -> Bool {
         let rows = typed.map { row in row.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) } }
         guard !rows.isEmpty, !rows.allSatisfy(\.isEmpty) else { return false }
-        let accent = DataGraphics.palette(for: design, page: page).first ?? "#5a31f4"
+        let accent = newChartPalette.first ?? "#5a31f4"
         let measure = self.measure
         return editTable { els, t in
             guard let rebuilt = DataGraphics.rebuiltTable(els, id: t.id, rows: rows, heightFor: measure) else { return nil }
@@ -559,7 +566,7 @@ extension DesignStore {
     /// The colours a table design's "accent" and "accent2" stand for here:
     /// the brand kit's, else the design's own (TableDesigns.accents).
     var tableAccents: (String, String) {
-        TableDesigns.accents(brand: BrandKit.load().colors, palette: DataGraphics.palette(for: design, page: page))
+        TableDesigns.accents(brand: BrandKit.load().colors, palette: newChartPalette)
     }
 
     /// The design the selected table was last given, when it was.
@@ -606,7 +613,7 @@ extension DesignStore {
         let w = pageWidth, h = pageHeight
         let frame = given ?? CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(),
                                     height: (h * 0.6).rounded())
-        let accent = DataGraphics.palette(for: design, page: page).first ?? "#5a31f4"
+        let accent = newChartPalette.first ?? "#5a31f4"
         let measure = self.measure
         var made = DataGraphics.table(rows, in: frame, accent: accent, heightFor: measure)
         guard let id = made.lazy.compactMap({ $0.table?.id }).first else { return made }
@@ -625,7 +632,7 @@ extension DesignStore {
         let w = pageWidth, h = pageHeight
         let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(),
                            height: (h * 0.6).rounded())
-        let accent = DataGraphics.palette(for: design, page: page).first ?? "#5a31f4"
+        let accent = newChartPalette.first ?? "#5a31f4"
         var made = ClipboardTable.table(block, in: frame, accent: accent, heightFor: measure)
         guard !made.isEmpty else {
             buzz(.reject)

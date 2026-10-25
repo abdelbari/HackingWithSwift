@@ -80,7 +80,8 @@ extension DesignStore {
                   let paint = Self.chartColour(of: el) else { continue }
             colours[n] = paint
         }
-        let palette = DataGraphics.palette(updating: spec.id, design: design, page: page, colours: colours)
+        let palette = DataGraphics.palette(updating: spec.id, design: design, page: page, colours: colours,
+                                                 brand: BrandKit.load())
         let grouped = members.first(where: { $0.group != nil })
         var made = DataGraphics.chart(spec, in: frame, palette: palette,
                                       ink: DataGraphics.ink(for: page), colours: colours,

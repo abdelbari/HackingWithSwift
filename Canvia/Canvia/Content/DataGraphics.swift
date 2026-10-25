@@ -597,13 +597,15 @@ enum DataGraphics {
         return out
     }
 
-    /// The colours a chart or a table is drawn in: the design's own, counted
-    /// across every page — less the ones that would not show on this page
-    /// (its background, and anything near it) and the faint ones, such as a
-    /// table's hairlines — else the first palette, as far as it shows. The
+    /// The colours a chart, a table or a new icon is drawn in: the design's
+    /// own, counted across every page — less the ones that would not show on
+    /// this page (its background, and anything near it) and the faint ones,
+    /// such as a table's hairlines — when there are two or more; else the
+    /// `brand` kit's first palette with two or more that show, as far as
+    /// they show; else the first library palette, as far as it shows. The
     /// Android twin's `paletteFor`, so the same data comes out in the same
-    /// colours on both phones.
-    static func palette(for design: Design, page: Page) -> [String] {
+    /// colours on both phones (Tests/Fixtures/brand_logo_palette.json).
+    static func palette(for design: Design, page: Page, brand: BrandKit?) -> [String] {
         let background = backgroundColors(of: page).compactMap(rgb)
         func shows(_ hex: String) -> Bool {
             guard let c = rgb(hex), !isFaint(hex) else { return false }
@@ -616,9 +618,22 @@ enum DataGraphics {
             if own.count == 8 { break }
         }
         if own.count >= 2 { return own }
+        for palette in brand?.palettes ?? [] {
+            var shown: [String] = []
+            for hex in palette.colors where shows(hex) {
+                let normal = normalised(hex)
+                if !shown.contains(normal) { shown.append(normal) }
+            }
+            if shown.count >= 2 { return shown }
+        }
         let first = ContentLibrary.palettes.first?.colors ?? ["#5a31f4"]
         let fallback = first.filter(shows)
         return fallback.isEmpty ? first : fallback
+    }
+
+    /// The same with no brand kit: the design's own, else the library's.
+    static func palette(for design: Design, page: Page) -> [String] {
+        palette(for: design, page: page, brand: nil)
     }
 
     /// Label ink that reads on the page: near-black on a light background,
@@ -1486,7 +1501,8 @@ enum DataGraphics {
     /// its own marks and labels are not counted as the design's colours,
     /// then keepingPalette for the colours its series have now (`colours`).
     /// The Android twin's `paletteForUpdate`.
-    static func palette(updating id: String, design: Design, page: Page, colours: [Int: Paint]) -> [String] {
+    static func palette(updating id: String, design: Design, page: Page, colours: [Int: Paint],
+                        brand: BrandKit?) -> [String] {
         func bare(_ p: Page) -> Page {
             var out = p
             out.elements.removeAll { $0.chart?.id == id }
@@ -1494,7 +1510,7 @@ enum DataGraphics {
         }
         var without = design
         without.pages = design.pages.map { $0.id == page.id ? bare($0) : $0 }
-        return keepingPalette(palette(for: without, page: bare(page)), colours: colours)
+        return keepingPalette(palette(for: without, page: bare(page), brand: brand), colours: colours)
     }
 
     /// `palette` laid out for a chart whose series have `colours` (by
