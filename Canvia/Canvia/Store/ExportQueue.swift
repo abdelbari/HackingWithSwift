@@ -398,6 +398,8 @@ final class ExportQueue {
                 } else {
                     let kept = failure(job, kind: kind)
                     failedExports = ExportFailure.kept(failedExports, kept)
+                    // Why it failed is the design's last export (Details).
+                    DesignFacts.rememberFailedExport(job.designId, failure: kept.failure)
                     finished.append(Finished(id: job.id, label: job.label, designId: job.designId,
                                              result: Result(failed: kept.message)))
                     if host.isAway() {

@@ -48,16 +48,20 @@ struct DesignFacts: Equatable {
     }
 
     /// A design's last export on this phone: when, in epoch milliseconds,
-    /// and its type — "png", "pdf", "mp4", "print"…
+    /// and its type — "png", "pdf", "mp4", "print"… — and, when it failed,
+    /// why (ExportFailure.Failure, kept under "failure").
     struct LastExport: Equatable {
         var at: Int64
         var type: String
+        var failure: ExportFailure.Failure? = nil
     }
 
     // MARK: the last export
 
     /// Where each design's last export is kept on this phone, by id, as the
-    /// Android twin keeps it: `{"<designId>": {"at": ms, "type": "png"}}`.
+    /// Android twin keeps it: `{"<designId>": {"at": ms, "type": "png"}}`,
+    /// one that failed with `"failure": {"kind": "noSpace", "designIds":
+    /// ["<designId>"]}` after its type.
     static let lastExportsKey = "lastExports"
 
     /// The most designs whose last export is kept: the oldest go first.
@@ -72,9 +76,18 @@ struct DesignFacts: Equatable {
         for (id, value) in object {
             guard let entry = value as? [String: Any], let at = entry["at"] as? NSNumber,
                   CFGetTypeID(at) != CFBooleanGetTypeID(), let type = entry["type"] as? String else { continue }
-            out[id] = LastExport(at: at.int64Value, type: type)
+            out[id] = LastExport(at: at.int64Value, type: type, failure: keptFailure(entry["failure"]))
         }
         return out
+    }
+
+    /// A kept failure, read leniently as ExportFailure.Failure reads it: a
+    /// kind unknown is other, ids not words are left out; none without a
+    /// kind in words.
+    private static func keptFailure(_ value: Any?) -> ExportFailure.Failure? {
+        guard let object = value as? [String: Any], let kind = object["kind"] as? String else { return nil }
+        let ids = (object["designIds"] as? [Any])?.compactMap { $0 as? String } ?? []
+        return ExportFailure.Failure(kind: ExportFailure.Reason.of(kind), designIds: ids)
     }
 
     /// The exports as the preference keeps them: ids in order, each "at"
@@ -82,9 +95,16 @@ struct DesignFacts: Equatable {
     static func encodeLastExports(_ exports: [String: LastExport]) -> String {
         let entries = exports.keys.sorted().map { id -> String in
             let e = exports[id]!
-            return "\(quoted(id)):{\"at\":\(e.at),\"type\":\(quoted(e.type))}"
+            return "\(quoted(id)):{\"at\":\(e.at),\"type\":\(quoted(e.type))\(failureField(e.failure))}"
         }
         return "{" + entries.joined(separator: ",") + "}"
+    }
+
+    /// `,"failure":{"kind":"noSpace","designIds":["d1"]}`, or nothing.
+    private static func failureField(_ failure: ExportFailure.Failure?) -> String {
+        guard let failure else { return "" }
+        let ids = failure.designIds.map { quoted($0) }.joined(separator: ",")
+        return ",\"failure\":{\"kind\":\(quoted(failure.kind.rawValue)),\"designIds\":[\(ids)]}"
     }
 
     /// `text` as a JSON string.
@@ -103,6 +123,15 @@ struct DesignFacts: Equatable {
         return Dictionary(uniqueKeysWithValues: kept.map { ($0.key, $0.value) })
     }
 
+    /// `exports` with design `designId`'s export at `at` failed as
+    /// `failure`: kept as its last export, with the type it had before
+    /// (none: ""), as the Android twin keeps it. A later export that works
+    /// replaces it.
+    static func failedExport(_ exports: [String: LastExport], designId: String,
+                             failure: ExportFailure.Failure, at: Int64) -> [String: LastExport] {
+        exported(exports, designId: designId, LastExport(at: at, type: exports[designId]?.type ?? "", failure: failure))
+    }
+
     /// The type an export is said as: "PNG", "MP4", "Print".
     static func exportType(_ type: String) -> String {
         type == "print" ? tr("Print") : type.uppercased()
@@ -118,6 +147,15 @@ struct DesignFacts: Equatable {
                                _ defaults: UserDefaults = .standard) {
         let export = LastExport(at: Int64((now.timeIntervalSince1970 * 1000).rounded()), type: type)
         defaults.set(encodeLastExports(exported(lastExports(defaults), designId: designId, export)),
+                     forKey: lastExportsKey)
+    }
+
+    /// Design `designId`'s export failed as `failure`, now: kept as its last
+    /// export (failedExport).
+    static func rememberFailedExport(_ designId: String, failure: ExportFailure.Failure, now: Date = Date(),
+                                     _ defaults: UserDefaults = .standard) {
+        let at = Int64((now.timeIntervalSince1970 * 1000).rounded())
+        defaults.set(encodeLastExports(failedExport(lastExports(defaults), designId: designId, failure: failure, at: at)),
                      forKey: lastExportsKey)
     }
 

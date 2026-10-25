@@ -18,20 +18,23 @@ struct ExportPill: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        // An export running, then a clip being made light, then the last
-        // export that failed (ExportFailure.pillShows, the Android twin's
-        // order), then what there is to say.
+        // An export running, then a clip being made light, then what there
+        // is to say, then the last export that failed (ExportFailure.pillShows,
+        // the Android twin's order for running, optimising and failed). The
+        // note sits above a kept failure on iOS only — Android says its notes
+        // in the export sheet and editor, not the pill — so a later export's
+        // note is seen; it goes by itself and the failure comes back.
         Group {
             if let job = queue.current {
                 running(job)
             } else if let clip = ClipOptimiser.shared.running {
                 optimising(clip)
-            } else if let failed = queue.failedExports.first {
-                // Nothing running: the last export that failed, kept to try
-                // again.
-                FailedExportRow(entry: failed, onStorage: onStorage)
             } else if let note = queue.note {
                 said(note)
+            } else if let failed = queue.failedExports.first {
+                // Nothing running or said: the last export that failed, kept
+                // to try again.
+                FailedExportRow(entry: failed, onStorage: onStorage)
             }
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: queue.current?.id)

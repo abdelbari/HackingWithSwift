@@ -12,5 +12,7 @@
  {"today": "2026-09-20", "locale": "en-US", "expected": [], "days": []},
  {"today": "2026-09-20", "locale": "en-CA", "expected": ["thanksgiving"], "days": [22]},
  {"today": "2026-10-31", "locale": "en-US", "expected": ["halloween", "diwali", "thanksgiving", "black-friday", "christmas"], "days": [0, 8, 26, 27, 55]},
+ {"today": "2033-12-10", "locale": "en-US", "expected": ["eid", "christmas", "new-year"], "days": [12, 15, 22]},
+ {"today": "2033-01-01", "locale": "en-US", "expected": ["new-year", "eid", "lunar-new-year"], "days": [0, 1, 30]},
  {"today": "2035-12-30", "locale": "en-US", "expected": ["new-year"], "days": [2]}
 ]

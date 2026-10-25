@@ -664,7 +664,9 @@ struct HomeView: View {
     private var shownTemplates: [Template] {
         let found: [Template]
         if let searched = templateSearch {
-            found = searched.templates.filter { templateCategory == nil || $0.category == templateCategory }
+            // A search looks through every category, as on Android: the
+            // category chips are hidden while searching (templatesStack).
+            found = searched.templates
         } else {
             found = ContentLibrary.filteredTemplates(in: templateCategory, matching: "", facets: templateFilter)
         }
@@ -2029,7 +2031,10 @@ struct HomeView: View {
             .padding(.horizontal)
             TemplateFilterChips(filter: $filterSession.filter)
                 .padding(.horizontal)
-            templateCategoryChips
+            // Hidden while searching, which looks through every category.
+            if searchedFor.isEmpty {
+                templateCategoryChips
+            }
             // The templates used lately lead the templates, under All.
             if showsRecentTemplates {
                 RecentTemplatesRow(templates: recentTemplates) { previewing = $0 }
@@ -2038,17 +2043,19 @@ struct HomeView: View {
             if let corrected = templateSearch?.correctedTo {
                 CorrectedSearch(corrected: corrected, typed: query) { searchAsTyped = query }
             }
-            if templateCategory == nil {
+            // A search shows your own that match, whatever chip was picked, as
+            // on Android: it looks through every category and your own.
+            if templateCategory == nil || !searchedFor.isEmpty {
                 BrandTemplatesRow(kit: brandKit, entries: shownUserTemplates, tileWidth: 160,
                                   titleFont: .headline, inset: 16) { userTemplateCard($0) }
             }
-            if templateCategory == nil && !otherUserTemplates.isEmpty {
+            if (templateCategory == nil || !searchedFor.isEmpty) && !otherUserTemplates.isEmpty {
                 Text(UserTemplates.sectionTitle)
                     .font(.headline)
                     .padding(.horizontal)
                 userTemplatesGrid
             }
-            if yoursOnly {
+            if yoursOnly && searchedFor.isEmpty {
                 if shownUserTemplates.isEmpty {
                     Text("None of your templates matches “\(query)”.")
                         .foregroundStyle(.secondary)

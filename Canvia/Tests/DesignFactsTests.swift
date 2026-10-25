@@ -110,6 +110,31 @@ final class DesignFactsTests: XCTestCase {
         XCTAssertNil(many["d5"])
     }
 
+    /// One that failed is kept with why, after its type and with the type
+    /// it had before — the Android twin's DesignFactsTest row.
+    func testAFailedExportIsKeptWithWhyItFailedAsTheAndroidTwinKeepsIt() throws {
+        let before = ["d1": DesignFacts.LastExport(at: 100, type: "png")]
+        let failed = DesignFacts.failedExport(before, designId: "d1",
+                                              failure: ExportFailure.Failure(kind: .noSpace, designIds: ["d1"]), at: 300)
+        let text = DesignFacts.encodeLastExports(failed)
+        XCTAssertEqual(text, #"{"d1":{"at":300,"type":"png","failure":{"kind":"noSpace","designIds":["d1"]}}}"#)
+        XCTAssertEqual(DesignFacts.decodeLastExports(text), failed)
+        let first = DesignFacts.failedExport([:], designId: "d2",
+                                             failure: ExportFailure.Failure(kind: .codec, designIds: ["d2"]), at: 5)
+        XCTAssertEqual(DesignFacts.encodeLastExports(first), #"{"d2":{"at":5,"type":"","failure":{"kind":"codec","designIds":["d2"]}}}"#)
+        // A later export that works replaces it.
+        let later = DesignFacts.exported(failed, designId: "d1", DesignFacts.LastExport(at: 400, type: "pdf"))
+        XCTAssertNil(try XCTUnwrap(later["d1"]).failure)
+        // Read leniently: a kind unknown is other, an id not words left out,
+        // a failure not an object none.
+        let read = DesignFacts.decodeLastExports(
+            #"{"a":{"at":1,"type":"pdf","failure":{"kind":"lost","designIds":["x",3]}},"b":{"at":2,"type":"png","failure":"no"}}"#)
+        XCTAssertEqual(read, [
+            "a": DesignFacts.LastExport(at: 1, type: "pdf", failure: ExportFailure.Failure(kind: .other, designIds: ["x"])),
+            "b": DesignFacts.LastExport(at: 2, type: "png"),
+        ])
+    }
+
     func testAnExportIsRememberedUnderTheSharedKey() throws {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: "DesignFactsTests"))
         defaults.removePersistentDomain(forName: "DesignFactsTests")

@@ -218,11 +218,12 @@ struct EditorView: View {
             // An export running in the app's queue, just above the toolbar
             // and beside the insert button — out of the way of the pen's,
             // the eraser's and the crop's bars: a tap opens the sheet on its
-            // progress.
+            // progress. A failure for want of space has its way to Settings,
+            // whose Storage clears caches.
             .overlay(alignment: .bottomLeading) {
                 if store.drawing == nil && store.erasing == nil && !cropMode && store.brushing == nil
                     && store.motionRecording == nil {
-                    ExportPill { activeSheet = .export }
+                    ExportPill(onTap: { activeSheet = .export }, onStorage: { activeSheet = .settings })
                         .padding(.trailing, 72)
                         .padding(.bottom, 26)
                 }

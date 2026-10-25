@@ -78,7 +78,9 @@ struct DesignDetailsSheet: View {
     /// "PNG, 3 days ago", or "Not exported yet".
     private var lastExport: String {
         guard let last = DesignFacts.lastExports()[store.design.id] else { return tr("Not exported yet") }
-        return tr("%@, %@", DesignFacts.exportType(last.type), RelativeTime.text(ms: Double(last.at)))
+        // One that failed says so, not its type.
+        let what = last.failure == nil ? DesignFacts.exportType(last.type) : ExportChoices.failedTitle
+        return tr("%@, %@", what, RelativeTime.text(ms: Double(last.at)))
     }
 
     /// "3 days ago · 21 Oct 2026": when, as Home's cards say it, then the
