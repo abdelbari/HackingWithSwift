@@ -2031,7 +2031,7 @@ struct HomeView: View {
             TemplateFilterChips(filter: $filterSession.filter)
                 .padding(.horizontal)
             // Hidden while searching, which looks through every category.
-            if query.trimmingCharacters(in: .whitespaces).isEmpty {
+            if searchedFor.isEmpty {
                 templateCategoryChips
             }
             // The templates used lately lead the templates, under All.
@@ -2042,17 +2042,19 @@ struct HomeView: View {
             if let corrected = templateSearch?.correctedTo {
                 CorrectedSearch(corrected: corrected, typed: query) { searchAsTyped = query }
             }
-            if templateCategory == nil {
+            // A search shows your own that match, whatever chip was picked, as
+            // on Android: it looks through every category and your own.
+            if templateCategory == nil || !searchedFor.isEmpty {
                 BrandTemplatesRow(kit: brandKit, entries: shownUserTemplates, tileWidth: 160,
                                   titleFont: .headline, inset: 16) { userTemplateCard($0) }
             }
-            if templateCategory == nil && !otherUserTemplates.isEmpty {
+            if (templateCategory == nil || !searchedFor.isEmpty) && !otherUserTemplates.isEmpty {
                 Text(UserTemplates.sectionTitle)
                     .font(.headline)
                     .padding(.horizontal)
                 userTemplatesGrid
             }
-            if yoursOnly {
+            if yoursOnly && searchedFor.isEmpty {
                 if shownUserTemplates.isEmpty {
                     Text("None of your templates matches “\(query)”.")
                         .foregroundStyle(.secondary)
