@@ -1,0 +1,32 @@
+{
+  "about": "Modifier keys while dragging, on both phones (Android Gestures.modified, iPhone CanvasGestures.modified): what the keys held on a hardware keyboard do to a drag. modified: Shift locks a move to an axis and turns in 15 degree steps; Ctrl or Command turns snapping off and, without Shift, frees a turn (step 0) - Shift's steps are a constraint, not a snap; Alt or Option at the start duplicates. axis: the axis a Shift-move keeps to, chosen once the move has gone axisLockTravel (dp on Android, points on the iPhone) on the screen - dx, dy in page units times zoom - the longer way, across (horizontal) on a tie; held stays while Shift does; none without Shift. turns: a turn on a step, landing on it within half the step, or within 4 degrees of the 45 degree steps; step 0 leaves it.",
+  "axisLockTravel": 6,
+  "modified": [
+    {"shift": false, "alt": false, "command": false, "axisLock": false, "rotateStep": 45, "snapOff": false, "duplicate": false},
+    {"shift": false, "alt": false, "command": true, "axisLock": false, "rotateStep": 0, "snapOff": true, "duplicate": false},
+    {"shift": false, "alt": true, "command": false, "axisLock": false, "rotateStep": 45, "snapOff": false, "duplicate": true},
+    {"shift": false, "alt": true, "command": true, "axisLock": false, "rotateStep": 0, "snapOff": true, "duplicate": true},
+    {"shift": true, "alt": false, "command": false, "axisLock": true, "rotateStep": 15, "snapOff": false, "duplicate": false},
+    {"shift": true, "alt": false, "command": true, "axisLock": true, "rotateStep": 15, "snapOff": true, "duplicate": false},
+    {"shift": true, "alt": true, "command": false, "axisLock": true, "rotateStep": 15, "snapOff": false, "duplicate": true},
+    {"shift": true, "alt": true, "command": true, "axisLock": true, "rotateStep": 15, "snapOff": true, "duplicate": true}
+  ],
+  "axis": [
+    {"dx": 3, "dy": 2, "zoom": 1, "held": null, "shift": true, "axis": null},
+    {"dx": 6, "dy": 2, "zoom": 1, "held": null, "shift": true, "axis": "horizontal"},
+    {"dx": 2, "dy": -7, "zoom": 1, "held": null, "shift": true, "axis": "vertical"},
+    {"dx": 5, "dy": 5, "zoom": 1, "held": null, "shift": true, "axis": "horizontal"},
+    {"dx": 20, "dy": 1, "zoom": 1, "held": "vertical", "shift": true, "axis": "vertical"},
+    {"dx": 20, "dy": 1, "zoom": 1, "held": "horizontal", "shift": false, "axis": null},
+    {"dx": 4, "dy": 0, "zoom": 2, "held": null, "shift": true, "axis": "horizontal"},
+    {"dx": 4, "dy": 0, "zoom": 1, "held": null, "shift": true, "axis": null}
+  ],
+  "turns": [
+    {"degrees": 37, "step": 15, "turned": 30},
+    {"degrees": 38, "step": 15, "turned": 45},
+    {"degrees": 359, "step": 15, "turned": 0},
+    {"degrees": 47, "step": 45, "turned": 45},
+    {"degrees": 50, "step": 45, "turned": 50},
+    {"degrees": 50, "step": 0, "turned": 50}
+  ]
+}

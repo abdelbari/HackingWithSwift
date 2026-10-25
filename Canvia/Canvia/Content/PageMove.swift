@@ -123,6 +123,23 @@ enum PageOrder {
         case later = "Move page later"
         case start = "Move to start"
         case end = "Move to end"
+
+        /// The page menus' name for the move — the page header's More and
+        /// ⌥⇧↑ and ⌥⇧↓ — as the Android twin's menus name it.
+        var menuTitle: String {
+            switch self {
+            case .earlier: return tr("Move page up")
+            case .later: return tr("Move page down")
+            case .start: return tr("Move to start")
+            case .end: return tr("Move to end")
+            }
+        }
+    }
+
+    /// What is said once page `from` (1-based) has moved to `to`: "Page 4
+    /// moved to 3".
+    static func movedNote(from: Int, to: Int) -> String {
+        tr("Page %d moved to %d", from, to)
     }
 
     /// The gap `step` moves page `index` of `count` to; nil when it is

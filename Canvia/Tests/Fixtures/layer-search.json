@@ -1,0 +1,43 @@
+{
+  "about": "LayerSearch.matches on both phones, in English. The query, trimmed, is looked for anywhere - case and accents aside - in one of: the element's Layers name (its own from Rename, else ElementNames'), all of its words (a text's or a shape's), or one of the English words for its kind (text; photo, and video for a clip; shape; line; sticker; chart for a chart's part; table for a table's cell; icon; graphic for a library graphic or a sticker; group); an empty query matches everything. kinds are the chips picked, by their English names - Text (not a chart's part), Photos and videos, Shapes and lines (not a graphic), Graphics (a sticker, a chart's part, a library icon or graphic), Groups, Hidden, Locked (either lock): none passes every element; several pass an element that is any one of them. elements are the iPhone's JSON, read on Android as a design from the iPhone. ids: what matches, in page order (back to front).",
+  "elements": [
+    {"id": "t1", "type": "text", "x": 80, "y": 80, "w": 900, "h": 120, "text": "Summer Café opening times and all the posted hours", "fontSize": 42},
+    {"id": "p1", "type": "image", "x": 80, "y": 300, "w": 400, "h": 300, "src": "asset:missing"},
+    {"id": "v1", "type": "image", "x": 500, "y": 300, "w": 300, "h": 200, "src": "video:clip1"},
+    {"id": "s1", "type": "shape", "x": 600, "y": 300, "w": 200, "h": 200, "shapeId": "rect", "fill": {"kind": "solid", "color": "#e53935"}},
+    {"id": "l1", "type": "line", "x": 80, "y": 700, "w": 800, "h": 4, "color": "#000000"},
+    {"id": "n1", "type": "shape", "x": 600, "y": 800, "w": 200, "h": 200, "shapeId": "rect", "fill": {"kind": "solid", "color": "#1e88e5"}, "layerName": "Logo badge"},
+    {"id": "h1", "type": "text", "x": 80, "y": 900, "w": 300, "h": 60, "text": "Secret", "fontSize": 30, "hidden": true},
+    {"id": "k1", "type": "sticker", "x": 900, "y": 900, "w": 100, "h": 100, "glyph": "⭐", "locked": true},
+    {"id": "m1", "type": "shape", "x": 300, "y": 1100, "w": 200, "h": 200, "shapeId": "rect", "fill": {"kind": "solid", "color": "#43a047"}, "lockPosition": true},
+    {"id": "g1a", "type": "text", "x": 80, "y": 1000, "w": 300, "h": 60, "text": "Price", "fontSize": 30, "group": "grp1"},
+    {"id": "g1b", "type": "text", "x": 80, "y": 1080, "w": 300, "h": 60, "text": "Twelve pounds", "fontSize": 30, "group": "grp1"}
+  ],
+  "rows": [
+    {"query": "cafe", "kinds": [], "ids": ["t1"]},
+    {"query": "HOURS", "kinds": [], "ids": ["t1"]},
+    {"query": "  café ", "kinds": [], "ids": ["t1"]},
+    {"query": "photo", "kinds": [], "ids": ["p1", "v1"]},
+    {"query": "video", "kinds": [], "ids": ["v1"]},
+    {"query": "line", "kinds": [], "ids": ["l1"]},
+    {"query": "shape", "kinds": [], "ids": ["s1", "n1", "m1"]},
+    {"query": "badge", "kinds": [], "ids": ["n1"]},
+    {"query": "group", "kinds": [], "ids": ["g1a", "g1b"]},
+    {"query": "sticker", "kinds": [], "ids": ["k1"]},
+    {"query": "graphic", "kinds": [], "ids": ["k1"]},
+    {"query": "text price", "kinds": [], "ids": []},
+    {"query": "twelve pounds", "kinds": [], "ids": ["g1b"]},
+    {"query": "", "kinds": [], "ids": ["t1", "p1", "v1", "s1", "l1", "n1", "h1", "k1", "m1", "g1a", "g1b"]},
+    {"query": "", "kinds": ["Text"], "ids": ["t1", "h1", "g1a", "g1b"]},
+    {"query": "", "kinds": ["Photos and videos"], "ids": ["p1", "v1"]},
+    {"query": "", "kinds": ["Shapes and lines"], "ids": ["s1", "l1", "n1", "m1"]},
+    {"query": "", "kinds": ["Graphics"], "ids": ["k1"]},
+    {"query": "", "kinds": ["Groups"], "ids": ["g1a", "g1b"]},
+    {"query": "", "kinds": ["Hidden"], "ids": ["h1"]},
+    {"query": "", "kinds": ["Locked"], "ids": ["k1", "m1"]},
+    {"query": "", "kinds": ["Hidden", "Locked"], "ids": ["h1", "k1", "m1"]},
+    {"query": "price", "kinds": ["Text", "Hidden"], "ids": ["g1a"]},
+    {"query": "twelve", "kinds": ["Groups"], "ids": ["g1b"]},
+    {"query": "zzz", "kinds": [], "ids": []}
+  ]
+}

@@ -173,8 +173,9 @@ struct HomeView: View {
     @State private var exporting: Design?
     /// A design whose card's Mockups is up.
     @State private var mockingUp: Design?
-    /// The design presented from its card.
+    /// The design presented from its card, and the page it starts on.
     @State private var presenting: Design?
+    @State private var presentStart = 0
     /// The design whose card's Details is up, as saved.
     @State private var detailing: Design?
     /// Present and record from a card: the studio, then the talks.
@@ -214,7 +215,8 @@ struct HomeView: View {
             .background { deckPicker }
             .background { designFilePicker }
             .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened,
-                                  mockingUp: $mockingUp, open: { create($0) }, changed: { reload() }))
+                                  mockingUp: $mockingUp, presentStart: presentStart,
+                                  open: { create($0) }, changed: { reload() }))
             .modifier(HomeDetails(detailing: $detailing, showUploads: {
                 uploadsFolder = nil
                 homeSheet = .uploads
@@ -1585,8 +1587,17 @@ struct HomeView: View {
             withDesign(recent.id) { mockingUp = $0 }
         } label: { Label("Mockups", systemImage: "iphone") }
         Button {
-            withDesign(recent.id) { presenting = $0 }
+            withDesign(recent.id) { design in
+                presentStart = 0
+                presenting = design
+            }
         } label: { Label("Present", systemImage: "play.rectangle") }
+        // Kept where it was left past its first page (LastPlace).
+        if recent.pages > 1, LastPlace.place(for: recent.id) != nil {
+            Button {
+                withDesign(recent.id) { presentWhereLeft($0) }
+            } label: { Label(LastPlace.presentTitle, systemImage: "play.rectangle.on.rectangle") }
+        }
         Button {
             withDesign(recent.id) { talkRecording = $0 }
         } label: { Label("Present and record", systemImage: "record.circle") }
@@ -1598,6 +1609,16 @@ struct HomeView: View {
         Button {
             withDesign(recent.id) { detailing = $0 }
         } label: { Label("Details", systemImage: "info.circle") }
+    }
+
+    /// Present from the page `design` was left on — the next shown page
+    /// when that one is hidden (PresentFrom.startPage); a Doc from its
+    /// start, as its pages are laid out afresh.
+    private func presentWhereLeft(_ design: Design) {
+        let left = LastPlace.pageIndex(design, place: LastPlace.place(for: design.id))
+        presentStart = Docs.isDoc(design) ? 0
+            : PresentFrom.startPage(design, choice: PresentFrom.current, pageIndex: left) ?? 0
+        presenting = design
     }
 
     /// Design `id` read from its file off the main thread, then `use`d;

@@ -1,0 +1,14 @@
+{
+  "about": "The page a design opens on where it was left (LastPlace.pageIndex), on both phones. pages: the design's page ids in order, hidden: those hidden, left: the page id kept, opens: the page index it opens on - that page when it is there and shown; when it is hidden, the nearest shown page before it, else the nearest after it, else (every page hidden) the page itself; when it is gone, the first shown page, else the first.",
+  "rows": [
+    {"pages": ["a", "b", "c", "d"], "hidden": [], "left": "c", "opens": 2},
+    {"pages": ["a", "b", "c", "d"], "hidden": ["c"], "left": "c", "opens": 1},
+    {"pages": ["a", "b", "c", "d"], "hidden": ["b", "c"], "left": "c", "opens": 0},
+    {"pages": ["a", "b"], "hidden": ["a"], "left": "a", "opens": 1},
+    {"pages": ["a", "b", "c"], "hidden": ["a", "b"], "left": "b", "opens": 2},
+    {"pages": ["a", "b"], "hidden": ["a", "b"], "left": "b", "opens": 1},
+    {"pages": ["a", "b", "c"], "hidden": [], "left": "gone", "opens": 0},
+    {"pages": ["a", "b", "c"], "hidden": ["a"], "left": "gone", "opens": 1},
+    {"pages": ["a", "b"], "hidden": ["a", "b"], "left": "gone", "opens": 0}
+  ]
+}

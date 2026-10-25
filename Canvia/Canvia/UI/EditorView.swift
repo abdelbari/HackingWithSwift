@@ -398,6 +398,8 @@ struct EditorView: View {
             closeRename()
             saveNow()
         }
+        // Opened where it was left, and the place kept as it goes.
+        .modifier(KeepsPlace(store: store))
         // The design being edited, for Siri suggestions and Handoff.
         .userActivity(DesignActivity.type, element: store.design.id) { _, activity in
             DesignActivity.configure(activity, design: store.design)
@@ -559,6 +561,9 @@ struct EditorView: View {
             }
             shortcut("m", [.option, .shift], tr("Align middle")) { store.alignSelected(.centerY) }
             shortcut("b", [.option, .shift], tr("Align bottom")) { store.alignSelected(.bottom) }
+            // ⌥⇧↑ and ⌥⇧↓ move this page, as its menu's Move page up and down.
+            shortcut(.upArrow, [.option, .shift], tr("Move page up")) { store.moveCurrentPage(.earlier) }
+            shortcut(.downArrow, [.option, .shift], tr("Move page down")) { store.moveCurrentPage(.later) }
             // ⌘2 frames what is selected; ⌘0 fits the page again.
             shortcut("2", [.command], tr("Zoom to selection")) { store.zoomToSelection() }
         }
@@ -634,6 +639,38 @@ struct EditorView: View {
         } else {
             presentItem(tr("Present"), choice: nil, ticked: false)
         }
+        // Where this design was last left, past its first page (LastPlace),
+        // as on the Android twin.
+        if let left = leftOffPage {
+            Button {
+                store.finishCrop()
+                store.endTextEdit()
+                present(at: left)
+            } label: {
+                Label(LastPlace.presentTitle, systemImage: "play.rectangle.on.rectangle")
+            }
+            .disabled(everyPageHidden)
+        }
+    }
+
+    /// The page Present from where I left off starts on, past the first
+    /// page; nil when it is not offered.
+    private var leftOffPage: Int? {
+        let place = LastPlace.place(for: store.design.id)
+        guard LastPlace.offersPresent(store.design, place: place) else { return nil }
+        return LastPlace.pageIndex(store.design, place: place)
+    }
+
+    /// Present from page `index` — the next shown page when it is hidden
+    /// (PresentFrom.startPage) — leaving the kept From choice as it is.
+    private func present(at index: Int) {
+        guard !everyPageHidden else {
+            store.announce(PageVisibility.everyPageHidden, undoable: false)
+            return
+        }
+        store.drawing = nil
+        presentStart = PresentFrom.startPage(store.design, choice: PresentFrom.current, pageIndex: index) ?? index
+        presenting = true
     }
 
     private func presentItem(_ title: String, choice: String?, ticked: Bool) -> some View {

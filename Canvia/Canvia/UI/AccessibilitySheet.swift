@@ -181,6 +181,7 @@ struct AccessibilitySheet: View {
         case .colourVision: return "eye"
         case .captions: return "captions.bubble"
         case .missingLetters: return "character.textbox"
+        case .safeZone: return "rectangle.inset.filled"
         }
     }
 
@@ -207,7 +208,7 @@ struct AccessibilitySheet: View {
             // On its page, the clip selected; the editor opens its captions.
             store.reveal(elementId: f.elementId, onPage: f.pageIndex)
             store.captionsAsked = f.source
-        case .fixColour, .makeIt12, .fixHeadingLevel, .makeHeading:
+        case .fixColour, .makeIt12, .fixHeadingLevel, .makeHeading, .moveInside:
             let next = AccessibilityAudit.fixed(store.design, f)
             guard next != store.design else { return }
             store.apply { $0 = next }

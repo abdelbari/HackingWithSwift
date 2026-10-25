@@ -258,6 +258,15 @@ struct CanvasView: View {
         var bandClamped = false
         /// What a finger in crop mode is working, from when it lands.
         var crop: CropTouch?
+        /// The axis a move with Shift held keeps to, once chosen
+        /// (CanvasGestures.lockedAxis).
+        var lockAxis: CanvasGestures.Axis?
+        /// Whether ⌥ at the start of this move copied the selection, so the
+        /// move ends as a Duplicate step however far it went.
+        var duplicated = false
+        /// The step a turn with Shift last landed on, to tick as it reaches
+        /// each new one.
+        var turnStep: Double?
         /// A crop-mode pinch's magnification when last applied.
         var cropPinch = 1.0
         /// The page in the column a move is over, other than its own: let
@@ -658,6 +667,10 @@ struct CanvasView: View {
                 if store.snapping.showGrid { gridOverlay }
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
                 if let split = store.page.split { seamsOverlay(split) }
+                // Where the platform's buttons and captions cover a story.
+                if let zone = SafeZones.shown(store.design, page: shownPage) {
+                    SafeZoneLayer(zone: zone, size: store.design.size(for: shownPage), unit: iz)
+                }
                 ForEach(Guides.shown(store.design)) { guide in guideLine(guide) }
                 if store.showsReadingOrder { readingOrderOverlay }
                 if underlineLinks { LinkUnderlines(design: store.design, page: shownPage) }
@@ -2193,6 +2206,10 @@ struct CanvasView: View {
                 if store.selectingMultiple { store.tapInSelectMultiple(el.id) } else { store.select(el.id) }
             }
             store.beginGesture()
+            // ⌥ as the drag starts: a copy, in place and on top, is what moves.
+            if !typing && ModifierKeys.shared.modified.duplicate {
+                gesture.duplicated = store.duplicateForDrag()
+            }
             gesture.dragOriginals = Dictionary(
                 uniqueKeysWithValues: store.selectedElements
                     .filter { !$0.holdsPlace }
@@ -2221,8 +2238,13 @@ struct CanvasView: View {
                 gesture.framePhoto = id
             }
         }
-        var dx = location.x - start.x
-        var dy = location.y - start.y
+        let keys = ModifierKeys.shared.modified
+        // Shift keeps the move to the axis it has mostly gone along.
+        gesture.lockAxis = CanvasGestures.lockedAxis(dx: location.x - start.x, dy: location.y - start.y,
+                                                     zoom: store.zoom, held: gesture.lockAxis, shift: keys.axisLock)
+        let kept = CanvasGestures.constrained(dx: location.x - start.x, dy: location.y - start.y, to: gesture.lockAxis)
+        var dx = CGFloat(kept.dx)
+        var dy = CGFloat(kept.dy)
         var gapX: Double?
         var gapY: Double?
 
@@ -2232,10 +2254,14 @@ struct CanvasView: View {
         // centre, which moves with it, so translating an element
         // translates its bounding box, and the union of translated
         // boxes is the translated union.
-        if !gesture.dragUnion.isEmpty {
+        // ⌘ held, nothing snaps for now (snapOff): no guides, no marks.
+        if keys.snapOff {
+            clearSnapMarks()
+        } else if !gesture.dragUnion.isEmpty {
             let moved = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
             let snap = Geometry.snap(box: moved,
-                                     xLines: gesture.snapX, yLines: gesture.snapY,
+                                     xLines: gesture.lockAxis == .vertical ? [] : gesture.snapX,
+                                     yLines: gesture.lockAxis == .horizontal ? [] : gesture.snapY,
                                      threshold: 6 / store.zoom)
             dx += snap.dx
             dy += snap.dy
@@ -2251,8 +2277,8 @@ struct CanvasView: View {
             // so the two never pull the box between them.
             if store.snapping.toElements {
                 let spacing = evenSpacing(gesture.dragUnion.offsetBy(dx: dx, dy: dy),
-                                          freeX: snap.guideX == nil || sourceX == .grid,
-                                          freeY: snap.guideY == nil || sourceY == .grid)
+                                          freeX: (snap.guideX == nil || sourceX == .grid) && gesture.lockAxis != .vertical,
+                                          freeY: (snap.guideY == nil || sourceY == .grid) && gesture.lockAxis != .horizontal)
                 gapX = spacing.gapX
                 gapY = spacing.gapY
                 dx += spacing.dx
@@ -2356,7 +2382,8 @@ struct CanvasView: View {
         // a tap that wandered, not an edit: it must not enter history,
         // or undo fills up with steps that changed nothing.
         let moved = hypot(location.x - start.x, location.y - start.y) * store.zoom
-        if gesture.dragActive && moved >= Touch.tapSlop {
+        // A copy made by ⌥ is kept, as a Duplicate step, wherever it lands.
+        if gesture.dragActive && (moved >= Touch.tapSlop || gesture.duplicated) {
             // Let go over a frame, the photo goes into it — the move
             // and the drop one step; over another page in the column,
             // it goes there, one step too; anywhere else it is a move.
@@ -2518,7 +2545,9 @@ struct CanvasView: View {
         }
         guard let original = gesture.resizeOriginal else { return }
         if trimPhoto(original, handle: handle, to: location) { return }
-        let proportional = original.type != .line && handle.isCorner
+        // Shift on a text box's or a shape's corner frees its proportions.
+        let shift = ModifierKeys.shared.flags.contains(.shift)
+        let proportional = handle.isCorner && CanvasGestures.cornerKeepsProportions(original, shift: shift)
         let minSize = original.type == .text ? 12.0 : 8.0
         let lined = snapped(Geometry.resize(original, handle: handle, to: location,
                                             proportional: proportional, minSize: minSize),
@@ -2530,7 +2559,7 @@ struct CanvasView: View {
             switch el.type {
             case .text:
                 el.y = next.minY
-                if handle.isCorner {
+                if handle.isCorner && proportional {
                     // The type scales with the box, and its tracking with it,
                     // so a spaced-out headline keeps its proportions — the
                     // size to one decimal place, as it is typed, but free
@@ -2613,6 +2642,11 @@ struct CanvasView: View {
     /// edges do not run along the lines.
     private func snapped(_ box: CGRect, original: Element, handle: Handle,
                          proportional: Bool, minSize: Double) -> CGRect {
+        // ⌘ held: no snap for now.
+        if ModifierKeys.shared.modified.snapOff {
+            clearSnapMarks()
+            return box
+        }
         let snap = Geometry.snapTurnedResize(box, rotation: original.rotation, handle: handle,
                                              xLines: gesture.snapX, yLines: gesture.snapY,
                                              threshold: 6 / store.zoom, proportional: proportional,
@@ -2637,7 +2671,7 @@ struct CanvasView: View {
             let spaced = !marks.isEmpty
             if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
         }
-        guard !gesture.sizeSiblings.isEmpty, Geometry.matchesSizes(original),
+        guard !gesture.sizeSiblings.isEmpty, Geometry.matchesSizes(original), !ModifierKeys.shared.modified.snapOff,
               !(proportional && (store.guideX != nil || store.guideY != nil)) else { return box }
         // A side a line holds stays on it.
         let sideX = store.guideX == nil ? handle.unit.x : 0.5
@@ -2748,7 +2782,7 @@ struct CanvasView: View {
             return
         }
         let free = delta
-        delta = Geometry.snapAngle(delta, step: 45, threshold: 4)
+        delta = steppedTurn(delta)
         store.rotationSnapped = delta != free
         store.replaceTransient(Geometry.rotate(gesture.groupOriginals, around: center,
                                                by: (delta * 10).rounded() / 10))
@@ -2761,7 +2795,7 @@ struct CanvasView: View {
     /// with them.
     private func groupTurnDrag(_ delta: Double, from start: Double, around center: CGPoint) {
         let free = Groups.normalisedTurn(start + delta)
-        let snapped = Geometry.snapAngle(free, step: 45, threshold: 4)
+        let snapped = steppedTurn(free)
         store.rotationSnapped = snapped != free
         let turn = Groups.normalisedTurn((snapped * 10).rounded() / 10)
         let turned = Geometry.rotate(gesture.groupOriginals, around: center, by: turn - start).map { el in
@@ -2790,11 +2824,38 @@ struct CanvasView: View {
         var angle = Geometry.angle(from: center, to: location) - gesture.rotateOffset
         angle = (angle.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
         let raw = angle
-        angle = Geometry.snapAngle(angle, step: 45, threshold: 4)
+        angle = steppedTurn(angle)
         store.rotationSnapped = angle != raw
         store.updateSelectedTransient { $0.rotation = (angle * 10).rounded() / 10 }
         // The digits turn guide-coloured while the angle is held on a snap.
         store.setBadge(Readouts.angle(angle, snapped: store.rotationSnapped))
+    }
+
+    /// No guide, spacing or size mark shown: what a drag with ⌘ held
+    /// (CanvasGestures.Modified.snapOff) leaves, frame by frame.
+    private func clearSnapMarks() {
+        if store.guideX != nil { store.guideX = nil }
+        if store.guideY != nil { store.guideY = nil }
+        if store.guideXSource != nil { store.guideXSource = nil }
+        if store.guideYSource != nil { store.guideYSource = nil }
+        if store.spacingSnapped { store.spacingSnapped = false }
+        if !store.gapMarks.isEmpty { store.gapMarks = [] }
+        if !store.sizeMarks.isEmpty { store.sizeMarks = [] }
+    }
+
+    /// A turn of `degrees` on the step the keys held give it
+    /// (CanvasGestures.Modified.rotateStep) — 45° as ever, 15° with Shift,
+    /// free with ⌘ — with a tick as a Shift turn reaches each new step.
+    private func steppedTurn(_ degrees: Double) -> Double {
+        let step = ModifierKeys.shared.modified.rotateStep
+        let turned = CanvasGestures.steppedAngle(degrees, step: step)
+        if step == 15 {
+            if let last = gesture.turnStep, last != turned { store.buzz(.tick) }
+            gesture.turnStep = turned
+        } else {
+            gesture.turnStep = nil
+        }
+        return turned
     }
 
     private func clearTransient() {
