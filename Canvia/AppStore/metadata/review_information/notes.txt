@@ -1,0 +1,11 @@
+Canvia needs no account and has no sign-in, so no demo account is required.
+
+Everything happens on the device: the app makes no network requests, and designs, photos and fonts are stored only in the app's container. To try it, tap a template on Home, edit it in the editor, then tap Share and choose Export.
+
+Permissions are asked for only when a feature needs them:
+- Camera: when you take a photo or video for a design, or scan a document.
+- Microphone and Speech Recognition: when you dictate text, record a voice-over or turn on live captions while presenting.
+- Photo library (add only): when you save an exported design with "Save to photos".
+- Notifications: to say an export that carried on in the background is ready, and for reminders about planned posts.
+
+Present mode can show slides on an external display (AirPlay, HDMI or USB-C) with presenter notes on the phone.
