@@ -1,0 +1,141 @@
+name: Canvia App Store screenshots
+
+# Captures the App Store screenshots in simulators and commits them back to
+# the branch it ran on, under Canvia/AppStore/screenshots/:
+#
+#   preview - every shot and candidate in shots.json, small, under preview/,
+#             to choose from.
+#   final   - the shots in shots.json at full size, framed under their
+#             captions by compose.py, under iphone-6.9/ and ipad-13/ - the
+#             two sizes App Store Connect requires (1320x2868, 2064x2752).
+#
+# Committed rather than only uploaded as an artifact because artifact storage
+# is not reachable from every environment that reviews them. The commit says
+# [skip ci], so it does not start a build of its own.
+#
+# Runs by hand (Actions tab, once this file is on the default branch) or on a
+# push that changes shots.json, in the mode that file names.
+on:
+  push:
+    paths: [ 'Canvia/AppStore/screenshots/shots.json' ]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preview (small, every candidate) or final (full size, framed)"
+        type: choice
+        options: [preview, final]
+        default: preview
+      locale:
+        description: "Caption language from shots.json (final only)"
+        type: string
+        default: en-US
+
+permissions:
+  contents: write
+
+env:
+  MODE: ${{ inputs.mode || '' }}
+  LOCALE: ${{ inputs.locale || 'en-US' }}
+
+jobs:
+  shots:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mode
+        run: |
+          [ -n "$MODE" ] || MODE=$(python3 -c "import json;print(json.load(open('Canvia/AppStore/screenshots/shots.json')).get('mode','preview'))")
+          echo "MODE=$MODE" >> "$GITHUB_ENV"
+          echo "mode: $MODE, captions: $LOCALE"
+
+      - name: Select Xcode
+        run: |
+          PICK=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          sudo xcode-select -s "$PICK"
+          xcodebuild -version
+
+      # Debug, because the launch arguments that open a template exist only
+      # in Debug builds (CanviaApp.storeForLaunchArguments).
+      - name: Build for the simulator
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Canvia/Canvia.xcodeproj -scheme Canvia -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO > build.log 2>&1 \
+            || { grep -E '(error|fatal error):' build.log | sort -u | head -40; tail -30 build.log; exit 1; }
+
+      - name: Install Pillow
+        run: python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+
+      - name: Capture
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/Canvia.app
+          RUNTIME=$(xcrun simctl list runtimes available | grep -E '^iOS 26' | tail -1 | sed -E 's/.* - (com\.apple[^ ]+).*/\1/')
+          [ -n "$RUNTIME" ] || { xcrun simctl list runtimes; exit 1; }
+          IPAD=$(xcrun simctl list devicetypes | grep -E '^iPad Pro 13-inch' | tail -1 | sed -E 's/ \(com\.apple.*//')
+          echo "runtime $RUNTIME, iPad type: $IPAD"
+
+          python3 - > shotlist.txt <<'PY'
+          import json, os
+          c = json.load(open("Canvia/AppStore/screenshots/shots.json"))
+          shots = c["shots"] + (c.get("candidates", []) if os.environ["MODE"] == "preview" else [])
+          for s in shots:
+              print(s["id"], s.get("appearance", "light"), s.get("wait", 10), " ".join(s["args"]))
+          PY
+          cat shotlist.txt
+
+          capture() {   # capture <folder> <device type>
+            DEV=$(xcrun simctl create "shots-$1" "$2" "$RUNTIME")
+            xcrun simctl boot "$DEV"; xcrun simctl bootstatus "$DEV" -b > /dev/null
+            # The status bar Apple's own screenshots show.
+            xcrun simctl status_bar "$DEV" override --time "9:41" --dataNetwork wifi --wifiMode active \
+              --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+            xcrun simctl install "$DEV" "$APP"
+            mkdir -p "raw/$1"
+            while read -r id look wait args; do
+              xcrun simctl terminate "$DEV" com.canvia.app 2>/dev/null || true
+              xcrun simctl ui "$DEV" appearance "$look"
+              xcrun simctl launch "$DEV" com.canvia.app $args > /dev/null
+              sleep "$wait"
+              xcrun simctl io "$DEV" screenshot "raw/$1/$id.png" > /dev/null
+              echo "$1/$id $(sips -g pixelWidth -g pixelHeight "raw/$1/$id.png" | awk '/pixel/{printf "%s ", $2}')"
+            done < shotlist.txt
+            xcrun simctl shutdown "$DEV"
+          }
+          capture iphone-6.9 "iPhone 17 Pro Max"
+          capture ipad-13 "$IPAD"
+
+      - name: Write the images
+        run: |
+          OUT=Canvia/AppStore/screenshots
+          if [ "$MODE" = preview ]; then
+            rm -rf "$OUT/preview"
+            for d in iphone-6.9 ipad-13; do
+              mkdir -p "$OUT/preview/$d"
+              for f in raw/$d/*.png; do
+                sips -Z 700 -s format jpeg -s formatOptions 70 "$f" --out "$OUT/preview/$d/$(basename "$f" .png).jpg" > /dev/null
+              done
+            done
+          else
+            rm -rf "$OUT/preview"
+            for d in iphone-6.9 ipad-13; do
+              rm -rf "$OUT/$LOCALE/$d"
+              python3 "$OUT/compose.py" "raw/$d" "$OUT/$LOCALE/$d" "$LOCALE"
+            done
+          fi
+          find "$OUT" -name '*.jpg' | sort
+
+      - name: Commit back to the branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A Canvia/AppStore/screenshots
+          git diff --cached --quiet && { echo "nothing changed"; exit 0; }
+          git commit -q -m "Canvia: App Store screenshots ($MODE) [skip ci]"
+          for i in 1 2 3; do
+            git pull -q --rebase origin "$GITHUB_REF_NAME" && git push -q origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep 5
+          done
+          exit 1
