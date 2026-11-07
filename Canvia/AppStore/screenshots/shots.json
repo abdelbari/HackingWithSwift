@@ -1,22 +1,163 @@
 {
-  "mode": "preview",
+  "mode": "final",
   "about": "The App Store screenshots, in the order they are shown. Each shot launches the Debug build in a simulator with the given launch arguments (see CanviaApp: -canviaSkipTour, -canviaOpenTemplate <index into Content.json templates>), waits, and captures the screen; compose.py then frames it under its caption. 'candidates' are only captured in a preview run, to choose from.",
   "shots": [
-    { "id": "01-home",      "args": ["-canviaSkipTour"],              "appearance": "light", "wait": 8,  "caption": { "en-US": "Design anything,\nright on your phone" } },
-    { "id": "02-poster",    "args": ["-canviaOpenTemplate", "4"],     "appearance": "light", "wait": 12, "caption": { "en-US": "Start from\n1,000+ templates" } },
-    { "id": "03-invite",    "args": ["-canviaOpenTemplate", "7"],     "appearance": "light", "wait": 12, "caption": { "en-US": "Make it yours with\nfonts, colours and effects" } },
-    { "id": "04-deck",      "args": ["-canviaOpenTemplate", "2"],     "appearance": "light", "wait": 12, "caption": { "en-US": "Presentations,\ncharts and tables" } },
-    { "id": "05-social",    "args": ["-canviaOpenTemplate", "0"],     "appearance": "light", "wait": 12, "caption": { "en-US": "Posts and stories\nsized for every app" } },
-    { "id": "06-dark",      "args": ["-canviaSkipTour"],              "appearance": "dark",  "wait": 8,  "caption": { "en-US": "Private by design:\nyour work stays on your device" } }
+    {
+      "id": "01-home",
+      "args": [
+        "-canviaSkipTour"
+      ],
+      "appearance": "light",
+      "wait": 8,
+      "caption": {
+        "en-US": "Design anything,\nright on your phone"
+      }
+    },
+    {
+      "id": "02-poster",
+      "args": [
+        "-canviaOpenTemplate",
+        "4"
+      ],
+      "appearance": "light",
+      "wait": 12,
+      "caption": {
+        "en-US": "Start from\n1,000+ templates"
+      }
+    },
+    {
+      "id": "03-market",
+      "args": [
+        "-canviaOpenTemplate",
+        "39"
+      ],
+      "appearance": "light",
+      "wait": 12,
+      "caption": {
+        "en-US": "Bold posters and flyers\nin minutes"
+      }
+    },
+    {
+      "id": "04-invite",
+      "args": [
+        "-canviaOpenTemplate",
+        "7"
+      ],
+      "appearance": "light",
+      "wait": 12,
+      "caption": {
+        "en-US": "Invitations with\nbeautiful typography"
+      }
+    },
+    {
+      "id": "05-menu",
+      "args": [
+        "-canviaOpenTemplate",
+        "14"
+      ],
+      "appearance": "light",
+      "wait": 12,
+      "caption": {
+        "en-US": "Menus, résumés and\nprint-ready PDFs"
+      }
+    },
+    {
+      "id": "06-social",
+      "args": [
+        "-canviaOpenTemplate",
+        "0"
+      ],
+      "appearance": "light",
+      "wait": 12,
+      "caption": {
+        "en-US": "Posts and stories\nsized for every app"
+      }
+    },
+    {
+      "id": "07-neon",
+      "args": [
+        "-canviaOpenTemplate",
+        "36"
+      ],
+      "appearance": "dark",
+      "wait": 12,
+      "caption": {
+        "en-US": "Private by design:\nyour work stays on your device"
+      }
+    }
   ],
   "candidates": [
-    { "id": "c-menu",     "args": ["-canviaOpenTemplate", "14"], "appearance": "light", "wait": 12 },
-    { "id": "c-quote",    "args": ["-canviaOpenTemplate", "6"],  "appearance": "light", "wait": 12 },
-    { "id": "c-resume",   "args": ["-canviaOpenTemplate", "12"], "appearance": "light", "wait": 12 },
-    { "id": "c-coffee",   "args": ["-canviaOpenTemplate", "21"], "appearance": "light", "wait": 12 },
-    { "id": "c-neon",     "args": ["-canviaOpenTemplate", "36"], "appearance": "dark",  "wait": 12 },
-    { "id": "c-market",   "args": ["-canviaOpenTemplate", "39"], "appearance": "light", "wait": 12 },
-    { "id": "c-cinema",   "args": ["-canviaOpenTemplate", "46"], "appearance": "light", "wait": 12 },
-    { "id": "c-team",     "args": ["-canviaOpenTemplate", "54"], "appearance": "light", "wait": 12 }
+    {
+      "id": "c-menu",
+      "args": [
+        "-canviaOpenTemplate",
+        "14"
+      ],
+      "appearance": "light",
+      "wait": 12
+    },
+    {
+      "id": "c-quote",
+      "args": [
+        "-canviaOpenTemplate",
+        "6"
+      ],
+      "appearance": "light",
+      "wait": 12
+    },
+    {
+      "id": "c-resume",
+      "args": [
+        "-canviaOpenTemplate",
+        "12"
+      ],
+      "appearance": "light",
+      "wait": 12
+    },
+    {
+      "id": "c-coffee",
+      "args": [
+        "-canviaOpenTemplate",
+        "21"
+      ],
+      "appearance": "light",
+      "wait": 12
+    },
+    {
+      "id": "c-neon",
+      "args": [
+        "-canviaOpenTemplate",
+        "36"
+      ],
+      "appearance": "dark",
+      "wait": 12
+    },
+    {
+      "id": "c-market",
+      "args": [
+        "-canviaOpenTemplate",
+        "39"
+      ],
+      "appearance": "light",
+      "wait": 12
+    },
+    {
+      "id": "c-cinema",
+      "args": [
+        "-canviaOpenTemplate",
+        "46"
+      ],
+      "appearance": "light",
+      "wait": 12
+    },
+    {
+      "id": "c-team",
+      "args": [
+        "-canviaOpenTemplate",
+        "54"
+      ],
+      "appearance": "light",
+      "wait": 12
+    }
   ]
 }
