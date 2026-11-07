@@ -93,6 +93,11 @@ jobs:
             xcrun simctl status_bar "$DEV" override --time "9:41" --dataNetwork wifi --wifiMode active \
               --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
             xcrun simctl install "$DEV" "$APP"
+            # A fresh simulator posts its own notifications in the first
+            # minute or so ("Ready for Apple Intelligence"); let them come
+            # and go before anything is captured.
+            xcrun simctl launch "$DEV" com.canvia.app -canviaSkipTour > /dev/null
+            sleep 75
             mkdir -p "raw/$1"
             while read -r id look wait args; do
               xcrun simctl terminate "$DEV" com.canvia.app 2>/dev/null || true
